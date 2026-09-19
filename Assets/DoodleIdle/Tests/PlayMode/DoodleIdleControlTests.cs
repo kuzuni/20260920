@@ -35,7 +35,7 @@ namespace DoodleIdle.Tests
                 Assert.That(Vector2.Distance(position, muzzle.position), Is.LessThan(.001f));
                 Assert.That(direction.magnitude, Is.EqualTo(1).Within(.001f));
             };
-            yield return PhysicsTicks(5);
+            yield return PhysicsTicks(3); // Sample the flash/recoil immediately after the first shot.
             Assert.That(game.OrbitBulletsLaunched, Is.EqualTo(1));
             Assert.That(NamedArt("Orbit gun muzzle flash").Length, Is.GreaterThan(0));
             Assert.That(DOTween.IsTweening(gun.transform), Is.True);
@@ -78,6 +78,11 @@ namespace DoodleIdle.Tests
             IsolateSummonTest(); game.autoPlay = true; game.moveSpeed = 3;
             Assert.That(Application.targetFrameRate, Is.EqualTo(60));
             Assert.That(QualitySettings.vSyncCount, Is.Zero);
+            var originalBackground = InputSystem.settings.backgroundBehavior;
+            var originalEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            // CI has no user-focused Game view. Route synthetic devices into the game explicitly.
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             var mouse = InputSystem.AddDevice<Mouse>();
             Touchscreen touch = null;
             try
@@ -85,7 +90,8 @@ namespace DoodleIdle.Tests
                 Vector2 center = new Vector2(Screen.width * .5f, Screen.height * .5f);
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = center, buttons = 1 });
                 yield return null; yield return null;
-                Assert.That(game.JoystickActive, Is.True);
+                Object.Destroy(CaptureFrame("24-joystick-start.png", 1440, 900));
+                Assert.That(game.JoystickActive, Is.True, "Synthetic mouse enabled=" + mouse.enabled + ", pressed=" + mouse.leftButton.isPressed + ", current=" + Pointer.current);
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = center + Vector2.right * 140, buttons = 1 });
                 yield return null; yield return PhysicsTicks(4);
                 Assert.That(PlayerBody().linearVelocity.x, Is.GreaterThan(2.5f));
@@ -120,6 +126,8 @@ namespace DoodleIdle.Tests
             {
                 if (touch != null) InputSystem.RemoveDevice(touch);
                 InputSystem.RemoveDevice(mouse);
+                InputSystem.settings.backgroundBehavior = originalBackground;
+                InputSystem.settings.editorInputBehaviorInPlayMode = originalEditorInput;
             }
         }
     }
