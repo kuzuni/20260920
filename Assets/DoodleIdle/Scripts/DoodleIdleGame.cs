@@ -234,7 +234,7 @@ namespace DoodleIdle
             var collider = root.AddComponent<CircleCollider2D>();
             collider.radius = isPlayer ? .61f : .56f;
             collider.sharedMaterial = frictionless;
-            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.43f), new Vector2(1.15f, .42f), -900);
+            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.58f), new Vector2(1.15f, .42f), -900);
             shadow.color = new Color(.08f, .07f, .06f, .32f);
             shadow.transform.SetParent(root.transform, true);
             var art = Visual("Generated head sprite", sprites[isPlayer ? 0 : kind + 1], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));

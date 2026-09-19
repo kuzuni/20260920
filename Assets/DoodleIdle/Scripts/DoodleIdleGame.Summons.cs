@@ -396,6 +396,11 @@ namespace DoodleIdle
                     }
                     if (!part.enabled) old = position;
                     part.enabled = visible; part.transform.position = position;
+                    if (dragon && p == 0)
+                    {
+                        var mouthTarget = InRange(position, 5);
+                        part.transform.rotation = Aim(mouthTarget == null ? snake.direction : (mouthTarget.Position - position).normalized);
+                    }
                     float size = (dragon ? .7f : .47f) * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
                     part.transform.localScale = Vector3.one * size;
                     if (tether) part.color = new Color(.8f, .91f, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
@@ -425,7 +430,8 @@ namespace DoodleIdle
                         for (int f = -1; f <= 1; f++)
                         {
                             Vector2 direction = Direction(Mathf.Atan2(aim.y, aim.x) + f * .18f);
-                            AddMoving(SummonSkill.Dragon, skillArt[2], mouth + aim * .35f, direction, .65f, 7.5f, .85f, 12, .72f); DragonFlames++;
+                            Vector2 lip = mouth + (Vector2)(Aim(aim) * new Vector3(.34f, -.14f, 0));
+                            AddMoving(SummonSkill.Dragon, skillArt[2], lip, direction, .65f, 7.5f, .85f, 12, .72f); DragonFlames++;
                         }
                     }
                 }
