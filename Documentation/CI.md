@@ -32,7 +32,7 @@ GameCI 공식 안내: https://game.ci/docs/github/activation/ 및 https://game.c
 14. 5방향 뱀의 순차 등장, 추적 뱀의 플레이어 연결/다단히트/사망 후 재추적, 검의 사거리 제한.
 15. 탱탱볼/불꽃/모래/번개 잔상, 검정 사망 흔적의 투명도와 만료, 그림자 및 일시정지/초기화.
 16. 드래곤 날개 2컷과 입에서 발사되는 불꽃, 빨간 검기 2컷과 실제 이동 속도.
-17. `08-summons-landscape`, `09-summons-portrait`, `10-dragon-animation-next-frame`, `11-area-skills` 실제 서버 렌더링 캡처. 전체 자동 전투에서는 20개 스킬의 발동과 명중을 함께 확인합니다.
+17. `08-summons-landscape`, `09-summons-portrait`, `10-dragon-animation-next-frame`, `11-area-skills` 실제 서버 렌더링 캡처. 전체 자동 전투에서는 22개 스킬의 발동과 명중을 함께 확인합니다.
 
 ## CLI 방식도 가능
 
@@ -51,3 +51,5 @@ GitHub 서버가 아니라 화면 없는 로컬 검증을 원할 경우 Unity Te
 
 - 대포 좌우 포구 발사점과 첫 포탄 위치, 실제 DOTween 반동/복귀/일시정지/리셋 검사 및 15-cannon-bounce-right, 16-cannon-bounce-left 캡처.
 - 플레이어와 버섯/박쥐/악마의 실제 이동 중 2컷 전환, 프레임별 텍스처 바인딩, 일시정지와 플레이어 정지 시 원본 복귀 검사. 17-movement-frame-a, 18-movement-frame-b 캡처.
+
+- 추가 검증: 손잡이 피벗과 손 위치 고정, 수호검 휘두르기, 고양이 로봇 드론 2컷, 확대 숫자/오이, 짧은 금화 수명, 화염병 포물선과 실제 불 파티클/다단히트/종료, 음파의 빈 중앙과 1회 타격. 서버 캡처 19~22번을 출력합니다.

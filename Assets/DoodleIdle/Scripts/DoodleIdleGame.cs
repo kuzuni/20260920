@@ -134,7 +134,8 @@ namespace DoodleIdle
                         if (pixels[y * texture.width + x].a > 32)
                         { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y); }
                 if (minX > maxX) throw new InvalidOperationException("Empty generated sprite cell: " + i);
-                result[i] = Sprite.Create(texture, new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1), new Vector2(.5f, .5f), Mathf.Max(maxX - minX + 1, maxY - minY + 1));
+                Vector2 pivot = i == 4 ? new Vector2(.15f, .12f) : Vector2.one * .5f;
+                result[i] = Sprite.Create(texture, new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1), pivot, Mathf.Max(maxX - minX + 1, maxY - minY + 1));
                 if (i == 0) result[i].name = "PlayerWalkA";
             }
             return result;
@@ -297,10 +298,8 @@ namespace DoodleIdle
             UpdateFlecks(dt);
             UpdateExtraVisuals(dt);
             swing = Mathf.MoveTowards(swing, 0, dt * 5);
-            weapon.localPosition = new Vector3(facing.x < 0 ? -.58f : .58f, -.12f, 0);
-            weapon.localRotation = Quaternion.Euler(0, 0, (facing.x < 0 ? 80 : -10) + Mathf.Sin(swing * Mathf.PI) * -105);
-            weapon.GetComponent<SpriteRenderer>().sortingOrder = player.art.sortingOrder + 2;
             Animate(player);
+            UpdateHeldClub();
             foreach (var enemy in enemies) Animate(enemy);
         }
 
@@ -507,6 +506,17 @@ namespace DoodleIdle
             actor.art.sortingOrder = Order(actor.Position);
             RefreshHealthBar(actor);
             actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = -900;
+        }
+
+        void UpdateHeldClub()
+        {
+            float side = facing.x < 0 ? -1 : 1;
+            // Sprite pivot is inside the grip; the hand contact follows the head's bob and tilt.
+            weapon.position = player.art.transform.TransformPoint(new Vector3(.4f * side, -.18f, 0));
+            var art = weapon.GetComponent<SpriteRenderer>();
+            art.flipX = side < 0;
+            weapon.localRotation = Quaternion.Euler(0, 0, side * (-10 - Mathf.Sin(swing * Mathf.PI) * 105));
+            art.sortingOrder = player.art.sortingOrder + 2;
         }
 
         void Trail()

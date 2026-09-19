@@ -7,13 +7,14 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        public enum SummonSkill { WaveSnakes, Shotgun, GuardianSword, Cannon, Cucumber, TetherSnake, StormCloud, FireRing, Sand, Dragon, RedWave }
+        public enum SummonSkill { WaveSnakes, Shotgun, GuardianSword, Cannon, Cucumber, TetherSnake, StormCloud, FireRing, Sand, Dragon, RedWave, Molotov, SoundWave }
         [Header("Summons and area skills")]
         public bool summonSkillsEnabled = true;
         public bool guardianEnabled = true;
         public float snakeInterval = 7, shotgunInterval = 4.5f, guardianInterval = .7f, cannonInterval = 14;
         public float cucumberInterval = 6, tetherInterval = 9, cloudInterval = 10, ringInterval = 7, sandInterval = 5;
         public float dragonInterval = 11, redWaveInterval = 9;
+        public float molotovInterval = 8, soundWaveInterval = 6;
         public const float RedWaveShotGap = .48f;
         public int ShotgunPellets { get; private set; }
         public int CannonShots { get; private set; }
@@ -27,12 +28,12 @@ namespace DoodleIdle
         public event Action<Vector2, Vector2> CannonProjectileLaunched;
         public int ActiveCannons => turrets.Count;
         public int ActiveStains => stains.Count;
-        public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count;
+        public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count + bottles.Count + fireZones.Count + soundWaves.Count;
         public int SummonCasts(SummonSkill skill) => summonCasts[(int)skill];
         public int SummonHits(SummonSkill skill) => summonHits[(int)skill];
         public event Action<SummonSkill, int> SummonImpact;
-        readonly int[] summonCasts = new int[11], summonHits = new int[11];
-        readonly float[] summonClocks = new float[11];
+        readonly int[] summonCasts = new int[13], summonHits = new int[13];
+        readonly float[] summonClocks = new float[13];
         readonly Dictionary<string, Sprite> summonArt = new Dictionary<string, Sprite>();
         readonly List<MovingSkill> movingSkills = new List<MovingSkill>();
         readonly List<Snake> snakes = new List<Snake>();
@@ -41,6 +42,7 @@ namespace DoodleIdle
         readonly List<Stain> stains = new List<Stain>();
         readonly List<RedVolley> redVolleys = new List<RedVolley>();
         Transform guardian;
+        float guardianSwing, guardianAim;
 
         sealed class MovingSkill
         {
@@ -68,7 +70,7 @@ namespace DoodleIdle
 
         void LoadSummonArt()
         {
-            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB" };
+            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB", "Molotov", "SoundWave", "GroundFlame" };
             foreach (string name in names)
             {
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + name);
@@ -80,6 +82,7 @@ namespace DoodleIdle
                     { x0 = Mathf.Min(x0, x); x1 = Mathf.Max(x1, x); y0 = Mathf.Min(y0, y); y1 = Mathf.Max(y1, y); }
                 if (x1 < x0) throw new InvalidOperationException("Empty generated summon art: " + name);
                 Vector2 pivot = name == "DragonWingUp" ? new Vector2(.5f, .15f) : name == "DragonWingDown" ? new Vector2(.5f, .34f) : Vector2.one * .5f;
+                if (name == "GuardianSword") pivot = new Vector2(.17f, .5f);
                 var sprite = Sprite.Create(texture, new Rect(x0, y0, x1 - x0 + 1, y1 - y0 + 1), pivot, Mathf.Max(x1 - x0 + 1, y1 - y0 + 1));
                 sprite.name = name; summonArt.Add(name, sprite);
             }
@@ -87,6 +90,7 @@ namespace DoodleIdle
         void DisposeSummonArt() { foreach (var art in summonArt.Values) if (art) Destroy(art); summonArt.Clear(); }
         void ClearSummons()
         {
+            ClearAreaSkills();
             foreach (var shot in movingSkills) if (shot.art) Destroy(shot.art.gameObject);
             foreach (var snake in snakes) { foreach (var part in snake.parts) if (part) Destroy(part.gameObject); if (snake.wings) Destroy(snake.wings.gameObject); }
             foreach (var turret in turrets) { turret.recoil?.Kill(); if (turret.art) Destroy(turret.art.gameObject); }
@@ -104,6 +108,7 @@ namespace DoodleIdle
             ShotgunPellets = CannonShots = CannonExplosions = TetherRetargets = DragonFlames = LightningStrikes = 0;
             LastCannonLifetime = 0;
             RedWavesLaunched = 0;
+            guardianSwing = guardianAim = 0;
             guardian = Visual("Following guardian sword", summonArt["GuardianSword"], player.Position + new Vector2(1.3f, .8f), Vector2.one * 1.45f, 445).transform;
         }
         float SummonInterval(int i)
@@ -120,6 +125,8 @@ namespace DoodleIdle
                 case SummonSkill.FireRing: return ringInterval;
                 case SummonSkill.Sand: return sandInterval;
                 case SummonSkill.Dragon: return dragonInterval;
+                case SummonSkill.Molotov: return molotovInterval;
+                case SummonSkill.SoundWave: return soundWaveInterval;
                 default: return redWaveInterval;
             }
         }
@@ -167,11 +174,19 @@ namespace DoodleIdle
                 target = InRange(guardian.position, 5);
                 if (target == null) return;
                 origin = guardian.position; direction = (target.Position - origin).normalized;
-                guardian.rotation = Aim(direction);
+                guardianAim = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                guardianSwing = .34f;
+                guardian.rotation = Quaternion.Euler(0, 0, guardianAim - 70);
             }
             summonCasts[(int)kind]++;
             switch (kind)
             {
+                case SummonSkill.Molotov:
+                    ThrowMolotov(origin, target.Position);
+                    break;
+                case SummonSkill.SoundWave:
+                    SpawnSoundWave(origin);
+                    break;
                 case SummonSkill.WaveSnakes:
                     for (int i = 0; i < 5; i++) SpawnSnake(kind, Direction(Mathf.Atan2(direction.y, direction.x) + i * Mathf.PI * 2 / 5));
                     break;
@@ -195,7 +210,7 @@ namespace DoodleIdle
                     turrets.Add(new Turret { origin = origin, art = cannonArt, muzzle = muzzle });
                     break;
                 case SummonSkill.Cucumber:
-                    AddMoving(kind, summonArt["Cucumber"], origin, direction, 2.3f, 6, 3.2f, 42, 1.35f);
+                    AddMoving(kind, summonArt["Cucumber"], origin, direction, 4.6f, 6, 3.2f, 42, 2.7f);
                     break;
                 case SummonSkill.TetherSnake:
                 case SummonSkill.Dragon:
@@ -264,6 +279,14 @@ namespace DoodleIdle
         {
             TickRedVolleys(dt);
             guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f + Mathf.Sin(Elapsed * 3) * .12f), 1 - Mathf.Exp(-dt * 12));
+            if (guardianSwing > 0)
+            {
+                guardianSwing = Mathf.Max(0, guardianSwing - dt);
+                float progress = 1 - guardianSwing / .34f;
+                float angle = progress < .65f ? Mathf.Lerp(-70, 85, Mathf.SmoothStep(0, 1, progress / .65f))
+                    : Mathf.Lerp(85, 0, Mathf.SmoothStep(0, 1, (progress - .65f) / .35f));
+                guardian.rotation = Quaternion.Euler(0, 0, guardianAim + angle);
+            }
             if (summonSkillsEnabled)
             {
                 for (int i = 0; i < summonClocks.Length; i++)
@@ -275,7 +298,7 @@ namespace DoodleIdle
                     CastSummonSkill((SummonSkill)i); summonClocks[i] = Mathf.Max(.1f, SummonInterval(i));
                 }
             }
-            TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickMovingSkills(dt);
+            TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickMovingSkills(dt); TickAreaSkills(dt);
             for (int i = stains.Count - 1; i >= 0; i--)
             {
                 var stain = stains[i]; stain.age += dt;
@@ -385,7 +408,7 @@ namespace DoodleIdle
                 if (shot.kind == SummonSkill.Cucumber)
                 {
                     shot.art.transform.rotation = Aim(shot.direction) * Quaternion.Euler(0, 0, 90 + Mathf.Sin(shot.age * 15) * 12);
-                    shot.art.transform.localScale = new Vector3(2.3f, 2.3f * (.72f + .28f * Mathf.Abs(Mathf.Cos(shot.age * 10))), 1);
+                    shot.art.transform.localScale = new Vector3(4.6f, 4.6f * (.72f + .28f * Mathf.Abs(Mathf.Cos(shot.age * 10))), 1);
                 }
                 if (shot.kind == SummonSkill.RedWave) SetSpriteArt(shot.art, summonArt[((int)(shot.age * 6) % 2 == 0) ? "RedSlashA" : "RedSlashB"]);
                 if (shot.kind == SummonSkill.Sand) shot.art.transform.localScale = Vector3.one * (1.2f + shot.age * 1.2f);

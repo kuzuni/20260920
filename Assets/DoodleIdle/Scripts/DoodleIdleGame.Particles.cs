@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles;
+        ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -17,7 +17,9 @@ namespace DoodleIdle
             explosionParticles = MakeParticles("Cannon Explosion Particle System", summonArt["Explosion"], 610, 256, false);
             goldParticles = MakeParticles("Gold Coin Particle System", summonArt["GoldCoin"], 620, 2048, true);
             sandParticles = MakeParticles("Sand Spray Particle System", summonArt["SandPuff"], 510, 1024, false);
-            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles };
+            groundFireParticles = MakeParticles("Molotov Ground Fire Particle System", summonArt["GroundFlame"], 530, 2048, false);
+            var fireSpin = groundFireParticles.rotationOverLifetime; fireSpin.enabled = false;
+            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles };
         }
 
         ParticleSystem MakeParticles(string label, Sprite art, int order, int capacity, bool coins)
@@ -79,7 +81,7 @@ namespace DoodleIdle
             for (int i = 0; i < count; i++)
             {
                 Vector2 velocity = Direction(ParticleRandom(0, Mathf.PI * 2)) * ParticleRandom(speed * .35f, speed);
-                if (system == goldParticles) velocity += Vector2.up * 1.7f;
+                if (system == goldParticles) velocity += Vector2.up * 3.4f;
                 var particle = new ParticleSystem.EmitParams
                 {
                     position = position, velocity = velocity, startColor = color,
@@ -97,7 +99,7 @@ namespace DoodleIdle
         }
         void EmitGold(Vector2 position)
         {
-            EmitBurst(goldParticles, position, Color.white, 9, .22f, .4f, 3.4f, .8f, 1.25f);
+            EmitBurst(goldParticles, position, Color.white, 9, .22f, .4f, 6.8f, .4f, .625f);
             GoldCoinsEmitted += 9;
         }
         void EmitSand(Vector2 position, Vector2 direction)

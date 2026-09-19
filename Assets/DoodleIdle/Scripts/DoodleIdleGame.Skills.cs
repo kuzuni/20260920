@@ -52,13 +52,14 @@ namespace DoodleIdle
         readonly Sprite[] skillArt = new Sprite[7];
 
         Transform drone;
+        Sprite droneFrameB;
         float arrowClock, ballClock, fireClock, droneClock, wormClock;
         float arrowShotClock, missileShotClock;
         int arrowsPending, missilesPending, arrowIndex, missileIndex;
 
         void LoadSkillArt()
         {
-            string[] names = { "Arrow", "BouncyBall", "Fireball", "Drone", "Missile", "WormHead", "WormSegment" };
+            string[] names = { "Arrow", "BouncyBall", "Fireball", "RobotDroneA", "Missile", "WormHead", "WormSegment" };
             for (int i = 0; i < names.Length; i++)
             {
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + names[i]);
@@ -73,9 +74,18 @@ namespace DoodleIdle
                 skillArt[i] = Sprite.Create(texture, new Rect(minX, minY, width, height), Vector2.one * .5f, Mathf.Max(width, height));
                 skillArt[i].name = names[i];
             }
+            // Match both crops so rotor poses do not make the robot body pulse in size.
+            var a = skillArt[3].texture;
+            var b = ActorTexture("RobotDroneB");
+            Rect first = OpaqueBounds(a), second = OpaqueBounds(b);
+            Rect union = Rect.MinMaxRect(Mathf.Min(first.xMin, second.xMin), Mathf.Min(first.yMin, second.yMin),
+                Mathf.Max(first.xMax, second.xMax), Mathf.Max(first.yMax, second.yMax));
+            Destroy(skillArt[3]);
+            skillArt[3] = ActorSprite(a, union, "RobotDroneA");
+            droneFrameB = ActorSprite(b, union, "RobotDroneB");
         }
 
-        void DisposeSkillArt() { foreach (var art in skillArt) if (art) Destroy(art); }
+        void DisposeSkillArt() { for (int i = 0; i < skillArt.Length; i++) if (i != 3 && skillArt[i]) Destroy(skillArt[i]); }
         void ClearExtraSkills()
         {
             ClearSummons();
@@ -102,6 +112,7 @@ namespace DoodleIdle
             Vector2 desired = player.Position + new Vector2(-1.4f, 1.2f + Mathf.Sin(Elapsed * 4) * .12f);
             drone.position = Vector2.Lerp(drone.position, desired, 1 - Mathf.Exp(-dt * 12));
             drone.rotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5) * 4);
+            SetSpriteArt(drone.GetComponent<SpriteRenderer>(), (int)(Elapsed * 8) % 2 == 0 ? skillArt[3] : droneFrameB);
         }
 
         static bool Alive(Actor actor) => actor != null && actor.hp > 0 && actor.root;

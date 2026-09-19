@@ -56,10 +56,10 @@ namespace DoodleIdle
                 var go = new GameObject("Enemy damage number", typeof(RectTransform), typeof(Text), typeof(Outline));
                 go.transform.SetParent(damageCanvas, false);
                 var text = go.GetComponent<Text>();
-                text.font = uiFont; text.fontSize = 42; text.fontStyle = FontStyle.Normal;
+                text.font = uiFont; text.fontSize = 84; text.fontStyle = FontStyle.Normal;
                 text.alignment = TextAnchor.MiddleCenter; text.raycastTarget = false;
-                text.rectTransform.sizeDelta = new Vector2(180, 90);
-                var outline = go.GetComponent<Outline>(); outline.effectColor = new Color(.13f, .08f, .06f, .95f); outline.effectDistance = new Vector2(2, -2);
+                text.rectTransform.sizeDelta = new Vector2(360, 180);
+                var outline = go.GetComponent<Outline>(); outline.effectColor = new Color(.13f, .08f, .06f, .95f); outline.effectDistance = new Vector2(4, -4);
                 number = new DamageNumber { text = text };
             }
             number.origin = position + new Vector2(ParticleRandom(-.25f, .25f), 1.05f);

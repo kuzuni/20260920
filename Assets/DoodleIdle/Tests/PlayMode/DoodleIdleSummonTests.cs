@@ -51,6 +51,7 @@ namespace DoodleIdle.Tests
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.Cucumber) victims.Add(id); };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cucumber);
             var cucumber = NamedArt("Cucumber moving skill").Single();
+            Assert.That(cucumber.transform.localScale.x, Is.EqualTo(4.6f));
             yield return PhysicsTicks(70);
             Assert.That(cucumber.transform.position.y, Is.EqualTo(0).Within(.02f));
             Assert.That(cucumber.transform.position.x, Is.GreaterThan(7));
@@ -128,11 +129,16 @@ namespace DoodleIdle.Tests
             Assert.That(game.SummonCasts(DoodleIdleGame.SummonSkill.GuardianSword), Is.Zero);
             Place(bodies[0], new Vector2(4, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.GuardianSword);
+            var sword = NamedArt("Following guardian sword").Single();
+            Quaternion swordStart = sword.transform.rotation;
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.FireRing);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Sand);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.StormCloud);
             game.CastExtraSkill(DoodleIdleGame.ExtraSkill.BouncyBall);
             yield return PhysicsTicks(8);
+            Assert.That(Quaternion.Angle(swordStart, sword.transform.rotation), Is.GreaterThan(60), "Guardian sweeps its blade when firing.");
+            Camera.main.orthographicSize = 4;
+            Object.Destroy(CaptureFrame("19-guardian-swing.png", 1440, 900, false));
             foreach (string name in new[] { "FireRing afterimage", "Lightning afterimage", "Bouncy ball afterimage" })
                 Assert.That(NamedArt(name).Length, Is.GreaterThan(0), name);
             Assert.That(game.GetComponentsInChildren<ParticleSystem>().Single(p => p.name == "Sand Spray Particle System").particleCount, Is.GreaterThan(0));

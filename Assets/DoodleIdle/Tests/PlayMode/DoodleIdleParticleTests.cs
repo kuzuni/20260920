@@ -27,11 +27,20 @@ namespace DoodleIdle.Tests
             var arts = new[] { PlayerBody().GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Generated head sprite") }
                 .Concat(selected.Select(b => b.GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Generated head sprite"))).ToArray();
             var seen = arts.Select(a => new HashSet<string>()).ToArray();
+            var drone = NamedArt("Following missile drone").Single();
+            var droneFrames = new HashSet<string>();
+            var club = NamedArt("Floating baseball club").Single();
+            Assert.That(club.sprite.pivot.x / club.sprite.rect.width, Is.EqualTo(.15f).Within(.001f));
+            Assert.That(club.sprite.pivot.y / club.sprite.rect.height, Is.EqualTo(.12f).Within(.001f));
             bool capturedA = false, capturedB = false;
             Camera.main.orthographicSize = 5;
             for (int frame = 0; frame < 70; frame++)
             {
                 yield return null;
+                droneFrames.Add(drone.sprite.name);
+                Assert.That(drone.sharedMaterial.mainTexture, Is.SameAs(drone.sprite.texture));
+                Vector3 hand = arts[0].transform.TransformPoint(new Vector3(club.flipX ? -.4f : .4f, -.18f, 0));
+                Assert.That(Vector3.Distance(club.transform.position, hand), Is.LessThan(.001f), "The bat grip stays at the hand through head bob/tilt.");
                 for (int i = 0; i < arts.Length; i++)
                 {
                     seen[i].Add(arts[i].sprite.name);
@@ -43,6 +52,7 @@ namespace DoodleIdle.Tests
                 { Object.Destroy(CaptureFrame("18-movement-frame-b.png", 1440, 900)); capturedB = true; }
             }
             CollectionAssert.AreEquivalent(new[] { "PlayerWalkA", "PlayerWalkB" }, seen[0]);
+            CollectionAssert.AreEquivalent(new[] { "RobotDroneA", "RobotDroneB" }, droneFrames);
             for (int i = 0; i < species.Length; i++)
                 CollectionAssert.AreEquivalent(new[] { species[i] + "A", species[i] + "B" }, seen[i + 1]);
             Assert.That(game.EnemyCount, Is.EqualTo(200));
@@ -140,6 +150,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveDamageNumbers, Is.GreaterThan(0));
             var text = game.GetComponentsInChildren<Text>().First(t => t.name == "Enemy damage number");
             Assert.That(text.text, Is.EqualTo("46"));
+            Assert.That(text.fontSize, Is.EqualTo(84));
             Assert.That(text.font, Is.SameAs(Resources.Load<Font>("DoodleIdle/InterfaceFont")));
             Assert.That(Particles("Cannon Explosion Particle System").particleCount, Is.GreaterThan(0));
             Assert.That(Particles("Dust Particle System").particleCount, Is.GreaterThan(0));
@@ -177,6 +188,8 @@ namespace DoodleIdle.Tests
             game.TogglePause(); yield return null;
             var gold = Particles("Gold Coin Particle System");
             Assert.That(gold.particleCount, Is.GreaterThan(0));
+            var coins = new ParticleSystem.Particle[gold.particleCount]; gold.GetParticles(coins);
+            Assert.That(coins.All(p => p.startLifetime >= .4f && p.startLifetime <= .625f), Is.True);
             Assert.That(gold.main.simulationSpace, Is.EqualTo(ParticleSystemSimulationSpace.World));
             Assert.That(gold.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture, Is.SameAs(Resources.Load<Texture2D>("DoodleIdle/GoldCoin")));
             Object.Destroy(CaptureFrame("14-death-gold-coins.png", 1440, 900));
