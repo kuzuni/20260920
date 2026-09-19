@@ -14,6 +14,8 @@ namespace DoodleIdle.Tests
         {
             game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.autoPlay = false;
             game.moveSpeed = 0;
+            PlayerBody().position = Vector2.zero;
+            PlayerBody().linearVelocity = Vector2.zero;
             var bodies = EnemyBodies();
             for (int i = 0; i < bodies.Length; i++)
             {
