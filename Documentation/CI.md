@@ -49,3 +49,4 @@ GitHub 서버가 아니라 화면 없는 로컬 검증을 원할 경우 Unity Te
 - 실제 피해량에 따른 낙서풍 HP바 감소 및 손글씨 피해 숫자, 사망 지점의 둥근 검정 자국과 금화.
 - 서버 캡처: 12-purple-tether-cloud, 13-particle-explosion-hp, 14-death-gold-coins.
 
+- 대포 좌우 포구 발사점과 첫 포탄 위치, 실제 DOTween 반동/복귀/일시정지/리셋 검사 및 15-cannon-bounce-right, 16-cannon-bounce-left 캡처.

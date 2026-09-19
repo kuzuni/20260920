@@ -695,6 +695,7 @@ namespace DoodleIdle
 
         void OnDestroy()
         {
+            KillCannonTweens();
             DisposeParticleMaterials();
             if (spriteMaterial) Destroy(spriteMaterial);
             foreach (var material in textureMaterials.Values) if (material) Destroy(material);

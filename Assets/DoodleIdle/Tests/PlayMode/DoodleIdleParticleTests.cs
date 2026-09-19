@@ -5,12 +5,58 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using DG.Tweening;
 
 namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
         ParticleSystem Particles(string name) => game.GetComponentsInChildren<ParticleSystem>().Single(p => p.name == name);
+
+        [UnityTest]
+        public IEnumerator CannonLaunchesFromMirroredMuzzleAndBouncesWithDOTween()
+        {
+            foreach (int side in new[] { 1, -1 })
+            {
+                game.ResetGame(); yield return null;
+                var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(4 * side, 0));
+                var launches = new List<Vector2>();
+                System.Action<Vector2, Vector2> onLaunch = (origin, destination) => launches.Add(origin);
+                game.CannonProjectileLaunched += onLaunch;
+                game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cannon);
+                var cannon = NamedArt("Stationary ten second cannon").Single();
+                var muzzle = cannon.transform.Find("Cannon muzzle");
+                yield return PhysicsTicks(1);
+                Assert.That(launches.Count, Is.EqualTo(1));
+                Assert.That(cannon.flipX, Is.EqualTo(side < 0));
+                Assert.That(launches[0].x * side, Is.GreaterThan(.65f));
+                Assert.That(Vector2.Distance(launches[0], muzzle.position), Is.LessThan(.001f));
+                var ball = NamedArt("Cannon moving skill").Single();
+                Assert.That(Vector2.Distance(ball.transform.position, launches[0]), Is.LessThan(.35f), "The first visible frame must emerge from the opening, not the center of the cannon.");
+                Assert.That(DOTween.IsTweening(cannon.transform), Is.True);
+                yield return PhysicsTicks(4);
+                Assert.That(Vector3.Distance(cannon.transform.localScale, new Vector3(1.8f, 1.8f, 1)), Is.GreaterThan(.05f));
+                var scale = cannon.transform.localScale; var rotation = cannon.transform.localRotation;
+                game.TogglePause(); yield return new WaitForSecondsRealtime(.15f);
+                Assert.That(cannon.transform.localScale, Is.EqualTo(scale));
+                Assert.That(cannon.transform.localRotation, Is.EqualTo(rotation));
+                Camera.main.orthographicSize = 3;
+                Object.Destroy(CaptureFrame(side > 0 ? "15-cannon-bounce-right.png" : "16-cannon-bounce-left.png", 960, 720, false));
+                game.TogglePause(); foreach (var body in EnemyBodies()) body.simulated = false;
+                yield return PhysicsTicks(23);
+                Assert.That(Vector3.Distance(cannon.transform.localScale, new Vector3(1.8f, 1.8f, 1)), Is.LessThan(.001f));
+                Assert.That(Quaternion.Angle(cannon.transform.localRotation, Quaternion.identity), Is.LessThan(.01f));
+                Assert.That((Vector2)cannon.transform.position, Is.EqualTo(Vector2.zero), "Recoil must not move the installed emplacement.");
+                game.CannonProjectileLaunched -= onLaunch;
+                yield return PhysicsTicks(20); // A second launch should create another recoil sequence.
+                Assert.That(game.CannonShots, Is.EqualTo(2));
+                Assert.That(DOTween.IsTweening(cannon.transform), Is.True);
+                var previousVisual = cannon.transform;
+                game.ResetGame();
+                Assert.That(DOTween.IsTweening(previousVisual), Is.False, "Reset must kill the active recoil tween.");
+                yield return null;
+            }
+        }
 
         [UnityTest]
         public IEnumerator CloudAnimatesAndPurpleTetherStaysBehindPlayer()

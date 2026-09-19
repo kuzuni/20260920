@@ -74,3 +74,4 @@ Unity 6000.3.8f1 프로젝트입니다. `Assets/DoodleIdle/DoodleIdle.unity`를 
 - 적 머리 위에 직접 생성한 낙서풍 HP 프레임/녹색 채움이 표시됩니다. 피해 숫자는 게임과 동일한 손글씨 폰트로 떠오르며 0.75초 후 사라집니다. 숫자는 최대 128개를 재사용합니다.
 - 추가 생성 에셋과 정확한 프롬프트: [particle-revision-image-prompts.md](particle-revision-image-prompts.md).
 
+- 대포 포구: 생성 이미지의 포구 중앙에 자식 발사점을 두고 좌우 반전과 반동 변형을 따라가게 했습니다. 포탄은 이 발사점에서 출발합니다. 발사마다 DOTween PunchScale/PunchRotation으로 0.42초간 눌림/기울기/탄성 복귀를 연출하며, 일시정지·철거·리셋 때 함께 정지하거나 정리합니다.

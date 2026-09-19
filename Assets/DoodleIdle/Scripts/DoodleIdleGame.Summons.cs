@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 namespace DoodleIdle
 {
@@ -22,6 +23,7 @@ namespace DoodleIdle
         public int LightningStrikes { get; private set; }
         public int RedWavesLaunched { get; private set; }
         public event Action<float> RedWaveLaunched;
+        public event Action<Vector2, Vector2> CannonProjectileLaunched;
         public int ActiveCannons => turrets.Count;
         public int ActiveStains => stains.Count;
         public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count;
@@ -58,7 +60,7 @@ namespace DoodleIdle
             public SpriteRenderer wings;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
         }
-        sealed class Turret { public SpriteRenderer art; public Vector2 origin; public float age, clock; }
+        sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
         sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; }
         sealed class Stain { public SpriteRenderer art; public float age; }
         sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = .16f; }
@@ -86,7 +88,7 @@ namespace DoodleIdle
         {
             foreach (var shot in movingSkills) if (shot.art) Destroy(shot.art.gameObject);
             foreach (var snake in snakes) { foreach (var part in snake.parts) if (part) Destroy(part.gameObject); if (snake.wings) Destroy(snake.wings.gameObject); }
-            foreach (var turret in turrets) if (turret.art) Destroy(turret.art.gameObject);
+            foreach (var turret in turrets) { turret.recoil?.Kill(); if (turret.art) Destroy(turret.art.gameObject); }
             foreach (var cloud in clouds) if (cloud.art) Destroy(cloud.art.gameObject);
             foreach (var stain in stains) if (stain.art) Destroy(stain.art.gameObject);
             movingSkills.Clear(); snakes.Clear(); turrets.Clear(); clouds.Clear(); stains.Clear();
@@ -185,7 +187,11 @@ namespace DoodleIdle
                     AddMoving(kind, slash, origin, direction, 1.6f, 12, .5f, 23, 1);
                     break;
                 case SummonSkill.Cannon:
-                    turrets.Add(new Turret { origin = origin, art = Visual("Stationary ten second cannon", summonArt["Cannon"], origin, Vector2.one * 1.8f, Order(origin) + 1) });
+                    var cannonArt = Visual("Stationary ten second cannon", summonArt["Cannon"], origin, Vector2.one * 1.8f, Order(origin) + 1);
+                    var muzzle = new GameObject("Cannon muzzle").transform;
+                    muzzle.SetParent(cannonArt.transform, false);
+                    muzzle.localPosition = new Vector3(.385f, .125f, 0);
+                    turrets.Add(new Turret { origin = origin, art = cannonArt, muzzle = muzzle });
                     break;
                 case SummonSkill.Cucumber:
                     AddMoving(kind, summonArt["Cucumber"], origin, direction, 2.3f, 6, 3.2f, 42, 1.35f);
@@ -281,19 +287,42 @@ namespace DoodleIdle
             for (int i = turrets.Count - 1; i >= 0; i--)
             {
                 var turret = turrets[i]; turret.age += dt; turret.clock -= dt;
+                if (turret.recoil != null && turret.recoil.IsActive()) turret.recoil.ManualUpdate(dt, dt);
                 if (turret.age >= 10)
                 {
-                    LastCannonLifetime = turret.age; Destroy(turret.art.gameObject); turrets.RemoveAt(i); continue;
+                    LastCannonLifetime = turret.age; turret.recoil?.Kill(); Destroy(turret.art.gameObject); turrets.RemoveAt(i); continue;
                 }
                 var target = InRange(turret.origin, 9);
                 if (target == null || turret.clock > 0) continue;
                 Vector2 direction = (target.Position - turret.origin).normalized;
                 turret.art.flipX = direction.x < 0;
-                var shot = AddMoving(SummonSkill.Cannon, summonArt["Cannonball"], turret.origin + Vector2.up * .3f, direction, .62f, 0, .8f, 46, 2.2f);
+                float side = turret.art.flipX ? -1 : 1;
+                // Local coordinates mark the center of the generated artwork's barrel opening.
+                // The child inherits the current squash/rotation, and mirrors with the SpriteRenderer.
+                turret.muzzle.localPosition = new Vector3(.385f * side, .125f, 0);
+                Vector2 launch = turret.muzzle.position;
+                direction = (target.Position - launch).normalized;
+                var shot = AddMoving(SummonSkill.Cannon, summonArt["Cannonball"], launch, direction, .62f, 0, .8f, 46, 2.2f);
                 shot.target = target; shot.end = target.Position;
+                CannonProjectileLaunched?.Invoke(launch, target.Position);
+                BounceCannon(turret, side);
                 turret.clock = .85f; CannonShots++;
             }
         }
+        void BounceCannon(Turret turret, float side)
+        {
+            turret.recoil?.Kill();
+            var visual = turret.art.transform;
+            visual.localScale = new Vector3(1.8f, 1.8f, 1);
+            visual.localRotation = Quaternion.identity;
+            // A fixed emplacement with a springy barrel: squash, tilt back, then rebound.
+            // Update this sequence manually so the game's pause button also freezes DOTween.
+            turret.recoil = DOTween.Sequence()
+                .Join(visual.DOPunchScale(new Vector3(-.3f, .4f, 0), .42f, 4, .65f))
+                .Join(visual.DOPunchRotation(new Vector3(0, 0, -7 * side), .42f, 4, .65f))
+                .SetTarget(visual).SetLink(visual.gameObject).SetUpdate(UpdateType.Manual);
+        }
+        void KillCannonTweens() { foreach (var turret in turrets) turret.recoil?.Kill(); }
         void TickClouds(float dt)
         {
             for (int i = clouds.Count - 1; i >= 0; i--)
