@@ -20,6 +20,7 @@ namespace DoodleIdle
         public float stoneInterval = 3.2f;
         public float bananaRadius = 1.9f;
         public bool autoPlay = true;
+        public bool basicSkillsEnabled = true;
         public bool paused;
 
         public int EnemyCount => enemies.Count;
@@ -91,6 +92,7 @@ namespace DoodleIdle
             Application.runInBackground = true;
             sprites = LoadAtlas();
             LoadSkillArt();
+            LoadSummonArt();
             disc = MakeDisc();
             slash = MakeSlash();
             // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
@@ -232,8 +234,8 @@ namespace DoodleIdle
             var collider = root.AddComponent<CircleCollider2D>();
             collider.radius = isPlayer ? .61f : .56f;
             collider.sharedMaterial = frictionless;
-            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.36f), new Vector2(.95f, .28f), Order(p) - 2);
-            shadow.color = new Color(.23f, .19f, .15f, .15f);
+            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.43f), new Vector2(1.15f, .42f), -900);
+            shadow.color = new Color(.08f, .07f, .06f, .32f);
             shadow.transform.SetParent(root.transform, true);
             var art = Visual("Generated head sprite", sprites[isPlayer ? 0 : kind + 1], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
@@ -297,7 +299,7 @@ namespace DoodleIdle
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
-            if (dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            if (basicSkillsEnabled && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -332,11 +334,12 @@ namespace DoodleIdle
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
                 enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
             }
-            if (attackTimer <= 0 && delta.sqrMagnitude < 24)
+            if (basicSkillsEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval; }
-            if (stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
+            if (basicSkillsEnabled && stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
             OrbitBananas(dt);
             TickExtraSkills(dt);
+            TickSummons(dt);
             if (enemies.Count < refillBelow) Refill();
         }
 
@@ -411,6 +414,7 @@ namespace DoodleIdle
                 bananas[n].position = p;
                 bananas[n].rotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg - 35);
                 bananas[n].GetComponent<SpriteRenderer>().sortingOrder = Order(p) + 5;
+                if (!basicSkillsEnabled) continue;
                 for (int i = enemies.Count - 1; i >= 0; i--)
                 {
                     var enemy = enemies[i];
@@ -466,6 +470,7 @@ namespace DoodleIdle
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
             if (enemy.hp > 0) return;
             Kills++;
+            LeaveStain(enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.
@@ -480,7 +485,7 @@ namespace DoodleIdle
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
-            actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = actor.art.sortingOrder - 2;
+            actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = -900;
         }
 
         void Trail()
@@ -588,16 +593,7 @@ namespace DoodleIdle
                 populationText = Label(header, "", 28, new Vector2(20, 12), new Vector2(220, 36), TextAnchor.MiddleLeft);
                 killsText = Label(header, "", 28, new Vector2(260, 12), new Vector2(220, 36), TextAnchor.MiddleCenter);
                 timeText = Label(header, "", 28, new Vector2(-150, 12), new Vector2(130, 36), TextAnchor.MiddleRight, new Vector2(1, 0));
-                var dock = Panel(go.transform, "Skill dock", Vector2.zero, new Vector2(1, 0), new Vector2(18, 18), new Vector2(-18, 294));
-                SkillCard(dock, "방망이 검기", "자동 평타", sprites[4], 14, false, 170);
-                dashFill = SkillCard(dock, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 350, true, 170);
-                SkillCard(dock, "빙글 바나나", "5개가 계속 공전", sprites[5], 14, false, 80);
-                stoneFill = SkillCard(dock, "돌멩이 톡톡", "가까운 적 3명", sprites[6], 350, true, 80);
-                BuildExtraSkillStrip(go.transform, true);
-                pauseText = Button(dock, "일시정지", new Vector2(-670, 12), new Vector2(320, 48), TogglePause);
-                Button(dock, "다시 시작", new Vector2(-334, 12), new Vector2(320, 48), ResetGame);
-                modeText = Label(go.transform, "", 21, new Vector2(24, 410), new Vector2(670, 28), TextAnchor.MiddleLeft);
-                waveText = Label(go.transform, "", 20, new Vector2(24, 438), new Vector2(670, 28), TextAnchor.MiddleLeft);
+                BuildSkillGrid(go.transform);
                 return;
             }
             var top = Panel(go.transform, "Header", new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -100), new Vector2(-22, -20));
@@ -606,16 +602,7 @@ namespace DoodleIdle
             populationText = Label(top, "", 22, new Vector2(-510, 24), new Vector2(180, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
             killsText = Label(top, "", 22, new Vector2(-320, 24), new Vector2(170, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
             timeText = Label(top, "", 22, new Vector2(-145, 24), new Vector2(135, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            var bottom = Panel(go.transform, "Skill dock", Vector2.zero, new Vector2(1, 0), new Vector2(22, 20), new Vector2(-22, 124));
-            SkillCard(bottom, "방망이 검기", "자동 평타", sprites[4], 18, false);
-            dashFill = SkillCard(bottom, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 260, true);
-            SkillCard(bottom, "빙글 바나나", "5개가 계속 공전", sprites[5], 502, false);
-            stoneFill = SkillCard(bottom, "돌멩이 톡톡", "가까운 적 3명 · 포물선", sprites[6], 744, true);
-            BuildExtraSkillStrip(go.transform, false);
-            pauseText = Button(bottom, "일시정지", new Vector2(-204, 54), new Vector2(180, 36), TogglePause);
-            Button(bottom, "다시 시작", new Vector2(-204, 12), new Vector2(180, 34), ResetGame);
-            modeText = Label(go.transform, "", 14, new Vector2(30, 228), new Vector2(800, 28), TextAnchor.MiddleLeft);
-            waveText = Label(go.transform, "", 14, new Vector2(-390, 228), new Vector2(360, 28), TextAnchor.MiddleRight, new Vector2(1, 0));
+            BuildSkillGrid(go.transform);
         }
 
         public void RefreshHudLayout()
@@ -665,7 +652,7 @@ namespace DoodleIdle
 
         void UpdateHud()
         {
-            UpdateExtraCooldowns();
+            UpdateSkillCooldowns();
             populationText.text = "적  " + enemies.Count + " / " + targetPopulation;
             killsText.text = "처치  " + Kills;
             timeText.text = TimeSpan.FromSeconds(Elapsed).ToString(@"mm\:ss");
@@ -673,8 +660,6 @@ namespace DoodleIdle
             modeText.text = paused ? "잠깐 쉬는 중  ·  SPACE로 계속" : (autoPlay ? "● 자동 전투" : "● 직접 이동 · WASD / 방향키") + "    SPACE 일시정지    TAB 이동 모드    R 다시 시작";
             if (portraitHud) modeText.text = paused ? "잠깐 쉬는 중" : autoPlay ? "● 자동 전투 중  ·  TAB 이동 모드 전환" : "● 직접 이동  ·  WASD / 방향키";
             pauseText.text = paused ? "계속하기" : "일시정지";
-            dashFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - dashTimer / dashInterval), 5);
-            stoneFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - stoneTimer / stoneInterval), 5);
         }
 
         // Used by server-side PlayMode tests after real physics frames.
@@ -701,6 +686,7 @@ namespace DoodleIdle
             if (slash) { Destroy(slash.texture); Destroy(slash); }
             if (groundSprite) Destroy(groundSprite);
             DisposeSkillArt();
+            DisposeSummonArt();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }

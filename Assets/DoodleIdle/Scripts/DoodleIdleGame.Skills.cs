@@ -50,7 +50,7 @@ namespace DoodleIdle
         readonly List<Worm> worms = new List<Worm>();
         readonly List<Actor> skillTargets = new List<Actor>();
         readonly Sprite[] skillArt = new Sprite[7];
-        readonly Image[] extraCooldowns = new Image[5];
+
         Transform drone;
         float arrowClock, ballClock, fireClock, droneClock, wormClock;
         float arrowShotClock, missileShotClock;
@@ -78,6 +78,7 @@ namespace DoodleIdle
         void DisposeSkillArt() { foreach (var art in skillArt) if (art) Destroy(art); }
         void ClearExtraSkills()
         {
+            ClearSummons();
             foreach (var shot in extraShots) if (shot.art) Destroy(shot.art.gameObject);
             extraShots.Clear();
             foreach (var worm in worms) foreach (var part in worm.parts) if (part) Destroy(part.gameObject);
@@ -93,6 +94,7 @@ namespace DoodleIdle
             arrowClock = 2; ballClock = 3; fireClock = 3.8f; droneClock = 1.7f; wormClock = 4;
             arrowShotClock = missileShotClock = 0;
             drone = Visual("Following missile drone", skillArt[3], player.Position + new Vector2(-1.4f, 1.2f), Vector2.one * 1.5f, 450).transform;
+            ResetSummons();
         }
 
         void UpdateExtraVisuals(float dt)
@@ -248,6 +250,11 @@ namespace DoodleIdle
                     if (shot.kind != ProjectileKind.Ball && shot.age > 5) finished = true;
                 }
                 shot.art.transform.position = next;
+                if (shot.kind == ProjectileKind.Ball && shot.trail <= 0)
+                {
+                    Echo("Bouncy ball afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, .25f, .3f, 480);
+                    shot.trail = .04f;
+                }
                 if (shot.kind == ProjectileKind.Ball) shot.art.transform.Rotate(0, 0, 420 * dt);
                 else if ((next - old).sqrMagnitude > .00001f) shot.art.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(next.y - old.y, next.x - old.x) * Mathf.Rad2Deg);
                 if ((shot.kind == ProjectileKind.Fire || shot.kind == ProjectileKind.Missile) && shot.trail <= 0)
@@ -310,31 +317,5 @@ namespace DoodleIdle
             }
         }
 
-        void BuildExtraSkillStrip(Transform parent, bool portrait)
-        {
-            string[] names = { "화살 10연사", "탱탱볼 7회", "불꽃 3발", "드론 20연사", "나선 지렁이" };
-            int[] art = { 0, 1, 2, 3, 5 };
-            float cell = portrait ? 132 : 218;
-            var panel = Panel(parent, "Extra skill strip", Vector2.zero, new Vector2(1, 0), new Vector2(portrait ? 18 : 22, portrait ? 302 : 132), new Vector2(portrait ? -18 : -22, portrait ? 403 : 221));
-            for (int i = 0; i < names.Length; i++)
-            {
-                var go = new GameObject(names[i], typeof(RectTransform), typeof(Image)); go.transform.SetParent(panel, false);
-                var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-                rect.anchoredPosition = new Vector2(15 + cell * i, portrait ? 38 : 22); rect.sizeDelta = Vector2.one * (portrait ? 48 : 50);
-                var icon = go.GetComponent<Image>(); icon.sprite = skillArt[art[i]]; icon.preserveAspect = true;
-                Label(panel, names[i], portrait ? 21 : 19, new Vector2(12 + cell * i + (portrait ? 0 : 62), portrait ? 8 : 30), new Vector2(portrait ? 132 : 150, 30), TextAnchor.MiddleLeft);
-                var bar = new GameObject(names[i] + " cooldown", typeof(RectTransform), typeof(Image)); bar.transform.SetParent(panel, false);
-                var r = bar.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = r.pivot = Vector2.zero;
-                r.anchoredPosition = new Vector2(15 + cell * i, 5); r.sizeDelta = new Vector2(portrait ? 110 : 185, 3);
-                extraCooldowns[i] = bar.GetComponent<Image>(); extraCooldowns[i].color = new Color(.78f, .48f, .3f);
-            }
-        }
-        void UpdateExtraCooldowns()
-        {
-            float[] clocks = { arrowClock, ballClock, fireClock, droneClock, wormClock };
-            float[] intervals = { arrowInterval, ballInterval, fireInterval, droneInterval, wormInterval };
-            for (int i = 0; i < extraCooldowns.Length; i++) if (extraCooldowns[i])
-                extraCooldowns[i].rectTransform.sizeDelta = new Vector2((portraitHud ? 110 : 185) * Mathf.Clamp01(1 - clocks[i] / Mathf.Max(.02f, intervals[i])), 3);
-        }
     }
 }

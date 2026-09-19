@@ -14,7 +14,7 @@ using UnityEditor.SceneManagement;
 
 namespace DoodleIdle.Tests
 {
-    public class DoodleIdlePlayModeTests
+    public partial class DoodleIdlePlayModeTests
     {
         DoodleIdleGame game;
         Scene originalScene, testScene;
@@ -40,6 +40,7 @@ namespace DoodleIdle.Tests
             game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
             yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
+            game.summonSkillsEnabled = false;
         }
 
         [UnityTearDown]
@@ -300,6 +301,7 @@ namespace DoodleIdle.Tests
         [Timeout(180000)]
         public IEnumerator AutomaticCombatCastsEverySkillAndRefills()
         {
+            game.summonSkillsEnabled = true;
             Time.timeScale = 8;
             // At 8x speed one rendered frame can cross the five-second boundary.
             // Verify the actual cast timestamp instead of sampling Update's elapsed clock before it.
@@ -329,6 +331,13 @@ namespace DoodleIdle.Tests
             Assert.That(game.MissileHits, Is.GreaterThan(0));
             Assert.That(game.WormHits, Is.GreaterThan(0));
             Assert.That(game.ActiveExtraProjectiles, Is.LessThan(100), "Expired projectiles must be cleaned up during extended combat.");
+            foreach (DoodleIdleGame.SummonSkill skill in System.Enum.GetValues(typeof(DoodleIdleGame.SummonSkill)))
+            {
+                Assert.That(game.SummonCasts(skill), Is.GreaterThan(0), skill + " must cast automatically.");
+                Assert.That(game.SummonHits(skill), Is.GreaterThan(0), skill + " must damage real enemies.");
+            }
+            Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
+            Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());
         }
