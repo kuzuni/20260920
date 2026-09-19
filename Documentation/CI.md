@@ -16,9 +16,9 @@ GameCI 공식 안내: https://game.ci/docs/github/activation/ 및 https://game.c
 
 ## 자동 검증 항목
 
-1. 생성 에셋 로딩, 초기 적 80마리, 바나나 5개.
+1. 생성 에셋 로딩, 초기 적 200마리, 바나나 5개.
 2. 실제 Rigidbody2D 물리 시뮬레이션에서 겹친 적이 분리되는지.
-3. 일시정지 중 시간/위치 정지, 재시작 시 80마리 복구.
+3. 일시정지 중 시간/위치 정지, 재시작 시 200마리 복구.
 4. 첫 대시가 5초 후 발동하는지.
 5. 120초 자동 전투 중 평타/대시/바나나/돌멩이 타격 및 적 보충.
 6. 이동 중 적 간 침투가 물리 솔버 허용 오차 이내인지.
@@ -39,3 +39,13 @@ GameCI 공식 안내: https://game.ci/docs/github/activation/ 및 https://game.c
 GitHub 서버가 아니라 화면 없는 로컬 검증을 원할 경우 Unity Test Runner의 `-batchmode -runTests -testPlatform PlayMode -testFilter DoodleIdle.Tests -testResults <xml 경로> -logFile <로그 경로>` 옵션을 사용합니다. 이미 열린 Unity 프로젝트와 충돌하지 않도록 별도 복사본에서 실행해야 합니다. `-runTests`와 `-quit`을 함께 전달하지 않습니다.
 
 현재 문서는 테스트 실행 성공을 의미하지 않습니다. 실제 실행 결과를 별도로 확인해야 합니다.
+
+## 파티클/전투 피드백 추가 검증
+
+- 200마리 초기 개체수, 세로 확장 영역의 생성 및 물리 분리.
+- 빨간 검기의 정확한 5연발/간격, 일반 검기와 같은 속도, 곡선 방향, 넓어진 범위, 2컷.
+- 구름 2컷과 텍스처 바인딩, 보라색 추적 뱀의 플레이어 아래 정렬.
+- 대포/먼지/모래/금화의 실제 ParticleSystem, 서버 GPU 렌더링 픽셀 비교, 일시정지/리셋.
+- 실제 피해량에 따른 낙서풍 HP바 감소 및 손글씨 피해 숫자, 사망 지점의 둥근 검정 자국과 금화.
+- 서버 캡처: 12-purple-tether-cloud, 13-particle-explosion-hp, 14-death-gold-coins.
+

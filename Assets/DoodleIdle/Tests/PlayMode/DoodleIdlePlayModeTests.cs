@@ -64,7 +64,7 @@ namespace DoodleIdle.Tests
             camera.targetTexture = target;
             camera.aspect = width / (float)height;
             game.RefreshHudLayout();
-            var canvas = game.GetComponentInChildren<Canvas>();
+            var canvas = game.GetComponentsInChildren<Canvas>().Single(c => c.name == "Prototype HUD");
             var scaler = canvas.GetComponent<UnityEngine.UI.CanvasScaler>();
             bool scalerEnabled = scaler.enabled;
             float previousScale = canvas.scaleFactor;
@@ -154,11 +154,14 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator StartsWith80SolidSeparatedEnemiesAndFiveBananas()
+        public IEnumerator StartsWith200SolidSeparatedEnemiesAndFiveBananas()
         {
-            Assert.That(game.EnemyCount, Is.EqualTo(80));
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
-            Assert.That(bodies.Length, Is.EqualTo(80));
+            Assert.That(bodies.Length, Is.EqualTo(200));
+            Assert.That(bodies.Any(b => b.position.y > 12) && bodies.Any(b => b.position.y < -12), Is.True);
+            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(200));
             foreach (var body in bodies)
             {
                 Assert.That(body.bodyType, Is.EqualTo(RigidbodyType2D.Dynamic));
@@ -291,7 +294,7 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++) Assert.That(bodies[i].position, Is.EqualTo(positions[i]));
             game.ResetGame();
             Assert.That(game.paused, Is.False);
-            Assert.That(game.EnemyCount, Is.EqualTo(80));
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
             Assert.That(game.Elapsed, Is.Zero);
             Assert.That(game.Kills, Is.Zero);
             yield return null;
@@ -312,12 +315,12 @@ namespace DoodleIdle.Tests
             while (game.Elapsed < 120)
             {
                 yield return new WaitForFixedUpdate();
-                Assert.That(game.EnemyCount, Is.InRange(20, 80), "Population should refill immediately below 20.");
+                Assert.That(game.EnemyCount, Is.InRange(20, 200), "Population should refill immediately below 20.");
                 var bodies = EnemyBodies();
                 for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
                     worstPenetration = Mathf.Max(worstPenetration, 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position));
             }
-            Assert.That(game.Kills, Is.GreaterThanOrEqualTo(61));
+            Assert.That(game.Kills, Is.GreaterThanOrEqualTo(181));
             Assert.That(game.Refills, Is.GreaterThan(0));
             Assert.That(game.DashCasts, Is.GreaterThanOrEqualTo(23));
             Assert.That(game.StonesLaunched, Is.GreaterThan(30));
@@ -338,6 +341,9 @@ namespace DoodleIdle.Tests
             }
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
+            Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(4));
+            Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());
         }

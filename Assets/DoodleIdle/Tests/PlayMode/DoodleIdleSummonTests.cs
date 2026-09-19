@@ -126,8 +126,9 @@ namespace DoodleIdle.Tests
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.StormCloud);
             game.CastExtraSkill(DoodleIdleGame.ExtraSkill.BouncyBall);
             yield return PhysicsTicks(8);
-            foreach (string name in new[] { "FireRing afterimage", "Sand afterimage", "Lightning afterimage", "Bouncy ball afterimage" })
+            foreach (string name in new[] { "FireRing afterimage", "Lightning afterimage", "Bouncy ball afterimage" })
                 Assert.That(NamedArt(name).Length, Is.GreaterThan(0), name);
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Single(p => p.name == "Sand Spray Particle System").particleCount, Is.GreaterThan(0));
             yield return PhysicsTicks(15);
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.GuardianSword), Is.GreaterThan(0));
             var shadow = NamedArt("Soft ground shadow");
@@ -143,12 +144,18 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator DragonFlapsBreathesFireAndRedWaveUsesTwoFramesAtSlowSpeed()
+        public IEnumerator DragonFlapsAndRedWaveFiresFiveAnimatedWideWavesAtNormalSpeed()
         {
             var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(4, 0);
+            bodies[1].position = new Vector2(4, 1.8f); bodies[2].position = new Vector2(2, 3.5f);
+            var launchTimes = new List<float>();
+            game.RedWaveLaunched += time => launchTimes.Add(time);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Dragon);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.RedWave);
             var wave = NamedArt("RedWave moving skill").Single();
+            Assert.That(game.RedWavesLaunched, Is.EqualTo(1), "The volley must be sequential, not five simultaneous waves.");
+            Assert.That(Vector2.Dot(-wave.transform.right, Vector2.right), Is.GreaterThan(.99f), "The convex edge must lead, with the open crescent facing back.");
+            Assert.That(wave.transform.localScale.x, Is.GreaterThan(4));
             var wings = NamedArt("Animated dragon wings").Single();
             var wingFrames = new HashSet<string>(); var slashFrames = new HashSet<string>();
             Vector3 start = wave.transform.position;
@@ -160,12 +167,17 @@ namespace DoodleIdle.Tests
                 Assert.That(wave.sharedMaterial.mainTexture, Is.SameAs(wave.sprite.texture));
             }
             Assert.That(wingFrames.Count, Is.EqualTo(2)); Assert.That(slashFrames.Count, Is.EqualTo(2));
-            Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(1f, 1.12f));
+            Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(DoodleIdleGame.SlashSpeed * .98f, DoodleIdleGame.SlashSpeed * 1.04f));
+            Assert.That(launchTimes.Count, Is.EqualTo(5));
+            for (int i = 1; i < launchTimes.Count; i++) Assert.That(launchTimes[i] - launchTimes[i - 1], Is.InRange(.139f, .181f));
+            Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.RedWave), Is.GreaterThanOrEqualTo(2));
             Assert.That(game.DragonFlames, Is.GreaterThanOrEqualTo(6));
             Assert.That(NamedArt("RedWave afterimage").Length, Is.GreaterThan(0));
             Assert.That(NamedArt("Dragon afterimage").Length, Is.GreaterThan(0));
             yield return PhysicsTicks(200);
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.Dragon), Is.GreaterThan(0));
+            Assert.That(game.RedWavesLaunched, Is.EqualTo(5));
+            Assert.That(NamedArt("RedWave moving skill").Length, Is.Zero);
         }
 
         [UnityTest]

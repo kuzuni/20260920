@@ -20,6 +20,8 @@ namespace DoodleIdle
         public int TetherRetargets { get; private set; }
         public int DragonFlames { get; private set; }
         public int LightningStrikes { get; private set; }
+        public int RedWavesLaunched { get; private set; }
+        public event Action<float> RedWaveLaunched;
         public int ActiveCannons => turrets.Count;
         public int ActiveStains => stains.Count;
         public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count;
@@ -34,6 +36,7 @@ namespace DoodleIdle
         readonly List<Turret> turrets = new List<Turret>();
         readonly List<Cloud> clouds = new List<Cloud>();
         readonly List<Stain> stains = new List<Stain>();
+        readonly List<RedVolley> redVolleys = new List<RedVolley>();
         Transform guardian;
 
         sealed class MovingSkill
@@ -58,10 +61,11 @@ namespace DoodleIdle
         sealed class Turret { public SpriteRenderer art; public Vector2 origin; public float age, clock; }
         sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; }
         sealed class Stain { public SpriteRenderer art; public float age; }
+        sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = .16f; }
 
         void LoadSummonArt()
         {
-            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB" };
+            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB" };
             foreach (string name in names)
             {
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + name);
@@ -86,6 +90,7 @@ namespace DoodleIdle
             foreach (var cloud in clouds) if (cloud.art) Destroy(cloud.art.gameObject);
             foreach (var stain in stains) if (stain.art) Destroy(stain.art.gameObject);
             movingSkills.Clear(); snakes.Clear(); turrets.Clear(); clouds.Clear(); stains.Clear();
+            redVolleys.Clear();
             if (guardian) Destroy(guardian.gameObject);
         }
         void ResetSummons()
@@ -95,6 +100,7 @@ namespace DoodleIdle
             summonClocks[(int)SummonSkill.GuardianSword] = 1;
             ShotgunPellets = CannonShots = CannonExplosions = TetherRetargets = DragonFlames = LightningStrikes = 0;
             LastCannonLifetime = 0;
+            RedWavesLaunched = 0;
             guardian = Visual("Following guardian sword", summonArt["GuardianSword"], player.Position + new Vector2(1.3f, .8f), Vector2.one * 1.45f, 445).transform;
         }
         float SummonInterval(int i)
@@ -140,7 +146,8 @@ namespace DoodleIdle
         {
             if (!summonArt.TryGetValue("InkStain", out var ink)) return;
             if (stains.Count >= 180) { Destroy(stains[0].art.gameObject); stains.RemoveAt(0); }
-            var art = Visual("Fading black death stain", ink, position, new Vector2(1.3f, .8f), -950);
+            // Equal world-space width/height removes the previous flattened oval.
+            var art = Visual("Fading black death stain", ink, position, new Vector2(1.15f / ink.bounds.size.x, 1.15f / ink.bounds.size.y), -950);
             art.color = new Color(0, 0, 0, .28f);
             art.transform.rotation = Quaternion.Euler(0, 0, UnityEngine.Random.Range(0, 360));
             stains.Add(new Stain { art = art });
@@ -199,8 +206,28 @@ namespace DoodleIdle
                         AddMoving(kind, summonArt["SandPuff"], origin, (skillTargets[i].Position - origin).normalized, 1.2f, 8, .8f, 17, 1.0f);
                     break;
                 case SummonSkill.RedWave:
-                    AddMoving(kind, summonArt["RedSlashA"], origin, direction, 2.5f, 1.05f, 8, 22, 1.3f);
+                    LaunchRedWave(direction);
+                    redVolleys.Add(new RedVolley { direction = direction });
                     break;
+            }
+        }
+        void LaunchRedWave(Vector2 direction)
+        {
+            var wave = AddMoving(SummonSkill.RedWave, summonArt["RedSlashA"], player.Position, direction, 4.2f, SlashSpeed, 1.1f, 22, 2.1f);
+            // The source crescent opens right; rotate it so the curved cutting edge leads.
+            wave.art.transform.rotation = Aim(direction) * Quaternion.Euler(0, 0, 180);
+            RedWavesLaunched++;
+            RedWaveLaunched?.Invoke(Time.fixedTime);
+        }
+        void TickRedVolleys(float dt)
+        {
+            for (int i = redVolleys.Count - 1; i >= 0; i--)
+            {
+                var volley = redVolleys[i]; volley.clock -= dt;
+                if (volley.clock > .0001f) continue;
+                LaunchRedWave(volley.direction);
+                volley.clock += .16f;
+                if (--volley.remaining == 0) redVolleys.RemoveAt(i);
             }
         }
         MovingSkill AddMoving(SummonSkill kind, Sprite art, Vector2 origin, Vector2 direction, float size, float speed, float lifetime, float damage, float radius)
@@ -217,8 +244,9 @@ namespace DoodleIdle
             int count = kind == SummonSkill.TetherSnake ? 32 : dragon ? 14 : 11;
             for (int i = 0; i < count; i++)
             {
-                var art = summonArt[dragon ? (i == 0 ? "DragonHead" : "DragonSegment") : (i == 0 ? "SnakeHead" : "SnakeSegment")];
-                var part = Visual(kind + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f), 445 - i);
+                bool tether = kind == SummonSkill.TetherSnake;
+                var art = summonArt[dragon ? (i == 0 ? "DragonHead" : "DragonSegment") : tether ? (i == 0 ? "PurpleSnakeHead" : "PurpleSnakeSegment") : (i == 0 ? "SnakeHead" : "SnakeSegment")];
+                var part = Visual(kind + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f), (tether ? -500 : 445) - i);
                 part.enabled = false; snake.parts.Add(part);
             }
             if (dragon) snake.wings = Visual("Animated dragon wings", summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f, 450);
@@ -227,6 +255,7 @@ namespace DoodleIdle
 
         void TickSummons(float dt)
         {
+            TickRedVolleys(dt);
             guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f + Mathf.Sin(Elapsed * 3) * .12f), 1 - Mathf.Exp(-dt * 12));
             if (summonSkillsEnabled)
             {
@@ -270,6 +299,7 @@ namespace DoodleIdle
             for (int i = clouds.Count - 1; i >= 0; i--)
             {
                 var cloud = clouds[i]; cloud.age += dt; cloud.clock -= dt;
+                SetSpriteArt(cloud.art, summonArt[(int)(cloud.age * 4) % 2 == 0 ? "StormCloud" : "StormCloudB"]);
                 cloud.art.transform.position += (Vector3)(cloud.direction * (.65f * dt));
                 if (cloud.age >= 8) { Destroy(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
                 if (cloud.clock > 0) continue;
@@ -304,7 +334,7 @@ namespace DoodleIdle
                     if (finished)
                     {
                         CannonExplosions++;
-                        Echo("Cannon explosion", summonArt["Explosion"], shot.end, Vector2.one * 4.4f, Quaternion.identity, .36f, .8f, 560);
+                        EmitCannonExplosion(shot.end);
                         for (int e = enemies.Count - 1; e >= 0; e--)
                             if (Vector2.Distance(enemies[e].Position, shot.end) < shot.radius) Impact(shot.kind, enemies[e], shot.damage, (enemies[e].Position - shot.end).normalized);
                     }
@@ -316,7 +346,7 @@ namespace DoodleIdle
                         var enemy = enemies[e];
                         if (SegmentDistance(enemy.Position, old, next) > shot.radius) continue;
                         if (shot.nextHit.TryGetValue(enemy, out float until) && shot.age < until) continue;
-                        shot.nextHit[enemy] = shot.kind == SummonSkill.RedWave ? shot.age + .45f : shot.kind == SummonSkill.Sand ? shot.age + .22f : float.MaxValue;
+                        shot.nextHit[enemy] = shot.kind == SummonSkill.Sand ? shot.age + .22f : float.MaxValue;
                         Impact(shot.kind, enemy, shot.damage, shot.direction);
                         if (shot.kind == SummonSkill.Shotgun) { finished = true; break; }
                     }
@@ -333,8 +363,9 @@ namespace DoodleIdle
                 bool trail = shot.kind == SummonSkill.FireRing || shot.kind == SummonSkill.Sand || shot.kind == SummonSkill.Dragon || shot.kind == SummonSkill.RedWave;
                 if (trail && shot.trail <= 0)
                 {
-                    Echo(shot.kind + " afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, shot.kind == SummonSkill.RedWave ? .6f : .3f, .3f, 480);
-                    shot.trail = shot.kind == SummonSkill.RedWave ? .12f : .06f;
+                    if (shot.kind == SummonSkill.Sand) EmitSand(old, shot.direction);
+                    else Echo(shot.kind + " afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, shot.kind == SummonSkill.RedWave ? .22f : .3f, .3f, 480);
+                    shot.trail = shot.kind == SummonSkill.RedWave ? .04f : .06f;
                 }
                 if (finished) { Destroy(shot.art.gameObject); movingSkills.RemoveAt(i); }
             }
@@ -403,7 +434,7 @@ namespace DoodleIdle
                     }
                     float size = (dragon ? .7f : .47f) * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
                     part.transform.localScale = Vector3.one * size;
-                    if (tether) part.color = new Color(.8f, .91f, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
+                    if (tether) part.color = new Color(1, 1, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
                     if (!visible) continue;
                     for (int e = enemies.Count - 1; e >= 0; e--)
                     {
@@ -439,3 +470,4 @@ namespace DoodleIdle
         }
     }
 }
+
