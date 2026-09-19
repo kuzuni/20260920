@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using System.IO;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -154,7 +155,102 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
                 Assert.That(Vector2.Distance(bodies[i].position, bodies[j].position), Is.GreaterThanOrEqualTo(1.12f));
             Assert.That(game.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Orbit banana ")), Is.EqualTo(5));
+            Assert.That(Application.runInBackground, Is.True);
+            foreach (var banana in game.GetComponentsInChildren<Transform>().Where(t => t.name.StartsWith("Orbit banana ")))
+                Assert.That(banana.localScale.x, Is.EqualTo(1.16f).Within(.001f));
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ArrowAndDroneBurstsAreSequentialAndHaveExactCounts()
+        {
+            game.extraSkillsEnabled = false;
+            var arrows = new List<float>(); var missiles = new List<float>();
+            game.SkillProjectileLaunched += (skill, time, target) =>
+            {
+                if (skill == DoodleIdleGame.ExtraSkill.Arrows) arrows.Add(time);
+                if (skill == DoodleIdleGame.ExtraSkill.Drone) missiles.Add(time);
+            };
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Arrows);
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Drone);
+            yield return new WaitForSeconds(1.7f);
+            Assert.That(arrows.Count, Is.EqualTo(10)); Assert.That(missiles.Count, Is.EqualTo(20));
+            for (int i = 1; i < arrows.Count; i++) Assert.That(arrows[i] - arrows[i - 1], Is.GreaterThanOrEqualTo(.099f));
+            for (int i = 1; i < missiles.Count; i++) Assert.That(missiles[i] - missiles[i - 1], Is.GreaterThanOrEqualTo(.059f));
+            Assert.That(missiles.Last() - missiles.First(), Is.LessThan(1.6f));
+            yield return new WaitForSeconds(2);
+            Assert.That(game.ArrowHits, Is.GreaterThan(0)); Assert.That(game.MissileHits, Is.GreaterThan(0));
+            Assert.That(game.ArrowsLaunched, Is.EqualTo(10)); Assert.That(game.MissilesLaunched, Is.EqualTo(20));
+        }
+
+        [UnityTest]
+        public IEnumerator BallHitsSevenEnemiesWithoutConsecutiveRepeatThenDisappears()
+        {
+            game.extraSkillsEnabled = false;
+            var targets = new List<int>(); var counts = new List<int>();
+            game.BallEnemyHit += (target, count) => { targets.Add(target); counts.Add(count); };
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.BouncyBall);
+            float timeout = game.Elapsed + 15;
+            while (game.BallsCompleted == 0 && game.Elapsed < timeout) yield return new WaitForFixedUpdate();
+            Assert.That(game.BallsCompleted, Is.EqualTo(1));
+            Assert.That(game.LastCompletedBallHits, Is.EqualTo(7));
+            Assert.That(targets.Count, Is.EqualTo(7));
+            CollectionAssert.AreEqual(Enumerable.Range(1, 7), counts);
+            for (int i = 1; i < targets.Count; i++) Assert.That(targets[i], Is.Not.EqualTo(targets[i - 1]));
+            yield return null;
+            Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Any(r => r.name == "Ball skill projectile"), Is.False);
+            yield return new WaitForSeconds(.5f);
+            Assert.That(game.BallHits, Is.EqualTo(7));
+        }
+
+        [UnityTest]
+        public IEnumerator FireTargetsThreeEnemiesAndWormAnimatesWithPauseAndReset()
+        {
+            game.extraSkillsEnabled = false;
+            var targets = new HashSet<int>();
+            game.SkillProjectileLaunched += (skill, time, target) => { if (skill == DoodleIdleGame.ExtraSkill.Fire) targets.Add(target); };
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Fire);
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Worm);
+            Assert.That(targets.Count, Is.EqualTo(3)); Assert.That(game.FireballsLaunched, Is.EqualTo(3));
+            yield return new WaitForFixedUpdate();
+            var parts = game.GetComponentsInChildren<SpriteRenderer>().Where(r => r.name.StartsWith("Spiral worm")).ToArray();
+            Assert.That(parts.Count(r => r.enabled), Is.LessThan(13), "Segments must emerge sequentially.");
+            yield return new WaitForSeconds(.2f);
+            Assert.That(game.GetComponentsInChildren<Transform>().Any(t => t.name == "Flame afterimage"), Is.True);
+            yield return new WaitForSeconds(1);
+            Assert.That(parts.Count(r => r.enabled), Is.EqualTo(13));
+            game.TogglePause();
+            var positions = parts.Select(p => p.transform.position).ToArray();
+            yield return new WaitForSecondsRealtime(.15f);
+            for (int i = 0; i < parts.Length; i++) Assert.That(parts[i].transform.position, Is.EqualTo(positions[i]));
+            game.TogglePause();
+            yield return new WaitForSeconds(2);
+            Assert.That(game.FireHits, Is.GreaterThan(0));
+            game.ResetGame();
+            yield return null;
+            Assert.That(game.ActiveExtraProjectiles, Is.Zero);
+            Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Count(r => r.name.StartsWith("Spiral worm")), Is.Zero);
+            Assert.That(game.GetComponentsInChildren<Transform>().Count(t => t.name == "Following missile drone"), Is.EqualTo(1));
+            Assert.That(game.FireballsLaunched, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator ExpandedCombatExportsActualRenderedSkillFrames()
+        {
+            game.extraSkillsEnabled = false;
+            game.autoPlay = false;
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Worm);
+            yield return new WaitForSeconds(1.6f);
+            foreach (var skill in new[] { DoodleIdleGame.ExtraSkill.Arrows, DoodleIdleGame.ExtraSkill.BouncyBall, DoodleIdleGame.ExtraSkill.Fire, DoodleIdleGame.ExtraSkill.Drone }) game.CastExtraSkill(skill);
+            yield return new WaitForSeconds(.16f);
+            game.TogglePause();
+            Camera.main.orthographicSize = 6;
+            Object.Destroy(CaptureFrame("05-new-skills-portrait.png", 720, 1560));
+            Object.Destroy(CaptureFrame("06-new-skills-landscape.png", 1440, 900));
+            game.TogglePause(); game.extraSkillsEnabled = true; game.autoPlay = true;
+            yield return new WaitForSeconds(5);
+            game.TogglePause();
+            Object.Destroy(CaptureFrame("07-live-combat.png", 1440, 900));
         }
 
         [UnityTest]
@@ -213,6 +309,12 @@ namespace DoodleIdle.Tests
             Assert.That(game.BananaHits, Is.GreaterThan(0));
             Assert.That(game.SlashHits, Is.GreaterThan(0));
             Assert.That(game.DashHits, Is.GreaterThan(0));
+            Assert.That(game.ArrowHits, Is.GreaterThan(0));
+            Assert.That(game.BallsCompleted, Is.GreaterThan(0));
+            Assert.That(game.FireHits, Is.GreaterThan(0));
+            Assert.That(game.MissileHits, Is.GreaterThan(0));
+            Assert.That(game.WormHits, Is.GreaterThan(0));
+            Assert.That(game.ActiveExtraProjectiles, Is.LessThan(100), "Expired projectiles must be cleaned up during extended combat.");
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());
         }

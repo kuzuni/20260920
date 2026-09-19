@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace DoodleIdle
 {
     /// <summary>Self-contained, automatic 2D combat sandbox. All tuning is exposed in the Inspector.</summary>
-    public sealed class DoodleIdleGame : MonoBehaviour
+    public sealed partial class DoodleIdleGame : MonoBehaviour
     {
         [Header("Population")]
         public int targetPopulation = 80;
@@ -86,7 +86,9 @@ namespace DoodleIdle
         void Start()
         {
             Application.targetFrameRate = 60;
+            Application.runInBackground = true;
             sprites = LoadAtlas();
+            LoadSkillArt();
             disc = MakeDisc();
             slash = MakeSlash();
             // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
@@ -183,6 +185,7 @@ namespace DoodleIdle
 
         public void ResetGame()
         {
+            ClearExtraSkills();
             foreach (var a in enemies) { a.root.SetActive(false); Destroy(a.root); }
             enemies.Clear();
             foreach (var shot in shots) Destroy(shot.visual.gameObject);
@@ -201,12 +204,13 @@ namespace DoodleIdle
             weapon.SetParent(player.root.transform, false);
             for (int i = 0; i < 5; i++)
             {
-                bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * .58f, 80).transform;
+                bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * 1.16f, 80).transform;
                 var trigger = bananas[i].gameObject.AddComponent<CircleCollider2D>();
                 trigger.radius = .4f; trigger.isTrigger = true;
             }
             Refill();
             Refills = 0;
+            ResetExtraSkills();
         }
 
         Actor CreateActor(bool isPlayer, Vector2 p, int kind)
@@ -271,6 +275,7 @@ namespace DoodleIdle
             Elapsed += dt;
             UpdateShots(dt);
             UpdateFlecks(dt);
+            UpdateExtraVisuals(dt);
             swing = Mathf.MoveTowards(swing, 0, dt * 5);
             weapon.localPosition = new Vector3(facing.x < 0 ? -.58f : .58f, -.12f, 0);
             weapon.localRotation = Quaternion.Euler(0, 0, (facing.x < 0 ? 80 : -10) + Mathf.Sin(swing * Mathf.PI) * -105);
@@ -327,6 +332,7 @@ namespace DoodleIdle
             { FireSlash(facing); attackTimer = attackInterval; }
             if (stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
             OrbitBananas(dt);
+            TickExtraSkills(dt);
             if (enemies.Count < refillBelow) Refill();
         }
 
@@ -382,7 +388,7 @@ namespace DoodleIdle
             nearest.Sort((a, b) => (a.Position - origin).sqrMagnitude.CompareTo((b.Position - origin).sqrMagnitude));
             for (int i = 0; i < Mathf.Min(3, nearest.Count); i++)
             {
-                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * .43f, 550);
+                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * 1.29f, 550);
                 sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
                 shots.Add(new Shot { visual = sprite.transform, start = origin, end = nearest[i].Position, target = nearest[i], duration = .65f + i * .06f, stone = true });
                 StonesLaunched++;
@@ -404,7 +410,7 @@ namespace DoodleIdle
                 {
                     var enemy = enemies[i];
                     // A swept trigger avoids missing enemies during a dash. Shared cooldown prevents five instant hits.
-                    if (SegmentDistance(enemy.Position, previous, p) > .72f) continue;
+                    if (SegmentDistance(enemy.Position, previous, p) > 1.02f) continue;
                     if (bananaHitTimes.TryGetValue(enemy, out float last) && Elapsed - last < .35f) continue;
                     bananaHitTimes[enemy] = Elapsed; BananaHits++;
                     Damage(enemy, 19, (enemy.Position - player.Position).normalized);
@@ -483,7 +489,7 @@ namespace DoodleIdle
         {
             for (int n = 0; n < count; n++)
             {
-                var sprite = Visual("Hit dust", disc, p, Vector2.one * UnityEngine.Random.Range(.07f, .17f), 600);
+                var sprite = Visual("Hit dust", disc, p, Vector2.one * UnityEngine.Random.Range(.28f, .68f), 600);
                 sprite.color = color;
                 flecks.Add(new Fleck { visual = sprite.transform, sprite = sprite, velocity = UnityEngine.Random.insideUnitCircle * 3, remaining = .35f, lifetime = .35f });
             }
@@ -582,10 +588,11 @@ namespace DoodleIdle
                 dashFill = SkillCard(dock, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 350, true, 170);
                 SkillCard(dock, "빙글 바나나", "5개가 계속 공전", sprites[5], 14, false, 80);
                 stoneFill = SkillCard(dock, "돌멩이 톡톡", "가까운 적 3명", sprites[6], 350, true, 80);
+                BuildExtraSkillStrip(go.transform, true);
                 pauseText = Button(dock, "일시정지", new Vector2(-670, 12), new Vector2(320, 48), TogglePause);
                 Button(dock, "다시 시작", new Vector2(-334, 12), new Vector2(320, 48), ResetGame);
-                modeText = Label(go.transform, "", 21, new Vector2(24, 304), new Vector2(670, 28), TextAnchor.MiddleLeft);
-                waveText = Label(go.transform, "", 20, new Vector2(24, 336), new Vector2(670, 28), TextAnchor.MiddleLeft);
+                modeText = Label(go.transform, "", 21, new Vector2(24, 410), new Vector2(670, 28), TextAnchor.MiddleLeft);
+                waveText = Label(go.transform, "", 20, new Vector2(24, 438), new Vector2(670, 28), TextAnchor.MiddleLeft);
                 return;
             }
             var top = Panel(go.transform, "Header", new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -100), new Vector2(-22, -20));
@@ -599,10 +606,11 @@ namespace DoodleIdle
             dashFill = SkillCard(bottom, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 260, true);
             SkillCard(bottom, "빙글 바나나", "5개가 계속 공전", sprites[5], 502, false);
             stoneFill = SkillCard(bottom, "돌멩이 톡톡", "가까운 적 3명 · 포물선", sprites[6], 744, true);
+            BuildExtraSkillStrip(go.transform, false);
             pauseText = Button(bottom, "일시정지", new Vector2(-204, 54), new Vector2(180, 36), TogglePause);
             Button(bottom, "다시 시작", new Vector2(-204, 12), new Vector2(180, 34), ResetGame);
-            modeText = Label(go.transform, "", 14, new Vector2(30, 135), new Vector2(800, 28), TextAnchor.MiddleLeft);
-            waveText = Label(go.transform, "", 14, new Vector2(-390, 135), new Vector2(360, 28), TextAnchor.MiddleRight, new Vector2(1, 0));
+            modeText = Label(go.transform, "", 14, new Vector2(30, 228), new Vector2(800, 28), TextAnchor.MiddleLeft);
+            waveText = Label(go.transform, "", 14, new Vector2(-390, 228), new Vector2(360, 28), TextAnchor.MiddleRight, new Vector2(1, 0));
         }
 
         public void RefreshHudLayout()
@@ -652,6 +660,7 @@ namespace DoodleIdle
 
         void UpdateHud()
         {
+            UpdateExtraCooldowns();
             populationText.text = "적  " + enemies.Count + " / " + targetPopulation;
             killsText.text = "처치  " + Kills;
             timeText.text = TimeSpan.FromSeconds(Elapsed).ToString(@"mm\:ss");
@@ -686,6 +695,7 @@ namespace DoodleIdle
             if (disc) { Destroy(disc.texture); Destroy(disc); }
             if (slash) { Destroy(slash.texture); Destroy(slash); }
             if (groundSprite) Destroy(groundSprite);
+            DisposeSkillArt();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }
