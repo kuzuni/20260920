@@ -1,7 +1,7 @@
 {
   "name": "DoodleIdle.PlayModeTests",
   "rootNamespace": "DoodleIdle.Tests",
-  "references": ["DoodleIdle.Runtime"],
+  "references": ["DoodleIdle.Runtime", "Unity.ugui", "Unity.RenderPipelines.Core.Runtime", "Unity.RenderPipelines.Universal.Runtime"],
   "optionalUnityReferences": ["TestAssemblies"],
   "autoReferenced": false,
   "defineConstraints": ["UNITY_INCLUDE_TESTS"]

@@ -79,6 +79,8 @@ namespace DoodleIdle
         Image dashFill, stoneFill;
         Font uiFont;
         Material spriteMaterial;
+        Transform hudRoot;
+        bool portraitHud;
 
         void Start()
         {
@@ -86,7 +88,11 @@ namespace DoodleIdle
             sprites = LoadAtlas();
             disc = MakeDisc();
             slash = MakeSlash();
-            spriteMaterial = new Material(Shader.Find("Sprites/Default"));
+            // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
+            // Use the pipeline's sprite shader so each renderer binds its own texture/color.
+            string shaderName = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null
+                ? "Universal Render Pipeline/2D/Sprite-Unlit-Default" : "Sprites/Default";
+            spriteMaterial = new Material(Shader.Find(shaderName));
             frictionless = new PhysicsMaterial2D("Doodle frictionless") { friction = 0, bounciness = 0 };
             world = new GameObject("Doodle world").transform;
             world.SetParent(transform);
@@ -257,6 +263,7 @@ namespace DoodleIdle
                 if (keyboard.tabKey.wasPressedThisFrame) autoPlay = !autoPlay;
                 manualInput = new Vector2((keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1 : 0), (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1 : 0)).normalized;
             }
+            RefreshHudLayout();
             UpdateHud();
             if (paused) return;
             float dt = Time.deltaTime;
@@ -542,14 +549,37 @@ namespace DoodleIdle
 
         void BuildHud()
         {
+            portraitHud = gameCamera.aspect < 1;
             uiFont = Resources.Load<Font>("DoodleIdle/InterfaceFont");
             if (!uiFont) uiFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var go = new GameObject("Prototype HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform);
+            hudRoot = go.transform;
             var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1440, 900); scaler.matchWidthOrHeight = .5f;
+            var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = portraitHud ? new Vector2(720, 1280) : new Vector2(1440, 900);
+            scaler.matchWidthOrHeight = portraitHud ? 0 : .5f;
             if (!FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>())
                 new GameObject("Event System", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule)).transform.SetParent(transform);
+            if (portraitHud)
+            {
+                var header = Panel(go.transform, "Header", new Vector2(0, 1), Vector2.one, new Vector2(18, -158), new Vector2(-18, -18));
+                Label(header, "낙서 원정대", 36, new Vector2(20, 84), new Vector2(450, 44), TextAnchor.MiddleLeft);
+                Label(header, "머리 하나, 방망이 하나. 알아서 싸우는 중!", 21, new Vector2(22, 53), new Vector2(630, 30), TextAnchor.MiddleLeft);
+                populationText = Label(header, "", 28, new Vector2(20, 12), new Vector2(220, 36), TextAnchor.MiddleLeft);
+                killsText = Label(header, "", 28, new Vector2(260, 12), new Vector2(220, 36), TextAnchor.MiddleCenter);
+                timeText = Label(header, "", 28, new Vector2(-150, 12), new Vector2(130, 36), TextAnchor.MiddleRight, new Vector2(1, 0));
+                var dock = Panel(go.transform, "Skill dock", Vector2.zero, new Vector2(1, 0), new Vector2(18, 18), new Vector2(-18, 294));
+                SkillCard(dock, "방망이 검기", "자동 평타", sprites[4], 14, false, 170);
+                dashFill = SkillCard(dock, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 350, true, 170);
+                SkillCard(dock, "빙글 바나나", "5개가 계속 공전", sprites[5], 14, false, 80);
+                stoneFill = SkillCard(dock, "돌멩이 톡톡", "가까운 적 3명", sprites[6], 350, true, 80);
+                pauseText = Button(dock, "일시정지", new Vector2(-670, 12), new Vector2(320, 48), TogglePause);
+                Button(dock, "다시 시작", new Vector2(-334, 12), new Vector2(320, 48), ResetGame);
+                modeText = Label(go.transform, "", 21, new Vector2(24, 304), new Vector2(670, 28), TextAnchor.MiddleLeft);
+                waveText = Label(go.transform, "", 20, new Vector2(24, 336), new Vector2(670, 28), TextAnchor.MiddleLeft);
+                return;
+            }
             var top = Panel(go.transform, "Header", new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -100), new Vector2(-22, -20));
             Label(top, "낙서 원정대", 28, new Vector2(22, 32), new Vector2(250, 40), TextAnchor.MiddleLeft);
             Label(top, "머리 하나, 방망이 하나. 알아서 싸우는 중!", 13, new Vector2(24, 9), new Vector2(360, 26), TextAnchor.MiddleLeft);
@@ -565,6 +595,13 @@ namespace DoodleIdle
             Button(bottom, "다시 시작", new Vector2(-204, 12), new Vector2(180, 34), ResetGame);
             modeText = Label(go.transform, "", 14, new Vector2(30, 135), new Vector2(800, 28), TextAnchor.MiddleLeft);
             waveText = Label(go.transform, "", 14, new Vector2(-390, 135), new Vector2(360, 28), TextAnchor.MiddleRight, new Vector2(1, 0));
+        }
+
+        public void RefreshHudLayout()
+        {
+            if (hudRoot && portraitHud == (gameCamera.aspect < 1)) return;
+            if (hudRoot) { hudRoot.gameObject.SetActive(false); Destroy(hudRoot.gameObject); }
+            BuildHud();
         }
 
         RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 min, Vector2 max)
@@ -584,16 +621,16 @@ namespace DoodleIdle
             return text;
         }
 
-        Image SkillCard(Transform parent, string title, string subtitle, Sprite icon, float x, bool progress)
+        Image SkillCard(Transform parent, string title, string subtitle, Sprite icon, float x, bool progress, float y = 0)
         {
             var go = new GameObject(title + " icon", typeof(RectTransform), typeof(Image)); go.transform.SetParent(parent, false);
-            var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = Vector2.zero; rect.pivot = Vector2.zero; rect.anchoredPosition = new Vector2(x, 25); rect.sizeDelta = new Vector2(56, 56);
+            var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = Vector2.zero; rect.pivot = Vector2.zero; rect.anchoredPosition = new Vector2(x, y + 25); rect.sizeDelta = new Vector2(56, 56);
             go.GetComponent<Image>().sprite = icon; go.GetComponent<Image>().preserveAspect = true;
-            Label(parent, title, 18, new Vector2(x + 66, 52), new Vector2(178, 30), TextAnchor.MiddleLeft);
-            Label(parent, subtitle, 12, new Vector2(x + 66, 31), new Vector2(178, 24), TextAnchor.MiddleLeft);
+            Label(parent, title, portraitHud ? 26 : 18, new Vector2(x + 66, y + 52), new Vector2(230, 32), TextAnchor.MiddleLeft);
+            Label(parent, subtitle, portraitHud ? 20 : 12, new Vector2(x + 66, y + 26), new Vector2(230, 27), TextAnchor.MiddleLeft);
             if (!progress) return null;
             var bar = new GameObject(title + " cooldown", typeof(RectTransform), typeof(Image)); bar.transform.SetParent(parent, false);
-            var r = bar.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero; r.anchoredPosition = new Vector2(x + 66, 21); r.sizeDelta = new Vector2(155, 5);
+            var r = bar.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero; r.anchoredPosition = new Vector2(x + 66, y + 16); r.sizeDelta = new Vector2(155, 5);
             var image = bar.GetComponent<Image>(); image.color = new Color(.57f, .65f, .4f); return image;
         }
 
@@ -601,7 +638,7 @@ namespace DoodleIdle
         {
             var panel = Panel(parent, value, new Vector2(1, 0), new Vector2(1, 0), position, position + size);
             panel.gameObject.AddComponent<Button>().onClick.AddListener(action);
-            return Label(panel, value, 15, Vector2.zero, size, TextAnchor.MiddleCenter);
+            return Label(panel, value, portraitHud ? 25 : 15, Vector2.zero, size, TextAnchor.MiddleCenter);
         }
 
         void UpdateHud()
@@ -611,6 +648,7 @@ namespace DoodleIdle
             timeText.text = TimeSpan.FromSeconds(Elapsed).ToString(@"mm\:ss");
             waveText.text = "20마리 미만이면 80마리까지 보충  ·  " + Refills + "회";
             modeText.text = paused ? "잠깐 쉬는 중  ·  SPACE로 계속" : (autoPlay ? "● 자동 전투" : "● 직접 이동 · WASD / 방향키") + "    SPACE 일시정지    TAB 이동 모드    R 다시 시작";
+            if (portraitHud) modeText.text = paused ? "잠깐 쉬는 중" : autoPlay ? "● 자동 전투 중  ·  TAB 이동 모드 전환" : "● 직접 이동  ·  WASD / 방향키";
             pauseText.text = paused ? "계속하기" : "일시정지";
             dashFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - dashTimer / dashInterval), 5);
             stoneFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - stoneTimer / stoneInterval), 5);

@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Linq;
+using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 #if UNITY_EDITOR
 using UnityEditor.SceneManagement;
 #endif
@@ -48,6 +51,85 @@ namespace DoodleIdle.Tests
         }
 
         Rigidbody2D[] EnemyBodies() => game.GetComponentsInChildren<Rigidbody2D>().Where(b => b.name == "Horned enemy").ToArray();
+
+        Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true)
+        {
+            var camera = Camera.main;
+            var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+            var previousTarget = camera.targetTexture;
+            var previousActive = RenderTexture.active;
+            float previousAspect = camera.aspect;
+            camera.targetTexture = target;
+            camera.aspect = width / (float)height;
+            game.RefreshHudLayout();
+            var canvas = game.GetComponentInChildren<Canvas>();
+            canvas.enabled = includeHud;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = 1;
+            Canvas.ForceUpdateCanvases();
+            try
+            {
+                Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(GraphicsDeviceType.Null), "Visual regression checks require a real graphics device on the CI server.");
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    if (GraphicsSettings.currentRenderPipeline != null)
+                        RenderPipeline.SubmitRenderRequest(camera, new UniversalRenderPipeline.SingleCameraRequest { destination = target });
+                    else camera.Render();
+                }
+                RenderTexture.active = target;
+                var image = new Texture2D(width, height, TextureFormat.RGB24, false);
+                image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                image.Apply();
+                string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../artifacts/screenshots"));
+                Directory.CreateDirectory(directory);
+                File.WriteAllBytes(Path.Combine(directory, filename), image.EncodeToPNG());
+                return image;
+            }
+            finally
+            {
+                camera.targetTexture = previousTarget;
+                camera.aspect = previousAspect;
+                RenderTexture.active = previousActive;
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.enabled = true;
+                Object.Destroy(target);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SpriteRenderingKeepsOpaqueArtAndExportsRealGameFrames()
+        {
+            yield return new WaitForSeconds(.3f);
+            game.TogglePause();
+            var renderers = game.GetComponentsInChildren<SpriteRenderer>();
+            var originals = renderers.Select(r => r.sharedMaterial).ToArray();
+            var legacy = new Material(Shader.Find("Sprites/Default"));
+            try
+            {
+                foreach (var renderer in renderers) renderer.sharedMaterial = legacy;
+                Object.Destroy(CaptureFrame("01-legacy-material-portrait.png", 720, 1560));
+            }
+            finally
+            {
+                for (int i = 0; i < renderers.Length; i++) renderers[i].sharedMaterial = originals[i];
+                Object.Destroy(legacy);
+            }
+            Object.Destroy(CaptureFrame("02-fixed-portrait.png", 720, 1560));
+            Object.Destroy(CaptureFrame("03-fixed-landscape.png", 1440, 900));
+
+            var head = renderers.Single(r => r.name == "Generated head sprite" && r.transform.parent.name == "Player - head and club");
+            foreach (var renderer in renderers) renderer.forceRenderingOff = renderer != head;
+            var camera = Camera.main;
+            camera.transform.position = head.transform.position + Vector3.back * 10;
+            camera.orthographicSize = 1;
+            camera.backgroundColor = Color.magenta;
+            var closeup = CaptureFrame("04-opaque-player-check.png", 256, 256, false);
+            int whitePixels = closeup.GetPixels32().Count(p => p.r > 210 && p.g > 210 && p.b > 210);
+            Object.Destroy(closeup);
+            Assert.That(whitePixels, Is.GreaterThan(2500), "The player must render its opaque off-white body, not the floor texture or transparent cutouts.");
+            Debug.Log("Rendered player opaque white pixel count: " + whitePixels);
+        }
 
         [UnityTest]
         public IEnumerator StartsWith80SolidSeparatedEnemiesAndFiveBananas()
