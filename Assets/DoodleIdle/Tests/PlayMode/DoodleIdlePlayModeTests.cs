@@ -74,6 +74,7 @@ namespace DoodleIdle.Tests
                 Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(GraphicsDeviceType.Null), "Visual regression checks require a real graphics device on the CI server.");
                 for (int pass = 0; pass < 2; pass++)
                 {
+                    Canvas.ForceUpdateCanvases();
                     if (GraphicsSettings.currentRenderPipeline != null)
                         RenderPipeline.SubmitRenderRequest(camera, new UniversalRenderPipeline.SingleCameraRequest { destination = target });
                     else camera.Render();
@@ -103,6 +104,7 @@ namespace DoodleIdle.Tests
         {
             yield return new WaitForSeconds(.3f);
             game.TogglePause();
+            yield return null; // Flush effects already queued for Destroy before collecting renderers.
             var renderers = game.GetComponentsInChildren<SpriteRenderer>();
             var playerHead = renderers.Single(r => r.name == "Generated head sprite" && r.transform.parent.name == "Player - head and club");
             var floor = renderers.First(r => r.name == "Generated dirt floor");
@@ -119,7 +121,7 @@ namespace DoodleIdle.Tests
             }
             finally
             {
-                for (int i = 0; i < renderers.Length; i++) renderers[i].sharedMaterial = originals[i];
+                for (int i = 0; i < renderers.Length; i++) if (renderers[i]) renderers[i].sharedMaterial = originals[i];
                 Object.Destroy(legacy);
             }
             yield return null;
@@ -217,7 +219,8 @@ namespace DoodleIdle.Tests
             Assert.That(parts.Count(r => r.enabled), Is.LessThan(13), "Segments must emerge sequentially.");
             yield return new WaitForSeconds(.2f);
             Assert.That(game.GetComponentsInChildren<Transform>().Any(t => t.name == "Flame afterimage"), Is.True);
-            yield return new WaitForSeconds(1);
+            // Body spacing is distance-based: the head must travel far enough to reveal all 12 links.
+            yield return new WaitForSeconds(1.7f);
             Assert.That(parts.Count(r => r.enabled), Is.EqualTo(13));
             game.TogglePause();
             var positions = parts.Select(p => p.transform.position).ToArray();
