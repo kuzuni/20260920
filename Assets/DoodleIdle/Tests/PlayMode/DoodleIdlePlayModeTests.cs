@@ -103,6 +103,11 @@ namespace DoodleIdle.Tests
             yield return new WaitForSeconds(.3f);
             game.TogglePause();
             var renderers = game.GetComponentsInChildren<SpriteRenderer>();
+            var playerHead = renderers.Single(r => r.name == "Generated head sprite" && r.transform.parent.name == "Player - head and club");
+            var floor = renderers.First(r => r.name == "Generated dirt floor");
+            Assert.That(playerHead.sharedMaterial, Is.Not.SameAs(floor.sharedMaterial));
+            Assert.That(playerHead.sharedMaterial.mainTexture, Is.SameAs(playerHead.sprite.texture));
+            Assert.That(floor.sharedMaterial.mainTexture, Is.SameAs(floor.sprite.texture));
             var originals = renderers.Select(r => r.sharedMaterial).ToArray();
             var legacy = new Material(Shader.Find("Sprites/Default"));
             try

@@ -79,6 +79,7 @@ namespace DoodleIdle
         Image dashFill, stoneFill;
         Font uiFont;
         Material spriteMaterial;
+        readonly Dictionary<Texture, Material> textureMaterials = new Dictionary<Texture, Material>();
         Transform hudRoot;
         bool portraitHud;
 
@@ -519,7 +520,14 @@ namespace DoodleIdle
             go.transform.SetParent(world);
             go.transform.position = p; go.transform.localScale = new Vector3(scale.x, scale.y, 1);
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite; renderer.sortingOrder = order; renderer.sharedMaterial = spriteMaterial;
+            renderer.sprite = sprite; renderer.sortingOrder = order;
+            // Explicit bindings keep atlas, floor and effect textures in separate material batches.
+            if (!textureMaterials.TryGetValue(sprite.texture, out var material))
+            {
+                material = new Material(spriteMaterial) { mainTexture = sprite.texture, name = "Doodle / " + sprite.texture.name };
+                textureMaterials.Add(sprite.texture, material);
+            }
+            renderer.sharedMaterial = material;
             return renderer;
         }
 
@@ -672,6 +680,8 @@ namespace DoodleIdle
         void OnDestroy()
         {
             if (spriteMaterial) Destroy(spriteMaterial);
+            foreach (var material in textureMaterials.Values) if (material) Destroy(material);
+            textureMaterials.Clear();
             if (frictionless) Destroy(frictionless);
             if (disc) { Destroy(disc.texture); Destroy(disc); }
             if (slash) { Destroy(slash.texture); Destroy(slash); }
