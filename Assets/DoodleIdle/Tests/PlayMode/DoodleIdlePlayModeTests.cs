@@ -275,8 +275,8 @@ namespace DoodleIdle.Tests
         {
             game.autoPlay = false;
             var bodies = EnemyBodies();
-            bodies[0].position = new Vector2(13, 8);
-            bodies[1].position = new Vector2(13.2f, 8);
+            Place(bodies[0], new Vector2(13, 8));
+            Place(bodies[1], new Vector2(13.2f, 8));
             for (int i = 0; i < 35; i++) yield return new WaitForFixedUpdate();
             Assert.That(Vector2.Distance(bodies[0].position, bodies[1].position), Is.GreaterThan(1.07f), "Solid circles should resolve an overlapping starting position.");
         }
@@ -349,3 +349,4 @@ namespace DoodleIdle.Tests
         }
     }
 }
+

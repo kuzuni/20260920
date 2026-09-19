@@ -15,7 +15,7 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator CloudAnimatesAndPurpleTetherStaysBehindPlayer()
         {
-            var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(4, 0);
+            var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(4, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.TetherSnake);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.StormCloud);
             var cloud = NamedArt("Drifting storm cloud").Single();
@@ -41,7 +41,7 @@ namespace DoodleIdle.Tests
         public IEnumerator CannonDustAndGoldUseVisibleParticlesWithHandDrawnHealthFeedback()
         {
             var bodies = IsolateSummonTest();
-            bodies[0].position = new Vector2(3, 0); bodies[1].position = new Vector2(3, 1.3f); bodies[2].position = new Vector2(4.3f, 0);
+            Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(3, 1.3f)); Place(bodies[2], new Vector2(4.3f, 0));
             var fill = bodies[0].GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Enemy HP fill");
             Assert.That(fill.sprite.name, Is.EqualTo("HealthBarFill"));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cannon);
@@ -104,3 +104,4 @@ namespace DoodleIdle.Tests
         }
     }
 }
+

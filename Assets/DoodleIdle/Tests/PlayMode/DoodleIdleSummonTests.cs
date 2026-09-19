@@ -10,6 +10,13 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         Rigidbody2D PlayerBody() => game.GetComponentsInChildren<Rigidbody2D>().Single(b => b.name.StartsWith("Player -"));
+        static void Place(Rigidbody2D body, Vector2 position)
+        {
+            // Disabled Rigidbody2D objects do not synchronize their Transform automatically.
+            // Keep both representations aligned so pause/resume and CI renders use the same fixture.
+            body.transform.position = position;
+            body.position = position;
+        }
         Rigidbody2D[] IsolateSummonTest()
         {
             game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.autoPlay = false;
@@ -20,7 +27,7 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++)
             {
                 bodies[i].simulated = false;
-                bodies[i].position = new Vector2(-16 + i % 8 * 1.2f, -10 + i / 8 * 1.2f);
+                Place(bodies[i], new Vector2(-16 + i % 8 * 1.2f, -10 + i / 8 * 1.2f));
             }
             return bodies;
         }
@@ -30,7 +37,7 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator ShotgunFiresTwentyPelletsAndCucumberPiercesWithoutTurning()
         {
-            var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(3, 0);
+            var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(3, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Shotgun);
             Assert.That(game.ShotgunPellets, Is.EqualTo(20));
             Assert.That(NamedArt("Shotgun moving skill").Length, Is.EqualTo(20));
@@ -39,7 +46,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.Shotgun), Is.GreaterThan(0));
             game.ResetGame(); yield return null;
             bodies = IsolateSummonTest();
-            for (int i = 0; i < 3; i++) bodies[i].position = new Vector2(3 + i * 2, 0);
+            for (int i = 0; i < 3; i++) Place(bodies[i], new Vector2(3 + i * 2, 0));
             var victims = new List<int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.Cucumber) victims.Add(id); };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cucumber);
@@ -56,7 +63,7 @@ namespace DoodleIdle.Tests
         {
             Time.timeScale = 4;
             var bodies = IsolateSummonTest();
-            bodies[0].position = new Vector2(3, 0); bodies[1].position = new Vector2(3, 1.3f); bodies[2].position = new Vector2(4.3f, 0);
+            Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(3, 1.3f)); Place(bodies[2], new Vector2(4.3f, 0));
             var victims = new HashSet<int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.Cannon) victims.Add(id); };
             Vector2 origin = PlayerBody().position;
@@ -89,7 +96,7 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator FiveWaveSnakesEmergeAndAttachedSnakeRetargetsWhileRootFollowsPlayer()
         {
-            var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(3, 0); bodies[1].position = new Vector2(4.5f, 0);
+            var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(4.5f, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.WaveSnakes);
             Assert.That(NamedArt("WaveSnakes head").Length, Is.EqualTo(5));
             yield return PhysicsTicks(5);
@@ -98,7 +105,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Count(r => r.name.StartsWith("WaveSnakes segment") && r.enabled), Is.EqualTo(50));
             Assert.That(NamedArt("WaveSnakes head").Select(r => r.transform.position).Distinct().Count(), Is.EqualTo(5));
             game.ResetGame(); yield return null;
-            bodies = IsolateSummonTest(); bodies[0].position = new Vector2(2.5f, 0); bodies[1].position = new Vector2(4.1f, .5f);
+            bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(2.5f, 0)); Place(bodies[1], new Vector2(4.1f, .5f));
             var impacts = new Dictionary<int, int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.TetherSnake) impacts[id] = impacts.TryGetValue(id, out int count) ? count + 1 : 1; };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.TetherSnake);
@@ -116,10 +123,10 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator GuardianOnlyAttacksInRangeAndRequiredTrailsAreVisible()
         {
-            var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(8, 0);
+            var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(8, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.GuardianSword);
             Assert.That(game.SummonCasts(DoodleIdleGame.SummonSkill.GuardianSword), Is.Zero);
-            bodies[0].position = new Vector2(4, 0);
+            Place(bodies[0], new Vector2(4, 0));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.GuardianSword);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.FireRing);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Sand);
@@ -146,8 +153,8 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator DragonFlapsAndRedWaveFiresFiveAnimatedWideWavesAtNormalSpeed()
         {
-            var bodies = IsolateSummonTest(); bodies[0].position = new Vector2(4, 0);
-            bodies[1].position = new Vector2(4, 1.8f); bodies[2].position = new Vector2(2, 3.5f);
+            var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(4, 0));
+            Place(bodies[1], new Vector2(4, 1.8f)); Place(bodies[2], new Vector2(2, 3.5f));
             var launchTimes = new List<float>();
             game.RedWaveLaunched += time => launchTimes.Add(time);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Dragon);
@@ -185,7 +192,7 @@ namespace DoodleIdle.Tests
         {
             IsolateSummonTest();
             var bodies = EnemyBodies();
-            for (int i = 0; i < 12; i++) bodies[i].position = new Vector2(Mathf.Cos(i * Mathf.PI / 6), Mathf.Sin(i * Mathf.PI / 6)) * 4;
+            for (int i = 0; i < 12; i++) Place(bodies[i], new Vector2(Mathf.Cos(i * Mathf.PI / 6), Mathf.Sin(i * Mathf.PI / 6)) * 4);
             Camera.main.orthographicSize = 6.5f;
             foreach (var skill in new[] { DoodleIdleGame.SummonSkill.Cannon, DoodleIdleGame.SummonSkill.Cucumber, DoodleIdleGame.SummonSkill.TetherSnake, DoodleIdleGame.SummonSkill.StormCloud, DoodleIdleGame.SummonSkill.Dragon, DoodleIdleGame.SummonSkill.RedWave }) game.CastSummonSkill(skill);
             yield return PhysicsTicks(50);
@@ -198,7 +205,7 @@ namespace DoodleIdle.Tests
             Object.Destroy(CaptureFrame("10-dragon-animation-next-frame.png", 1440, 900));
             game.ResetGame(); yield return null; IsolateSummonTest();
             bodies = EnemyBodies();
-            for (int i = 0; i < 12; i++) bodies[i].position = new Vector2(Mathf.Cos(i * Mathf.PI / 6), Mathf.Sin(i * Mathf.PI / 6)) * 4;
+            for (int i = 0; i < 12; i++) Place(bodies[i], new Vector2(Mathf.Cos(i * Mathf.PI / 6), Mathf.Sin(i * Mathf.PI / 6)) * 4);
             foreach (var skill in new[] { DoodleIdleGame.SummonSkill.WaveSnakes, DoodleIdleGame.SummonSkill.FireRing, DoodleIdleGame.SummonSkill.Sand, DoodleIdleGame.SummonSkill.Shotgun }) game.CastSummonSkill(skill);
             yield return PhysicsTicks(28);
             game.TogglePause(); yield return null;
@@ -206,3 +213,4 @@ namespace DoodleIdle.Tests
         }
     }
 }
+
