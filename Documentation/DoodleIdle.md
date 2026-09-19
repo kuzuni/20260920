@@ -27,6 +27,8 @@ Unity 6000.3.8f1 프로젝트입니다. `Assets/DoodleIdle/DoodleIdle.unity`를 
 
 `Doodle Idle Prototype` 오브젝트의 `DoodleIdleGame` Inspector에서 적 수, 보충 임계값, 맵 크기, 이동 속도, 스킬 간격을 조정할 수 있습니다.
 
+플레이 모드 진입 옵션은 **도메인 리로드 끄기 / 씬 리로드 켜기**로 설정했습니다. 플레이 진입마다 .NET 도메인을 다시 구성하는 시간을 줄이며, 씬을 다시 로드해서 전투 상태는 새로 시작합니다. 런타임 전투 상태는 static 필드에 저장하지 않습니다.
+
 ## 검증 및 빌드
 
 - **GitHub Actions → Doodle Idle Unity tests**: 서버의 PlayMode 테스트가 실제 물리 충돌 및 120초 자동 전투를 검사합니다. 결과 XML과 Unity 로그는 Actions 아티팩트로 저장합니다. 설정은 `Documentation/CI.md` 참조.

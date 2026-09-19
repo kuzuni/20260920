@@ -56,7 +56,7 @@ jobs:
           unityVersion: 6000.3.8f1
           testMode: PlayMode
           customParameters: -testFilter DoodleIdle.Tests
-          coverageEnabled: false
+          coverageOptions: assemblyFilters:+DoodleIdle.Runtime;generateAdditionalMetrics
           artifactsPath: artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: Doodle Idle combat results

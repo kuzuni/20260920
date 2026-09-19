@@ -68,7 +68,7 @@ namespace DoodleIdle
         readonly Dictionary<Actor, float> bananaHitTimes = new Dictionary<Actor, float>();
         readonly Transform[] bananas = new Transform[5];
         Sprite[] sprites;
-        Sprite disc, slash;
+        Sprite disc, slash, groundSprite;
         Actor player;
         Transform world, weapon;
         Camera gameCamera;
@@ -122,7 +122,11 @@ namespace DoodleIdle
         void BuildCamera()
         {
             gameCamera = Camera.main;
-            if (!gameCamera) gameCamera = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)).GetComponent<Camera>();
+            if (!gameCamera)
+            {
+                gameCamera = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)).GetComponent<Camera>();
+                gameCamera.transform.SetParent(transform);
+            }
             gameCamera.tag = "MainCamera";
             gameCamera.orthographic = true;
             gameCamera.orthographicSize = 8.5f;
@@ -134,11 +138,11 @@ namespace DoodleIdle
         void BuildGround()
         {
             var texture = Resources.Load<Texture2D>("DoodleIdle/Dirt");
-            var floor = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, texture.width / 13f);
+            groundSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, texture.width / 13f);
             for (int y = -2; y <= 2; y++)
                 for (int x = -3; x <= 3; x++)
                 {
-                    var tile = Visual("Generated dirt floor", floor, new Vector2(x * 13, y * 13), Vector2.one, -1000);
+                    var tile = Visual("Generated dirt floor", groundSprite, new Vector2(x * 13, y * 13), Vector2.one, -1000);
                     // Mirroring adjacent tiles makes matching edges exact, even for an imperfect AI tile.
                     tile.flipX = (Mathf.Abs(x) % 2) == 1;
                     tile.flipY = (Mathf.Abs(y) % 2) == 1;
@@ -632,6 +636,7 @@ namespace DoodleIdle
             if (frictionless) Destroy(frictionless);
             if (disc) { Destroy(disc.texture); Destroy(disc); }
             if (slash) { Destroy(slash.texture); Destroy(slash); }
+            if (groundSprite) Destroy(groundSprite);
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }

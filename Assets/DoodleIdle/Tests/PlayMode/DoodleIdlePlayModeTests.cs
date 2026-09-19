@@ -4,6 +4,9 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+#endif
 
 namespace DoodleIdle.Tests
 {
@@ -21,9 +24,16 @@ namespace DoodleIdle.Tests
             originalRandom = Random.state;
             Random.InitState(20260920);
             originalScene = SceneManager.GetActiveScene();
-            testScene = SceneManager.CreateScene("Doodle test sandbox");
+            // Load the delivered scene so CI also verifies its GUID/component wiring.
+#if UNITY_EDITOR
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/DoodleIdle/DoodleIdle.unity", new LoadSceneParameters(LoadSceneMode.Additive));
+            testScene = SceneManager.GetSceneByPath("Assets/DoodleIdle/DoodleIdle.unity");
+#else
+            yield return SceneManager.LoadSceneAsync("DoodleIdle", LoadSceneMode.Additive);
+            testScene = SceneManager.GetSceneByName("DoodleIdle");
+#endif
             SceneManager.SetActiveScene(testScene);
-            game = new GameObject("Test game").AddComponent<DoodleIdleGame>();
+            game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
             yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
         }
