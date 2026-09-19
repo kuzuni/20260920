@@ -64,10 +64,18 @@ namespace DoodleIdle.Tests
             camera.aspect = width / (float)height;
             game.RefreshHudLayout();
             var canvas = game.GetComponentInChildren<Canvas>();
+            var scaler = canvas.GetComponent<UnityEngine.UI.CanvasScaler>();
+            bool scalerEnabled = scaler.enabled;
+            float previousScale = canvas.scaleFactor;
+            // The CI desktop is smaller than the render target. Request glyphs at capture resolution,
+            // rather than upscaling the desktop's low-resolution dynamic counter glyphs.
+            scaler.enabled = false;
+            canvas.scaleFactor = width / (width < height ? 720f : 1440f);
             canvas.enabled = includeHud;
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
             canvas.planeDistance = 1;
+            foreach (var label in canvas.GetComponentsInChildren<UnityEngine.UI.Text>()) label.SetAllDirty();
             Canvas.ForceUpdateCanvases();
             try
             {
@@ -95,6 +103,8 @@ namespace DoodleIdle.Tests
                 RenderTexture.active = previousActive;
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.enabled = true;
+                canvas.scaleFactor = previousScale;
+                scaler.enabled = scalerEnabled;
                 Object.Destroy(target);
             }
         }
