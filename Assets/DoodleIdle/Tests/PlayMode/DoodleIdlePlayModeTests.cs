@@ -156,6 +156,10 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator StartsWith200SolidSeparatedEnemiesAndFiveBananas()
         {
+            // Inspect spawn placement before movement/solver contact tolerance can change it.
+            game.ResetGame();
+            game.TogglePause();
+            yield return null; // Flush the previous population and banana visuals queued for Destroy.
             Assert.That(game.EnemyCount, Is.EqualTo(200));
             Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
