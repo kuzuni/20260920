@@ -291,10 +291,11 @@ namespace DoodleIdle.Tests
         public IEnumerator AutomaticCombatCastsEverySkillAndRefills()
         {
             Time.timeScale = 8;
-            while (game.Elapsed < 4.8f) yield return new WaitForFixedUpdate();
-            Assert.That(game.DashCasts, Is.Zero, "Dash must wait for its five-second cooldown.");
-            while (game.Elapsed < 5.3f) yield return new WaitForFixedUpdate();
+            // At 8x speed one rendered frame can cross the five-second boundary.
+            // Verify the actual cast timestamp instead of sampling Update's elapsed clock before it.
+            while (game.DashCasts == 0 && game.Elapsed < 10) yield return new WaitForFixedUpdate();
             Assert.That(game.DashCasts, Is.EqualTo(1));
+            Assert.That(game.FirstDashTime, Is.InRange(4.98f, 5.05f), "Dash must first activate after five seconds of physics simulation.");
             float worstPenetration = 0;
             while (game.Elapsed < 120)
             {

@@ -26,6 +26,7 @@ namespace DoodleIdle
         public int Kills { get; private set; }
         public int Refills { get; private set; }
         public int DashCasts { get; private set; }
+        public float FirstDashTime { get; private set; }
         public int StonesLaunched { get; private set; }
         public int BananaHits { get; private set; }
         public int SlashHits { get; private set; }
@@ -74,6 +75,7 @@ namespace DoodleIdle
         Camera gameCamera;
         PhysicsMaterial2D frictionless;
         float attackTimer, dashTimer, stoneTimer, dashRemaining, orbitAngle, swing, trailTimer;
+        float combatStartFixedTime;
         Vector2 dashDirection, facing = Vector2.right, manualInput;
         Text populationText, killsText, timeText, waveText, modeText, pauseText;
         Image dashFill, stoneFill;
@@ -197,6 +199,8 @@ namespace DoodleIdle
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
             Elapsed = orbitAngle = dashRemaining = 0;
+            FirstDashTime = 0;
+            combatStartFixedTime = Time.fixedTime;
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
             paused = false;
             player = CreateActor(true, Vector2.zero, 0);
@@ -369,6 +373,7 @@ namespace DoodleIdle
             dashRemaining = Mathf.Min(Vector2.Distance(selected.Position, player.Position), 8) / 25f;
             dashTimer = dashInterval;
             dashVictims.Clear();
+            if (DashCasts == 0) FirstDashTime = Time.fixedTime - combatStartFixedTime;
             DashCasts++;
         }
 
