@@ -10,13 +10,18 @@ namespace DoodleIdle
         sealed class SoundPulse
         {
             public SpriteRenderer art;
-            public Vector2 center;
+            public Vector2 center, direction;
             public float age, radius;
             public readonly HashSet<Actor> victims = new HashSet<Actor>();
         }
         readonly List<Bottle> bottles = new List<Bottle>();
         readonly List<FireZone> fireZones = new List<FireZone>();
         readonly List<SoundPulse> soundWaves = new List<SoundPulse>();
+        sealed class SoundVolley { public Vector2 direction; public int remaining = 4; public float clock = SoundWaveShotGap; }
+        readonly List<SoundVolley> soundVolleys = new List<SoundVolley>();
+        public int SoundWavesLaunched { get; private set; }
+        public event System.Action<float> SoundWaveLaunched;
+        public const float SoundWaveShotGap = .18f, SoundWaveSpeed = 7, SoundWaveLifetime = 1.5f;
         public int ActiveFireZones => fireZones.Count;
         public const float FireZoneLifetime = 4, FireZoneRadius = 2.3f;
 
@@ -25,10 +30,18 @@ namespace DoodleIdle
             bottles.Add(new Bottle { start = origin, end = target,
                 art = Visual("Molotov airborne bottle", summonArt["Molotov"], origin, Vector2.one * 1.1f, 540) });
         }
-        void SpawnSoundWave(Vector2 origin)
+        void StartSoundVolley(Vector2 direction)
         {
-            soundWaves.Add(new SoundPulse { center = origin, radius = .3f,
-                art = Visual("Expanding sound wave", summonArt["SoundWave"], origin, Vector2.one * .6f, 480) });
+            LaunchSoundWave(direction);
+            soundVolleys.Add(new SoundVolley { direction = direction });
+        }
+        void LaunchSoundWave(Vector2 direction)
+        {
+            Vector2 origin = player.Position;
+            soundWaves.Add(new SoundPulse { center = origin, direction = direction, radius = .35f,
+                art = Visual("Traveling sound wave", summonArt["SoundWave"], origin, Vector2.one * .7f, 480) });
+            SoundWavesLaunched++;
+            SoundWaveLaunched?.Invoke(Time.fixedTime);
         }
         void EmitGroundFire(Vector2 center, int count)
         {
@@ -45,6 +58,13 @@ namespace DoodleIdle
         }
         void TickAreaSkills(float dt)
         {
+            for (int i = soundVolleys.Count - 1; i >= 0; i--)
+            {
+                var volley = soundVolleys[i]; volley.clock -= dt;
+                if (volley.clock > .0001f) continue;
+                LaunchSoundWave(volley.direction); volley.clock += SoundWaveShotGap;
+                if (--volley.remaining == 0) soundVolleys.RemoveAt(i);
+            }
             for (int i = bottles.Count - 1; i >= 0; i--)
             {
                 var bottle = bottles[i]; bottle.age += dt;
@@ -74,26 +94,32 @@ namespace DoodleIdle
             }
             for (int i = soundWaves.Count - 1; i >= 0; i--)
             {
-                var pulse = soundWaves[i]; float previous = pulse.radius;
-                pulse.age += dt; pulse.radius = .3f + pulse.age * 5;
+                var pulse = soundWaves[i]; float previousRadius = pulse.radius;
+                Vector2 previousCenter = pulse.center;
+                pulse.age += dt; pulse.radius = .35f + pulse.age * .8f;
+                pulse.center += pulse.direction * (SoundWaveSpeed * dt);
+                pulse.art.transform.position = pulse.center;
                 var spriteSize = pulse.art.sprite.bounds.size;
                 pulse.art.transform.localScale = new Vector3(pulse.radius * 2 / spriteSize.x, pulse.radius * 2 / spriteSize.y, 1);
-                pulse.art.color = new Color(1, 1, 1, Mathf.Clamp01((1.5f - pulse.age) / .4f) * .8f);
-                // Swept annulus: only the expanding ring hits, never the empty center.
+                pulse.art.color = new Color(1, 1, 1, Mathf.Clamp01((SoundWaveLifetime - pulse.age) / .4f) * .8f);
+                // Sweep the moving ring between physics steps, excluding its empty inner region.
                 for (int e = enemies.Count - 1; e >= 0; e--)
                 {
-                    var enemy = enemies[e]; float distance = Vector2.Distance(enemy.Position, pulse.center);
-                    if (distance < previous * .77f - .56f || distance > pulse.radius + .56f || !pulse.victims.Add(enemy)) continue;
-                    Impact(SummonSkill.SoundWave, enemy, 24, (enemy.Position - pulse.center).normalized);
+                    var enemy = enemies[e];
+                    float outerDistance = SegmentDistance(enemy.Position, previousCenter, pulse.center);
+                    float innerDistance = Mathf.Max(Vector2.Distance(enemy.Position, previousCenter), Vector2.Distance(enemy.Position, pulse.center));
+                    if (outerDistance > pulse.radius + .56f || innerDistance < previousRadius * .77f - .56f || !pulse.victims.Add(enemy)) continue;
+                    Impact(SummonSkill.SoundWave, enemy, 24, pulse.direction);
                 }
-                if (pulse.age >= 1.5f) { Destroy(pulse.art.gameObject); soundWaves.RemoveAt(i); }
+                if (pulse.age >= SoundWaveLifetime) { Destroy(pulse.art.gameObject); soundWaves.RemoveAt(i); }
             }
         }
         void ClearAreaSkills()
         {
             foreach (var bottle in bottles) if (bottle.art) Destroy(bottle.art.gameObject);
             foreach (var pulse in soundWaves) if (pulse.art) Destroy(pulse.art.gameObject);
-            bottles.Clear(); fireZones.Clear(); soundWaves.Clear();
+            bottles.Clear(); fireZones.Clear(); soundWaves.Clear(); soundVolleys.Clear();
+            SoundWavesLaunched = 0;
         }
     }
 }

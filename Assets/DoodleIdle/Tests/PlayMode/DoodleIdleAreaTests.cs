@@ -55,32 +55,65 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator SoundWaveExpandsAsAnEmptyAnnulusAndHitsEachEnemyOnce()
+        public IEnumerator SoundWaveFiresFiveGrowingRingsTowardEnemiesAndCleansUpItsVolley()
         {
             var bodies = IsolateSummonTest();
             for (int i = 0; i < bodies.Length; i++) Place(bodies[i], new Vector2(14 + i % 4, 15 + i / 4));
-            Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(-3, 0));
-            Place(bodies[2], new Vector2(0, 5)); Place(bodies[3], new Vector2(10, 0));
+            Place(bodies[0], new Vector2(4, 0)); Place(bodies[1], new Vector2(-5, 0));
+            Place(bodies[2], new Vector2(7, 1));
+            int frontId = bodies[0].gameObject.GetInstanceID(), behindId = bodies[1].gameObject.GetInstanceID();
+            int distantId = bodies[2].gameObject.GetInstanceID();
             var hits = new List<int>();
+            var launches = new List<float>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.SoundWave) hits.Add(id); };
+            game.SoundWaveLaunched += time => launches.Add(time);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.SoundWave);
-            var wave = NamedArt("Expanding sound wave").Single();
+            var wave = NamedArt("Traveling sound wave").Single();
             var texture = wave.sprite.texture;
             Assert.That(texture.GetPixel(texture.width / 2, texture.height / 2).a, Is.LessThan(.05f), "The donut's center is transparent.");
-            yield return PhysicsTicks(30);
-            Assert.That(hits.Count, Is.EqualTo(2));
-            Assert.That(wave.bounds.size.x, Is.EqualTo(6.6f).Within(.05f));
+            yield return PhysicsTicks(10);
+            Assert.That(game.SoundWavesLaunched, Is.EqualTo(2), "Rings must be launched sequentially.");
+            Assert.That(wave.transform.position.x, Is.EqualTo(1.4f).Within(.03f));
+            Assert.That(wave.transform.position.y, Is.EqualTo(0).Within(.01f));
+            Assert.That(wave.bounds.size.x, Is.EqualTo(1.02f).Within(.03f));
+            yield return PhysicsTicks(28);
+            Assert.That(game.SoundWavesLaunched, Is.EqualTo(5));
+            Assert.That(launches.Count, Is.EqualTo(5));
+            for (int i = 1; i < launches.Count; i++) Assert.That(launches[i] - launches[i - 1], Is.InRange(.159f, .201f));
+            var rings = NamedArt("Traveling sound wave").OrderBy(r => r.transform.position.x).ToArray();
+            Assert.That(rings.Length, Is.EqualTo(5));
+            for (int i = 1; i < rings.Length; i++)
+            {
+                Assert.That(rings[i].transform.position.x, Is.GreaterThan(rings[i - 1].transform.position.x + 1));
+                Assert.That(rings[i].bounds.size.x, Is.GreaterThan(rings[i - 1].bounds.size.x));
+            }
             Camera.main.orthographicSize = 6;
-            Object.Destroy(CaptureFrame("22-sound-wave.png", 1440, 900, false));
-            yield return PhysicsTicks(12);
-            Place(bodies[3], Vector2.zero); // Enter the empty center after the leading ring passed.
-            yield return PhysicsTicks(40); yield return null;
-            Assert.That(hits.Count, Is.EqualTo(3));
-            Assert.That(hits.Distinct().Count(), Is.EqualTo(3));
-            Assert.That(NamedArt("Expanding sound wave").Length, Is.Zero);
+            Object.Destroy(CaptureFrame("22-directional-sound-volley.png", 1440, 900, false));
+            yield return PhysicsTicks(100); yield return null;
+            Assert.That(hits.Count(id => id == frontId), Is.EqualTo(3), "Separate rings can hit the same enemy until it dies.");
+            Assert.That(hits.Count(id => id == distantId), Is.EqualTo(3));
+            Assert.That(hits.Contains(behindId), Is.False, "A directional volley must not become a radial blast behind the player.");
+            Assert.That(NamedArt("Traveling sound wave").Length, Is.Zero);
+
+            // The remaining closest enemy is behind: the next volley must aim left.
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.SoundWave);
+            yield return PhysicsTicks(4);
+            var leftWave = NamedArt("Traveling sound wave").Single();
+            Assert.That(leftWave.transform.position.x, Is.LessThan(-.5f));
+            game.TogglePause();
+            var position = leftWave.transform.position; var scale = leftWave.transform.localScale;
+            int pausedLaunches = game.SoundWavesLaunched;
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(leftWave.transform.position, Is.EqualTo(position));
+            Assert.That(leftWave.transform.localScale, Is.EqualTo(scale));
+            Assert.That(game.SoundWavesLaunched, Is.EqualTo(pausedLaunches));
+            game.TogglePause(); foreach (var body in EnemyBodies()) body.simulated = false;
+            yield return PhysicsTicks(8);
+            Assert.That(game.SoundWavesLaunched, Is.EqualTo(pausedLaunches + 1));
             game.ResetGame(); yield return null;
-            Assert.That(NamedArt("Expanding sound wave").Length, Is.Zero);
+            IsolateSummonTest(); yield return PhysicsTicks(50);
+            Assert.That(game.SoundWavesLaunched, Is.Zero, "Reset clears queued shots as well as visible rings.");
+            Assert.That(NamedArt("Traveling sound wave").Length, Is.Zero);
         }
     }
 }

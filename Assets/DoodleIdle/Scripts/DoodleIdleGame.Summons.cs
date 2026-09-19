@@ -185,7 +185,7 @@ namespace DoodleIdle
                     ThrowMolotov(origin, target.Position);
                     break;
                 case SummonSkill.SoundWave:
-                    SpawnSoundWave(origin);
+                    StartSoundVolley(direction);
                     break;
                 case SummonSkill.WaveSnakes:
                     for (int i = 0; i < 5; i++) SpawnSnake(kind, Direction(Mathf.Atan2(direction.y, direction.x) + i * Mathf.PI * 2 / 5));
