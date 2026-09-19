@@ -327,7 +327,7 @@ namespace DoodleIdle
                     shot.art.transform.rotation = Aim(shot.direction) * Quaternion.Euler(0, 0, 90 + Mathf.Sin(shot.age * 15) * 12);
                     shot.art.transform.localScale = new Vector3(2.3f, 2.3f * (.72f + .28f * Mathf.Abs(Mathf.Cos(shot.age * 10))), 1);
                 }
-                if (shot.kind == SummonSkill.RedWave) shot.art.sprite = summonArt[((int)(shot.age * 6) % 2 == 0) ? "RedSlashA" : "RedSlashB"];
+                if (shot.kind == SummonSkill.RedWave) SetSpriteArt(shot.art, summonArt[((int)(shot.age * 6) % 2 == 0) ? "RedSlashA" : "RedSlashB"]);
                 if (shot.kind == SummonSkill.Sand) shot.art.transform.localScale = Vector3.one * (1.2f + shot.age * 1.2f);
                 if (shot.kind == SummonSkill.GuardianSword) shot.art.color = new Color(.7f, .88f, 1, Mathf.Clamp01((shot.lifetime - shot.age) * 4));
                 bool trail = shot.kind == SummonSkill.FireRing || shot.kind == SummonSkill.Sand || shot.kind == SummonSkill.Dragon || shot.kind == SummonSkill.RedWave;
@@ -418,7 +418,7 @@ namespace DoodleIdle
                 {
                     snake.wings.transform.position = snake.parts[3].transform.position;
                     snake.wings.transform.rotation = snake.parts[3].transform.rotation * Quaternion.Euler(0, 0, 90);
-                    snake.wings.sprite = summonArt[(int)(snake.age * 8) % 2 == 0 ? "DragonWingUp" : "DragonWingDown"];
+                    SetSpriteArt(snake.wings, summonArt[(int)(snake.age * 8) % 2 == 0 ? "DragonWingUp" : "DragonWingDown"]);
                     snake.flameClock -= dt;
                     if (snake.flameClock <= 0)
                     {

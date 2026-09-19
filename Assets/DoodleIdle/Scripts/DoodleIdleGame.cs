@@ -536,7 +536,14 @@ namespace DoodleIdle
             go.transform.SetParent(world);
             go.transform.position = p; go.transform.localScale = new Vector3(scale.x, scale.y, 1);
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite; renderer.sortingOrder = order;
+            renderer.sortingOrder = order;
+            SetSpriteArt(renderer, sprite);
+            return renderer;
+        }
+
+        void SetSpriteArt(SpriteRenderer renderer, Sprite sprite)
+        {
+            renderer.sprite = sprite;
             // Explicit bindings keep atlas, floor and effect textures in separate material batches.
             if (!textureMaterials.TryGetValue(sprite.texture, out var material))
             {
@@ -544,7 +551,6 @@ namespace DoodleIdle
                 textureMaterials.Add(sprite.texture, material);
             }
             renderer.sharedMaterial = material;
-            return renderer;
         }
 
         static Sprite MakeDisc()

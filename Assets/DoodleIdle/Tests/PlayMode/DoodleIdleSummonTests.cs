@@ -156,6 +156,8 @@ namespace DoodleIdle.Tests
             {
                 yield return new WaitForFixedUpdate();
                 wingFrames.Add(wings.sprite.name); slashFrames.Add(wave.sprite.name);
+                Assert.That(wings.sharedMaterial.mainTexture, Is.SameAs(wings.sprite.texture));
+                Assert.That(wave.sharedMaterial.mainTexture, Is.SameAs(wave.sprite.texture));
             }
             Assert.That(wingFrames.Count, Is.EqualTo(2)); Assert.That(slashFrames.Count, Is.EqualTo(2));
             Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(1f, 1.12f));
