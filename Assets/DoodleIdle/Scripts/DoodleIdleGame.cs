@@ -332,8 +332,8 @@ namespace DoodleIdle
         void LateUpdate()
         {
             if (!Ready) return;
-            Vector3 desired = new Vector3(Mathf.Clamp(player.Position.x * .65f, -6.5f, 6.5f), Mathf.Clamp(player.Position.y * .65f, -3, 3), -10);
-            gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 4));
+            Vector3 desired = new Vector3(player.Position.x, player.Position.y, -10);
+            gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 9));
         }
 
         Actor Closest(Vector2 origin)
@@ -555,7 +555,7 @@ namespace DoodleIdle
             var go = new GameObject("Prototype HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform);
             hudRoot = go.transform;
-            var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
             var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = portraitHud ? new Vector2(720, 1280) : new Vector2(1440, 900);
             scaler.matchWidthOrHeight = portraitHud ? 0 : .5f;
@@ -602,6 +602,7 @@ namespace DoodleIdle
             if (hudRoot && portraitHud == (gameCamera.aspect < 1)) return;
             if (hudRoot) { hudRoot.gameObject.SetActive(false); Destroy(hudRoot.gameObject); }
             BuildHud();
+            if (Ready) UpdateHud();
         }
 
         RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 min, Vector2 max)

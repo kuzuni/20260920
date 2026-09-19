@@ -108,6 +108,7 @@ namespace DoodleIdle.Tests
             try
             {
                 foreach (var renderer in renderers) renderer.sharedMaterial = legacy;
+                yield return null; // Let Unity rebuild its sprite render data after material changes.
                 Object.Destroy(CaptureFrame("01-legacy-material-portrait.png", 720, 1560));
             }
             finally
@@ -115,11 +116,13 @@ namespace DoodleIdle.Tests
                 for (int i = 0; i < renderers.Length; i++) renderers[i].sharedMaterial = originals[i];
                 Object.Destroy(legacy);
             }
+            yield return null;
             Object.Destroy(CaptureFrame("02-fixed-portrait.png", 720, 1560));
             Object.Destroy(CaptureFrame("03-fixed-landscape.png", 1440, 900));
 
             var head = renderers.Single(r => r.name == "Generated head sprite" && r.transform.parent.name == "Player - head and club");
-            foreach (var renderer in renderers) renderer.forceRenderingOff = renderer != head;
+            // Keep the floor visible: rendering the head alone would miss texture-binding regressions.
+            foreach (var renderer in renderers) renderer.forceRenderingOff = renderer != head && renderer.name != "Generated dirt floor";
             var camera = Camera.main;
             camera.transform.position = head.transform.position + Vector3.back * 10;
             camera.orthographicSize = 1;
