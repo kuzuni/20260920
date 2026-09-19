@@ -44,6 +44,8 @@ namespace DoodleIdle
             public SpriteRenderer healthBack, healthFill;
             public CircleCollider2D collider;
             public float hp = 68, flash, phase;
+            public float walkClock;
+            public bool isPlayer;
             public int kind;
             public Vector2 Position => body.position;
         }
@@ -95,6 +97,7 @@ namespace DoodleIdle
             sprites = LoadAtlas();
             LoadSkillArt();
             LoadSummonArt();
+            LoadActorAnimations();
             disc = MakeDisc();
             slash = MakeSlash();
             // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
@@ -132,6 +135,7 @@ namespace DoodleIdle
                         { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y); }
                 if (minX > maxX) throw new InvalidOperationException("Empty generated sprite cell: " + i);
                 result[i] = Sprite.Create(texture, new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1), new Vector2(.5f, .5f), Mathf.Max(maxX - minX + 1, maxY - minY + 1));
+                if (i == 0) result[i].name = "PlayerWalkA";
             }
             return result;
         }
@@ -229,7 +233,7 @@ namespace DoodleIdle
 
         Actor CreateActor(bool isPlayer, Vector2 p, int kind)
         {
-            var root = new GameObject(isPlayer ? "Player - head and club" : "Horned enemy");
+            var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + EnemyArtNames[kind]);
             root.transform.SetParent(world);
             root.transform.position = p;
             var body = root.AddComponent<Rigidbody2D>();
@@ -245,9 +249,9 @@ namespace DoodleIdle
             var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.58f), new Vector2(1.15f, .42f), -900);
             shadow.color = new Color(.08f, .07f, .06f, .32f);
             shadow.transform.SetParent(root.transform, true);
-            var art = Visual("Generated head sprite", sprites[isPlayer ? 0 : kind + 1], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
+            var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
-            var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind };
+            var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
             if (!isPlayer) AddHealthBar(actor);
             return actor;
         }
@@ -495,6 +499,7 @@ namespace DoodleIdle
 
         void Animate(Actor actor)
         {
+            AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
             actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : Color.white;
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
@@ -506,7 +511,7 @@ namespace DoodleIdle
 
         void Trail()
         {
-            var sprite = Visual("Dash afterimage", sprites[0], player.Position, Vector2.one * 1.2f, Order(player.Position) - 3);
+            var sprite = Visual("Dash afterimage", player.art.sprite, player.Position, Vector2.one * 1.2f, Order(player.Position) - 3);
             sprite.color = new Color(1, 1, 1, .35f);
             flecks.Add(new Fleck { visual = sprite.transform, sprite = sprite, lifetime = .24f, remaining = .24f });
         }
@@ -706,6 +711,7 @@ namespace DoodleIdle
             if (groundSprite) Destroy(groundSprite);
             DisposeSkillArt();
             DisposeSummonArt();
+            DisposeActorAnimations();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }

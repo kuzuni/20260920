@@ -14,6 +14,50 @@ namespace DoodleIdle.Tests
         ParticleSystem Particles(string name) => game.GetComponentsInChildren<ParticleSystem>().Single(p => p.name == name);
 
         [UnityTest]
+        public IEnumerator PlayerAndThreeEnemySpeciesAnimateTwoMovementFrames()
+        {
+            var bodies = IsolateSummonTest();
+            string[] species = { "Mushroom", "Bat", "Devil" };
+            var selected = species.Select(name => bodies.First(b => b.name == "Enemy - " + name)).ToArray();
+            for (int i = 0; i < selected.Length; i++)
+            {
+                Place(selected[i], new Vector2((i - 1) * 3, 3)); selected[i].simulated = true;
+            }
+            game.autoPlay = true; game.moveSpeed = 1;
+            var arts = new[] { PlayerBody().GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Generated head sprite") }
+                .Concat(selected.Select(b => b.GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Generated head sprite"))).ToArray();
+            var seen = arts.Select(a => new HashSet<string>()).ToArray();
+            bool capturedA = false, capturedB = false;
+            Camera.main.orthographicSize = 5;
+            for (int frame = 0; frame < 70; frame++)
+            {
+                yield return null;
+                for (int i = 0; i < arts.Length; i++)
+                {
+                    seen[i].Add(arts[i].sprite.name);
+                    Assert.That(arts[i].sharedMaterial.mainTexture, Is.SameAs(arts[i].sprite.texture));
+                }
+                if (!capturedA && arts[0].sprite.name == "PlayerWalkA")
+                { Object.Destroy(CaptureFrame("17-movement-frame-a.png", 1440, 900)); capturedA = true; }
+                if (!capturedB && arts[0].sprite.name == "PlayerWalkB")
+                { Object.Destroy(CaptureFrame("18-movement-frame-b.png", 1440, 900)); capturedB = true; }
+            }
+            CollectionAssert.AreEquivalent(new[] { "PlayerWalkA", "PlayerWalkB" }, seen[0]);
+            for (int i = 0; i < species.Length; i++)
+                CollectionAssert.AreEquivalent(new[] { species[i] + "A", species[i] + "B" }, seen[i + 1]);
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            game.TogglePause();
+            var pausedFrames = arts.Select(a => a.sprite).ToArray();
+            yield return new WaitForSecondsRealtime(.2f);
+            for (int i = 0; i < arts.Length; i++) Assert.That(arts[i].sprite, Is.SameAs(pausedFrames[i]));
+            game.TogglePause(); game.autoPlay = false; game.moveSpeed = 0;
+            Place(PlayerBody(), new Vector2(10, 10)); PlayerBody().linearVelocity = Vector2.zero;
+            yield return PhysicsTicks(3); yield return null;
+            Assert.That(arts[0].sprite.name, Is.EqualTo("PlayerWalkA"), "A stationary player returns to the original design.");
+            Assert.That(arts[0].sprite.texture, Is.SameAs(Resources.Load<Texture2D>("DoodleIdle/Characters")));
+        }
+
+        [UnityTest]
         public IEnumerator CannonLaunchesFromMirroredMuzzleAndBouncesWithDOTween()
         {
             foreach (int side in new[] { 1, -1 })

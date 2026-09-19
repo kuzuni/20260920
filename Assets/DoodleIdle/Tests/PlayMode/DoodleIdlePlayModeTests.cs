@@ -52,7 +52,7 @@ namespace DoodleIdle.Tests
             yield return SceneManager.UnloadSceneAsync(testScene);
         }
 
-        Rigidbody2D[] EnemyBodies() => game.GetComponentsInChildren<Rigidbody2D>().Where(b => b.name == "Horned enemy").ToArray();
+        Rigidbody2D[] EnemyBodies() => game.GetComponentsInChildren<Rigidbody2D>().Where(b => b.name.StartsWith("Enemy - ")).ToArray();
 
         Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true)
         {

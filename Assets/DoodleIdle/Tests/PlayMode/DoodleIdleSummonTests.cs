@@ -175,13 +175,14 @@ namespace DoodleIdle.Tests
             }
             Assert.That(wingFrames.Count, Is.EqualTo(2)); Assert.That(slashFrames.Count, Is.EqualTo(2));
             Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(DoodleIdleGame.SlashSpeed * .98f, DoodleIdleGame.SlashSpeed * 1.04f));
-            Assert.That(launchTimes.Count, Is.EqualTo(5));
-            for (int i = 1; i < launchTimes.Count; i++) Assert.That(launchTimes[i] - launchTimes[i - 1], Is.InRange(.139f, .181f));
+            Assert.That(launchTimes.Count, Is.EqualTo(3), "The first second contains three of the five spaced shots.");
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.RedWave), Is.GreaterThanOrEqualTo(2));
             Assert.That(game.DragonFlames, Is.GreaterThanOrEqualTo(6));
             Assert.That(NamedArt("RedWave afterimage").Length, Is.GreaterThan(0));
             Assert.That(NamedArt("Dragon afterimage").Length, Is.GreaterThan(0));
             yield return PhysicsTicks(200);
+            Assert.That(launchTimes.Count, Is.EqualTo(5));
+            for (int i = 1; i < launchTimes.Count; i++) Assert.That(launchTimes[i] - launchTimes[i - 1], Is.InRange(.459f, .501f));
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.Dragon), Is.GreaterThan(0));
             Assert.That(game.RedWavesLaunched, Is.EqualTo(5));
             Assert.That(NamedArt("RedWave moving skill").Length, Is.Zero);

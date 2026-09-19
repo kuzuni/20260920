@@ -14,6 +14,7 @@ namespace DoodleIdle
         public float snakeInterval = 7, shotgunInterval = 4.5f, guardianInterval = .7f, cannonInterval = 14;
         public float cucumberInterval = 6, tetherInterval = 9, cloudInterval = 10, ringInterval = 7, sandInterval = 5;
         public float dragonInterval = 11, redWaveInterval = 9;
+        public const float RedWaveShotGap = .48f;
         public int ShotgunPellets { get; private set; }
         public int CannonShots { get; private set; }
         public int CannonExplosions { get; private set; }
@@ -63,7 +64,7 @@ namespace DoodleIdle
         sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
         sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; }
         sealed class Stain { public SpriteRenderer art; public float age; }
-        sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = .16f; }
+        sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = RedWaveShotGap; }
 
         void LoadSummonArt()
         {
@@ -232,7 +233,7 @@ namespace DoodleIdle
                 var volley = redVolleys[i]; volley.clock -= dt;
                 if (volley.clock > .0001f) continue;
                 LaunchRedWave(volley.direction);
-                volley.clock += .16f;
+                volley.clock += RedWaveShotGap;
                 if (--volley.remaining == 0) redVolleys.RemoveAt(i);
             }
         }

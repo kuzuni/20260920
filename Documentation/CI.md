@@ -50,3 +50,4 @@ GitHub 서버가 아니라 화면 없는 로컬 검증을 원할 경우 Unity Te
 - 서버 캡처: 12-purple-tether-cloud, 13-particle-explosion-hp, 14-death-gold-coins.
 
 - 대포 좌우 포구 발사점과 첫 포탄 위치, 실제 DOTween 반동/복귀/일시정지/리셋 검사 및 15-cannon-bounce-right, 16-cannon-bounce-left 캡처.
+- 플레이어와 버섯/박쥐/악마의 실제 이동 중 2컷 전환, 프레임별 텍스처 바인딩, 일시정지와 플레이어 정지 시 원본 복귀 검사. 17-movement-frame-a, 18-movement-frame-b 캡처.
