@@ -44,7 +44,8 @@ jobs:
           path: Library
           key: doodle-Linux-6000.3.8f1-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: doodle-Linux-6000.3.8f1-
-      - uses: game-ci/unity-test-runner@v4
+      # v4.4 delegates to a CLI that rejects --no-coverageEnabled; keep the working runner implementation.
+      - uses: game-ci/unity-test-runner@fa6ced25861c16ef56187828c43f76d00df43a23 # v4.3.2
         id: tests
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}

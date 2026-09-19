@@ -29,7 +29,7 @@ Unity 6000.3.8f1 프로젝트입니다. `Assets/DoodleIdle/DoodleIdle.unity`를 
 
 ## 검증 및 빌드
 
-- **Doodle Idle → Run Combat Smoke Check**: 실제 Play 모드로 65초의 전투를 실행해 처치/보충/각 스킬 발동 및 일시정지 토글을 검사합니다. 결과는 `Documentation/combat-smoke.json`, `combat-smoke-result.txt`, `prototype-gameplay.png`에 저장합니다.
+- **GitHub Actions → Doodle Idle Unity tests**: 서버의 PlayMode 테스트가 실제 물리 충돌 및 120초 자동 전투를 검사합니다. 결과 XML과 Unity 로그는 Actions 아티팩트로 저장합니다. 설정은 `Documentation/CI.md` 참조.
 - **Doodle Idle → Build Windows Prototype**: `Builds/DoodleIdle/DoodleIdle.exe` 생성.
 
 ## 에셋

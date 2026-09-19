@@ -612,7 +612,7 @@ namespace DoodleIdle
             stoneFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - stoneTimer / stoneInterval), 5);
         }
 
-        // Called by the automated editor smoke run after real physics frames.
+        // Used by server-side PlayMode tests after real physics frames.
         public string Diagnostics()
         {
             float penetration = 0;
