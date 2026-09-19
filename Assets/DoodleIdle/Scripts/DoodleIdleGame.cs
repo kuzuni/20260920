@@ -93,6 +93,7 @@ namespace DoodleIdle
         void Start()
         {
             Application.targetFrameRate = 60;
+            QualitySettings.vSyncCount = 0;
             Application.runInBackground = true;
             sprites = LoadAtlas();
             LoadSkillArt();
@@ -200,6 +201,7 @@ namespace DoodleIdle
 
         public void ResetGame()
         {
+            ReleaseJoystick();
             ClearParticles();
             ClearDamageNumbers();
             ClearExtraSkills();
@@ -214,6 +216,7 @@ namespace DoodleIdle
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
             Elapsed = orbitAngle = dashRemaining = 0;
+            bananaCycleAge = 0; BananasActive = true;
             FirstDashTime = 0;
             combatStartFixedTime = Time.fixedTime;
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
@@ -290,6 +293,7 @@ namespace DoodleIdle
                 manualInput = new Vector2((keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1 : 0), (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1 : 0)).normalized;
             }
             RefreshHudLayout();
+            UpdateJoystick();
             UpdateHud();
             if (paused) return;
             float dt = Time.deltaTime;
@@ -312,7 +316,7 @@ namespace DoodleIdle
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
-            if (basicSkillsEnabled && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            if (basicSkillsEnabled && !JoystickActive && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -331,12 +335,12 @@ namespace DoodleIdle
             }
             else
             {
-                Vector2 desired = autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
+                Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
                 // Steer around boulders; the real colliders remain authoritative.
                 foreach (var obstacle in obstacles)
                 {
                     Vector2 away = player.Position - obstacle;
-                    if (away.sqrMagnitude < 3.8f && Vector2.Dot(desired, away) < 0)
+                    if (!JoystickActive && away.sqrMagnitude < 3.8f && Vector2.Dot(desired, away) < 0)
                         desired += new Vector2(-away.y, away.x).normalized * moveSpeed + away.normalized * 2;
                 }
                 player.body.linearVelocity = desired;
@@ -420,16 +424,22 @@ namespace DoodleIdle
 
         void OrbitBananas(float dt)
         {
+            bananaCycleAge += dt;
+            if (bananaCycleAge >= OrbitSkillCycle) bananaCycleAge -= OrbitSkillCycle;
+            bool wasActive = BananasActive;
+            BananasActive = bananaCycleAge < OrbitSkillLifetime;
             orbitAngle += dt * 2.1f;
             for (int n = 0; n < bananas.Length; n++)
             {
                 float angle = orbitAngle + n * Mathf.PI * 2 / 5;
                 Vector2 p = player.Position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * bananaRadius;
                 Vector2 previous = bananas[n].position;
+                bananas[n].gameObject.SetActive(BananasActive);
                 bananas[n].position = p;
                 bananas[n].rotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg - 35);
                 bananas[n].GetComponent<SpriteRenderer>().sortingOrder = Order(p) + 5;
-                if (!basicSkillsEnabled) continue;
+                if (!BananasActive || !basicSkillsEnabled) continue;
+                if (!wasActive) previous = p;
                 for (int i = enemies.Count - 1; i >= 0; i--)
                 {
                     var enemy = enemies[i];
@@ -545,6 +555,7 @@ namespace DoodleIdle
         public void TogglePause()
         {
             paused = !paused;
+            if (paused) ReleaseJoystick();
             player.body.simulated = !paused;
             foreach (var enemy in enemies) enemy.body.simulated = !paused;
         }
@@ -611,6 +622,7 @@ namespace DoodleIdle
             var go = new GameObject("Prototype HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform);
             hudRoot = go.transform;
+            BuildJoystick();
             var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
             var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = portraitHud ? new Vector2(720, 1280) : new Vector2(1440, 900);
@@ -691,6 +703,7 @@ namespace DoodleIdle
             waveText.text = refillBelow + "마리 미만이면 " + targetPopulation + "마리까지 보충  ·  " + Refills + "회";
             modeText.text = paused ? "잠깐 쉬는 중  ·  SPACE로 계속" : (autoPlay ? "● 자동 전투" : "● 직접 이동 · WASD / 방향키") + "    SPACE 일시정지    TAB 이동 모드    R 다시 시작";
             if (portraitHud) modeText.text = paused ? "잠깐 쉬는 중" : autoPlay ? "● 자동 전투 중  ·  TAB 이동 모드 전환" : "● 직접 이동  ·  WASD / 방향키";
+            if (!paused) modeText.text = JoystickActive ? "● 조이스틱 직접 이동  ·  손을 떼면 자동 이동" : modeText.text + "  ·  화면 드래그 이동";
             pauseText.text = paused ? "계속하기" : "일시정지";
         }
 
@@ -710,6 +723,7 @@ namespace DoodleIdle
 
         void OnDestroy()
         {
+            orbitGunRecoil?.Kill();
             KillCannonTweens();
             DisposeParticleMaterials();
             if (spriteMaterial) Destroy(spriteMaterial);

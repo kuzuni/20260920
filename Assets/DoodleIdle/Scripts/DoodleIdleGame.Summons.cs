@@ -7,7 +7,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        public enum SummonSkill { WaveSnakes, Shotgun, GuardianSword, Cannon, Cucumber, TetherSnake, StormCloud, FireRing, Sand, Dragon, RedWave, Molotov, SoundWave }
+        public enum SummonSkill { WaveSnakes, Shotgun, GuardianSword, Cannon, Cucumber, TetherSnake, StormCloud, FireRing, Sand, Dragon, RedWave, Molotov, SoundWave, OrbitGun }
         [Header("Summons and area skills")]
         public bool summonSkillsEnabled = true;
         public bool guardianEnabled = true;
@@ -28,12 +28,12 @@ namespace DoodleIdle
         public event Action<Vector2, Vector2> CannonProjectileLaunched;
         public int ActiveCannons => turrets.Count;
         public int ActiveStains => stains.Count;
-        public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count + bottles.Count + fireZones.Count + soundWaves.Count;
+        public int ActiveSummonObjects => movingSkills.Count + snakes.Count + turrets.Count + clouds.Count + bottles.Count + fireZones.Count + soundWaves.Count + (orbitGun ? 1 : 0);
         public int SummonCasts(SummonSkill skill) => summonCasts[(int)skill];
         public int SummonHits(SummonSkill skill) => summonHits[(int)skill];
         public event Action<SummonSkill, int> SummonImpact;
-        readonly int[] summonCasts = new int[13], summonHits = new int[13];
-        readonly float[] summonClocks = new float[13];
+        readonly int[] summonCasts = new int[14], summonHits = new int[14];
+        readonly float[] summonClocks = new float[14];
         readonly Dictionary<string, Sprite> summonArt = new Dictionary<string, Sprite>();
         readonly List<MovingSkill> movingSkills = new List<MovingSkill>();
         readonly List<Snake> snakes = new List<Snake>();
@@ -70,7 +70,7 @@ namespace DoodleIdle
 
         void LoadSummonArt()
         {
-            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB", "Molotov", "SoundWave", "GroundFlame" };
+            string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB", "Molotov", "SoundWave", "GroundFlame", "OrbitGun", "OrbitBullet", "MuzzleFlash" };
             foreach (string name in names)
             {
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + name);
@@ -91,6 +91,7 @@ namespace DoodleIdle
         void ClearSummons()
         {
             ClearAreaSkills();
+            ClearOrbitGun();
             foreach (var shot in movingSkills) if (shot.art) Destroy(shot.art.gameObject);
             foreach (var snake in snakes) { foreach (var part in snake.parts) if (part) Destroy(part.gameObject); if (snake.wings) Destroy(snake.wings.gameObject); }
             foreach (var turret in turrets) { turret.recoil?.Kill(); if (turret.art) Destroy(turret.art.gameObject); }
@@ -105,6 +106,7 @@ namespace DoodleIdle
             Array.Clear(summonCasts, 0, summonCasts.Length); Array.Clear(summonHits, 0, summonHits.Length);
             for (int i = 0; i < summonClocks.Length; i++) summonClocks[i] = 2.5f + i * .6f;
             summonClocks[(int)SummonSkill.GuardianSword] = 1;
+            summonClocks[(int)SummonSkill.OrbitGun] = .6f;
             ShotgunPellets = CannonShots = CannonExplosions = TetherRetargets = DragonFlames = LightningStrikes = 0;
             LastCannonLifetime = 0;
             RedWavesLaunched = 0;
@@ -127,6 +129,7 @@ namespace DoodleIdle
                 case SummonSkill.Dragon: return dragonInterval;
                 case SummonSkill.Molotov: return molotovInterval;
                 case SummonSkill.SoundWave: return soundWaveInterval;
+                case SummonSkill.OrbitGun: return OrbitSkillCycle;
                 default: return redWaveInterval;
             }
         }
@@ -186,6 +189,9 @@ namespace DoodleIdle
                     break;
                 case SummonSkill.SoundWave:
                     StartSoundVolley(direction);
+                    break;
+                case SummonSkill.OrbitGun:
+                    SpawnOrbitGun();
                     break;
                 case SummonSkill.WaveSnakes:
                     for (int i = 0; i < 5; i++) SpawnSnake(kind, Direction(Mathf.Atan2(direction.y, direction.x) + i * Mathf.PI * 2 / 5));
@@ -298,7 +304,7 @@ namespace DoodleIdle
                     CastSummonSkill((SummonSkill)i); summonClocks[i] = Mathf.Max(.1f, SummonInterval(i));
                 }
             }
-            TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickMovingSkills(dt); TickAreaSkills(dt);
+            TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickOrbitGun(dt); TickMovingSkills(dt); TickAreaSkills(dt);
             for (int i = stains.Count - 1; i >= 0; i--)
             {
                 var stain = stains[i]; stain.age += dt;
@@ -391,6 +397,18 @@ namespace DoodleIdle
                         for (int e = enemies.Count - 1; e >= 0; e--)
                             if (Vector2.Distance(enemies[e].Position, shot.end) < shot.radius) Impact(shot.kind, enemies[e], shot.damage, (enemies[e].Position - shot.end).normalized);
                     }
+                }
+                else if (shot.kind == SummonSkill.OrbitGun)
+                {
+                    Actor first = null; float closest = float.MaxValue;
+                    Vector2 step = next - old;
+                    foreach (var enemy in enemies)
+                    {
+                        if (SegmentDistance(enemy.Position, old, next) > shot.radius) continue;
+                        float along = Mathf.Clamp01(Vector2.Dot(enemy.Position - old, step) / Mathf.Max(.0001f, step.sqrMagnitude));
+                        if (along < closest) { closest = along; first = enemy; }
+                    }
+                    if (first != null) { Impact(shot.kind, first, shot.damage, shot.direction); finished = true; }
                 }
                 else
                 {

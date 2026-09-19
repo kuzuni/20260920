@@ -5,16 +5,16 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        readonly Image[] skillBars = new Image[22];
+        readonly Image[] skillBars = new Image[23];
         float skillBarWidth;
         void BuildSkillGrid(Transform parent)
         {
             string[] names = { "방망이 검기", "대시", "바나나", "돌멩이", "화살 10발", "탱탱볼", "불꽃 3발", "드론", "나선 지렁이",
-                "5방향 뱀", "산탄 20발", "수호검", "설치 대포", "굴러라 오이", "추적 뱀", "번개 구름", "원형 불꽃", "모래 뿌리기", "화염 드래곤", "빨간 검기 5연발", "화염병", "음파" };
+                "5방향 뱀", "산탄 20발", "수호검", "설치 대포", "굴러라 오이", "추적 뱀", "번개 구름", "원형 불꽃", "모래 뿌리기", "화염 드래곤", "빨간 검기 5연발", "화염병", "음파", "회전 연사총" };
             Sprite[] icons = { sprites[4], sprites[0], sprites[5], sprites[6], skillArt[0], skillArt[1], skillArt[2], skillArt[3], skillArt[5],
-                summonArt["SnakeHead"], summonArt["Shotgun"], summonArt["GuardianSword"], summonArt["Cannon"], summonArt["Cucumber"], summonArt["PurpleSnakeHead"], summonArt["StormCloud"], skillArt[2], summonArt["SandPuff"], summonArt["DragonHead"], summonArt["RedSlashA"], summonArt["Molotov"], summonArt["SoundWave"] };
-            int columns = portraitHud ? 5 : 11, rows = Mathf.CeilToInt(names.Length / (float)columns);
-            float cell = portraitHud ? 136 : 126, row = portraitHud ? 70 : 76;
+                summonArt["SnakeHead"], summonArt["Shotgun"], summonArt["GuardianSword"], summonArt["Cannon"], summonArt["Cucumber"], summonArt["PurpleSnakeHead"], summonArt["StormCloud"], skillArt[2], summonArt["SandPuff"], summonArt["DragonHead"], summonArt["RedSlashA"], summonArt["Molotov"], summonArt["SoundWave"], summonArt["OrbitGun"] };
+            int columns = portraitHud ? 5 : 12, rows = Mathf.CeilToInt(names.Length / (float)columns);
+            float cell = portraitHud ? 136 : 116, row = portraitHud ? 70 : 76;
             float height = rows * row + 64;
             skillBarWidth = cell - 28;
             var dock = Panel(parent, "All skills", Vector2.zero, new Vector2(1, 0), new Vector2(portraitHud ? 18 : 22, 18), new Vector2(portraitHud ? -18 : -22, 18 + height));
@@ -43,7 +43,9 @@ namespace DoodleIdle
         }
         void UpdateSkillCooldowns()
         {
-            SkillBar(0, attackTimer, attackInterval); SkillBar(1, dashTimer, dashInterval); SkillBar(2, 0, 1); SkillBar(3, stoneTimer, stoneInterval);
+            SkillBar(0, attackTimer, attackInterval); SkillBar(1, dashTimer, dashInterval);
+            SkillBar(2, BananasActive ? bananaCycleAge : OrbitSkillCycle - bananaCycleAge, BananasActive ? OrbitSkillLifetime : OrbitSkillCycle - OrbitSkillLifetime);
+            SkillBar(3, stoneTimer, stoneInterval);
             SkillBar(4, arrowClock, arrowInterval); SkillBar(5, ballClock, ballInterval); SkillBar(6, fireClock, fireInterval); SkillBar(7, droneClock, droneInterval); SkillBar(8, wormClock, wormInterval);
             for (int i = 0; i < summonClocks.Length; i++) SkillBar(9 + i, summonClocks[i], SummonInterval(i));
         }

@@ -1,7 +1,7 @@
 {
   "name": "DoodleIdle.PlayModeTests",
   "rootNamespace": "DoodleIdle.Tests",
-  "references": ["DoodleIdle.Runtime", "Unity.ugui", "Unity.RenderPipelines.Core.Runtime", "Unity.RenderPipelines.Universal.Runtime"],
+  "references": ["DoodleIdle.Runtime", "Unity.InputSystem", "Unity.ugui", "Unity.RenderPipelines.Core.Runtime", "Unity.RenderPipelines.Universal.Runtime"],
   "optionalUnityReferences": ["TestAssemblies"],
   "overrideReferences": true,
   "precompiledReferences": ["nunit.framework.dll", "DOTween.dll"],
