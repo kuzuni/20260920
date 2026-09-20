@@ -51,7 +51,7 @@ namespace DoodleIdle.Tests
             game.Ui.ClosePage();
             Assert.That(game.Ui.ActivePage, Is.Null);
             Assert.That(motion.IsClosing, Is.True);
-            Assert.That(motion.transform.parent.GetComponent<CanvasGroup>().interactable, Is.False);
+            Assert.That(motion.GetComponentsInParent<CanvasGroup>().Any(group => !group.interactable && !group.blocksRaycasts), Is.True);
             yield return new WaitForSecondsRealtime(.2f);
             Assert.That(motion == null, Is.True, "Exit animation must remove the visual tree.");
             game.Ui.ShowRewards("획득 보상", new System.Collections.Generic.List<UiReward> { new UiReward { icon="Diamond", amount=500 } });

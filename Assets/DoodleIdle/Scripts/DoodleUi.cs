@@ -210,7 +210,10 @@ namespace DoodleIdle
         }
         RectTransform Window(RectTransform dim,string title,bool full,Action close)
         {
-            var panel=UiKit.Box(dim,"Panel: "+title,UiKit.Paper); panel.GetComponent<LayoutElement>().ignoreLayout=true;
+            // Keep fitting separate from the panel's DOTween scale. The panel and all its
+            // children retain their 9:19 design dimensions, even while opening or resizing.
+            var portrait=full?null:UiKit.Rect(dim,"Portrait popup layout");
+            var panel=UiKit.Box(portrait?portrait:dim,"Panel: "+title,UiKit.Paper); panel.GetComponent<LayoutElement>().ignoreLayout=true;
             float w=Mathf.Min(610,safe.rect.width-44),h=Mathf.Min(940,Mathf.Max(200,safe.rect.height-215));
             if(full) UiKit.Stretch(panel); else Anchor(panel,new Vector2(.5f,.5f),new Vector2(0,-5),new Vector2(w,h));
             var block=panel.gameObject.AddComponent<Button>(); block.transition=Selectable.Transition.None; // Stop the dim handler receiving panel clicks.
@@ -228,7 +231,7 @@ namespace DoodleIdle
             var railImage=rail.gameObject.AddComponent<Image>();railImage.sprite=UiKit.Frame;railImage.type=Image.Type.Sliced;railImage.color=new Color(.83f,.83f,.8f);
             var handle=UiKit.Rect(rail,"Scroll thumb");UiKit.Stretch(handle);var handleImage=handle.gameObject.AddComponent<Image>();handleImage.sprite=UiKit.Frame;handleImage.type=Image.Type.Sliced;handleImage.color=UiKit.Green;
             var scrollbar=rail.gameObject.AddComponent<Scrollbar>();scrollbar.direction=Scrollbar.Direction.BottomToTop;scrollbar.handleRect=handle;scrollbar.targetGraphic=handleImage;scroll.verticalScrollbar=scrollbar;scroll.verticalScrollbarVisibility=ScrollRect.ScrollbarVisibility.AutoHide;
-            var responsive=panel.gameObject.AddComponent<DoodleUiWindow>(); responsive.full=full; responsive.content=content; responsive.inner=inner; responsive.viewport=viewport;responsive.rail=rail;responsive.titleText=titleText;responsive.closeButton=(RectTransform)x.transform; SetWindowProfile(responsive,title);responsive.Reflow(safe);
+            var responsive=panel.gameObject.AddComponent<DoodleUiWindow>(); responsive.full=full; responsive.portrait=portrait; responsive.content=content; responsive.inner=inner; responsive.viewport=viewport;responsive.rail=rail;responsive.titleText=titleText;responsive.closeButton=(RectTransform)x.transform; SetWindowProfile(responsive,title);responsive.Reflow(safe);
             var motion=panel.gameObject.AddComponent<DoodlePopupMotion>();if(!rebuildingPage)motion.Open();
             return content;
         }
@@ -329,21 +332,26 @@ namespace DoodleIdle
         public bool full;
         public float maxWidth=570,maxHeight=880,centerFromTop=.5f,headerHeight=80;
         public int titleSize=48;
-        public RectTransform content,inner,footer,viewport,rail,closeButton;
+        public RectTransform content,inner,footer,viewport,rail,closeButton,portrait;
         public Text titleText;
         public void Reflow(RectTransform safe)
         {
             var panel=(RectTransform)transform;
-            float width=Mathf.Min(maxWidth,safe.rect.width-44);
+            float width=maxWidth;
             if(full) { UiKit.Stretch(panel); inner.anchorMin=safe.anchorMin;inner.anchorMax=safe.anchorMax;inner.offsetMin=inner.offsetMax=Vector2.zero; width=Mathf.Min(802,safe.rect.width); }
             else {
+                const float referenceWidth=720,referenceHeight=1520,referenceTop=108,referenceBottom=180;
                 float bottom=safe.rect.height>=1100?180:112,top=108;
-                float height=Mathf.Min(maxHeight,Mathf.Max(200,safe.rect.height-top-bottom));
-                panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f; panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,height);
-                panel.anchoredPosition=new Vector2(0,Mathf.Clamp(safe.rect.height*(.5f-centerFromTop),-safe.rect.height*.5f+bottom+height*.5f,safe.rect.height*.5f-top-height*.5f));
+                float scale=Mathf.Min(1,safe.rect.width/referenceWidth,Mathf.Max(1,safe.rect.height-top-bottom)/(referenceHeight-referenceTop-referenceBottom));
+                portrait.anchorMin=portrait.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;
+                portrait.pivot=Vector2.one*.5f;portrait.sizeDelta=new Vector2(referenceWidth,referenceHeight);
+                portrait.localScale=Vector3.one*scale;
+                portrait.anchoredPosition=new Vector2(0,(bottom-top)*.5f-(referenceBottom-referenceTop)*.5f*scale);
+                panel.anchorMin=panel.anchorMax=Vector2.one*.5f;panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,maxHeight);
+                panel.anchoredPosition=new Vector2(0,Mathf.Clamp(referenceHeight*(.5f-centerFromTop),-referenceHeight*.5f+referenceBottom+maxHeight*.5f,referenceHeight*.5f-referenceTop-maxHeight*.5f));
             }
-            float heading=full?82:Mathf.Min(headerHeight,safe.rect.height<1100?68:headerHeight);
-            if(titleText) { titleText.resizeTextMaxSize=full?42:Mathf.Min(titleSize,safe.rect.height<1100?40:titleSize);titleText.rectTransform.offsetMin=new Vector2(50,-heading+4);titleText.rectTransform.offsetMax=new Vector2(-50,-8); }
+            float heading=full?82:headerHeight;
+            if(titleText) { titleText.resizeTextMaxSize=full?42:titleSize;titleText.rectTransform.offsetMin=new Vector2(50,-heading+4);titleText.rectTransform.offsetMax=new Vector2(-50,-8); }
             if(closeButton)closeButton.anchoredPosition=new Vector2(-33,-heading*.5f);
             if(viewport)viewport.offsetMax=new Vector2(viewport.offsetMax.x,-heading);
             if(rail)rail.offsetMax=new Vector2(rail.offsetMax.x,-heading-2);

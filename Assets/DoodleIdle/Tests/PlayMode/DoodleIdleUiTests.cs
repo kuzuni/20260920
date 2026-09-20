@@ -21,6 +21,7 @@ namespace DoodleIdle.Tests
         bool uiHadCameraMode;
         int uiSavedCameraMode;
         readonly List<string> uiCaptureFailures = new List<string>();
+        readonly Dictionary<string, Dictionary<string, Rect>> portraitPopupGeometry = new Dictionary<string, Dictionary<string, Rect>>();
 
         [Test]
         public void UiNumbersUseAlphabeticThousandsWithRoundingAndInvariantDecimals()
@@ -315,9 +316,10 @@ namespace DoodleIdle.Tests
         public IEnumerator UiFinalTwentyFiveStatesRenderAtAllFourSupportedRatios()
         {
             uiCaptureFailures.Clear();
+            portraitPopupGeometry.Clear();
             game.TogglePause();
             game.Ui.Diamonds = 100000;
-            var sizes = new[] { new Vector2Int(720, 1520), new Vector2Int(720, 1280), new Vector2Int(900, 900), new Vector2Int(1440, 900) };
+            var sizes = new[] { new Vector2Int(720, 1520), new Vector2Int(720, 1280), new Vector2Int(900, 900), new Vector2Int(1440, 900), new Vector2Int(1520, 720) };
             foreach (var size in sizes)
             {
                 UiOpen(null); UiCapture("01-main", size);
@@ -401,7 +403,7 @@ namespace DoodleIdle.Tests
                     Canvas.ForceUpdateCanvases();
                 }
                 // Preserve every requested diagnostic image even when a layout assertion fails.
-                // The test still fails after the complete four-ratio evidence set is exported.
+                // The test still fails after the complete five-ratio evidence set is exported.
                 try
                 {
                     if(state=="29-mission-ready")
@@ -421,6 +423,7 @@ namespace DoodleIdle.Tests
                         Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), file + " equipment spec scrolled away after tab switch");
                     }
                     AssertUiGeometry(file);
+                    AssertPortraitPopupGeometry(state, file, size.x == 720 && size.y == 1520);
                     if (size.x == 720 && size.y == 1520) AssertReferenceProportions(state, file);
                     if (size.y == 900 && (state == "03-armor" || state == "04-club" || state == "05-skills" || state == "19-companions"))
                     {
@@ -518,6 +521,50 @@ namespace DoodleIdle.Tests
             int right = Mathf.Clamp(Mathf.CeilToInt((bounds.xMax - area.xMin) / area.width * size.x), 0, size.x);
             int top = Mathf.Clamp(Mathf.CeilToInt((bounds.yMax - area.yMin) / area.height * size.y), 0, size.y);
             return new RectInt(left, bottom, right - left, top - bottom);
+        }
+
+        void AssertPortraitPopupGeometry(string state, string context, bool reference)
+        {
+            foreach (var window in UiRoot.GetComponentsInChildren<DoodleUiWindow>().Where(w => !w.full))
+            {
+                var panel = (RectTransform)window.transform;
+                string key = state + "/" + panel.name;
+                var geometry = new Dictionary<string, Rect> { { "panel", panel.rect } };
+                foreach (var icon in panel.GetComponentsInChildren<Image>().Where(i => i.name.StartsWith("Icon: ")))
+                {
+                    string path = icon.name;
+                    for (var parent = icon.transform.parent; parent != panel; parent = parent.parent) path = parent.name + "/" + path;
+                    geometry[path] = UiLocalBounds(panel, icon.rectTransform);
+                }
+                geometry["viewport"] = UiLocalBounds(panel, window.viewport);
+                geometry["title"] = UiLocalBounds(panel, window.titleText.rectTransform);
+                geometry["close"] = UiLocalBounds(panel, window.closeButton);
+                if (window.footer) geometry["footer"] = UiLocalBounds(panel, window.footer);
+                if (reference) portraitPopupGeometry[key] = geometry;
+                else
+                {
+                    Assert.That(portraitPopupGeometry.ContainsKey(key), Is.True, context + " missing 9:19 baseline");
+                    var baseline = portraitPopupGeometry[key];
+                    foreach (var pair in geometry.Where(p => baseline.ContainsKey(p.Key)))
+                    {
+                        var expected = baseline[pair.Key]; var actual = pair.Value;
+                        Assert.That(actual.x, Is.EqualTo(expected.x).Within(.6f), context + " horizontal placement: " + pair.Key);
+                        Assert.That(actual.y, Is.EqualTo(expected.y).Within(.6f), context + " vertical placement: " + pair.Key);
+                        Assert.That(actual.width, Is.EqualTo(expected.width).Within(.6f), context + " width changed from 9:19: " + pair.Key);
+                        Assert.That(actual.height, Is.EqualTo(expected.height).Within(.6f), context + " height changed from 9:19: " + pair.Key);
+                    }
+                    var screenBounds = UiLocalBounds((RectTransform)UiRoot, panel);
+                    Assert.That(screenBounds.width / screenBounds.height, Is.EqualTo(baseline["panel"].width / baseline["panel"].height).Within(.001f), context + " stretched popup");
+                }
+                Assert.That(panel.lossyScale.x, Is.EqualTo(panel.lossyScale.y).Within(.001f), context + " nonuniform icon scaling");
+                var bounds = UiLocalBounds(game.Ui.SafeRoot, panel);
+                var safeBounds = game.Ui.SafeRoot.rect;
+                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(safeBounds.xMin), context + " popup outside safe left");
+                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(safeBounds.xMax), context + " popup outside safe right");
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(safeBounds.yMax - 107), context + " popup overlaps header");
+                var navBounds = UiLocalBounds(game.Ui.SafeRoot, (RectTransform)UiNode("Bottom navigation"));
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(navBounds.yMax), context + " popup overlaps navigation");
+            }
         }
 
         void AssertReferenceProportions(string state, string context)
