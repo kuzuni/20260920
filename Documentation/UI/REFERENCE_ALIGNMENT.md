@@ -14,7 +14,7 @@
 | 설정 | 510 × 750 | 49.3% |
 | 아이템 상세 | 360 × 550 | 64.5%, 안전 영역 제한 |
 
-하단 네비 메인 패널만 최신 사용자 Inspector 지정으로 통일한다. anchorMin/anchorMax/pivot은 모두(0.5,0.5), anchoredPosition은(0,33.8761), 안정 상태 localScale은(1,1,1)이다. 상점 탭이나 스킨 종류를 전환해도 메인 패널 치수는 유지된다. 아이템 상세·확률 안내·왼쪽 서비스·전체 화면·보상 패널은 이 지정에서 제외한다.
+하단 네비 메인 패널만 최신 사용자 [Inspector 지정 이미지](Specifications/BottomNavigationPanel.png)로 통일한다. anchorMin/anchorMax/pivot은 모두(0.5,0.5), anchoredPosition은(0,33.8761), 안정 상태 localScale은(1,1,1)이다. 상점 탭이나 스킨 종류를 전환해도 메인 패널 치수는 유지된다. 아이템 상세·확률 안내·왼쪽 서비스·전체 화면·보상 패널은 이 지정에서 제외한다.
 
 전체 Canvas는 Scale With Screen Size / Match Width Or Height / Match=1(Height), 기준 해상도720×1520(9:19)이다. 모든 비율에서 화면 높이에 따라 HUD·패널·아이콘·슬롯·글자·하단 메뉴가 함께 확대/축소된다. UI의 기준 폭720은 가운데 유지해 가로 화면에서 배치가 벌어지지 않게 한다. 게임 화면과 dim/전체 화면 배경은 화면 전체를 사용한다.
 

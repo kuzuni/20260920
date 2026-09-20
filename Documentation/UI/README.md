@@ -14,4 +14,6 @@
 
 전체 UI는 Canvas Scaler의 `Scale With Screen Size`, 기준 `720×1520(9:19)`, `Match Width Or Height`, `Match=1(Height)`을 사용합니다. HUD·팝업·아이콘·메뉴가 함께 같은 배율로 조절되며 기준 폭720의 배치는 중앙에 유지합니다. 화면이 짧아져도 가로로 늘어나거나 팝업만 별도로 축소되지 않습니다.
 
+하단 네비의 메인 패널9종은 [최신 Inspector 지정](Specifications/BottomNavigationPanel.png)에 맞춰 크기 `679.9417×1232.817`, 중앙 앵커·피벗, 위치 `(0,33.8761)`, 안정 스케일1로 통일했습니다. 세부 팝업에는 이 메인 패널 규칙을 적용하지 않습니다.
+
 이번 요청의 검증은 GitHub Actions 서버에서만 수행합니다. 로컬 Unity·플레이 모드·게임·테스트는 실행하지 않습니다. Actions의 `doodle-idle-test-results` 아티팩트에는 결과 XML, 로그, 실제 화면 PNG가 있습니다. 화면 비율은 720×1520, 720×1280, 900×900, 1440×900, 1520×720입니다.

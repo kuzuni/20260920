@@ -224,15 +224,31 @@ namespace DoodleIdle.Tests
             UiOpen("Shop");
             yield return null;
             var scroll = UiTopScroll();
-            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height), "Five summon rows need a scrolling body.");
-            float before = scroll.verticalNormalizedPosition;
-            ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -20) }, ExecuteEvents.scrollHandler);
+            scroll.StopMovement();
+            scroll.verticalNormalizedPosition = 1;
             Canvas.ForceUpdateCanvases();
-            Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(before), "A genuine scroll event must move the shop.");
-            scroll.verticalNormalizedPosition = 0;
-            Canvas.ForceUpdateCanvases();
+            bool needsShopScroll = scroll.content.rect.height > scroll.viewport.rect.height + 1;
+            // The newly specified main panel fits all five rows at once. If the content
+            // later grows, actual wheel events must still reveal each entire row and its actions.
+            foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" })
+            {
+                var row = (RectTransform)UiNode("Summon_" + category);
+                var bounds = UiLocalBounds(scroll.viewport, row);
+                int attempts = 0;
+                float before = scroll.verticalNormalizedPosition;
+                while (needsShopScroll && bounds.yMin < scroll.viewport.rect.yMin - 1 && attempts++ < 64)
+                {
+                    ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -1) }, ExecuteEvents.scrollHandler);
+                    Canvas.ForceUpdateCanvases();
+                    bounds = UiLocalBounds(scroll.viewport, row);
+                }
+                if (attempts > 0) Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(before), "A genuine scroll event must reveal " + row.name);
+                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(scroll.viewport.rect.xMin - 1), row.name + " left edge must be visible");
+                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(scroll.viewport.rect.xMax + 1), row.name + " right edge must be visible");
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin - 1), row.name + " bottom and all summon actions must be visible");
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(scroll.viewport.rect.yMax + 1), row.name + " title and top must be visible");
+            }
             var bottomRow = (RectTransform)UiNode("Summon_Relic");
-            Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, bottomRow)), Is.True, "The final relic row must be reachable.");
             UiClick("i", bottomRow);
             Assert.That(game.Ui.HasOverlay, Is.True);
             var detail = UiNode("Detail dim: 뽑기 확률");
