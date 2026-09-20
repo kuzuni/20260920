@@ -31,6 +31,10 @@
 
 ## Validation
 - First integrated implementation ready for GitHub CI; no local tests run.
+- First integrated source commit5eeabe5: https://github.com/kuzuni/20260920/actions/runs/35502818285 FAILED:27/28 tests passed, including all existing combat/joystick and new navigation/summon/scroll/dim tests. Capture case stopped at roulette due to missing CanvasRenderer on custom graphics.12 UI images captured (01–11 + PVP bottom) at720x1520; originals downloaded/reviewed at C:/Users/user/.codex/artifacts/final-game-ui/run35502818285/screenshots.
+- Visual review found thin/small old hand font and excessive alpha margins around skill/currency art. Fixed with licensed rounded Korean Jua UI font and alpha-trimmed sprite rects. All source PNG alpha preserved.
+- Follow-up fixes: CanvasRenderer requirements on all custom graphic types,16 additional gear/status sprites, higher skill cooldown mapping, viewport-consistent capture scale, periodic wallet save, mission gauge, reward sparkles, visible scrollbars, scroll position preservation,6 service interaction tests.
+- Draft PR1: https://github.com/kuzuni/20260920/pull/1. PR creation triggered duplicate same-head run35503094873, explicitly cancelled; workflow now skips same-repo PR duplicate because push already validates it.
 - Existing GitHub workflow .github/workflows/doodle-idle-tests.yml reused. GitHub CLI obtained in OS temp, authorized Git credential used in-memory (never printed).
 - Baseline commit73645a7 CI success: https://github.com/kuzuni/20260920/actions/runs/35476171513.
 - New PlayMode tests capture25 states at4 ratios plus scrolled lists, inspect actual text/layout and exercise wallets, equipment, navigation and synthetic pointer dismissal.

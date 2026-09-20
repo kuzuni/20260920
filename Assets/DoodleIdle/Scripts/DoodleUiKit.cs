@@ -83,7 +83,7 @@ namespace DoodleIdle
             var t=Text(r,GradeName(rarity),16,TextAnchor.UpperLeft,22); Stretch(t.rectTransform,5,height-25,5,2); t.color=locked?Color.white:Ink;
             var im=Icon(r,icon,58); Stretch(im.rectTransform,14,28,14,22); if(locked) im.color=Color.black;
             var gauge=Gauge(r,count+"/"+Mathf.Max(1,needed),count/(float)Mathf.Max(1,needed),19); Stretch(gauge,5,5,5,height-24);
-            if(equipped) { var mark=Text(r,"✓",24,TextAnchor.UpperRight,26); mark.color=new Color(.1f,.48f,.07f); Stretch(mark.rectTransform,5,height-30,3,0); }
+            if(equipped) { var mark=Rect(r,"Equipped check");mark.anchorMin=mark.anchorMax=Vector2.one;mark.anchoredPosition=new Vector2(-14,-15);mark.sizeDelta=new Vector2(24,24);mark.gameObject.AddComponent<DoodleUiCheck>().raycastTarget=false; }
             if(locked) { var mark=Text(r,"잠김",14,TextAnchor.LowerRight,20); mark.color=Color.white; Stretch(mark.rectTransform,4,25,4,height-46); }
             return b;
         }
@@ -105,7 +105,10 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
             string[] atlas={"Diamond","Armor","ArmorMetal","Relic","Stats","Pvp","Dungeon","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings","Close","Key"};
             int index=Array.IndexOf(atlas,key); Sprite value=null;
-            if(index>=0) value=Cell("UI/Icons",index,4,4);
+            string[] gear={"Heart","Shield","Speed","Clover","VineClub","ClothClub","SpikeClub","IronClub","ClothArmor","LeatherArmor","WoodArmor","DarkArmor","RedClub","CrystalClub","BoneClub","SunRelic"};
+            int gearIndex=Array.IndexOf(gear,key);
+            if(gearIndex>=0) value=Cell("UI/GearIcons",gearIndex,4,4);
+            else if(index>=0) value=Cell("UI/Icons",index,4,4);
             else {
                 switch(key) {
                     case "Player": case "Companion": case "Cloud": value=Cell("Characters",0,3,3); break;
@@ -121,7 +124,7 @@ namespace DoodleIdle
                     case "Speed": value=Art("Arrow"); break;
                     default:
                         var tex=Resources.Load<Texture2D>("DoodleIdle/"+key);
-                        if(tex) value=Sprite.Create(tex,new Rect(0,0,tex.width,tex.height),Vector2.one*.5f,100);
+                        if(tex) value=tex.isReadable?Cell(key,0,1,1):Sprite.Create(tex,new Rect(0,0,tex.width,tex.height),Vector2.one*.5f,100);
                         break;
                 }
             }
@@ -141,6 +144,19 @@ namespace DoodleIdle
     {
         void OnEnable()=>Resize(); void OnRectTransformDimensionsChange()=>Resize();
         void Resize() { var grid=GetComponent<GridLayoutGroup>(); if(!grid)return; float w=((RectTransform)transform).rect.width; if(w>0) grid.cellSize=new Vector2(Mathf.Max(1,(w-grid.padding.horizontal-grid.spacing.x*(grid.constraintCount-1))/grid.constraintCount),grid.cellSize.y); }
+    }
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class DoodleUiCheck : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear(); Stroke(vh,new Vector2(-8,-1),new Vector2(-2,-7),4);Stroke(vh,new Vector2(-2,-7),new Vector2(9,8),4);
+        }
+        static void Stroke(VertexHelper vh,Vector2 from,Vector2 to,float width)
+        {
+            Vector2 d=(to-from).normalized,n=new Vector2(-d.y,d.x)*width*.5f;int start=vh.currentVertCount;Color c=new Color(.12f,.5f,.08f);
+            vh.AddVert(from-n,c,Vector2.zero);vh.AddVert(from+n,c,Vector2.zero);vh.AddVert(to+n,c,Vector2.zero);vh.AddVert(to-n,c,Vector2.zero);vh.AddTriangle(start,start+1,start+2);vh.AddTriangle(start,start+2,start+3);
+        }
     }
     [Serializable] public sealed class UiReward { public string name,icon; public int amount,rarity; }
 }

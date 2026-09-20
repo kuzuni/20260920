@@ -245,7 +245,7 @@ namespace DoodleIdle
             UiKit.Text(body, "하루 5회 · 각 칸 확률 12.5%", 18, TextAnchor.MiddleCenter, 28);
             var holder = new GameObject("Roulette area", typeof(RectTransform), typeof(LayoutElement)).GetComponent<RectTransform>();
             holder.SetParent(body, false); UiKit.Height(holder, 340);
-            var wheel = new GameObject("Roulette wheel", typeof(RectTransform), typeof(DoodleRouletteGraphic)).GetComponent<RectTransform>();
+            var wheel = new GameObject("Roulette wheel", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRouletteGraphic)).GetComponent<RectTransform>();
             wheel.SetParent(holder, false); wheel.anchorMin = wheel.anchorMax = new Vector2(.5f, .5f); wheel.sizeDelta = new Vector2(320, 320);
             wheel.GetComponent<DoodleRouletteGraphic>().raycastTarget = false;
             for (int i = 0; i < serviceTuning.roulette.Length; i++)
@@ -259,7 +259,7 @@ namespace DoodleIdle
                 var number = UiKit.Text(reward, serviceTuning.roulette[i].ToString(), 19, TextAnchor.MiddleCenter, 24).rectTransform;
                 number.anchorMin = new Vector2(0, 0); number.anchorMax = new Vector2(1, .38f); number.offsetMin = number.offsetMax = Vector2.zero;
             }
-            var pointer = new GameObject("Roulette pointer", typeof(RectTransform), typeof(DoodleRoulettePointer)).GetComponent<RectTransform>();
+            var pointer = new GameObject("Roulette pointer", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRoulettePointer)).GetComponent<RectTransform>();
             pointer.SetParent(holder, false);
             pointer.anchorMin = pointer.anchorMax = new Vector2(.5f, 1); pointer.pivot = new Vector2(.5f, 1); pointer.sizeDelta = new Vector2(45, 45); pointer.anchoredPosition = Vector2.zero;
             pointer.GetComponent<DoodleRoulettePointer>().raycastTarget = false;
@@ -632,6 +632,7 @@ namespace DoodleIdle
         }
     }
 
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleRoulettePointer : MaskableGraphic
     {
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -644,6 +645,7 @@ namespace DoodleIdle
     }
 
     /// <summary>Native uGUI vector mesh; roulette remains sharp at every supported aspect ratio.</summary>
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleRouletteGraphic : MaskableGraphic
     {
         protected override void OnPopulateMesh(VertexHelper helper)

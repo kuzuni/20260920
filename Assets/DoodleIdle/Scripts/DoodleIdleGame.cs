@@ -645,6 +645,14 @@ namespace DoodleIdle
                 case "Drone": return Mathf.Clamp01(droneClock / droneInterval);
                 case "Worm": return Mathf.Clamp01(wormClock / wormInterval);
                 case "Cloud": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
+                case "Lightning": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
+                case "Dragon": return Mathf.Clamp01(summonClocks[9] / SummonInterval(9));
+                case "Cannon": return Mathf.Clamp01(summonClocks[3] / SummonInterval(3));
+                case "Guardian": return Mathf.Clamp01(summonClocks[2] / SummonInterval(2));
+                case "Shotgun": return Mathf.Clamp01(summonClocks[1] / SummonInterval(1));
+                case "Molotov": return Mathf.Clamp01(summonClocks[11] / SummonInterval(11));
+                case "Sound": return Mathf.Clamp01(summonClocks[12] / SummonInterval(12));
+                case "OrbitGun": return Mathf.Clamp01(summonClocks[13] / SummonInterval(13));
                 default: return Mathf.Clamp01(attackTimer / attackInterval);
             }
         }

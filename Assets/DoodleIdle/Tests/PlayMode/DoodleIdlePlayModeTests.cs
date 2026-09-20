@@ -73,7 +73,7 @@ namespace DoodleIdle.Tests
             // The CI desktop is smaller than the render target. Request glyphs at capture resolution,
             // rather than upscaling the desktop's low-resolution dynamic counter glyphs.
             scaler.enabled = false;
-            canvas.scaleFactor = width / (width < height ? 720f : 1440f);
+            canvas.scaleFactor = Mathf.Min(width / 720f, height / 720f);
             canvas.enabled = includeHud;
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
