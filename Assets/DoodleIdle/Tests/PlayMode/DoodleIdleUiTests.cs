@@ -565,6 +565,28 @@ namespace DoodleIdle.Tests
                 var navBounds = UiLocalBounds(game.Ui.SafeRoot, (RectTransform)UiNode("Bottom navigation"));
                 Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(navBounds.yMax), context + " popup overlaps navigation");
             }
+            foreach (var rewards in UiRoot.GetComponentsInChildren<DoodleUiRewardLayout>())
+            {
+                var area = (RectTransform)rewards.transform;
+                string key = state + "/floating rewards";
+                var geometry = new Dictionary<string, Rect>();
+                var nodes = area.GetComponentsInChildren<RectTransform>();
+                for (int i = 0; i < nodes.Length; i++) geometry[i.ToString()] = UiLocalBounds(area, nodes[i]);
+                if (reference) portraitPopupGeometry[key] = geometry;
+                else
+                {
+                    Assert.That(portraitPopupGeometry.ContainsKey(key), Is.True, context + " missing reward baseline");
+                    var baseline = portraitPopupGeometry[key];
+                    Assert.That(geometry.Count, Is.EqualTo(baseline.Count), context + " reward hierarchy changed");
+                    foreach (var pair in geometry)
+                    {
+                        var expected = baseline[pair.Key]; var actual = pair.Value;
+                        Assert.That(Vector2.Distance(actual.position, expected.position), Is.LessThan(.6f), context + " reward placement changed");
+                        Assert.That(Vector2.Distance(actual.size, expected.size), Is.LessThan(.6f), context + " reward size changed");
+                    }
+                }
+                Assert.That(area.lossyScale.x, Is.EqualTo(area.lossyScale.y).Within(.001f), context + " stretched reward");
+            }
         }
 
         void AssertReferenceProportions(string state, string context)

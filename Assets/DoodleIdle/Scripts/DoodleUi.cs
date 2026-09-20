@@ -272,12 +272,13 @@ namespace DoodleIdle
         {
             StopRepeating();
             ConsumeGesture(); var dim=Dim(overlayLayer,"Reward dim",CloseDetail,.77f); overlayStack.Add(dim.gameObject);
-            var area=UiKit.Column(dim,"Floating rewards",30,4); Anchor(area,new Vector2(.5f,.5f),new Vector2(0,40),new Vector2(Mathf.Min(670,safe.rect.width-42),400));
-            var reflow=area.gameObject.AddComponent<DoodleUiRewardLayout>(); reflow.safe=safe;
+            var portrait=UiKit.Rect(dim,"Portrait popup layout");
+            var area=UiKit.Column(portrait,"Floating rewards",30,4); Anchor(area,new Vector2(.5f,.5f),new Vector2(0,40),new Vector2(670,400));
+            var reflow=area.gameObject.AddComponent<DoodleUiRewardLayout>(); reflow.safe=safe;reflow.portrait=portrait;reflow.Reflow();
             var text=UiKit.Text(area,title,64,TextAnchor.MiddleCenter,86); text.color=Color.white; text.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
             var row=UiKit.Row(area,"Individual rewards",206,16);
             foreach(var reward in rewards) {
-                var host=UiKit.Rect(row,"Reward "+reward.name); FixedWidth(host,Mathf.Min(158,(safe.rect.width-90)/Mathf.Max(1,rewards.Count))); UiKit.Height(host,200);
+                var host=UiKit.Rect(row,"Reward "+reward.name); FixedWidth(host,Mathf.Min(158,630f/Mathf.Max(1,rewards.Count))); UiKit.Height(host,200);
                 var halo=UiKit.Rect(host,"Golden hand drawn rays"); UiKit.Stretch(halo,-24,-24,-24,-24); var rays=halo.gameObject.AddComponent<DoodleRewardRays>(); rays.color=new Color(1,.84f,.21f,.92f); rays.raycastTarget=false;
                 var card=UiKit.Box(host,"Reward frame",UiKit.Rarity(reward.rarity)); UiKit.Stretch(card,3,3,3,3); card.GetComponent<Image>().raycastTarget=false;
                 var icon=UiKit.Icon(card,reward.icon,100); UiKit.Stretch(icon.rectTransform,13,57,13,18);
@@ -334,19 +335,24 @@ namespace DoodleIdle
         public int titleSize=48;
         public RectTransform content,inner,footer,viewport,rail,closeButton,portrait;
         public Text titleText;
+        public static void FitPortrait(RectTransform portrait,RectTransform safe)
+        {
+            const float referenceWidth=720,referenceHeight=1520,referenceTop=108,referenceBottom=180;
+            float bottom=safe.rect.height>=1100?180:112,top=108;
+            float scale=Mathf.Min(1,safe.rect.width/referenceWidth,Mathf.Max(1,safe.rect.height-top-bottom)/(referenceHeight-referenceTop-referenceBottom));
+            portrait.anchorMin=portrait.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;
+            portrait.pivot=Vector2.one*.5f;portrait.sizeDelta=new Vector2(referenceWidth,referenceHeight);
+            portrait.localScale=Vector3.one*scale;
+            portrait.anchoredPosition=new Vector2(0,(bottom-top)*.5f-(referenceBottom-referenceTop)*.5f*scale);
+        }
         public void Reflow(RectTransform safe)
         {
             var panel=(RectTransform)transform;
             float width=maxWidth;
             if(full) { UiKit.Stretch(panel); inner.anchorMin=safe.anchorMin;inner.anchorMax=safe.anchorMax;inner.offsetMin=inner.offsetMax=Vector2.zero; width=Mathf.Min(802,safe.rect.width); }
             else {
-                const float referenceWidth=720,referenceHeight=1520,referenceTop=108,referenceBottom=180;
-                float bottom=safe.rect.height>=1100?180:112,top=108;
-                float scale=Mathf.Min(1,safe.rect.width/referenceWidth,Mathf.Max(1,safe.rect.height-top-bottom)/(referenceHeight-referenceTop-referenceBottom));
-                portrait.anchorMin=portrait.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;
-                portrait.pivot=Vector2.one*.5f;portrait.sizeDelta=new Vector2(referenceWidth,referenceHeight);
-                portrait.localScale=Vector3.one*scale;
-                portrait.anchoredPosition=new Vector2(0,(bottom-top)*.5f-(referenceBottom-referenceTop)*.5f*scale);
+                const float referenceHeight=1520,referenceTop=108,referenceBottom=180;
+                FitPortrait(portrait,safe);
                 panel.anchorMin=panel.anchorMax=Vector2.one*.5f;panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,maxHeight);
                 panel.anchoredPosition=new Vector2(0,Mathf.Clamp(referenceHeight*(.5f-centerFromTop),-referenceHeight*.5f+referenceBottom+maxHeight*.5f,referenceHeight*.5f-referenceTop-maxHeight*.5f));
             }
@@ -366,9 +372,9 @@ namespace DoodleIdle
     }
     public sealed class DoodleUiRewardLayout : MonoBehaviour
     {
-        public RectTransform safe;
+        public RectTransform safe,portrait;
         void LateUpdate()=>Reflow();
-        public void Reflow() { if(!safe)return; var rect=(RectTransform)transform; rect.sizeDelta=new Vector2(Mathf.Min(670,safe.rect.width-42),rect.sizeDelta.y); rect.anchorMin=rect.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f; }
+        public void Reflow() { if(safe&&portrait)DoodleUiWindow.FitPortrait(portrait,safe); }
     }
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleRewardRays : MaskableGraphic
