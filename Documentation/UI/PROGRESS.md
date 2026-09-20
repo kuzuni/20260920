@@ -1,54 +1,43 @@
-# Unity final UI progress
+# 최종 게임 UI 완료 기록
 
-## Constraints and baseline
-- Original workspace C:/Users/user/Documents/GitHub/20260920; branch codex/final-game-ui.
-- Preserve pre-existing modified ProjectSettings/McpUnitySettings.json. Never stage/reset this user file.
-- No local Unity/editor/play/game/test execution. CI only.
-- Final 25 references copied into Documentation/UI/FinalDesign; reviewed all 25. Desktop references are no longer used.
-- Existing runtime: DoodleIdleGame partials, 23 automatic combat skills, touch joystick, runtime Korean InterfaceFont, existing GameCI PlayMode suite.
-- Heartbeat unity-ui registered ACTIVE, 15 minutes, current task. Created 2026-09-20 18:21:10 KST; initial due approximately 18:36:10 KST (scheduler timing pending).
+## 현재 상태
+- 구현·통합·GitHub CI·시각 검토·원래 로컬 프로젝트 반영 완료.
+- 검증한 최종 구현 커밋: `1312cb7b6d7e265c0165feab72f8922152ab3120`.
+- 최종 CI: https://github.com/kuzuni/20260920/actions/runs/35505336738 — **35/35 통과**, 실패0.
+- UI 캡처109장: 25상태×4비율 + PVP/확률 하단8장 + 기존 SampleScene 진입1장.
+- PR: https://github.com/kuzuni/20260920/pull/1 — 검토 가능한 상태. 작업 브랜치 `codex/final-game-ui`; main 병합은 하지 않음.
+- 모든 변경은 원래 `C:/Users/user/Documents/GitHub/20260920`에 반영됨. 별도 worktree 없음.
+- 기존 사용자 변경 `ProjectSettings/McpUnitySettings.json`은 수정·스테이징하지 않고 보존함.
+- 15분 후속 점검 `unity-ui`는 완료 후 **PAUSED**로 종료함. 이후 반복 실행하지 않음.
 
-## Completed
-- Read full request, inspected references and existing runtime/CI.
-- Created branch and separated module ownership (ARCHITECTURE.md).
+## 구현
+- 최종 레퍼런스25장을 `Documentation/UI/FinalDesign`에 보관하고 GitHub에 업로드. 이후 바탕화면 원본에 의존하지 않음.
+- 실제 uGUI 프레임·버튼·텍스트·슬롯·게이지·스크롤·등급색·통일된 빨간 X. 이미지 전체를 UI 배경으로 사용하지 않음.
+- 플레이어와 같은 손그림 계열의 투명 아이콘32개, 기존 캐릭터/스킬 이미지, 한글 Jua 폰트와 라이선스.
+- 메인8원형 쿨타임·미션·버프·재화·8개 네비, 스탯, 장비, 스킬8/동료5, 유물, 던전, PVP, 상점/확률/전체결과, 출석7일, 룰렛5회, 퀘스트3탭, 채팅, 설정, 개별 보상과 후광.
+- 실제 전투 피해/공격속도/쿨타임/처치·골드 진행과 연결. 기존23 자동 스킬과 이동 유지.
+- 기존 SampleScene와 DoodleIdle 진입 씬에 자동 연결; 추가 Inspector 설정 불필요.
+- 로컬 저장/UTC 경계/중복 보상 방지/부족 재화/입력 차단/장시간 버프/탭 전환과 스크롤 복원 검증.
 
-## Implementation checkpoint
-- 25 final references uploaded in commit 5f38370 on origin/codex/final-game-ui.
-- All modules authored and integrated directly in the original local workspace; no separate worktree to copy back.
-- Shared native uGUI widgets, four-ratio layout, safe areas, red X navigation, input consumption, generated transparent icon atlas, real combat cooldown/damage/gold bridge.
-- Collections: 70 entries, persistent ownership/equipment/upgrade state, stats, relics.
-- Commerce: local free/paid draws, exact same source probabilities, fullscreen results, unavailable payment clearly labelled.
-- Services: daily diamond rewards, UTC resets, actual-kill dungeon challenges, local PVP/chat and explicit unavailable account/audio.
-- Entry SampleScene now includes DoodleIdleGame, which automatically installs UI; DoodleIdle scene also remains supported.
-- Preserved preexisting ProjectSettings/McpUnitySettings.json unstaged.
+## 검증과 캡처
+- 로컬 Unity·플레이 모드·게임·로컬 테스트는 실행하지 않았음. 모든 실행 검증은 GitHub-hosted Unity6000.3.8f1에서 수행.
+- 최종 아티팩트 `doodle-idle-test-results`: 결과 XML, 로그, 실제 URP PNG.
+- 다운로드: `C:/Users/user/.codex/artifacts/final-game-ui/run35505336738`.
+- 최종 화면: 위 폴더의 `screenshots/ui-*.png`; 해상도720×1520,720×1280,900×900,1440×900.
+- 전체25상태/4비율은 a422677의108장으로 분담하여 실제 열람. 최종1312cb7에서는 변경된 장비 탭을4비율에서 다시 열람하고, 시작 씬/룰렛/PVP100위/전체채팅도 재확인. 마지막 장비 상단 스펙 밀림 해결을 확인함.
+- 자동 검사: 기존 전투/조작 회귀, 실제 uGUI 이벤트, 지갑/장착/강화/확률/보상·서비스 저장, 모든 비율의 경계/한글/고정 footer/원형 룰렛/순위100 가시성/보상 카드와 빛살 픽셀.
 
-## In progress / next
-- Coordinator: common adaptive UI, game bridge, reference upload, art, CI visual/interaction coverage.
-- Collections: stats/equipment/skills/companions/relics/catalog.
-- Commerce: summon/shop/probability/results.
-- Services: attendance/roulette/buffs/quests/dungeons/PVP/chat/settings.
-- Integrate, push, inspect latest CI XML and actual captures at 9:19, 9:16, square and landscape; fix failures.
+## CI 이력
+- 기준73645a7: https://github.com/kuzuni/20260920/actions/runs/35476171513 — 통과.
+- 5eeabe5: https://github.com/kuzuni/20260920/actions/runs/35502818285 — 27/28, 룰렛 CanvasRenderer 누락 수정.
+- b5bff18: https://github.com/kuzuni/20260920/actions/runs/35503551145 — 33/34, 큰 패널 없는 보상에 부적절했던 전체화면 밝기 검사를 각 보상 카드/빛살 검증으로 교체. 나머지 패널 검사는 유지.
+- a422677: https://github.com/kuzuni/20260920/actions/runs/35504543804 — 35/35,109 UI 캡처. 실제 이미지에서 장비 탭의 스크롤 복원 문제를 발견해 후속 수정.
+- 1312cb7: https://github.com/kuzuni/20260920/actions/runs/35505336738 — 35/35,109 UI 캡처 및 최종 확인 완료.
+- 동일 저장소 PR의 중복 실행은 push 검사로 통합. 통과한 동일 커밋을 재실행하지 않음. 이 완료 기록만 바뀐 후속 문서 커밋은 구현 트리를 바꾸지 않음.
 
-## Validation
-- First integrated implementation ready for GitHub CI; no local tests run.
-- First integrated source commit5eeabe5: https://github.com/kuzuni/20260920/actions/runs/35502818285 FAILED:27/28 tests passed, including all existing combat/joystick and new navigation/summon/scroll/dim tests. Capture case stopped at roulette due to missing CanvasRenderer on custom graphics.12 UI images captured (01–11 + PVP bottom) at720x1520; originals downloaded/reviewed at C:/Users/user/.codex/artifacts/final-game-ui/run35502818285/screenshots.
-- Visual review found thin/small old hand font and excessive alpha margins around skill/currency art. Fixed with licensed rounded Korean Jua UI font and alpha-trimmed sprite rects. All source PNG alpha preserved.
-- Follow-up fixes: CanvasRenderer requirements on all custom graphic types,16 additional gear/status sprites, higher skill cooldown mapping, viewport-consistent capture scale, periodic wallet save, mission gauge, reward sparkles, visible scrollbars, scroll position preservation,6 service interaction tests.
-- Draft PR1: https://github.com/kuzuni/20260920/pull/1. PR creation triggered duplicate same-head run35503094873, explicitly cancelled; workflow now skips same-repo PR duplicate because push already validates it.
-- Existing GitHub workflow .github/workflows/doodle-idle-tests.yml reused. GitHub CLI obtained in OS temp, authorized Git credential used in-memory (never printed).
-- Baseline commit73645a7 CI success: https://github.com/kuzuni/20260920/actions/runs/35476171513.
-- New PlayMode tests capture25 states at4 ratios plus scrolled lists, inspect actual text/layout and exercise wallets, equipment, navigation and synthetic pointer dismissal.
-
-## Remaining limitations
-- Server, real purchase, account linking, live chat and competitive rankings absent in baseline; implement clearly identified local adapters.
-
-## Second CI visual review
-- b5bff18 run35503551145: https://github.com/kuzuni/20260920/actions/runs/35503551145 finished,33/34 passed. All combat, interaction and6 new service tests passed.108 actual UI captures were exported and reviewed across all4 ratios.
-- The only failed assertions expected a large cream panel area on24/25 reward states, contrary to the explicit no-large-panel design. Replace that check only for reward states with stricter per-card frame/art/quantity and outside-frame yellow-ray pixel checks; retain existing panel checks for all other states.
-- Captures and XML downloaded to C:/Users/user/.codex/artifacts/final-game-ui/run35503551145. No local Unity/game/test execution.
-- Visual fixes in progress: fixed collection/result/chat action areas, independent inventory scrolling, compact skill detail, bounded volume thumbs, proportional short-screen roulette, centered pointer, synchronous scroll-thumb capture rebuild, visible100th-rank evidence, original SampleScene bootstrap coverage.
-- Original workspace remains updated throughout; user McpUnitySettings.json remains unstaged.
-
-- Current implementation a422677: https://github.com/kuzuni/20260920/actions/runs/35504543804 running. All visual follow-up changes are committed/pushed and present in the original workspace. Only documentation can change during this run; await result and inspect affected actual images.
-- Static save/expiry review found the main buff clock used the TimeSpan minute component and would wrap after60minutes. Pending follow-up uses the shared total-minute clock and extends the existing buff persistence test with a75-minute profile. Do not cancel the current render run; collect its evidence first, then validate the final follow-up.
-- a422677 run35504543804 PASSED35/35;109 UI images (108 matrix states + SampleScene entry). Full4-ratio visual review confirmed roulette, fixed actions, chat, sliders, nested PVP100th rank and reward overlays. At720x1520, armor→club captured with the outer header scrolled away: a fitting ScrollRect reports normalized0, which RefreshPage must not preserve as an intentional bottom scroll. Follow-up preserves position only when content actually overflows and completes adaptive layout before restoring; top-state captures reset all nested scrolls. Pending final follow-up also includes the75-minute clock fix and stronger nonempty ROI/inner ranking-mask checks.
+## 제한과 다음 작업
+- 이번 요청 범위의 미완료 항목 없음. 새 요청 없이 같은 검사를 반복하지 말 것.
+- 실결제/계정연동/서버 채팅은 미연결, PVP는 명시된 로컬 시뮬레이션.
+- 던전은 기존 필드에서 실제 적 처치 도전이며 독립 맵을 새로 만들지 않음.
+- 기존 게임에 플레이어 피격·체력 시스템이 없어 체력/방어는 현재 모델/전투력에 반영. 음원 소스도 없어 볼륨 설정 저장 및 사용 가능한 소스 적용까지만 구현.
+- 자세한 연동 범위·데이터 위치는 INTEGRATION.md, README.md, 아트/폰트 출처는 ART.md 참고.
