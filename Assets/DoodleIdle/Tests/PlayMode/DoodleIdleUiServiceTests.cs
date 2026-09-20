@@ -150,6 +150,10 @@ namespace DoodleIdle.Tests
             ui.Diamonds = 0; ui.ExtendBuff(true);
             Assert.That(ui.Diamonds, Is.Zero);
             Assert.That(ServiceStateValue<long>("attackExpiry"), Is.EqualTo(expiry));
+            LoadServiceSnapshot(saved => ServiceSetSavedField(saved, "goldExpiry", DateTime.UtcNow.AddMinutes(75).Ticks));
+            ui.RefreshHud();
+            var hudTime = UiNode("Gold buff", UiNode("Timed buffs")).GetComponentInChildren<Text>().text;
+            Assert.That(int.Parse(hudTime.Split(':')[0]), Is.InRange(74, 75), "The main buff clock must not wrap at one hour after repeated extensions.");
             LoadServiceSnapshot(saved =>
             {
                 ServiceSetSavedField(saved, "attackExpiry", DateTime.UtcNow.AddSeconds(-1).Ticks);

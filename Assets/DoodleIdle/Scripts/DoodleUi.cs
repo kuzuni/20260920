@@ -120,8 +120,8 @@ namespace DoodleIdle
         public void RefreshPage()
         {
             var previous=pageLayer?pageLayer.GetComponentInChildren<ScrollRect>():null;
-            float position=previous?previous.verticalNormalizedPosition:1;
-            if(!string.IsNullOrEmpty(ActivePage)) { RenderPage(); UnityEngine.Canvas.ForceUpdateCanvases(); var next=pageLayer.GetComponentInChildren<ScrollRect>(); if(next)next.verticalNormalizedPosition=position; }
+            float position=previous&&previous.content.rect.height>previous.viewport.rect.height+1?previous.verticalNormalizedPosition:1;
+            if(!string.IsNullOrEmpty(ActivePage)) { RenderPage(); Relayout(true); var next=pageLayer.GetComponentInChildren<ScrollRect>(); if(next)next.verticalNormalizedPosition=position; }
             RefreshHud();
         }
         void RenderPage()
@@ -224,7 +224,7 @@ namespace DoodleIdle
             if(missionFill) missionFill.anchorMax=new Vector2(ActiveDungeonIndex>=0?Mathf.Clamp01(DungeonProgress/(float)Mathf.Max(1,DungeonKillGoal)):Mathf.Clamp01(AttackStatLevel/15f),1);
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"Banana"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.15f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
-        static string Duration(double seconds) { return seconds>0?TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss"):"00:00"; }
+        static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));
         public float UiDamageMultiplier => CombatDamageMultiplier*AttackBuffMultiplier;
         public float UiSpeedMultiplier => CombatAttackSpeedMultiplier;
     }

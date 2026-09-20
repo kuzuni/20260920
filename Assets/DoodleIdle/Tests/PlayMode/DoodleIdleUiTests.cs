@@ -270,7 +270,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.Ready, Is.True);
             Assert.That(game.Ui, Is.Not.Null);
             Assert.That(game.Ui.Canvas.isActiveAndEnabled, Is.True);
-            Assert.That(Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Length, Is.EqualTo(1), "The existing entry EventSystem must be reused.");
+            Assert.That(testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<EventSystem>()).Count(), Is.EqualTo(1), "The existing entry EventSystem must be reused.");
             UiOpen("Equipment");
             Assert.That(UiNode("Equipment tabs"), Is.Not.Null);
             var frame = CaptureFrame("ui-entry-SampleScene.png", 720, 1520);
@@ -341,13 +341,26 @@ namespace DoodleIdle.Tests
                 }
                 else if (UiRoot.GetComponentsInChildren<ScrollRect>().Length > 0)
                 {
-                    var scroll = UiTopScroll(); scroll.StopMovement(); scroll.verticalNormalizedPosition = 1;
+                    foreach (var scroll in UiRoot.GetComponentsInChildren<ScrollRect>())
+                    {
+                        scroll.StopMovement(); scroll.verticalNormalizedPosition = 1;
+                    }
                     Canvas.ForceUpdateCanvases();
                 }
                 // Preserve every requested diagnostic image even when a layout assertion fails.
                 // The test still fails after the complete four-ratio evidence set is exported.
                 try
                 {
+                    if (state == "04-club")
+                    {
+                        UiClick("갑옷", UiNode("Equipment tabs"));
+                        UiClick("몽둥이", UiNode("Equipment tabs"));
+                        var selected = (RectTransform)UiNode("Selected equipment");
+                        var viewport = selected.GetComponentInParent<ScrollRect>().viewport;
+                        var bounds = UiLocalBounds(viewport, selected);
+                        Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 2), file + " equipment spec clipped after tab switch");
+                        Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), file + " equipment spec scrolled away after tab switch");
+                    }
                     AssertUiGeometry(file);
                     if (state == "07b-pvp-bottom")
                     {
@@ -358,6 +371,13 @@ namespace DoodleIdle.Tests
                             var bounds = UiLocalBounds(viewport, lastRank);
                             Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 3), file + " rank 100 below outer viewport");
                             Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 3), file + " rank 100 above outer viewport");
+                        }
+                        foreach (var mask in lastRank.GetComponentsInParent<Mask>())
+                        {
+                            var viewport = (RectTransform)mask.transform;
+                            var bounds = UiLocalBounds(viewport, lastRank);
+                            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 3), file + " rank 100 below ranking viewport");
+                            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 3), file + " rank 100 above ranking viewport");
                         }
                     }
                 }
@@ -404,6 +424,8 @@ namespace DoodleIdle.Tests
         RectInt UiPixelBounds(RectTransform item, Vector2Int size)
         {
             var canvas = (RectTransform)UiRoot; var bounds = UiLocalBounds(canvas, item); var area = canvas.rect;
+            if (bounds.width <= 1 || bounds.height <= 1 || bounds.xMin < area.xMin - 1 || bounds.xMax > area.xMax + 1 || bounds.yMin < area.yMin - 1 || bounds.yMax > area.yMax + 1)
+                uiCaptureFailures.Add(item.name + " pixel region must be nonempty and fully inside the rendered canvas.");
             int left = Mathf.Clamp(Mathf.FloorToInt((bounds.xMin - area.xMin) / area.width * size.x), 0, size.x);
             int bottom = Mathf.Clamp(Mathf.FloorToInt((bounds.yMin - area.yMin) / area.height * size.y), 0, size.y);
             int right = Mathf.Clamp(Mathf.CeilToInt((bounds.xMax - area.xMin) / area.width * size.x), 0, size.x);
