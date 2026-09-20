@@ -126,7 +126,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator UiBuffsChargeExtendPersistAndExpireWithoutFreeMultiplier()
+        public IEnumerator UiBuffsRejectActiveRepurchaseRestoreAndReactivateOnlyAfterExpiry()
         {
             game.TogglePause();
             var ui = game.Ui;
@@ -140,12 +140,27 @@ namespace DoodleIdle.Tests
             Assert.That(ui.UiDamageMultiplier, Is.EqualTo(baseDamage * (1 + tuning.attackBuff)).Within(.001f));
             long firstExpiry = ServiceStateValue<long>("attackExpiry");
             ui.ExtendBuff(true);
-            Assert.That(ServiceStateValue<long>("attackExpiry") - firstExpiry, Is.EqualTo(TimeSpan.FromSeconds(tuning.buffSeconds).Ticks));
+            Assert.That(ServiceStateValue<long>("attackExpiry"), Is.EqualTo(firstExpiry));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - tuning.buffPrice), "Active buffs cannot be bought or extended again.");
             ui.ExtendBuff(false);
-            Assert.That(ui.Diamonds, Is.EqualTo(wallet - tuning.buffPrice * 3));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - tuning.buffPrice * 2));
             Assert.That(ui.GoldBuffMultiplier, Is.EqualTo(1 + tuning.goldBuff));
-            LoadServiceSnapshot(_ => { });
-            Assert.That(ui.AttackBuffSeconds, Is.GreaterThan(tuning.buffSeconds));
+            long goldExpiry = ServiceStateValue<long>("goldExpiry");
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            Assert.That(ServiceStateValue<long>("attackExpiry"), Is.EqualTo(firstExpiry));
+            Assert.That(ServiceStateValue<long>("goldExpiry"), Is.EqualTo(goldExpiry));
+            UiOpen("Buffs");
+            foreach (string card in new[] { "Gold buff", "Attack buff" })
+            {
+                var active = UiNode("버프 활성화", UiNode(card, UiNode("Panel: 버프"))).GetComponent<Button>();
+                Assert.That(active.interactable, Is.False);
+                Assert.That(active.GetComponentInChildren<Text>().text, Is.EqualTo("활성화 중"));
+                active.onClick.Invoke(); // Even a direct callback cannot bypass the production guard.
+            }
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - tuning.buffPrice * 2));
+            Assert.That(ServiceStateValue<long>("attackExpiry"), Is.EqualTo(firstExpiry));
+            Assert.That(ServiceStateValue<long>("goldExpiry"), Is.EqualTo(goldExpiry));
+            UnityEngine.Object.Destroy(CaptureFrame("ui-buffs-active-720x1520.png", 720, 1520));
             long expiry = ServiceStateValue<long>("attackExpiry");
             ui.Diamonds = 0; ui.ExtendBuff(true);
             Assert.That(ui.Diamonds, Is.Zero);
@@ -153,17 +168,149 @@ namespace DoodleIdle.Tests
             LoadServiceSnapshot(saved => ServiceSetSavedField(saved, "goldExpiry", DateTime.UtcNow.AddMinutes(75).Ticks));
             ui.RefreshHud();
             var hudTime = UiNode("Gold buff", UiNode("Timed buffs")).GetComponentInChildren<Text>().text;
-            Assert.That(int.Parse(hudTime.Split(':')[0]), Is.InRange(74, 75), "The main buff clock must not wrap at one hour after repeated extensions.");
-            LoadServiceSnapshot(saved =>
-            {
-                ServiceSetSavedField(saved, "attackExpiry", DateTime.UtcNow.AddSeconds(-1).Ticks);
-                ServiceSetSavedField(saved, "goldExpiry", DateTime.UtcNow.AddSeconds(-1).Ticks);
-            });
+            Assert.That(int.Parse(hudTime.Split(':')[0]), Is.InRange(74, 75), "Long buff durations from legacy saves must not wrap at one hour.");
+            ServiceSetSavedField(ServiceStateObject, "attackExpiry", DateTime.UtcNow.AddSeconds(-1).Ticks);
+            ServiceSetSavedField(ServiceStateObject, "goldExpiry", DateTime.UtcNow.AddSeconds(-1).Ticks);
+            RefreshServiceTestBindings(); // Keep the same open panel to verify live expiry, without rebuilding it.
             Assert.That(ui.AttackBuffSeconds, Is.Zero);
             Assert.That(ui.GoldBuffSeconds, Is.Zero);
             Assert.That(ui.AttackBuffMultiplier, Is.EqualTo(1));
             Assert.That(ui.GoldBuffMultiplier, Is.EqualTo(1));
             Assert.That(ui.UiDamageMultiplier, Is.EqualTo(baseDamage).Within(.001f));
+            foreach (string card in new[] { "Gold buff", "Attack buff" })
+            {
+                var expired = UiNode("버프 활성화", UiNode(card, UiNode("Panel: 버프"))).GetComponent<Button>();
+                Assert.That(expired.interactable, Is.True);
+                Assert.That(expired.GetComponentInChildren<Text>().text, Is.EqualTo("버프 활성화"));
+            }
+            ui.ExtendBuff(true);
+            Assert.That(ui.AttackBuffSeconds, Is.Zero, "An expired buff still requires payment.");
+            ui.Diamonds = tuning.buffPrice * 2;
+            UiClick("버프 활성화", UiNode("Attack buff", UiNode("Panel: 버프")));
+            Assert.That(ui.Diamonds, Is.EqualTo(tuning.buffPrice));
+            Assert.That(ui.AttackBuffSeconds, Is.InRange(tuning.buffSeconds - 2, tuning.buffSeconds));
+            Assert.That(ui.UiDamageMultiplier, Is.EqualTo(baseDamage * (1 + tuning.attackBuff)).Within(.001f));
+            UiClick("버프 활성화", UiNode("Gold buff", UiNode("Panel: 버프")));
+            Assert.That(ui.Diamonds, Is.Zero);
+            Assert.That(ui.GoldBuffSeconds, Is.InRange(tuning.buffSeconds - 2, tuning.buffSeconds));
+            Assert.That(ui.GoldBuffMultiplier, Is.EqualTo(1 + tuning.goldBuff));
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            Assert.That(ui.AttackBuffSeconds, Is.GreaterThan(0));
+            Assert.That(ui.GoldBuffSeconds, Is.GreaterThan(0));
+            yield return null;
+        }
+
+        void RefreshServiceTestBindings()
+        {
+            typeof(DoodleUi).GetField("nextServiceTick", ServicePrivate).SetValue(game.Ui, -1f);
+            typeof(DoodleUi).GetMethod("TickServices", ServicePrivate).Invoke(game.Ui, null);
+        }
+
+        [UnityTest]
+        public IEnumerator UiRepeatQuestsShowAllCompletedCyclesAndPreserveRemaindersAfterIndividualClaims()
+        {
+            game.TogglePause();
+            var ui = game.Ui;
+            var tuning = ServiceTestTuning;
+            string[] metrics = { "kills", "equipmentUpgrade", "skillUpgrade", "gold" };
+            int[] metricIndices = { 0, 4, 5, 1 };
+            Assert.That(tuning.repeatGoals[0], Is.EqualTo(500));
+            for (int i = 0; i < 4; i++) ui.RecordServiceProgress(metrics[i], tuning.repeatGoals[i] * 3 + 1);
+            ui.Save();
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            UiOpen("Quests"); UiClick("반복", UiNode("Quest tabs"));
+            foreach (var size in new[] { new Vector2Int(720, 1520), new Vector2Int(900, 900) })
+                UnityEngine.Object.Destroy(CaptureFrame("ui-repeat-1501-" + size.x + "x" + size.y + ".png", size.x, size.y));
+            int wallet = ui.Diamonds;
+            for (int i = 0; i < 4; i++)
+            {
+                var card = UiNode("Quest 1 " + i);
+                Assert.That(card.GetComponentsInChildren<Text>().Any(t => t.text == "3회 완료 · 미수령"), Is.True);
+                Assert.That(card.GetComponentsInChildren<Text>().Any(t => t.text == "1/" + UiNumber.Format(tuning.repeatGoals[i])), Is.True);
+                Assert.That(UiNode("받기", card).GetComponentInChildren<Text>().text, Is.EqualTo("3회\n받기"));
+                UiClick("받기", card);
+                wallet += 3 * tuning.questRewards[i];
+                Assert.That(ui.Diamonds, Is.EqualTo(wallet));
+                AssertSingleDiamondReward();
+                Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(1));
+                ui.CloseDetail();
+                ui.ClaimQuests(i);
+                Assert.That(ui.Diamonds, Is.EqualTo(wallet), "The paid cycles cannot be claimed twice.");
+                typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+                Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(1), "Claim must persist the remainder without an extra test-side save.");
+            }
+            RefreshServiceTestBindings();
+            for (int i = 0; i < 4; i++)
+            {
+                var card = UiNode("Quest 1 " + i);
+                Assert.That(card.GetComponentsInChildren<Text>().Any(t => t.text == "0회 완료 · 미수령"), Is.True);
+                Assert.That(UiNode("받기", card).GetComponentInChildren<Text>().text, Is.EqualTo("진행 중"));
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UiRepeatQuestClaimAllPaysEveryCycleAcrossAllTypesAndKeepsNextProgress()
+        {
+            game.TogglePause();
+            var ui = game.Ui;
+            var tuning = ServiceTestTuning;
+            string[] metrics = { "kills", "equipmentUpgrade", "skillUpgrade", "gold" };
+            int[] metricIndices = { 0, 4, 5, 1 };
+            int expectedReward = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                ui.RecordServiceProgress(metrics[i], tuning.repeatGoals[i] * (i + 2) + i + 1);
+                expectedReward += tuning.questRewards[i] * (i + 2);
+            }
+            UiOpen("Quests"); UiClick("반복", UiNode("Quest tabs"));
+            int wallet = ui.Diamonds;
+            UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet + expectedReward));
+            AssertSingleDiamondReward();
+            ui.CloseDetail();
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            for (int i = 0; i < 4; i++) Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(i + 1));
+            UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet + expectedReward));
+            ui.RecordServiceProgress("kills", tuning.repeatGoals[0] - 1);
+            UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet + expectedReward + tuning.questRewards[0]));
+            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.Zero);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UiRepeatQuestWalletLimitKeepsUnpaidCyclesWithoutIntegerOverflow()
+        {
+            game.TogglePause();
+            var ui = game.Ui;
+            var tuning = ServiceTestTuning;
+            string[] metrics = { "kills", "equipmentUpgrade", "skillUpgrade", "gold" };
+            int[] metricIndices = { 0, 4, 5, 1 };
+            foreach (string metric in metrics) { ui.RecordServiceProgress(metric, int.MaxValue); ui.RecordServiceProgress(metric, 1); }
+            ui.Diamonds = int.MaxValue - 1250;
+            UiOpen("Quests"); UiClick("반복", UiNode("Quest tabs")); UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 250));
+            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.EqualTo(int.MaxValue - tuning.repeatGoals[0] * 2));
+            for (int i = 1; i < 4; i++) Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(int.MaxValue));
+            ui.CloseDetail();
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            int[] before = (int[])ServiceStateValue<int[]>("repeat").Clone();
+            UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 250));
+            Assert.That(ServiceStateValue<int[]>("repeat"), Is.EqualTo(before), "No full reward fits, so no pending cycle may be removed.");
+            ui.Diamonds = 0;
+            UiClick("일괄받기");
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue / 500 * 500));
+            long paid = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                int after = ServiceStateValue<int[]>("repeat")[metricIndices[i]];
+                Assert.That(after % tuning.repeatGoals[i], Is.EqualTo(before[metricIndices[i]] % tuning.repeatGoals[i]));
+                paid += ((long)before[metricIndices[i]] - after) / tuning.repeatGoals[i] * tuning.questRewards[i];
+            }
+            Assert.That(paid, Is.EqualTo((long)ui.Diamonds), "Every consumed cycle must have a corresponding wallet payout.");
             yield return null;
         }
 

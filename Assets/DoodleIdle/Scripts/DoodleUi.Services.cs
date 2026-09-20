@@ -341,15 +341,27 @@ namespace DoodleIdle
             var status=ServiceText(badge,()=> (attack ? AttackBuffSeconds : GoldBuffSeconds)>0?"활성화 중":"비활성",24,34);UiKit.Stretch(status.rectTransform);
             ServiceText(description, () => "남은 시간 " + ServiceClock(attack ? AttackBuffSeconds : GoldBuffSeconds), 24, 34).alignment=TextAnchor.MiddleLeft;
             ServiceGauge(card, () => attack ? AttackBuffSeconds : GoldBuffSeconds, () => serviceTuning.buffSeconds, true, true);
-            UiKit.Button(card, (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "시간 연장" : "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
+            var activate = UiKit.Button(card, "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
+            var activateText = activate.GetComponentInChildren<Text>();
+            Func<string> caption = () => (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "활성화 중" : "버프 활성화";
+            Action refresh = () =>
+            {
+                bool active = (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0;
+                activate.interactable = !active;
+                badge.GetComponent<Image>().color = active ? UiKit.Green : new Color(.88f,.88f,.88f);
+            };
+            serviceBindings.Add(new ServiceBinding { text = activateText, value = caption, refresh = refresh });
+            activateText.text = caption(); refresh();
             UiKit.Text(card, "다이아 " + UiNumber.Format(serviceTuning.buffPrice) + " · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
         }
 
         public void ExtendBuff(bool attack)
         {
+            // Keep the public entry point for existing callers, but an active buff cannot be extended.
+            long now = ServiceNow;
+            if ((attack ? services.attackExpiry : services.goldExpiry) > now) return;
             if (Diamonds < serviceTuning.buffPrice) { Toast("다이아가 부족합니다"); return; }
-            long expiry = attack ? services.attackExpiry : services.goldExpiry;
-            expiry = Math.Max(expiry, ServiceNow) + TimeSpan.FromSeconds(serviceTuning.buffSeconds).Ticks;
+            long expiry = now + TimeSpan.FromSeconds(serviceTuning.buffSeconds).Ticks;
             if (attack) services.attackExpiry = expiry; else services.goldExpiry = expiry;
             Diamonds -= serviceTuning.buffPrice; Save(); RefreshPage();
         }
@@ -393,14 +405,14 @@ namespace DoodleIdle
 
         string QuestResetLabel()
         {
-            if (questTab == 1) return "완료 후 다시 도전";
+            if (questTab == 1) return "완료 횟수 누적 · 한 번에 받기";
             DateTime now = DateTime.UtcNow;
             DateTime reset = questTab == 0 ? now.Date.AddDays(1) : now.Date.AddDays(7 - (((int)now.DayOfWeek + 6) % 7));
             TimeSpan remaining = reset - now;
             return (questTab == 0 ? "일일 초기화 " : "주간 초기화 ") + (remaining.Days > 0 ? remaining.Days + "일 " : "") + remaining.Hours.ToString("00") + ":" + remaining.Minutes.ToString("00") + ":" + remaining.Seconds.ToString("00") + " (UTC)";
         }
 
-        int QuestGoal(int tab, int index) => (tab == 0 ? serviceTuning.dailyGoals : tab == 1 ? serviceTuning.repeatGoals : serviceTuning.weeklyGoals)[index];
+        int QuestGoal(int tab, int index) => Math.Max(1, (tab == 0 ? serviceTuning.dailyGoals : tab == 1 ? serviceTuning.repeatGoals : serviceTuning.weeklyGoals)[index]);
         int[] QuestCounters(int tab) => tab == 0 ? services.daily : tab == 1 ? services.repeat : services.weekly;
         bool QuestClaimed(int tab, int index) => tab == 0 ? services.dailyClaimed[index] : tab == 2 && services.weeklyClaimed[index];
         void QuestCard(Transform parent, int index)
@@ -412,8 +424,10 @@ namespace DoodleIdle
             UiKit.Icon(row, icons[metric], 64);
             var text = UiKit.Column(row, "Quest text", 3, 0); UiKit.Flexible(text, 1);
             string[] labels = { "적 {0}마리 처치", "골드 {0} 획득", "던전 {0}회 도전", "룰렛 {0}회 돌리기", "장비 {0}회 강화", "스킬 {0}회 강화", "PVP {0}회 도전", "뽑기 {0}회 진행" };
-            UiKit.Text(text, string.Format(labels[metric], UiNumber.Format(goal)), 25, TextAnchor.MiddleLeft, 38);
-            ServiceGauge(text, () => QuestCounters(tab)[metric], () => goal, false, true);
+            UiKit.Text(text, string.Format(labels[metric], UiNumber.Format(goal)), tab == 1 ? 22 : 25, TextAnchor.MiddleLeft, tab == 1 ? 26 : 38);
+            if (tab == 1)
+                ServiceText(text, () => UiNumber.Format(services.repeat[metric] / goal) + "회 완료 · 미수령", 18, 18).alignment = TextAnchor.MiddleLeft;
+            ServiceGauge(text, () => tab == 1 ? services.repeat[metric] % goal : QuestCounters(tab)[metric], () => goal, false, true);
             var reward = UiKit.Column(row, "Quest reward", 2, 0); ServiceWidth(reward,52);
             UiKit.Icon(reward, "Diamond", 46);
             UiKit.Text(reward, UiNumber.Format(serviceTuning.questRewards[index]), 23, TextAnchor.MiddleCenter, 29);
@@ -421,25 +435,36 @@ namespace DoodleIdle
             ServiceWidth(claim.transform,94);
             var claimText = claim.GetComponentInChildren<Text>();
             Action refresh=()=>claim.GetComponent<Image>().color=!QuestClaimed(tab,index)&&QuestCounters(tab)[metric]>=goal?UiKit.Yellow:new Color(.89f,.89f,.89f);
-            serviceBindings.Add(new ServiceBinding { text = claimText, value = () => QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] >= goal ? "받기" : "진행 중",refresh=refresh }); refresh();
-            claimText.text = QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] >= goal ? "받기" : "진행 중";
+            Func<string> caption = () => QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] < goal ? "진행 중" : tab == 1 ? UiNumber.Format(services.repeat[metric] / goal) + "회\n받기" : "받기";
+            serviceBindings.Add(new ServiceBinding { text = claimText, value = caption,refresh=refresh }); refresh();
+            claimText.text = caption();
         }
 
         public void ClaimQuests(int selected)
         {
-            ResetServicePeriods(); int reward = 0;
+            ResetServicePeriods(); long reward = 0;
+            long capacity = (long)int.MaxValue - Math.Max(0, Diamonds);
+            bool walletFull = false;
             for (int i = 0; i < 4; i++)
             {
                 if (selected >= 0 && i != selected) continue;
                 int metric = QuestMetrics[questTab][i], goal = QuestGoal(questTab, i);
                 if (QuestClaimed(questTab, i) || QuestCounters(questTab)[metric] < goal) continue;
-                if (questTab == 1) services.repeat[metric] -= goal;
+                int perCycle = serviceTuning.questRewards[i];
+                if (perCycle <= 0) continue;
+                long completed = questTab == 1 ? services.repeat[metric] / goal : 1;
+                long paidCycles = Math.Min(completed, (capacity - reward) / perCycle);
+                walletFull |= paidCycles < completed;
+                if (paidCycles == 0) continue;
+                // Subtract only paid whole cycles; the saved counter retains unpaid cycles and the remainder.
+                if (questTab == 1) services.repeat[metric] -= (int)(paidCycles * goal);
                 else if (questTab == 0) services.dailyClaimed[i] = true;
                 else services.weeklyClaimed[i] = true;
-                reward += serviceTuning.questRewards[i];
+                reward += paidCycles * perCycle;
             }
-            if (reward == 0) { Toast("받을 수 있는 보상이 없습니다"); return; }
-            GrantServiceDiamonds(reward, "퀘스트 보상 획득!");
+            if (reward == 0) { Toast(walletFull ? "다이아 보유 한도입니다 · 미수령 보상은 유지됩니다" : "받을 수 있는 보상이 없습니다"); return; }
+            GrantServiceDiamonds((int)reward, "퀘스트 보상 획득!");
+            if (walletFull) Toast("보유 한도로 남은 보상은 다음에 받을 수 있습니다");
         }
 
         void BuildDungeons(RectTransform body)
