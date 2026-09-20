@@ -41,3 +41,10 @@
 
 ## Remaining limitations
 - Server, real purchase, account linking, live chat and competitive rankings absent in baseline; implement clearly identified local adapters.
+
+## Second CI visual review
+- b5bff18 run35503551145: https://github.com/kuzuni/20260920/actions/runs/35503551145 finished,33/34 passed. All combat, interaction and6 new service tests passed.108 actual UI captures were exported and reviewed across all4 ratios.
+- The only failed assertions expected a large cream panel area on24/25 reward states, contrary to the explicit no-large-panel design. Replace that check only for reward states with stricter per-card frame/art/quantity and outside-frame yellow-ray pixel checks; retain existing panel checks for all other states.
+- Captures and XML downloaded to C:/Users/user/.codex/artifacts/final-game-ui/run35503551145. No local Unity/game/test execution.
+- Visual fixes in progress: fixed collection/result/chat action areas, independent inventory scrolling, compact skill detail, bounded volume thumbs, proportional short-screen roulette, centered pointer, synchronous scroll-thumb capture rebuild, visible100th-rank evidence, original SampleScene bootstrap coverage.
+- Original workspace remains updated throughout; user McpUnitySettings.json remains unstaged.

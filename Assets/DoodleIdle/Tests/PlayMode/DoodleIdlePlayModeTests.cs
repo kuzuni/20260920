@@ -85,6 +85,10 @@ namespace DoodleIdle.Tests
             try
             {
                 beforeRender?.Invoke();
+                // A synchronous render has no intervening LateUpdate. Rebuild the actual ScrollRects
+                // after capture navigation so their thumb positions match their visible content.
+                foreach (var scroll in canvas.GetComponentsInChildren<UnityEngine.UI.ScrollRect>())
+                    scroll.Rebuild(UnityEngine.UI.CanvasUpdate.PostLayout);
                 Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(GraphicsDeviceType.Null), "Visual regression checks require a real graphics device on the CI server.");
                 for (int pass = 0; pass < 2; pass++)
                 {

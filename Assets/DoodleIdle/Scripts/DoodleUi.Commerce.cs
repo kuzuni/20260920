@@ -208,12 +208,15 @@ namespace DoodleIdle
                         () => ShowSummonItem(item), 150);
                     slot.gameObject.name = "SummonResult_" + i + "_" + item.id;
                 }
+                // Keep progression and actions reachable while a 50-pull card list scrolls.
+                // Four controls (46 + 32 + 68 + 58) and three 8-unit gaps occupy 228 units.
+                var footer = UiKit.Footer(body, "Summon result footer", 228);
                 var state = summonStates[category];
-                UiKit.Text(body, CommerceLabel(category) + " 뽑기 Lv. " + state.level, 27, TextAnchor.MiddleCenter, 46);
+                UiKit.Text(footer, CommerceLabel(category) + " 뽑기 Lv. " + state.level, 27, TextAnchor.MiddleCenter, 46);
                 int needed = CommerceExperienceNeeded(state);
-                UiKit.Gauge(body, state.experience + "/" + needed, (float)state.experience / needed, 32);
-                BuildSummonButtons(body, category);
-                UiKit.Button(body, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
+                UiKit.Gauge(footer, state.experience + "/" + needed, (float)state.experience / needed, 32);
+                BuildSummonButtons(footer, category);
+                UiKit.Button(footer, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
             });
         }
 

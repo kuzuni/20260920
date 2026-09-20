@@ -253,6 +253,31 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator UiExistingEntrySceneBootstrapsWithoutInspectorSetup()
+        {
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(originalScene);
+            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(testScene);
+#if UNITY_EDITOR
+            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/SampleScene.unity", new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Additive));
+            testScene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/SampleScene.unity");
+#else
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("SampleScene", UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            testScene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("SampleScene");
+#endif
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(testScene);
+            yield return null;
+            game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
+            Assert.That(game.Ready, Is.True);
+            Assert.That(game.Ui, Is.Not.Null);
+            Assert.That(game.Ui.Canvas.isActiveAndEnabled, Is.True);
+            Assert.That(Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Length, Is.EqualTo(1), "The existing entry EventSystem must be reused.");
+            UiOpen("Equipment");
+            Assert.That(UiNode("Equipment tabs"), Is.Not.Null);
+            var frame = CaptureFrame("ui-entry-SampleScene.png", 720, 1520);
+            Object.Destroy(frame);
+        }
+
+        [UnityTest]
         public IEnumerator UiFinalTwentyFiveStatesRenderAtAllFourSupportedRatios()
         {
             uiCaptureFailures.Clear();
@@ -299,9 +324,21 @@ namespace DoodleIdle.Tests
         void UiCapture(string state, Vector2Int size, bool bottom = false)
         {
             string file = "ui-" + size.x + "x" + size.y + "-" + state + ".png";
+            var rewardCards = new List<RectInt>();
+            var rewardRays = new List<RectInt>();
             var frame = CaptureFrame(file, size.x, size.y, true, () =>
             {
-                if (bottom) UiScrollBottom();
+                if (bottom)
+                {
+                    // Reach the nested ranking viewport on short screens before scrolling its rows.
+                    if (state == "07b-pvp-bottom")
+                    {
+                        var outer = UiRoot.GetComponentsInChildren<ScrollRect>().First();
+                        outer.StopMovement(); outer.verticalNormalizedPosition = 0;
+                        Canvas.ForceUpdateCanvases();
+                    }
+                    UiScrollBottom();
+                }
                 else if (UiRoot.GetComponentsInChildren<ScrollRect>().Length > 0)
                 {
                     var scroll = UiTopScroll(); scroll.StopMovement(); scroll.verticalNormalizedPosition = 1;
@@ -309,13 +346,69 @@ namespace DoodleIdle.Tests
                 }
                 // Preserve every requested diagnostic image even when a layout assertion fails.
                 // The test still fails after the complete four-ratio evidence set is exported.
-                try { AssertUiGeometry(file); }
+                try
+                {
+                    AssertUiGeometry(file);
+                    if (state == "07b-pvp-bottom")
+                    {
+                        var lastRank = (RectTransform)UiNode("Rank 100");
+                        foreach (var mask in lastRank.GetComponentsInParent<RectMask2D>())
+                        {
+                            var viewport = (RectTransform)mask.transform;
+                            var bounds = UiLocalBounds(viewport, lastRank);
+                            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 3), file + " rank 100 below outer viewport");
+                            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 3), file + " rank 100 above outer viewport");
+                        }
+                    }
+                }
                 catch (AssertionException error) { uiCaptureFailures.Add(error.Message); }
+                foreach (var card in UiRoot.GetComponentsInChildren<RectTransform>().Where(t => t.name == "Reward frame"))
+                    rewardCards.Add(UiPixelBounds(card, size));
+                foreach (var rays in UiRoot.GetComponentsInChildren<DoodleRewardRays>())
+                    rewardRays.Add(UiPixelBounds(rays.rectTransform, size));
             });
             var pixels = frame.GetPixels32();
-            if (pixels.Count(p => p.r > 190 && p.g > 180 && p.b > 150) <= size.x * size.y / 30)
+            if (state == "24-dungeon-clear" || state == "25-rewards")
+            {
+                int expected = state == "24-dungeon-clear" ? 2 : 1;
+                if (rewardCards.Count != expected || rewardRays.Count != expected)
+                    uiCaptureFailures.Add(file + " must render each individual reward card and its rays.");
+                for (int i = 0; i < rewardCards.Count; i++)
+                {
+                    var card = rewardCards[i]; int light = 0, ink = 0;
+                    for (int y = card.yMin; y < card.yMax; y++) for (int x = card.xMin; x < card.xMax; x++)
+                    {
+                        var p = pixels[y * size.x + x];
+                        if (p.r > 150 && p.g > 150 && p.b > 100) light++;
+                        if (p.r < 100 && p.g < 100 && p.b < 100) ink++;
+                    }
+                    if (light < card.width * card.height * .4f || ink < card.width * card.height * .01f)
+                        uiCaptureFailures.Add(file + " reward card " + i + " is missing its grade frame, art or amount.");
+                    if (i >= rewardRays.Count) continue;
+                    var rays = rewardRays[i]; int yellow = 0;
+                    for (int y = rays.yMin; y < rays.yMax; y++) for (int x = rays.xMin; x < rays.xMax; x++)
+                    {
+                        if (card.Contains(new Vector2Int(x, y))) continue;
+                        var p = pixels[y * size.x + x];
+                        if (p.r > 190 && p.g > 145 && p.b < 120) yellow++;
+                    }
+                    if (yellow < rays.width * rays.height / 200)
+                        uiCaptureFailures.Add(file + " reward card " + i + " has no visible yellow rays outside the frame.");
+                }
+            }
+            else if (pixels.Count(p => p.r > 190 && p.g > 180 && p.b > 150) <= size.x * size.y / 30)
                 uiCaptureFailures.Add(file + " must contain rendered cream panels and visible artwork.");
             Object.Destroy(frame);
+        }
+
+        RectInt UiPixelBounds(RectTransform item, Vector2Int size)
+        {
+            var canvas = (RectTransform)UiRoot; var bounds = UiLocalBounds(canvas, item); var area = canvas.rect;
+            int left = Mathf.Clamp(Mathf.FloorToInt((bounds.xMin - area.xMin) / area.width * size.x), 0, size.x);
+            int bottom = Mathf.Clamp(Mathf.FloorToInt((bounds.yMin - area.yMin) / area.height * size.y), 0, size.y);
+            int right = Mathf.Clamp(Mathf.CeilToInt((bounds.xMax - area.xMin) / area.width * size.x), 0, size.x);
+            int top = Mathf.Clamp(Mathf.CeilToInt((bounds.yMax - area.yMin) / area.height * size.y), 0, size.y);
+            return new RectInt(left, bottom, right - left, top - bottom);
         }
 
         void AssertUiGeometry(string context)
@@ -334,6 +427,28 @@ namespace DoodleIdle.Tests
             {
                 Assert.That(scroll.content.rect.width, Is.LessThanOrEqualTo(scroll.viewport.rect.width + 2), context + " scroll content width");
                 Assert.That(scroll.viewport.rect.height, Is.GreaterThan(60), context + " needs a usable scrolling viewport");
+            }
+            foreach (var wheel in UiRoot.GetComponentsInChildren<DoodleRouletteGraphic>())
+            {
+                var viewport = wheel.GetComponentInParent<ScrollRect>().viewport;
+                var bounds = UiLocalBounds(viewport, wheel.rectTransform);
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 2), context + " roulette bottom clipping");
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), context + " roulette top clipping");
+                Assert.That(Mathf.Abs(bounds.width - bounds.height), Is.LessThan(2), context + " roulette must remain circular");
+            }
+            foreach (var footer in UiRoot.GetComponentsInChildren<RectTransform>().Where(t => t.name.EndsWith(" footer")))
+            {
+                var panel = footer.GetComponentInParent<DoodleUiWindow>();
+                var panelRect = (RectTransform)panel.transform;
+                Assert.That(footer.GetComponentsInParent<ScrollRect>(), Is.Empty, context + " collection actions must remain outside scrolling content");
+                foreach (var button in footer.GetComponentsInChildren<Button>())
+                {
+                    var bounds = UiLocalBounds(panelRect, (RectTransform)button.transform);
+                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(panelRect.rect.xMin), context + " clipped footer button: " + button.name);
+                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(panelRect.rect.xMax), context + " clipped footer button: " + button.name);
+                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(panelRect.rect.yMin), context + " clipped footer button: " + button.name);
+                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(panelRect.rect.yMax), context + " clipped footer button: " + button.name);
+                }
             }
             var allText = UiRoot.GetComponentsInChildren<Text>();
             foreach (var label in allText)

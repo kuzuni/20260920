@@ -47,6 +47,17 @@ namespace DoodleIdle
             var r=Rect(parent,name); var g=r.gameObject.AddComponent<HorizontalLayoutGroup>(); g.spacing=spacing; g.childAlignment=TextAnchor.MiddleCenter;
             g.childControlWidth=g.childControlHeight=true; g.childForceExpandWidth=false; g.childForceExpandHeight=false; Height(r,height); Flexible(r); return r;
         }
+        /// <summary>Action area stays reachable while the owning window's long content scrolls.</summary>
+        public static RectTransform Footer(RectTransform body,string name,float height)
+        {
+            var window=body.GetComponentInParent<DoodleUiWindow>();
+            if(!window) return Column(body,name,8,0);
+            var r=Rect(window.inner,name);r.anchorMin=r.anchorMax=new Vector2(.5f,0);r.pivot=new Vector2(.5f,0);r.anchoredPosition=new Vector2(0,12);r.sizeDelta=new Vector2(window.content.sizeDelta.x+8,height);window.footer=r;
+            var layout=r.gameObject.AddComponent<VerticalLayoutGroup>();layout.spacing=8;layout.childControlWidth=layout.childControlHeight=true;layout.childForceExpandWidth=true;layout.childForceExpandHeight=false;
+            var viewport=body.parent as RectTransform;if(viewport)viewport.offsetMin=new Vector2(viewport.offsetMin.x,height+24);
+            var rail=window.inner.Find("Scroll position") as RectTransform;if(rail)rail.offsetMin=new Vector2(rail.offsetMin.x,height+26);
+            return r;
+        }
         public static Text Text(Transform parent,string text,int size=24,TextAnchor align=TextAnchor.MiddleLeft,float height=36)
         {
             var r=Rect(parent,"Text: "+text); var t=r.gameObject.AddComponent<Text>(); t.font=Font; t.text=text; t.fontSize=size; t.color=Ink; t.alignment=align;

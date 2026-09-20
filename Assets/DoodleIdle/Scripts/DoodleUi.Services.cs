@@ -241,8 +241,9 @@ namespace DoodleIdle
 
         void BuildRoulette(RectTransform body)
         {
-            ServiceText(body, () => "오늘 남은 횟수 " + Math.Max(0, serviceTuning.dailySpins - services.spins) + "/" + serviceTuning.dailySpins, 25, 40);
-            UiKit.Text(body, "하루 5회 · 각 칸 확률 12.5%", 18, TextAnchor.MiddleCenter, 28);
+            DoodleRouletteLayout responsive = null;
+            var remaining = ServiceText(body, () => "오늘 남은 횟수 " + Math.Max(0, serviceTuning.dailySpins - services.spins) + "/" + serviceTuning.dailySpins + (responsive && responsive.Compact ? " · 각 칸 12.5%" : ""), 25, 40);
+            var odds = UiKit.Text(body, "하루 5회 · 각 칸 확률 12.5%", 18, TextAnchor.MiddleCenter, 28);
             var holder = new GameObject("Roulette area", typeof(RectTransform), typeof(LayoutElement)).GetComponent<RectTransform>();
             holder.SetParent(body, false); UiKit.Height(holder, 340);
             var wheel = new GameObject("Roulette wheel", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRouletteGraphic)).GetComponent<RectTransform>();
@@ -265,6 +266,9 @@ namespace DoodleIdle
             pointer.GetComponent<DoodleRoulettePointer>().raycastTarget = false;
             var spin = UiKit.Button(body, rouletteSpinning ? "돌리는 중" : "돌리기", () => StartCoroutine(SpinRoulette(wheel)), UiKit.Blue, 60);
             spin.interactable = !rouletteSpinning && services.spins < serviceTuning.dailySpins;
+            responsive = holder.gameObject.AddComponent<DoodleRouletteLayout>();
+            responsive.viewport = body.parent as RectTransform; responsive.body = body; responsive.wheel = wheel; responsive.pointer = pointer;
+            responsive.remaining = remaining; responsive.odds = odds; responsive.spin = spin; responsive.Reflow();
         }
 
         IEnumerator SpinRoulette(RectTransform wheel)
@@ -548,7 +552,8 @@ namespace DoodleIdle
                 var text = UiKit.Text(bubble, message.content, 23, TextAnchor.UpperLeft, messageHeight - 62); text.supportRichText = false;
                 if (message.self) UiKit.Icon(row, message.art, 62);
             }
-            var inputRow = UiKit.Row(body, "Chat composer", 62);
+            var footer = UiKit.Footer(body, "Chat footer", 96);
+            var inputRow = UiKit.Row(footer, "Chat composer", 62);
             var field = UiKit.Box(inputRow, "Chat input", UiKit.Paper, 60); UiKit.Flexible(field, 4);
             var input = field.gameObject.AddComponent<InputField>(); input.characterLimit = 140;
             var content = UiKit.Text(field, "", 23, TextAnchor.MiddleLeft, 54); content.supportRichText = false;
@@ -566,7 +571,7 @@ namespace DoodleIdle
             };
             UiKit.Button(inputRow, "보내기", send, UiKit.Blue, 60);
 
-            UiKit.Text(body, "메시지는 이 실행 동안만 보관됩니다", 17, TextAnchor.MiddleCenter, 26);
+            UiKit.Text(footer, "메시지는 이 실행 동안만 보관됩니다", 17, TextAnchor.MiddleCenter, 26);
             StartCoroutine(ScrollChatToLatest(body));
         }
 
@@ -612,8 +617,13 @@ namespace DoodleIdle
             var slider = track.gameObject.AddComponent<Slider>(); slider.minValue = 0; slider.maxValue = 1;
             var fill = new GameObject("Volume fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>(); fill.transform.SetParent(track, false); fill.color = UiKit.Green;
             fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = Vector2.one; fill.rectTransform.offsetMin = new Vector2(4, 8); fill.rectTransform.offsetMax = new Vector2(-4, -8);
-            var handle = new GameObject("Volume handle", typeof(RectTransform), typeof(Image)).GetComponent<Image>(); handle.transform.SetParent(track, false); handle.color = UiKit.Paper;
-            handle.rectTransform.sizeDelta = new Vector2(28, 40); handle.rectTransform.anchorMin = handle.rectTransform.anchorMax = new Vector2(0, .5f);
+            var handleArea = new GameObject("Volume handle bounds", typeof(RectTransform)).GetComponent<RectTransform>();
+            handleArea.SetParent(track, false); handleArea.anchorMin = Vector2.zero; handleArea.anchorMax = Vector2.one;
+            handleArea.offsetMin = new Vector2(17, 6); handleArea.offsetMax = new Vector2(-17, -6);
+            var handle = new GameObject("Volume handle", typeof(RectTransform), typeof(Image), typeof(Outline)).GetComponent<Image>(); handle.transform.SetParent(handleArea, false); handle.color = UiKit.Paper;
+            handle.sprite = UiKit.Circle; handle.preserveAspect = true;
+            handle.rectTransform.anchorMin = Vector2.zero; handle.rectTransform.anchorMax = new Vector2(0, 1); handle.rectTransform.sizeDelta = new Vector2(28, 0);
+            handle.GetComponent<Outline>().effectColor = UiKit.Ink; handle.GetComponent<Outline>().effectDistance = new Vector2(2, -2);
             slider.fillRect = fill.rectTransform; slider.handleRect = handle.rectTransform; slider.targetGraphic = handle;
             slider.value = music ? services.music : services.effects;
             label.text = title + "  " + Mathf.RoundToInt(slider.value * 100) + "%";
@@ -630,6 +640,43 @@ namespace DoodleIdle
             if (services == null) return;
             foreach (var source in FindObjectsByType<AudioSource>(FindObjectsSortMode.None)) source.volume = source.loop ? services.music : services.effects;
         }
+
+        public void ReflowServiceLayouts()
+        {
+            foreach (var roulette in GetComponentsInChildren<DoodleRouletteLayout>()) roulette.Reflow();
+        }
+    }
+
+    public sealed class DoodleRouletteLayout : MonoBehaviour
+    {
+        public RectTransform viewport, body, wheel, pointer;
+        public Text remaining, odds;
+        public Button spin;
+        public bool Compact { get; private set; }
+        void LateUpdate() => Reflow();
+        public void Reflow()
+        {
+            if (!viewport || !body || !wheel || !pointer || !remaining || !odds || !spin) return;
+            var holder = (RectTransform)transform;
+            Compact = viewport.rect.height < 500;
+            float remainingHeight = Compact ? 28 : 40, oddsHeight = Compact ? 0 : 28, spinHeight = Compact ? 40 : 60;
+            var layout = body.GetComponent<VerticalLayoutGroup>();
+            float spacing = Compact ? 4 : 10;
+            if (layout) layout.spacing = spacing;
+            odds.gameObject.SetActive(!Compact);
+            remaining.text = remaining.text.Replace(" · 각 칸 12.5%", "") + (Compact ? " · 각 칸 12.5%" : "");
+            UiKit.Height(remaining.transform, remainingHeight); remaining.resizeTextMaxSize = Compact ? 20 : 25;
+            UiKit.Height(spin.transform, spinHeight);
+            float otherHeight = remainingHeight + oddsHeight + spinHeight + spacing * (Compact ? 2 : 3) + (layout ? layout.padding.vertical : 8);
+            float availableHeight = Mathf.Max(36, viewport.rect.height - otherHeight - 2);
+            float availableWidth = Mathf.Max(72, viewport.rect.width - 16);
+            float scale = Mathf.Min(1, Mathf.Min(availableHeight, availableWidth) / 360f);
+            wheel.localScale = pointer.localScale = Vector3.one * scale;
+            wheel.anchoredPosition = new Vector2(0, -10 * scale);
+            var sizing = holder.GetComponent<LayoutElement>();
+            float height = 360 * scale;
+            if (Mathf.Abs(sizing.preferredHeight - height) > .1f) sizing.minHeight = sizing.preferredHeight = height;
+        }
     }
 
     [RequireComponent(typeof(CanvasRenderer))]
@@ -638,9 +685,10 @@ namespace DoodleIdle
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
+            Vector2 center = rectTransform.rect.center;
             Vector2 a = new Vector2(-21, 19), b = new Vector2(21, 19), c = new Vector2(0, -20);
-            vh.AddVert(a, UiKit.Ink, Vector2.zero); vh.AddVert(b, UiKit.Ink, Vector2.zero); vh.AddVert(c, UiKit.Ink, Vector2.zero); vh.AddTriangle(0, 1, 2);
-            vh.AddVert(a * .74f, UiKit.Red, Vector2.zero); vh.AddVert(b * .74f, UiKit.Red, Vector2.zero); vh.AddVert(c * .74f, UiKit.Red, Vector2.zero); vh.AddTriangle(3, 4, 5);
+            vh.AddVert(center + a, UiKit.Ink, Vector2.zero); vh.AddVert(center + b, UiKit.Ink, Vector2.zero); vh.AddVert(center + c, UiKit.Ink, Vector2.zero); vh.AddTriangle(0, 1, 2);
+            vh.AddVert(center + a * .74f, UiKit.Red, Vector2.zero); vh.AddVert(center + b * .74f, UiKit.Red, Vector2.zero); vh.AddVert(center + c * .74f, UiKit.Red, Vector2.zero); vh.AddTriangle(3, 4, 5);
         }
     }
 

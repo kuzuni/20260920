@@ -106,6 +106,10 @@ namespace DoodleIdle
             foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) window.Reflow(safe);
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
             foreach(var squares in root.GetComponentsInChildren<DoodleUiSquareRow>()) squares.Reflow();
+            UnityEngine.Canvas.ForceUpdateCanvases();
+            ReflowServiceLayouts();
+            foreach(var inventory in root.GetComponentsInChildren<DoodleCollectionInventoryViewport>()) inventory.Reflow();
+            UnityEngine.Canvas.ForceUpdateCanvases();
         }
         public void ShowPage(string id)
         {
@@ -149,7 +153,7 @@ namespace DoodleIdle
         RectTransform Window(RectTransform dim,string title,bool full,Action close)
         {
             var panel=UiKit.Box(dim,"Panel: "+title,UiKit.Paper); panel.GetComponent<LayoutElement>().ignoreLayout=true;
-            float w=Mathf.Min(610,safe.rect.width-44),h=Mathf.Min(940,Mathf.Max(200,safe.rect.height-335));
+            float w=Mathf.Min(610,safe.rect.width-44),h=Mathf.Min(940,Mathf.Max(200,safe.rect.height-215));
             if(full) UiKit.Stretch(panel); else Anchor(panel,new Vector2(.5f,.5f),new Vector2(0,-5),new Vector2(w,h));
             var block=panel.gameObject.AddComponent<Button>(); block.transition=Selectable.Transition.None; // Stop the dim handler receiving panel clicks.
             var inner=UiKit.Rect(panel,"Safe panel contents");
@@ -227,14 +231,16 @@ namespace DoodleIdle
     public sealed class DoodleUiWindow : MonoBehaviour
     {
         public bool full;
-        public RectTransform content,inner;
+        public float maxWidth=610,maxHeight=940;
+        public RectTransform content,inner,footer;
         public void Reflow(RectTransform safe)
         {
             var panel=(RectTransform)transform;
-            float width=Mathf.Min(610,safe.rect.width-44);
+            float width=Mathf.Min(maxWidth,safe.rect.width-44);
             if(full) { UiKit.Stretch(panel); inner.anchorMin=safe.anchorMin;inner.anchorMax=safe.anchorMax;inner.offsetMin=inner.offsetMax=Vector2.zero; width=Mathf.Min(802,safe.rect.width); }
-            else { panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f; panel.sizeDelta=new Vector2(width,Mathf.Min(940,Mathf.Max(200,safe.rect.height-335))); }
+            else { panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f; panel.sizeDelta=new Vector2(width,Mathf.Min(maxHeight,Mathf.Max(200,safe.rect.height-215))); }
             content.sizeDelta=new Vector2(width-42,content.sizeDelta.y);
+            if(footer) footer.sizeDelta=new Vector2(width-34,footer.sizeDelta.y);
         }
     }
     public sealed class DoodleUiSquareRow : MonoBehaviour

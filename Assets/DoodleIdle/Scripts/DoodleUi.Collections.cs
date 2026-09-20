@@ -9,6 +9,7 @@ namespace DoodleIdle
     {
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4";
         int statBatch = 1;
+        readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
         {
@@ -121,8 +122,9 @@ namespace DoodleIdle
                 if (equipmentCategory == "Armor") selectedArmor = item.id; else selectedClub = item.id;
                 RefreshPage();
             }, 5);
-            CollectionActions(body, equipmentCategory);
-            var tabs = UiKit.Row(body, "Equipment tabs", 54);
+            var footer = UiKit.Footer(body, "Equipment footer", 120);
+            CollectionActions(footer, equipmentCategory);
+            var tabs = UiKit.Row(footer, "Equipment tabs", 54);
             UiKit.Button(tabs, "갑옷", () => { equipmentCategory = "Armor"; RefreshPage(); }, equipmentCategory == "Armor" ? UiKit.Yellow : UiKit.Paper);
             UiKit.Button(tabs, "몽둥이", () => { equipmentCategory = "Club"; RefreshPage(); }, equipmentCategory == "Club" ? UiKit.Yellow : UiKit.Paper);
         }
@@ -140,14 +142,15 @@ namespace DoodleIdle
                 if (i < equipped.Count)
                 {
                     var item = equipped[i];
-                    CollectionSlot(slots, item, () => ShowCollectionDetail(item), 124);
+                    var card = CollectionSlot(slots, item, () => ShowCollectionDetail(item), 124);
+                    card.GetComponentInChildren<Text>().text = (i + 1) + " " + GradeNames[item.rarity];
                 }
                 else UiKit.Slot(slots, "빈 슬롯", "", 0, 0, 0, false, false, () => Toast("보유 " + label + "을 선택해 장착하세요."), 124);
             }
             OwnershipStrip(body, category);
             UiKit.Text(body, "보유 " + label, 27, TextAnchor.MiddleLeft, 40);
             BuildInventory(body, Items(category), ShowCollectionDetail, 4);
-            CollectionActions(body, category);
+            CollectionActions(UiKit.Footer(body, category + " footer", 60), category);
         }
 
         void OwnershipStrip(RectTransform parent, string category)
@@ -164,12 +167,48 @@ namespace DoodleIdle
 
         void BuildInventory(RectTransform parent, List<UiItem> items, Action<UiItem> click, int columns)
         {
-            var grid = UiKit.Grid(parent, "Collection inventory", columns, 122);
+            string category = items.Count > 0 ? items[0].category : "Empty";
+            var host = UiKit.Rect(parent, "Collection inventory viewport");
+            UiKit.Height(host, 180); UiKit.Flexible(host);
+            var viewport = UiKit.Rect(host, "Inventory clipping area");
+            UiKit.Stretch(viewport, 0, 0, 12, 0);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var surface = viewport.gameObject.AddComponent<Image>(); surface.color = Color.clear;
+            var scroll = host.gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false; scroll.viewport = viewport;
+            scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 38;
+            var grid = UiKit.Grid(viewport, "Collection inventory", columns, 122);
+            grid.GetComponent<GridLayoutGroup>().padding = new RectOffset(4, 4, 4, 4);
+            grid.anchorMin = new Vector2(0, 1); grid.anchorMax = Vector2.one;
+            grid.pivot = new Vector2(.5f, 1); grid.anchoredPosition = Vector2.zero; grid.sizeDelta = Vector2.zero;
+            scroll.content = grid;
             foreach (var entry in items)
             {
                 var item = entry;
-                CollectionSlot(grid, item, () => click(item), 122);
+                var card = CollectionSlot(grid, item, () => click(item), 122);
+                bool selected = (category == "Armor" && item.id == selectedArmor) || (category == "Club" && item.id == selectedClub);
+                if (selected)
+                {
+                    var outline = card.GetComponent<Outline>();
+                    outline.effectColor = UiKit.Yellow; outline.effectDistance = new Vector2(3, -3);
+                }
             }
+            var rail = UiKit.Rect(host, "Inventory scroll position");
+            rail.anchorMin = new Vector2(1, 0); rail.anchorMax = Vector2.one;
+            rail.offsetMin = new Vector2(-7, 1); rail.offsetMax = new Vector2(0, -1);
+            var railImage = rail.gameObject.AddComponent<Image>(); railImage.sprite = UiKit.Frame;
+            railImage.type = Image.Type.Sliced; railImage.color = new Color(.83f, .83f, .8f);
+            var handle = UiKit.Rect(rail, "Inventory scroll thumb"); UiKit.Stretch(handle);
+            var handleImage = handle.gameObject.AddComponent<Image>(); handleImage.sprite = UiKit.Frame;
+            handleImage.type = Image.Type.Sliced; handleImage.color = UiKit.Green;
+            var scrollbar = rail.gameObject.AddComponent<Scrollbar>(); scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.handleRect = handle; scrollbar.targetGraphic = handleImage;
+            scroll.verticalScrollbar = scrollbar; scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            var adaptive = host.gameObject.AddComponent<DoodleCollectionInventoryViewport>();
+            adaptive.body = parent; adaptive.outerViewport = parent.GetComponentInParent<ScrollRect>().viewport;
+            adaptive.scroll = scroll; adaptive.grid = grid;
+            adaptive.restorePosition = collectionScrollPositions.TryGetValue(category, out float savedPosition) ? savedPosition : 1;
+            scroll.onValueChanged.AddListener(position => { if (adaptive.Restored) collectionScrollPositions[category] = scroll.verticalNormalizedPosition; });
         }
 
         void CollectionActions(RectTransform parent, string category)
@@ -206,10 +245,14 @@ namespace DoodleIdle
         {
             ShowDetail(item.name, body =>
             {
+                var window = body.GetComponentInParent<DoodleUiWindow>();
+                if (window) { window.maxWidth = 500; window.maxHeight = 760; window.Reflow(safe); }
                 UiKit.Text(body, GradeNames[item.rarity] + " · Lv. " + item.level, 23, TextAnchor.MiddleCenter, 36);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 20, TextAnchor.MiddleCenter, 34);
                 var display = UiKit.Row(body, "Selected item art", 152);
-                CollectionSlot(display, item, () => { }, 152);
+                var selectedCard = CollectionSlot(display, item, () => { }, 152);
+                var selectedLayout = selectedCard.GetComponent<LayoutElement>();
+                selectedLayout.minWidth = selectedLayout.preferredWidth = 166; selectedLayout.flexibleWidth = 0;
                 var effects = CollectionBox(body, "Equipment effect", new Color(.96f, .94f, .85f));
                 var effectBody = UiKit.Column(effects, "Effects", 3, 8);
                 UiKit.Text(effectBody, "장착 효과", 23, TextAnchor.MiddleLeft, 32);
@@ -217,8 +260,34 @@ namespace DoodleIdle
                 UiKit.Text(effectBody, item.category == "Companion" ? "공격력 +" + ItemEquipValue(item).ToString("0.#") + "%" : "스킬 위력 " + ItemEquipValue(item).ToString("0.#"), 21, TextAnchor.MiddleLeft, 32);
                 UiKit.Text(body, "보유 효과   " + EffectName(item.effect) + " +" + ItemOwnedValue(item).ToString("0.#") + "%", 22, TextAnchor.MiddleLeft, 44);
                 if (item.category == "Skill")
+                {
+                    // Read the active combat component, never present catalog mock values
+                    // as real cooldowns. Orbit skills use their shared public cycle constant.
+                    float interval = -1;
+                    if (game)
+                    {
+                        switch (item.ability)
+                        {
+                            case "Banana": case "OrbitGun": interval = DoodleIdleGame.OrbitSkillCycle; break;
+                            case "Stone": interval = game.stoneInterval; break;
+                            case "Arrows": interval = game.arrowInterval; break;
+                            case "BouncyBall": interval = game.ballInterval; break;
+                            case "Fire": interval = game.fireInterval; break;
+                            case "Drone": interval = game.droneInterval; break;
+                            case "Worm": interval = game.wormInterval; break;
+                            case "Cloud": case "Lightning": interval = game.cloudInterval; break;
+                            case "Dragon": interval = game.dragonInterval; break;
+                            case "Cannon": interval = game.cannonInterval; break;
+                            case "Guardian": interval = game.guardianInterval; break;
+                            case "Shotgun": interval = game.shotgunInterval; break;
+                            case "Molotov": interval = game.molotovInterval; break;
+                            case "Sound": interval = game.soundWaveInterval; break;
+                        }
+                    }
+                    if (interval > 0) UiKit.Text(body, "자동 재사용   " + interval.ToString("0.##") + "초", 21, TextAnchor.MiddleCenter, 36);
                     UiKit.Text(body, "장착 시 전체 공격력 +" + (ItemEquipValue(item) * .02f).ToString("0.##") + "%\n모든 기존 스킬은 계속 자동 사용됩니다.", 18, TextAnchor.MiddleCenter, 52);
-                var buttons = UiKit.Row(body, "Detail actions", 56);
+                }
+                var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
                 UiKit.Button(buttons, "강화", () => UpgradeSelected(item, true), UiKit.Blue, 56);
                 UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56);
             });
@@ -314,6 +383,52 @@ namespace DoodleIdle
         static string CategoryName(string category)
         {
             switch (category) { case "Armor": return "갑옷"; case "Club": return "몽둥이"; case "Skill": return "스킬"; case "Companion": return "동료"; default: return "유물"; }
+        }
+    }
+
+    /// <summary>Only the item list scrolls in tall windows; short windows can also scroll the header.</summary>
+    public sealed class DoodleCollectionInventoryViewport : MonoBehaviour
+    {
+        public RectTransform body, outerViewport, grid;
+        public ScrollRect scroll;
+        public float restorePosition = 1;
+        public bool Restored { get; private set; }
+        int settleFrames;
+
+        void LateUpdate()
+        {
+            Reflow();
+            if (!scroll) return;
+            if (!Restored && ++settleFrames >= 3)
+            {
+                scroll.verticalNormalizedPosition = Mathf.Clamp01(restorePosition);
+                Restored = true;
+            }
+        }
+
+        public void Reflow()
+        {
+            if (!body || !outerViewport || !grid || !scroll) return;
+            var bodyLayout = body.GetComponent<VerticalLayoutGroup>();
+            float otherHeight = bodyLayout ? bodyLayout.padding.vertical : 0;
+            int childCount = 0;
+            foreach (Transform child in body)
+            {
+                if (!child.gameObject.activeSelf) continue;
+                childCount++;
+                if (child != transform) otherHeight += LayoutUtility.GetPreferredHeight((RectTransform)child);
+            }
+            if (bodyLayout) otherHeight += bodyLayout.spacing * Math.Max(0, childCount - 1);
+            float available = outerViewport.rect.height;
+            float preferred = available >= 600 ? Mathf.Max(140, available - otherHeight - 2) : 180;
+            float itemHeight = LayoutUtility.GetPreferredHeight(grid);
+            if (itemHeight > 0) preferred = Mathf.Min(preferred, itemHeight + 2);
+            var sizing = GetComponent<LayoutElement>();
+            if (Mathf.Abs(sizing.preferredHeight - preferred) > .5f)
+            {
+                sizing.minHeight = sizing.preferredHeight = preferred;
+                if (!Restored) settleFrames = 0;
+            }
         }
     }
 }
