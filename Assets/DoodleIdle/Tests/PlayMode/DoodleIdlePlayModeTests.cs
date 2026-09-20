@@ -24,6 +24,7 @@ namespace DoodleIdle.Tests
         [UnitySetUp]
         public IEnumerator SetUp()
         {
+            BeginUiTestProfile();
             originalTimeScale = Time.timeScale;
             originalRandom = Random.state;
             Random.InitState(20260920);
@@ -50,11 +51,12 @@ namespace DoodleIdle.Tests
             Random.state = originalRandom;
             SceneManager.SetActiveScene(originalScene);
             yield return SceneManager.UnloadSceneAsync(testScene);
+            EndUiTestProfile();
         }
 
         Rigidbody2D[] EnemyBodies() => game.GetComponentsInChildren<Rigidbody2D>().Where(b => b.name.StartsWith("Enemy - ")).ToArray();
 
-        Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true)
+        Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true, System.Action beforeRender = null)
         {
             var camera = Camera.main;
             var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
@@ -78,8 +80,11 @@ namespace DoodleIdle.Tests
             canvas.planeDistance = 1;
             foreach (var label in canvas.GetComponentsInChildren<UnityEngine.UI.Text>()) label.SetAllDirty();
             Canvas.ForceUpdateCanvases();
+            game.Ui.Relayout(true);
+            Canvas.ForceUpdateCanvases();
             try
             {
+                beforeRender?.Invoke();
                 Assert.That(SystemInfo.graphicsDeviceType, Is.Not.EqualTo(GraphicsDeviceType.Null), "Visual regression checks require a real graphics device on the CI server.");
                 for (int pass = 0; pass < 2; pass++)
                 {

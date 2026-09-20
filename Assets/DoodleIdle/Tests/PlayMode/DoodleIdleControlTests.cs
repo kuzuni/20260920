@@ -102,7 +102,7 @@ namespace DoodleIdle.Tests
                 Assert.That(game.JoystickActive, Is.False);
                 Assert.That(game.autoPlay, Is.True);
 
-                var pauseButton = game.GetComponentsInChildren<Button>().First(b => b.name == "일시정지");
+                var pauseButton = game.GetComponentsInChildren<Button>().First(b => b.name == "Settings");
                 Vector2 button = RectTransformUtility.WorldToScreenPoint(null, pauseButton.transform.position);
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = button, buttons = 1 });
                 yield return null; yield return null;
@@ -110,6 +110,8 @@ namespace DoodleIdle.Tests
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = button });
                 yield return null; yield return null;
                 if (game.paused) game.TogglePause();
+                game.Ui.ClosePage();
+                yield return null; yield return null; yield return null;
 
                 touch = InputSystem.AddDevice<Touchscreen>();
                 InputSystem.QueueStateEvent(touch, new TouchState { touchId = 1, phase = UnityEngine.InputSystem.TouchPhase.Began, position = center });

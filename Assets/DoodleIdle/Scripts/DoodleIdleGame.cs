@@ -286,7 +286,7 @@ namespace DoodleIdle
         {
             if (!Ready) return;
             var keyboard = Keyboard.current;
-            if (keyboard != null)
+            if (keyboard != null && (!Ui || !Ui.BlocksGameplay))
             {
                 if (keyboard.spaceKey.wasPressedThisFrame) TogglePause();
                 if (keyboard.rKey.wasPressedThisFrame) ResetGame();
@@ -353,7 +353,7 @@ namespace DoodleIdle
                 enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
             }
             if (basicSkillsEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
-            { FireSlash(facing); attackTimer = attackInterval; }
+            { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
             if (basicSkillsEnabled && stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
             OrbitBananas(dt);
             TickExtraSkills(dt);
@@ -491,6 +491,7 @@ namespace DoodleIdle
         void Damage(Actor enemy, float amount, Vector2 push)
         {
             if (enemy.hp <= 0) return;
+            amount *= Ui ? Ui.UiDamageMultiplier : 1;
             enemy.hp -= amount; enemy.flash = .14f;
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
@@ -615,49 +616,38 @@ namespace DoodleIdle
             return Sprite.Create(texture, new Rect(0, 0, 96, 96), Vector2.one * .5f, 96);
         }
 
+        public DoodleUi Ui { get; private set; }
         void BuildHud()
         {
-            portraitHud = gameCamera.aspect < 1;
             uiFont = Resources.Load<Font>("DoodleIdle/InterfaceFont");
-            if (!uiFont) uiFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var go = new GameObject("Prototype HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform);
             hudRoot = go.transform;
-            BuildJoystick();
             var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
             var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = portraitHud ? new Vector2(720, 1280) : new Vector2(1440, 900);
-            scaler.matchWidthOrHeight = portraitHud ? 0 : .5f;
+            scaler.referenceResolution = new Vector2(720, 720); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             if (!FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>())
                 new GameObject("Event System", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule)).transform.SetParent(transform);
-            if (portraitHud)
-            {
-                var header = Panel(go.transform, "Header", new Vector2(0, 1), Vector2.one, new Vector2(18, -158), new Vector2(-18, -18));
-                Label(header, "낙서 원정대", 36, new Vector2(20, 84), new Vector2(450, 44), TextAnchor.MiddleLeft);
-                Label(header, "머리 하나, 방망이 하나. 알아서 싸우는 중!", 21, new Vector2(22, 53), new Vector2(630, 30), TextAnchor.MiddleLeft);
-                populationText = Label(header, "", 28, new Vector2(20, 12), new Vector2(220, 36), TextAnchor.MiddleLeft);
-                killsText = Label(header, "", 28, new Vector2(260, 12), new Vector2(220, 36), TextAnchor.MiddleCenter);
-                timeText = Label(header, "", 28, new Vector2(-150, 12), new Vector2(130, 36), TextAnchor.MiddleRight, new Vector2(1, 0));
-                BuildSkillGrid(go.transform);
-                return;
-            }
-            var top = Panel(go.transform, "Header", new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -100), new Vector2(-22, -20));
-            Label(top, "낙서 원정대", 28, new Vector2(22, 32), new Vector2(250, 40), TextAnchor.MiddleLeft);
-            Label(top, "머리 하나, 방망이 하나. 알아서 싸우는 중!", 13, new Vector2(24, 9), new Vector2(360, 26), TextAnchor.MiddleLeft);
-            populationText = Label(top, "", 22, new Vector2(-510, 24), new Vector2(180, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            killsText = Label(top, "", 22, new Vector2(-320, 24), new Vector2(170, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            timeText = Label(top, "", 22, new Vector2(-145, 24), new Vector2(135, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            BuildSkillGrid(go.transform);
+            Ui = gameObject.AddComponent<DoodleUi>(); Ui.Initialize(this, hudRoot);
+            BuildJoystick();
         }
-
-        public void RefreshHudLayout()
+        public void RefreshHudLayout() { if (Ui) Ui.Relayout(); }
+        public void CancelUiPointer() { ReleaseJoystick(); manualInput = Vector2.zero; }
+        public float UiCooldown(string ability)
         {
-            if (hudRoot && portraitHud == (gameCamera.aspect < 1)) return;
-            if (hudRoot) { hudRoot.gameObject.SetActive(false); Destroy(hudRoot.gameObject); }
-            BuildHud();
-            if (Ready) UpdateHud();
+            switch(ability)
+            {
+                case "Banana": return Mathf.Clamp01((OrbitSkillCycle - bananaCycleAge) / OrbitSkillCycle);
+                case "Stone": return Mathf.Clamp01(stoneTimer / stoneInterval);
+                case "Arrows": return Mathf.Clamp01(arrowClock / arrowInterval);
+                case "BouncyBall": return Mathf.Clamp01(ballClock / ballInterval);
+                case "Fire": return Mathf.Clamp01(fireClock / fireInterval);
+                case "Drone": return Mathf.Clamp01(droneClock / droneInterval);
+                case "Worm": return Mathf.Clamp01(wormClock / wormInterval);
+                case "Cloud": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
+                default: return Mathf.Clamp01(attackTimer / attackInterval);
+            }
         }
-
         RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 min, Vector2 max)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Outline)); go.transform.SetParent(parent, false);
@@ -695,18 +685,7 @@ namespace DoodleIdle
             return Label(panel, value, portraitHud ? 25 : 15, Vector2.zero, size, TextAnchor.MiddleCenter);
         }
 
-        void UpdateHud()
-        {
-            UpdateSkillCooldowns();
-            populationText.text = "적  " + enemies.Count + " / " + targetPopulation;
-            killsText.text = "처치  " + Kills;
-            timeText.text = TimeSpan.FromSeconds(Elapsed).ToString(@"mm\:ss");
-            waveText.text = refillBelow + "마리 미만이면 " + targetPopulation + "마리까지 보충  ·  " + Refills + "회";
-            modeText.text = paused ? "잠깐 쉬는 중  ·  SPACE로 계속" : (autoPlay ? "● 자동 전투" : "● 직접 이동 · WASD / 방향키") + "    SPACE 일시정지    TAB 이동 모드    R 다시 시작";
-            if (portraitHud) modeText.text = paused ? "잠깐 쉬는 중" : autoPlay ? "● 자동 전투 중  ·  TAB 이동 모드 전환" : "● 직접 이동  ·  WASD / 방향키";
-            if (!paused) modeText.text = JoystickActive ? "● 조이스틱 직접 이동  ·  손을 떼면 자동 이동" : modeText.text + "  ·  화면 드래그 이동";
-            pauseText.text = paused ? "계속하기" : "일시정지";
-        }
+        void UpdateHud() { if (Ui) Ui.RefreshHud(); }
 
         // Used by server-side PlayMode tests after real physics frames.
         public string Diagnostics()

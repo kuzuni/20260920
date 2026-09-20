@@ -1,0 +1,379 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.TestTools;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
+
+namespace DoodleIdle.Tests
+{
+    public partial class DoodleIdlePlayModeTests
+    {
+        readonly Dictionary<string, string> uiSavedStrings = new Dictionary<string, string>();
+        bool uiHadDiamonds;
+        int uiSavedDiamonds;
+        readonly List<string> uiCaptureFailures = new List<string>();
+        static readonly string[] UiProfileKeys = {
+            "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1",
+            "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
+            "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic"
+        };
+
+        // Called by the shared fixture before loading the scene and after unloading it.
+        // Only this feature's keys are isolated; unrelated game/user preferences survive.
+        void BeginUiTestProfile()
+        {
+            uiSavedStrings.Clear();
+            foreach (string key in UiProfileKeys)
+            {
+                if (PlayerPrefs.HasKey(key)) uiSavedStrings.Add(key, PlayerPrefs.GetString(key));
+                PlayerPrefs.DeleteKey(key);
+            }
+            uiHadDiamonds = PlayerPrefs.HasKey("DoodleUi.Diamonds");
+            uiSavedDiamonds = PlayerPrefs.GetInt("DoodleUi.Diamonds");
+            PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
+        }
+
+        void EndUiTestProfile()
+        {
+            foreach (string key in UiProfileKeys)
+            {
+                if (uiSavedStrings.TryGetValue(key, out string value)) PlayerPrefs.SetString(key, value);
+                else PlayerPrefs.DeleteKey(key);
+            }
+            if (uiHadDiamonds) PlayerPrefs.SetInt("DoodleUi.Diamonds", uiSavedDiamonds);
+            else PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
+            PlayerPrefs.Save();
+        }
+
+        Transform UiRoot => game.Ui.Canvas.transform;
+        Transform UiNode(string name, Transform scope = null)
+        {
+            var nodes = (scope ? scope : UiRoot).GetComponentsInChildren<Transform>().Where(t => t.name == name).ToArray();
+            Assert.That(nodes.Length, Is.GreaterThan(0), "Missing active UI node: " + name);
+            return nodes[nodes.Length - 1];
+        }
+        void UiClick(string name, Transform scope = null)
+        {
+            var buttons = (scope ? scope : UiRoot).GetComponentsInChildren<Button>().Where(b => b.name == name).ToArray();
+            Assert.That(buttons.Length, Is.GreaterThan(0), "Missing UI button: " + name);
+            var button = buttons[buttons.Length - 1];
+            Assert.That(button.interactable, Is.True, "Button must be usable: " + name);
+            ExecuteEvents.Execute(button.gameObject, new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+            Canvas.ForceUpdateCanvases();
+        }
+        void UiOpen(string page)
+        {
+            game.Ui.ClosePage();
+            if (!string.IsNullOrEmpty(page)) game.Ui.ShowPage(page);
+            Canvas.ForceUpdateCanvases();
+        }
+        ScrollRect UiTopScroll()
+        {
+            return UiRoot.GetComponentsInChildren<ScrollRect>().Last();
+        }
+        void UiScrollBottom()
+        {
+            var scroll = UiTopScroll();
+            Canvas.ForceUpdateCanvases();
+            scroll.StopMovement(); scroll.verticalNormalizedPosition = 0;
+            Canvas.ForceUpdateCanvases();
+        }
+
+        [UnityTest]
+        public IEnumerator UiNavigationTabsLoadoutsAndStatPurchasesUseLiveState()
+        {
+            Assert.That(game.Ui, Is.Not.Null, "The delivered entry scene must automatically install the final UI.");
+            UiClick("Stats", UiNode("Bottom navigation"));
+            Assert.That(game.Ui.ActivePage, Is.EqualTo("Stats"));
+            Assert.That(game.Ui.BlocksGameplay, Is.True);
+            Assert.That(UiNode("Stat quantity").GetComponentsInChildren<Button>().Length, Is.EqualTo(3));
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "일괄강화"), Is.False);
+            int attack = game.Ui.AttackStatLevel;
+            long gold = game.Ui.Gold;
+            UiClick("×10");
+            var upgrade = UiNode("Stat attack").GetComponentsInChildren<Button>().Single();
+            ExecuteEvents.Execute(upgrade.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
+            Assert.That(game.Ui.AttackStatLevel, Is.EqualTo(attack + 10));
+            Assert.That(game.Ui.Gold, Is.LessThan(gold));
+            UiClick("Stats", UiNode("Bottom navigation"));
+            Assert.That(game.Ui.ActivePage, Is.Null);
+            UiOpen("Equipment");
+            var inventory = UiNode("Collection inventory");
+            var armor = game.Ui.Items("Armor").First(x => !x.discovered);
+            game.Ui.AddItem(armor, 8);
+            UiClick("Slot: " + armor.name, inventory);
+            UiClick("장착", UiNode("Selected item actions"));
+            Assert.That(armor.equipped, Is.True);
+            Assert.That(game.Ui.Items("Armor").Count(x => x.equipped), Is.EqualTo(1));
+            Assert.That(UiNode("Selected equipment").GetComponentsInChildren<Text>().Any(t => t.text.Contains(armor.name)), Is.True);
+            UiScrollBottom(); UiClick("몽둥이", UiNode("Equipment tabs"));
+            Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Button>().Any(b => b.name == "Slot: " + game.Ui.Items("Club")[0].name), Is.True);
+            foreach (var item in game.Ui.Items("Skill")) game.Ui.AddItem(item, 1);
+            UiOpen("Skills"); UiScrollBottom(); UiClick("자동장착");
+            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(8));
+            Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<Button>().Length, Is.EqualTo(8));
+            var selected = game.Ui.EquippedSkills[0];
+            UiClick("Slot: " + selected.name, UiNode("Equipped Skill"));
+            Assert.That(game.Ui.HasOverlay, Is.True);
+            UiClick("장착 해제", UiNode("Detail actions"));
+            Assert.That(selected.equipped, Is.False);
+            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(7));
+            foreach (var item in game.Ui.Items("Companion")) game.Ui.AddItem(item, 1);
+            UiOpen("Companions"); UiScrollBottom(); UiClick("자동장착");
+            Assert.That(game.Ui.EquippedCompanions.Count, Is.EqualTo(5));
+            Assert.That(UiNode("Equipped Companion").GetComponentsInChildren<Button>().Length, Is.EqualTo(5));
+            var masks = UiNode("Eight equipped cooldowns").GetComponentsInChildren<Image>().Where(i => i.name == "Clockwise cooldown mask").ToArray();
+            Assert.That(masks.Length, Is.EqualTo(8));
+            Assert.That(masks.All(i => i.fillClockwise && i.fillMethod == Image.FillMethod.Radial360), Is.True);
+            Assert.That(UiNode("Eight equipped cooldowns").GetComponentsInChildren<Text>().Length, Is.Zero, "No seconds text belongs inside the eight HUD status slots.");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UiSummoningChargesOnceGrantsExactCountsAndRejectsInvalidPurchases()
+        {
+            UiOpen("Shop");
+            var ui = game.Ui;
+            int initial = ui.Items("Armor").Sum(x => x.count), wallet = ui.Diamonds;
+            UiClick("무료 5회\n뽑기", UiNode("Summon_Armor"));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 5));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet));
+            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(5));
+            Assert.That(ui.CanFreeSummon("Armor"), Is.False);
+            Assert.That(ui.CanFreeSummon("Club"), Is.True);
+            Assert.That(ui.TrySummon("Armor", 5, true), Is.False);
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 5));
+            ui.CloseFullscreen();
+            UiClick("10회 뽑기", UiNode("Summon_Armor"));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 15));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - 100));
+            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(10));
+            UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 65));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - 550));
+            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(50));
+            Assert.That(UiNode("SummonResultCards").GetComponentsInChildren<Text>().Any(t => t.text.Contains("+1")), Is.False);
+            ui.CloseFullscreen();
+            Assert.That(ui.HasOverlay, Is.False, "Repeated summons replace the result screen; they must not stack obsolete screens.");
+            int before = ui.Items("Armor").Sum(x => x.count);
+            ui.Diamonds = 0;
+            Assert.That(ui.TrySummon("Armor", 10, false), Is.False);
+            Assert.That(ui.TrySummon("Armor", 1, false), Is.False);
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(before));
+            foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" })
+            {
+                Assert.That(ui.Items(category).Sum(ui.ItemProbability), Is.EqualTo(100).Within(.000001));
+                for (int rarity = 0; rarity < 5; rarity++)
+                    Assert.That(ui.Items(category).Where(x => x.rarity == rarity).Sum(ui.ItemProbability), Is.EqualTo(ui.GradeProbability(category, rarity)).Within(.000001));
+            }
+            UiClick("재화", UiNode("ShopTabs"));
+            UiClick("₩1,100");
+            Assert.That(ui.Diamonds, Is.Zero, "An unconnected payment button cannot mint diamonds.");
+            ui.Save();
+            Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds"), Is.Zero);
+            Assert.That(PlayerPrefs.GetString("DoodleUi.Commerce.Armor"), Does.Contain("freeUsedDay"));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UiScrollEventsReachLowerShopRowsAndProbabilityLists()
+        {
+            UiOpen("Shop");
+            yield return null;
+            var scroll = UiTopScroll();
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height), "Five summon rows need a scrolling body.");
+            float before = scroll.verticalNormalizedPosition;
+            ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -20) }, ExecuteEvents.scrollHandler);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(before), "A genuine scroll event must move the shop.");
+            scroll.verticalNormalizedPosition = 0;
+            Canvas.ForceUpdateCanvases();
+            var bottomRow = (RectTransform)UiNode("Summon_Relic");
+            Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, bottomRow)), Is.True, "The final relic row must be reachable.");
+            UiClick("i", bottomRow);
+            Assert.That(game.Ui.HasOverlay, Is.True);
+            var detail = UiNode("Detail dim: 뽑기 확률");
+            foreach (var item in game.Ui.Items("Relic"))
+                Assert.That(detail.GetComponentsInChildren<Transform>().Any(t => t.name == "Probability_" + item.id), Is.True, "Probability disclosure must include " + item.name);
+            scroll = UiTopScroll();
+            yield return null;
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -30) }, ExecuteEvents.scrollHandler);
+            Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(1));
+            UiClick("Close 뽑기 확률", detail);
+            Assert.That(game.Ui.HasOverlay, Is.False);
+            Assert.That(game.Ui.ActivePage, Is.EqualTo("Shop"), "Closing a nested probability dialog must preserve the shop.");
+        }
+
+        [UnityTest]
+        public IEnumerator UiRewardDimConsumesReleaseWithoutStartingJoystick()
+        {
+            var background = InputSystem.settings.backgroundBehavior;
+            var editor = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            var mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                UiOpen(null);
+                game.Ui.ShowRewards("획득 보상", new List<UiReward> { new UiReward { icon = "Diamond", amount = 100, rarity = 2 } });
+                var reward = UiNode("Reward dim");
+                Assert.That(reward.GetComponentsInChildren<Button>().Length, Is.EqualTo(1), "The reward has only its dismissible dim, no panel confirmation or X.");
+                Assert.That(reward.GetComponentsInChildren<DoodleRewardRays>().Length, Is.EqualTo(1));
+                Vector2 point = new Vector2(Screen.width * .5f, Screen.height * .74f);
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = 1 });
+                yield return null; yield return null;
+                Assert.That(game.JoystickActive, Is.False);
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = point });
+                yield return null;
+                Assert.That(game.Ui.HasOverlay, Is.False, "A pointer release on the dim must dismiss the reward.");
+                Assert.That(game.Ui.BlocksGameplay, Is.True, "The dismissing gesture remains consumed after the panel disappears.");
+                Assert.That(game.JoystickActive, Is.False);
+                yield return null; yield return null; yield return null;
+                UiOpen("Shop");
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = point, buttons = 1 });
+                yield return null; yield return null;
+                Assert.That(game.JoystickActive, Is.False, "An open shop must block gameplay dragging.");
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = point + Vector2.right * 100 });
+                yield return null;
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+                InputSystem.settings.backgroundBehavior = background;
+                InputSystem.settings.editorInputBehaviorInPlayMode = editor;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator UiFinalTwentyFiveStatesRenderAtAllFourSupportedRatios()
+        {
+            uiCaptureFailures.Clear();
+            game.TogglePause();
+            game.Ui.Diamonds = 100000;
+            var sizes = new[] { new Vector2Int(720, 1520), new Vector2Int(720, 1280), new Vector2Int(900, 900), new Vector2Int(1440, 900) };
+            foreach (var size in sizes)
+            {
+                UiOpen(null); UiCapture("01-main", size);
+                UiOpen("Stats"); UiCapture("02-stats", size);
+                UiOpen("Equipment"); UiClick("갑옷", UiNode("Equipment tabs")); UiCapture("03-armor", size);
+                UiScrollBottom(); UiClick("몽둥이", UiNode("Equipment tabs")); UiCapture("04-club", size);
+                UiOpen("Skills"); UiCapture("05-skills", size);
+                UiOpen("Dungeons"); UiCapture("06-dungeons", size);
+                UiOpen("Pvp"); UiCapture("07-pvp", size); UiCapture("07b-pvp-bottom", size, true);
+                UiOpen("Shop"); UiClick("뽑기", UiNode("ShopTabs")); UiCapture("08-shop-top", size);
+                UiClick("재화", UiNode("ShopTabs")); UiCapture("09-currency", size);
+                UiClick("뽑기", UiNode("ShopTabs")); UiClick("10회 뽑기", UiNode("Summon_Club")); UiCapture("10-summon-results", size);
+                UiOpen("Attendance"); UiCapture("11-attendance", size);
+                UiOpen("Roulette"); UiCapture("12-roulette", size);
+                UiOpen("Buffs"); UiCapture("13-buffs", size);
+                UiOpen("Quests"); UiClick("일일"); UiCapture("14-daily-quests", size);
+                UiClick("반복"); UiCapture("15-repeat-quests", size);
+                UiClick("주간"); UiCapture("16-weekly-quests", size);
+                UiOpen("Chat"); UiCapture("17-fullscreen-chat", size);
+                UiOpen("Settings"); UiCapture("18-settings", size);
+                UiOpen("Companions"); UiCapture("19-companions", size);
+                UiOpen("Relics"); UiCapture("20-relics", size);
+                UiOpen("Skills"); var skill = game.Ui.Items("Skill").First(x => x.discovered);
+                UiClick("Slot: " + skill.name, UiNode("Collection inventory")); UiCapture("21-skill-detail", size);
+                UiOpen("Shop"); UiClick("뽑기", UiNode("ShopTabs")); UiCapture("22-shop-bottom", size, true);
+                UiClick("i", UiNode("Summon_Armor")); UiCapture("23-probabilities", size); UiCapture("23b-probabilities-bottom", size, true);
+                UiOpen(null); game.Ui.ShowRewards("던전 클리어!", new List<UiReward> {
+                    new UiReward { name = "골드", icon = "Gold", amount = 30000, rarity = 0 },
+                    new UiReward { name = "희귀 장비", icon = "Armor", amount = 1, rarity = 2 }
+                }); UiCapture("24-dungeon-clear", size);
+                UiOpen(null); game.Ui.ShowRewards("획득 보상", new List<UiReward> { new UiReward { icon = "Diamond", amount = 100, rarity = 0 } });
+                UiCapture("25-rewards", size);
+                yield return null;
+            }
+            Assert.That(uiCaptureFailures, Is.Empty, string.Join("\n", uiCaptureFailures));
+        }
+
+        void UiCapture(string state, Vector2Int size, bool bottom = false)
+        {
+            string file = "ui-" + size.x + "x" + size.y + "-" + state + ".png";
+            var frame = CaptureFrame(file, size.x, size.y, true, () =>
+            {
+                if (bottom) UiScrollBottom();
+                else if (UiRoot.GetComponentsInChildren<ScrollRect>().Length > 0)
+                {
+                    var scroll = UiTopScroll(); scroll.StopMovement(); scroll.verticalNormalizedPosition = 1;
+                    Canvas.ForceUpdateCanvases();
+                }
+                // Preserve every requested diagnostic image even when a layout assertion fails.
+                // The test still fails after the complete four-ratio evidence set is exported.
+                try { AssertUiGeometry(file); }
+                catch (AssertionException error) { uiCaptureFailures.Add(error.Message); }
+            });
+            var pixels = frame.GetPixels32();
+            if (pixels.Count(p => p.r > 190 && p.g > 180 && p.b > 150) <= size.x * size.y / 30)
+                uiCaptureFailures.Add(file + " must contain rendered cream panels and visible artwork.");
+            Object.Destroy(frame);
+        }
+
+        void AssertUiGeometry(string context)
+        {
+            var canvasRect = (RectTransform)UiRoot;
+            var screen = canvasRect.rect;
+            foreach (var panel in UiRoot.GetComponentsInChildren<RectTransform>().Where(t => t.name.StartsWith("Panel: ") || t.name == "Bottom navigation" || t.name == "Profile and currencies"))
+            {
+                var bounds = UiLocalBounds(canvasRect, panel);
+                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(screen.xMin - 3), context + " left clipping: " + panel.name);
+                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(screen.xMax + 3), context + " right clipping: " + panel.name);
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(screen.yMin - 3), context + " bottom clipping: " + panel.name);
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(screen.yMax + 3), context + " top clipping: " + panel.name);
+            }
+            foreach (var scroll in UiRoot.GetComponentsInChildren<ScrollRect>())
+            {
+                Assert.That(scroll.content.rect.width, Is.LessThanOrEqualTo(scroll.viewport.rect.width + 2), context + " scroll content width");
+                Assert.That(scroll.viewport.rect.height, Is.GreaterThan(60), context + " needs a usable scrolling viewport");
+            }
+            var allText = UiRoot.GetComponentsInChildren<Text>();
+            foreach (var label in allText)
+            {
+                if (string.IsNullOrWhiteSpace(label.text)) continue;
+                var clipping = label.GetComponentsInParent<RectMask2D>();
+                bool visible = true;
+                foreach (var mask in clipping)
+                {
+                    var maskRect = (RectTransform)mask.transform;
+                    if (!maskRect.rect.Overlaps(UiLocalBounds(maskRect, label.rectTransform))) { visible = false; break; }
+                }
+                if (!visible) continue; // Offscreen list entries are deliberately masked and scrollable.
+                Assert.That(label.font, Is.Not.Null, context + " missing font: " + label.text);
+                Assert.That(label.rectTransform.rect.width, Is.GreaterThan(1), context + " collapsed text: " + label.text);
+                Assert.That(label.rectTransform.rect.height, Is.GreaterThan(1), context + " collapsed text: " + label.text);
+                label.font.RequestCharactersInTexture(label.text, label.fontSize, label.fontStyle);
+                foreach (char character in label.text.Where(c => c >= '\uac00' && c <= '\ud7a3').Distinct())
+                    Assert.That(label.font.HasCharacter(character), Is.True, context + " Korean glyph missing: " + character);
+                label.cachedTextGenerator.Populate(label.text, label.GetGenerationSettings(label.rectTransform.rect.size));
+                Assert.That(label.cachedTextGenerator.characterCountVisible, Is.GreaterThan(0), context + " text is entirely truncated: " + label.text);
+            }
+            foreach (var row in UiRoot.GetComponentsInChildren<HorizontalLayoutGroup>())
+            {
+                var children = Enumerable.Range(0, row.transform.childCount).Select(i => row.transform.GetChild(i)).OfType<RectTransform>()
+                    .Where(t => t.gameObject.activeInHierarchy && !(t.GetComponent<LayoutElement>() && t.GetComponent<LayoutElement>().ignoreLayout)).ToArray();
+                for (int i = 1; i < children.Length; i++)
+                {
+                    var previous = UiLocalBounds((RectTransform)row.transform, children[i - 1]);
+                    var current = UiLocalBounds((RectTransform)row.transform, children[i]);
+                    Assert.That(current.xMin, Is.GreaterThanOrEqualTo(previous.xMax - 2), context + " overlapping row children in " + row.name);
+                }
+            }
+        }
+
+        static Rect UiLocalBounds(RectTransform relativeTo, RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            var a = relativeTo.InverseTransformPoint(corners[0]); var b = relativeTo.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+        }
+    }
+}

@@ -37,7 +37,7 @@ namespace DoodleIdle
         }
         void UpdateJoystick()
         {
-            if (paused) { ReleaseJoystick(); return; }
+            if (paused || (Ui && Ui.BlocksGameplay)) { ReleaseJoystick(); return; }
             var pointer = JoystickActive ? joystickPointer : Pointer.current;
             if (pointer == null) return;
             Vector2 screen = pointer.position.ReadValue();
