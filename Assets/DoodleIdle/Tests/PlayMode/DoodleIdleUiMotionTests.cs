@@ -77,9 +77,10 @@ namespace DoodleIdle.Tests
                 InputSystem.QueueStateEvent(mouse, new MouseState { position=point, buttons=1 });
                 yield return new WaitForSecondsRealtime(1.05f);
                 Assert.That(game.Ui.AttackStatLevel, Is.GreaterThanOrEqualTo(initial+3), "Holding must survive rebuilding the upgraded row.");
+                int released = game.Ui.AttackStatLevel;
                 InputSystem.QueueStateEvent(mouse, new MouseState { position=point });
                 yield return null;
-                int released = game.Ui.AttackStatLevel;
+                Assert.That(game.Ui.AttackStatLevel, Is.EqualTo(released), "Releasing a repeated purchase must not charge one extra click.");
                 yield return new WaitForSecondsRealtime(.4f);
                 Assert.That(game.Ui.AttackStatLevel, Is.EqualTo(released));
 
@@ -99,6 +100,17 @@ namespace DoodleIdle.Tests
                 yield return new WaitForSecondsRealtime(.4f);
                 Assert.That(relic.count, Is.EqualTo(copies), "Dragging away cancels the held purchase.");
                 InputSystem.QueueStateEvent(mouse, new MouseState { position=Vector2.zero });
+                yield return null;
+                button = UiNode("Relic "+relic.id).GetComponentInChildren<Button>();
+                point = RectTransformUtility.WorldToScreenPoint(null, button.transform.position);
+                InputSystem.QueueStateEvent(mouse, new MouseState { position=point, buttons=1 });
+                yield return new WaitForSecondsRealtime(.65f);
+                Assert.That(relic.count, Is.LessThan(copies));
+                game.Ui.ShowRewards("던전 클리어!", new System.Collections.Generic.List<UiReward> { new UiReward {icon="Gold",amount=100} });
+                copies = relic.count;
+                yield return new WaitForSecondsRealtime(.4f);
+                Assert.That(relic.count, Is.EqualTo(copies), "A new blocking popup cancels purchases behind it, even while the pointer stays pressed.");
+                InputSystem.QueueStateEvent(mouse, new MouseState { position=point });
                 yield return null;
             }
             finally

@@ -129,6 +129,7 @@ namespace DoodleIdle.Tests
                 relic.level = level;
                 Assert.That(ui.RelicSuccessChance(relic), Is.EqualTo(.5f));
                 Assert.That(ui.RelicUpgradeCost(relic), Is.EqualTo(1));
+                Assert.That(ui.CopiesNeeded(relic), Is.EqualTo(1), "Summon result gauges must use the same one-copy relic requirement at every level.");
             }
             bool sawSuccess = false, sawFailure = false;
             long wallet = ui.Gold;

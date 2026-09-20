@@ -248,17 +248,20 @@ namespace DoodleIdle
         }
         public void ShowDetail(string title,Action<RectTransform> build)
         {
+            StopRepeating();
             ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); var body=Window(dim,title,false,CloseDetail); build(body); Relayout(true);
         }
         public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); DoodlePopupMotion.Close(last,root); RefreshHud(); }
         public void ShowFullscreen(string title,Action<RectTransform> build)
         {
+            StopRepeating();
             if(fullscreenBuilder!=null && overlayStack.Count>0) CloseDetail();
             ConsumeGesture(); fullscreenBuilder=build; fullscreenTitle=title; var dim=Dim(overlayLayer,"Fullscreen: "+title,()=>{},1); overlayStack.Add(dim.gameObject); build(Window(dim,title,true,CloseFullscreen)); Relayout(true);
         }
         public void CloseFullscreen() { CloseDetail(); fullscreenBuilder=null; fullscreenTitle=null; RefreshPage(); }
         public void ShowRewards(string title,List<UiReward> rewards)
         {
+            StopRepeating();
             ConsumeGesture(); var dim=Dim(overlayLayer,"Reward dim",CloseDetail,.77f); overlayStack.Add(dim.gameObject);
             var area=UiKit.Column(dim,"Floating rewards",30,4); Anchor(area,new Vector2(.5f,.5f),new Vector2(0,40),new Vector2(Mathf.Min(670,safe.rect.width-42),400));
             var reflow=area.gameObject.AddComponent<DoodleUiRewardLayout>(); reflow.safe=safe;

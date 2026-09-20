@@ -234,7 +234,7 @@ namespace DoodleIdle
                 if (item.discovered && item.effect == effect && (category == null || item.category == category || (category == "Equipment" && (item.category == "Armor" || item.category == "Club")))) value += ItemOwnedValue(item);
             return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
         }
-        public int CopiesNeeded(UiItem item) => collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
+        public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
         public bool UpgradeItem(UiItem item, bool notifyPower = true)
         {
             if (item == null || !item.discovered || item.category == "Relic" || item.level >= collectionTuning.maxItemLevel || item.count < CopiesNeeded(item)) return false;

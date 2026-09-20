@@ -23,7 +23,8 @@ namespace DoodleIdle
             Animate(.94f, .07f);
             if (RepeatAction == null) return;
             var canvas = GetComponentInParent<Canvas>();
-            driver = canvas.GetComponent<DoodleUiRepeatDriver>() ?? canvas.gameObject.AddComponent<DoodleUiRepeatDriver>();
+            driver = canvas.GetComponent<DoodleUiRepeatDriver>();
+            if (!driver) driver = canvas.gameObject.AddComponent<DoodleUiRepeatDriver>();
             driver.Begin(this, data.position, data.pressEventCamera);
         }
         public void OnPointerUp(PointerEventData data) { Animate(1, .12f); if (driver) driver.Stop(); }
@@ -106,7 +107,8 @@ namespace DoodleIdle
         public void Open()
         {
             sequence?.Kill();
-            opacity = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            opacity = GetComponent<CanvasGroup>();
+            if (!opacity) opacity = gameObject.AddComponent<CanvasGroup>();
             opacity.alpha = 0; transform.localScale = Vector3.one * .94f;
             sequence = DOTween.Sequence().SetUpdate(true);
             sequence.Join(DOTween.To(() => opacity.alpha, value => opacity.alpha = value, 1, .16f));
@@ -122,7 +124,8 @@ namespace DoodleIdle
             dim.transform.SetParent(root, true);
             foreach (var node in dim.GetComponentsInChildren<Transform>()) node.name = "Closing " + node.name;
             foreach (var selectable in dim.GetComponentsInChildren<Selectable>()) selectable.interactable = false;
-            var group = dim.GetComponent<CanvasGroup>() ?? dim.AddComponent<CanvasGroup>();
+            var group = dim.GetComponent<CanvasGroup>();
+            if (!group) group = dim.AddComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = false;
             motion.sequence = DOTween.Sequence().SetUpdate(true);
             motion.sequence.Join(DOTween.To(() => group.alpha, value => group.alpha = value, 0, .14f));
