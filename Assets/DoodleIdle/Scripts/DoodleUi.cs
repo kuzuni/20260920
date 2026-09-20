@@ -136,8 +136,14 @@ namespace DoodleIdle
             nav.anchorMin=new Vector2(safe.anchorMin.x,safe.anchorMin.y); nav.anchorMax=new Vector2(safe.anchorMax.x,safe.anchorMin.y); nav.pivot=new Vector2(.5f,0); nav.offsetMin=new Vector2(12,navBottom); nav.offsetMax=new Vector2(-12,navBottom+navHeight);
             if(size.x>900) { nav.anchorMin=nav.anchorMax=new Vector2(.5f,safe.anchorMin.y); nav.sizeDelta=new Vector2(760,navHeight); nav.anchoredPosition=new Vector2(0,navBottom); }
             foreach(var label in navLabels) { UiKit.Height(label.transform.parent,navHeight-14);label.resizeTextMaxSize=tall?27:21;UiKit.Stretch(label.rectTransform,1,5,1,navHeight-48);var icon=label.transform.parent.GetComponentsInChildren<Image>()[1]; UiKit.Stretch(icon.rectTransform,7,tall?43:30,7,tall?18:6); }
-            shortcuts.anchoredPosition=new Vector2(16,tall?-215:-210);shortcuts.sizeDelta=new Vector2(tall?84:64,shortcuts.sizeDelta.y);shortcuts.GetComponent<VerticalLayoutGroup>().spacing=tall?12:6;
-            foreach(Transform button in shortcuts) { float height=tall?96:60;UiKit.Height(button,height);var label=button.GetComponentInChildren<Text>();label.resizeTextMaxSize=tall?27:19;UiKit.Stretch(label.rectTransform,1,2,1,height-(tall?32:22));UiKit.Stretch(button.GetComponentsInChildren<Image>()[1].rectTransform,7,tall?33:22,7,5); }
+            bool compactActivities=safe.rect.height<1160;
+            shortcuts.anchoredPosition=new Vector2(16,compactActivities?-210:-215);shortcuts.sizeDelta=new Vector2(compactActivities?110:84,shortcuts.sizeDelta.y);shortcuts.GetComponent<VerticalLayoutGroup>().spacing=compactActivities?4:12;
+            foreach(Transform button in shortcuts) {
+                float height=compactActivities?44:96;UiKit.Height(button,height);var label=button.GetComponentInChildren<Text>();label.resizeTextMaxSize=compactActivities?19:27;
+                var icon=button.GetComponentsInChildren<Image>()[1].rectTransform;
+                if(compactActivities) { UiKit.Stretch(label.rectTransform,42,3,2,3);Anchor(icon,new Vector2(0,.5f),new Vector2(22,0),new Vector2(32,32)); }
+                else { UiKit.Stretch(label.rectTransform,1,2,1,height-32);UiKit.Stretch(icon,7,33,7,5); }
+            }
             mission.sizeDelta=new Vector2(tall?300:270,tall?184:152);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?408:278);missionText.resizeTextMaxSize=tall?24:19;UiKit.Height(missionText.transform,tall?96:68);
             Anchor(cameraControl,new Vector2(0,0),new Vector2(96,tall?329:208),new Vector2(164,tall?42:34));
             Anchor(stageInfo,new Vector2(0,0),new Vector2(140,tall?378:246),new Vector2(250,42));

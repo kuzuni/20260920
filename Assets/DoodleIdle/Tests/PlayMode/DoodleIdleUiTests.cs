@@ -362,7 +362,9 @@ namespace DoodleIdle.Tests
                 UiCapture("28-skin-owned", size);
                 game.Ui.Gold=100000000;
                 if(game.Ui.AttackStatLevel<15) Assert.That(game.Ui.UpgradeStat("attack",15-game.Ui.AttackStatLevel),Is.True);
-                UiOpen(null); UiCapture("29-mission-ready",size);
+                UiOpen(null); game.Ui.RefreshHud();
+                yield return new WaitForSecondsRealtime(.2f); // Settle the actual Selectable enabled-color transition.
+                UiCapture("29-mission-ready",size);
                 game.Ui.CycleCameraMode();UiCapture("30-camera-mode-2",size);
                 game.Ui.CycleCameraMode();UiCapture("31-camera-mode-3",size);
                 game.Ui.CycleCameraMode();
@@ -402,6 +404,12 @@ namespace DoodleIdle.Tests
                 // The test still fails after the complete four-ratio evidence set is exported.
                 try
                 {
+                    if(state=="29-mission-ready")
+                    {
+                        Assert.That(game.Ui.CanClaimMainMission,Is.True);
+                        Assert.That(UiNode("Claim main mission").GetComponent<Button>().interactable,Is.True);
+                        Assert.That(UiNode("Mission").GetComponentsInChildren<Text>().Any(t=>t.text==game.Ui.MainMissionText),Is.True, file+" must show the refreshed mission objective");
+                    }
                     if (state == "04-club")
                     {
                         UiClick("갑옷", UiNode("Equipment tabs"));
@@ -543,6 +551,14 @@ namespace DoodleIdle.Tests
         {
             var canvasRect = (RectTransform)UiRoot;
             var screen = canvasRect.rect;
+            var cameraBounds=UiLocalBounds(canvasRect,(RectTransform)UiNode("Camera mode"));
+            var stageBounds=UiLocalBounds(canvasRect,(RectTransform)UiNode("Stage progress"));
+            foreach(var activity in UiNode("Activities").GetComponentsInChildren<Button>())
+            {
+                var bounds=UiLocalBounds(canvasRect,(RectTransform)activity.transform);
+                Assert.That(bounds.Overlaps(cameraBounds),Is.False,context+" activity overlaps camera: "+activity.name);
+                Assert.That(bounds.Overlaps(stageBounds),Is.False,context+" activity overlaps stage: "+activity.name);
+            }
             foreach (var slot in UiRoot.GetComponentsInChildren<DoodleUiSlotLayout>())
             {
                 var rect = ((RectTransform)slot.transform).rect;
