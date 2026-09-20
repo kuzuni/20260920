@@ -74,7 +74,9 @@ namespace DoodleIdle.Tests
             // The CI desktop is smaller than the render target. Request glyphs at capture resolution,
             // rather than upscaling the desktop's low-resolution dynamic counter glyphs.
             scaler.enabled = false;
-            canvas.scaleFactor = Mathf.Min(width / 720f, height / 720f);
+            // Match the production ScaleWithScreenSize / Match Height configuration.
+            // CanvasScaler reads the desktop size, so render-target captures set its equivalent explicitly.
+            canvas.scaleFactor = height / 1520f;
             canvas.enabled = includeHud;
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;

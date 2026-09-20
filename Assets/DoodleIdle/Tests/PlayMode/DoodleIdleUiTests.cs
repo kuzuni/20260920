@@ -22,6 +22,7 @@ namespace DoodleIdle.Tests
         int uiSavedCameraMode;
         readonly List<string> uiCaptureFailures = new List<string>();
         readonly Dictionary<string, Dictionary<string, Rect>> portraitPopupGeometry = new Dictionary<string, Dictionary<string, Rect>>();
+        readonly Dictionary<string, Dictionary<string, Rect>> referenceUiGeometry = new Dictionary<string, Dictionary<string, Rect>>();
 
         [Test]
         public void UiNumbersUseAlphabeticThousandsWithRoundingAndInvariantDecimals()
@@ -336,6 +337,7 @@ namespace DoodleIdle.Tests
         {
             uiCaptureFailures.Clear();
             portraitPopupGeometry.Clear();
+            referenceUiGeometry.Clear();
             game.TogglePause();
             game.Ui.Diamonds = 100000;
             var sizes = new[] { new Vector2Int(720, 1520), new Vector2Int(720, 1280), new Vector2Int(900, 900), new Vector2Int(1440, 900), new Vector2Int(1520, 720) };
@@ -443,6 +445,7 @@ namespace DoodleIdle.Tests
                         Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), file + " equipment spec scrolled away after tab switch");
                     }
                     AssertUiGeometry(file);
+                    AssertHeightMatchedUiGeometry(state, file, size);
                     AssertPortraitPopupGeometry(state, file, size.x == 720 && size.y == 1520);
                     if (size.x == 720 && size.y == 1520) AssertReferenceProportions(state, file);
                     if (size.y == 900 && (state == "03-armor" || state == "04-club" || state == "05-skills" || state == "19-companions"))
@@ -561,6 +564,60 @@ namespace DoodleIdle.Tests
             int right = Mathf.Clamp(Mathf.CeilToInt((bounds.xMax - area.xMin) / area.width * size.x), 0, size.x);
             int top = Mathf.Clamp(Mathf.CeilToInt((bounds.yMax - area.yMin) / area.height * size.y), 0, size.y);
             return new RectInt(left, bottom, right - left, top - bottom);
+        }
+
+        void AssertHeightMatchedUiGeometry(string state, string context, Vector2Int size)
+        {
+            var canvas = game.Ui.Canvas;
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            Assert.That(scaler, Is.Not.Null, context + " missing CanvasScaler");
+            Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ScaleWithScreenSize), context);
+            Assert.That(scaler.screenMatchMode, Is.EqualTo(CanvasScaler.ScreenMatchMode.MatchWidthOrHeight), context);
+            Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(720, 1520)), context);
+            Assert.That(scaler.matchWidthOrHeight, Is.EqualTo(1).Within(.0001f), context + " must match Height");
+            Assert.That(canvas.scaleFactor, Is.EqualTo(size.y / 1520f).Within(.0001f), context + " capture must use the production scale");
+            var safe = game.Ui.SafeRoot;
+            Assert.That(safe.rect.width, Is.EqualTo(720).Within(.1f), context + " reference UI width");
+            Assert.That(safe.rect.height, Is.EqualTo(1520).Within(.1f), context + " reference UI height");
+            Assert.That(UiLocalBounds((RectTransform)UiRoot, safe).center.x, Is.EqualTo(0).Within(.1f), context + " reference UI must stay centered");
+
+            var geometry = new Dictionary<string, Rect>();
+            foreach (string name in new[] { "Profile and currencies", "Timed buffs", "Activities", "Mission", "Camera mode", "Stage progress", "Eight equipped cooldowns", "Bottom navigation" })
+            {
+                // Navigation is intentionally hidden in chat, but its reference layout still exists.
+                var root = UiRoot.GetComponentsInChildren<RectTransform>(true).Single(node => node.name == name);
+                CaptureReferenceTree(safe, root, "HUD/" + name, geometry);
+            }
+            foreach (var window in UiRoot.GetComponentsInChildren<DoodleUiWindow>().Where(window => window.full))
+            {
+                // Fullscreen backgrounds may widen. Their actual UI contents retain the reference width and layout.
+                CaptureReferenceTree(safe, window.inner, "Fullscreen/" + window.name, geometry);
+            }
+            bool reference = size == new Vector2Int(720, 1520);
+            if (reference) referenceUiGeometry[state] = geometry;
+            else
+            {
+                Assert.That(referenceUiGeometry.ContainsKey(state), Is.True, context + " missing reference UI baseline");
+                var baseline = referenceUiGeometry[state];
+                CollectionAssert.AreEquivalent(baseline.Keys, geometry.Keys, context + " reference UI hierarchy changed");
+                foreach (var pair in geometry)
+                {
+                    var expected = baseline[pair.Key];
+                    Assert.That(Vector2.Distance(pair.Value.position, expected.position), Is.LessThan(.6f), context + " reference placement changed: " + pair.Key);
+                    Assert.That(Vector2.Distance(pair.Value.size, expected.size), Is.LessThan(.6f), context + " reference size changed: " + pair.Key);
+                }
+            }
+        }
+
+        static void CaptureReferenceTree(RectTransform origin, RectTransform node, string path, Dictionary<string, Rect> geometry)
+        {
+            // Progress and randomly summoned items change between resolution passes.
+            // Keep frames, icons and labels; omit data-dependent fill lengths and ownership decorations.
+            if (node.name == "Fill" || node.name == "Equipped check" || node.name == "Locked padlock") return;
+            geometry[path] = UiLocalBounds(origin, node);
+            for (int i = 0; i < node.childCount; i++)
+                if (node.GetChild(i) is RectTransform child)
+                    CaptureReferenceTree(origin, child, path + "/" + i, geometry);
         }
 
         void AssertPortraitPopupGeometry(string state, string context, bool reference)

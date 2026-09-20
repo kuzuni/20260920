@@ -626,7 +626,8 @@ namespace DoodleIdle
             hudRoot = go.transform;
             var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
             var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(720, 720); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+            scaler.referenceResolution = new Vector2(720, 1520);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight; scaler.matchWidthOrHeight = 1;
             if (!FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>())
                 new GameObject("Event System", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule)).transform.SetParent(transform);
             Ui = gameObject.AddComponent<DoodleUi>(); Ui.Initialize(this, hudRoot);
