@@ -349,6 +349,10 @@ namespace DoodleIdle.Tests
                 }); UiCapture("24-dungeon-clear", size);
                 UiOpen(null); game.Ui.ShowRewards("획득 보상", new List<UiReward> { new UiReward { icon = "Diamond", amount = 100, rarity = 0 } });
                 UiCapture("25-rewards", size);
+                UiOpen(null); game.Ui.ShowRewards("획득 보상", new List<UiReward> {
+                    new UiReward { icon="Gold", amount=1000, rarity=0 },
+                    new UiReward { icon="Diamond", amount=500, rarity=2 }
+                }); UiCapture("25b-rewards-multiple",size);
                 UiOpen("Skins"); UiClick("무기 스킨", UiNode("Skin tabs"));
                 UiClick("SkinSlot_weapon_crystal"); UiCapture("26-skin-weapon-locked", size);
                 UiClick("외형 스킨", UiNode("Skin tabs")); UiClick("SkinSlot_appearance_peach");
@@ -461,9 +465,11 @@ namespace DoodleIdle.Tests
                     rewardRays.Add(UiPixelBounds(rays.rectTransform, size));
             });
             var pixels = frame.GetPixels32();
-            if (state == "24-dungeon-clear" || state == "25-rewards")
+            if (state == "24-dungeon-clear" || state == "25-rewards" || state == "25b-rewards-multiple")
             {
-                int expected = state == "24-dungeon-clear" ? 2 : 1;
+                // Each cave now grants one configured currency. Keep separate multi-card
+                // coverage so the generic reward overlay still verifies every card and ray.
+                int expected = state == "25b-rewards-multiple" ? 2 : 1;
                 if (rewardCards.Count != expected || rewardRays.Count != expected)
                     uiCaptureFailures.Add(file + " must render each individual reward card and its rays.");
                 for (int i = 0; i < rewardCards.Count; i++)

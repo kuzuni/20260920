@@ -75,7 +75,7 @@ namespace DoodleIdle
         { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
         public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
         {
-            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row)row.spacing=-2;
+            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row)row.spacing=0;
             var button=Button(parent,label,click,selected?Yellow:new Color(.87f,.87f,.86f),height);
             button.GetComponent<Outline>().effectDistance=new Vector2(2.5f,-2.5f);
             button.GetComponentInChildren<Text>().resizeTextMaxSize=34;
