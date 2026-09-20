@@ -19,6 +19,30 @@ namespace DoodleIdle.Tests
         bool uiHadDiamonds;
         int uiSavedDiamonds;
         readonly List<string> uiCaptureFailures = new List<string>();
+
+        [Test]
+        public void UiNumbersUseAlphabeticThousandsWithRoundingAndInvariantDecimals()
+        {
+            Assert.That(UiNumber.Format(0), Is.EqualTo("0"));
+            Assert.That(UiNumber.Format(999), Is.EqualTo("999"));
+            Assert.That(UiNumber.Format(1000), Is.EqualTo("1a"));
+            Assert.That(UiNumber.Format(1250), Is.EqualTo("1.3a"));
+            Assert.That(UiNumber.Format(125480), Is.EqualTo("125.5a"));
+            Assert.That(UiNumber.Format(999999), Is.EqualTo("1b"));
+            Assert.That(UiNumber.Format(1e6), Is.EqualTo("1b"));
+            Assert.That(UiNumber.Format(1e9), Is.EqualTo("1c"));
+            Assert.That(UiNumber.Format(1e12), Is.EqualTo("1d"));
+            Assert.That(UiNumber.Format(-1250), Is.EqualTo("-1.3a"));
+            Assert.That(UiNumber.Format(1e78), Is.EqualTo("1z"));
+            Assert.That(UiNumber.Format(1e81), Is.EqualTo("1aa"));
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
+                Assert.That(UiNumber.Format(1250, 2), Is.EqualTo("1.25a"));
+            }
+            finally { System.Globalization.CultureInfo.CurrentCulture = culture; }
+        }
         static readonly string[] UiProfileKeys = {
             "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
@@ -174,6 +198,10 @@ namespace DoodleIdle.Tests
                     Assert.That(ui.Items(category).Where(x => x.rarity == rarity).Sum(ui.ItemProbability), Is.EqualTo(ui.GradeProbability(category, rarity)).Within(.000001));
             }
             UiClick("재화", UiNode("ShopTabs"));
+            string[] products = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
+            var productSprites = products.Select(key => UiNode("Icon: " + key).GetComponent<Image>().sprite).ToArray();
+            Assert.That(productSprites.All(sprite => sprite && sprite.texture.name == "CurrencyIcons"), Is.True, "All five products must use the reference-style diamond illustrations.");
+            Assert.That(productSprites.Select(sprite => sprite.rect).Distinct().Count(), Is.EqualTo(5), "Currency tiers must not repeat the same single diamond.");
             UiClick("₩1,100");
             Assert.That(ui.Diamonds, Is.Zero, "An unconnected payment button cannot mint diamonds.");
             ui.Save();
@@ -481,6 +509,25 @@ namespace DoodleIdle.Tests
         {
             var canvasRect = (RectTransform)UiRoot;
             var screen = canvasRect.rect;
+            foreach (var slot in UiRoot.GetComponentsInChildren<DoodleUiSlotLayout>())
+            {
+                var rect = ((RectTransform)slot.transform).rect;
+                Assert.That(rect.width / rect.height, Is.EqualTo(.75f).Within(.005f), context + " slot must retain 3:4 aspect: " + slot.name);
+            }
+            foreach (var cost in UiRoot.GetComponentsInChildren<RectTransform>().Where(t => t.name == "DiamondCost"))
+            {
+                var button = cost.GetComponentInParent<Button>();
+                Assert.That(button, Is.Not.Null, context + " diamond cost must be inside its summon button");
+                var buttonRect = (RectTransform)button.transform;
+                foreach (var part in cost.GetComponentsInChildren<RectTransform>())
+                {
+                    var bounds = UiLocalBounds(buttonRect, part);
+                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(buttonRect.rect.xMin - 1), context + " summon price left edge");
+                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(buttonRect.rect.xMax + 1), context + " summon price right edge");
+                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(buttonRect.rect.yMin - 1), context + " summon price bottom edge");
+                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(buttonRect.rect.yMax + 1), context + " summon price top edge");
+                }
+            }
             foreach (var panel in UiRoot.GetComponentsInChildren<RectTransform>().Where(t => t.name.StartsWith("Panel: ") || t.name == "Bottom navigation" || t.name == "Profile and currencies"))
             {
                 var bounds = UiLocalBounds(canvasRect, panel);

@@ -141,13 +141,13 @@ namespace DoodleIdle
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
             var title = UiKit.Row(content, "SummonTitle", 40, 5);
-            UiKit.Text(title, "Lv. " + state.level + " " + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 40);
+            UiKit.Text(title, "Lv. " + UiNumber.Format(state.level) + " " + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 40);
             var info = UiKit.Button(title, "i", () => ShowSummonProbabilities(category), UiKit.Blue, 36);
             var size = info.GetComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = 36;
             size.flexibleWidth = 0;
             int needed = CommerceExperienceNeeded(state);
-            UiKit.Gauge(content, state.experience + "/" + needed, (float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
+            UiKit.Gauge(content, UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), (float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
             BuildSummonButtons(content, category);
         }
 
@@ -163,12 +163,20 @@ namespace DoodleIdle
 
         void PaidSummonButton(Transform parent, string category, int count, int cost, Color color)
         {
-            var column = UiKit.Column(parent, "PaidSummon" + count, 1, 0);
+            var column = UiKit.Column(parent, "PaidSummon" + count, 0, 0);
             UiKit.Flexible(column);
-            CommerceButtonText(UiKit.Button(column, count + "회 뽑기", () => TrySummon(category, count, false), color, 42), 24);
-            var price = UiKit.Row(column, "DiamondCost", 24, 2);
-            UiKit.Icon(price, "Diamond", 22);
-            UiKit.Text(price, cost.ToString("N0"), 17, TextAnchor.MiddleCenter, 24);
+            var button = UiKit.Button(column, count + "회 뽑기", () => TrySummon(category, count, false), color, 68);
+            CommerceButtonText(button, 24);
+            var label = button.GetComponentInChildren<Text>();
+            label.rectTransform.anchorMin = new Vector2(0, .44f); label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(3, 0); label.rectTransform.offsetMax = new Vector2(-3, -3);
+            var price = UiKit.Row(button.transform, "DiamondCost", 24, 4);
+            price.anchorMin = new Vector2(0, 0); price.anchorMax = new Vector2(1, .44f);
+            price.offsetMin = new Vector2(4, 3); price.offsetMax = new Vector2(-4, 0);
+            UiKit.Icon(price, "Diamond", 20);
+            var priceText = UiKit.Text(price, UiNumber.Format(cost), 20, TextAnchor.MiddleCenter, 24);
+            var priceSize = priceText.GetComponent<LayoutElement>();
+            priceSize.minWidth = priceSize.preferredWidth = cost >= 1000 ? 42 : 34; priceSize.flexibleWidth = 0;
         }
 
         static void CommerceButtonText(Button button, int size)
@@ -217,6 +225,7 @@ namespace DoodleIdle
             {
                 var subtitle = UiKit.Text(body, CommerceLabel(category) + " " + rewards.Count + "회 뽑기", 38, TextAnchor.MiddleCenter, 58);
                 var grid = UiKit.Grid(body, "SummonResultCards", 5, 150);
+                UiKit.PortraitGrid(grid);
                 for (int i = 0; i < rewards.Count; i++)
                 {
                     var item = rewards[i];
@@ -228,21 +237,41 @@ namespace DoodleIdle
                 var state = summonStates[category];
                 var summary = UiKit.Row(footer, "Summon progress summary", 46, 10);
                 var summaryIcon = UiKit.Icon(summary, category, 46);
-                var level = UiKit.Text(summary, CommerceLabel(category) + " 뽑기 Lv. " + state.level, 36, TextAnchor.MiddleCenter, 46);
+                var summaryText = UiKit.Column(summary, "Summon progress text", 4, 0);
+                var level = UiKit.Text(summaryText, CommerceLabel(category) + " 뽑기 Lv. " + UiNumber.Format(state.level), 36, TextAnchor.MiddleLeft, 46);
                 int needed = CommerceExperienceNeeded(state);
-                var gauge = UiKit.Gauge(footer, state.experience + "/" + needed, (float)state.experience / needed, 32);
+                var experience = UiKit.Text(summaryText, "뽑기 경험치 " + UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), 29, TextAnchor.MiddleLeft, 34);
+                var gauge = UiKit.Gauge(footer, UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), (float)state.experience / needed, 32);
                 BuildSummonButtons(footer, category);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
                 var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window)
                 {
+                    var background = window.inner.GetComponent<Image>();
+                    if (background) background.color = new Color(1, .982f, .93f);
+                    var paper = window.GetComponent<Image>();
+                    if (paper) paper.color = new Color(1, .982f, .93f);
+                    var decoration = UiKit.Rect(window.inner, "Summon celebration accents");
+                    UiKit.Stretch(decoration);
+                    decoration.SetAsFirstSibling();
+                    decoration.gameObject.AddComponent<DoodleSummonCelebration>().raycastTarget = false;
+                    var banner = window.inner.Find("Golden result banner") as RectTransform;
+                    if (banner)
+                    {
+                        banner.GetComponent<Image>().enabled = false;
+                        banner.GetComponent<Outline>().enabled = false;
+                        var ribbonDrawing = UiKit.Rect(banner, "Ribbon drawing");
+                        UiKit.Stretch(ribbonDrawing);
+                        ribbonDrawing.gameObject.AddComponent<DoodleSummonRibbon>().raycastTarget = false;
+                    }
                     var crest = UiKit.Icon(window.inner, "Player", 108);
                     crest.name = "Result player crest";
                     var responsive = window.inner.gameObject.AddComponent<DoodleCommerceLayout>();
                     responsive.window = window; responsive.resultGrid = grid.GetComponent<GridLayoutGroup>();
                     responsive.resultCount = rewards.Count; responsive.subtitle = subtitle; responsive.crest = crest.rectTransform;
                     responsive.summary = summary; responsive.summaryIcon = summaryIcon.rectTransform; responsive.level = level;
+                    responsive.summaryText = summaryText; responsive.experience = experience;
                     responsive.gauge = gauge; responsive.actions = footer.Find("SummonActions") as RectTransform;
                     responsive.confirm = confirm; responsive.confirmRow = confirmRow;
                     responsive.Reflow();
@@ -254,8 +283,11 @@ namespace DoodleIdle
         {
             ShowDetail(item.name, body =>
             {
-                UiKit.Slot(body, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, false, null, 170);
-                UiKit.Text(body, "현재 보유 수량 " + item.count + " · Lv. " + item.level, 24, TextAnchor.MiddleCenter, 46);
+                var preview = UiKit.Row(body, "Summon item preview", 128f * 4 / 3);
+                var slot = UiKit.Slot(preview, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, false, null, 128f * 4 / 3);
+                var previewSize = slot.GetComponent<LayoutElement>();
+                previewSize.minWidth = previewSize.preferredWidth = 128; previewSize.flexibleWidth = 0;
+                UiKit.Text(body, "현재 보유 수량 " + UiNumber.Format(item.count) + " · Lv. " + UiNumber.Format(item.level), 24, TextAnchor.MiddleCenter, 46);
                 UiKit.Text(body, "획득한 아이템은 " + CommerceLabel(item.category) + " 목록에서 확인할 수 있어요.", 20, TextAnchor.MiddleCenter, 60);
                 UiKit.Button(body, "확인", CloseDetail, UiKit.Yellow);
             });
@@ -270,7 +302,7 @@ namespace DoodleIdle
                 if (window) { window.maxWidth = 570; window.maxHeight = 1110; }
                 body.GetComponent<VerticalLayoutGroup>().spacing = 5;
                 var heading = UiKit.Box(body, "Summon probability heading", new Color(.96f, .96f, .94f), 62);
-                var headingText = UiKit.Text(heading, "Lv. " + summonStates[category].level + " " + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
+                var headingText = UiKit.Text(heading, "Lv. " + UiNumber.Format(summonStates[category].level) + " " + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
                 UiKit.Stretch(headingText.rectTransform, 5, 2, 5, 2);
                 var explanation = UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
                 var gradeTitle = UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
@@ -334,21 +366,99 @@ namespace DoodleIdle
         void BuildCurrencyProducts(RectTransform body)
         {
             UiKit.Text(body, "결제 서비스 미연결 · 구매할 수 없습니다", 19, TextAnchor.MiddleCenter, 30);
+            string[] productArt = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
+            int productIndex = 0;
             foreach (var product in commerceTuning.products)
             {
                 if (product == null || product.amount <= 0 || product.priceWon <= 0) continue;
                 var row = CommerceFramedRow(body, "CurrencyProduct" + product.amount, 145);
+                row.GetComponent<Image>().color = new Color(1, .977f, .895f);
                 var art = UiKit.Column(row, "ProductArt", 0, 0);
                 UiKit.Flexible(art);
                 var artLayout = art.GetComponent<VerticalLayoutGroup>();
                 artLayout.childAlignment = TextAnchor.MiddleCenter;
-                UiKit.Icon(art, "Diamond", 88);
-                UiKit.Text(art, product.amount.ToString("N0"), 32, TextAnchor.MiddleCenter, 34);
+                UiKit.Icon(art, productArt[Mathf.Min(productIndex++, productArt.Length - 1)], 94);
+                UiKit.Text(art, UiNumber.Format(product.amount), 32, TextAnchor.MiddleCenter, 34);
                 var purchase = UiKit.Column(row, "ProductPrice", 7, 0);
                 UiKit.Flexible(purchase);
                 CommerceButtonText(UiKit.Button(purchase, "₩" + product.priceWon.ToString("N0"), () => Toast("결제 서비스가 연결되지 않아 구매할 수 없어요."), UiKit.Blue, 72), 35);
-                UiKit.Text(purchase, "구매 불가 · 표시용 가격", 17, TextAnchor.MiddleCenter, 28);
             }
+        }
+    }
+
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class DoodleSummonRibbon : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+            var r = rectTransform.rect;
+            Vector2 P(float x, float y) { return new Vector2(r.center.x + x * r.width, r.center.y + y * r.height); }
+            var gold = new Color(1, .79f, .30f);
+            var face = new Color(1, .90f, .43f);
+            DoodleCommerceMesh.Polygon(vh, new[] { P(-.39f,.25f), P(-.50f,.12f), P(-.45f,-.18f), P(-.49f,-.61f), P(-.33f,-.48f), P(-.31f,-.10f) }, gold, 3);
+            DoodleCommerceMesh.Polygon(vh, new[] { P(.39f,.25f), P(.50f,.12f), P(.45f,-.18f), P(.49f,-.61f), P(.33f,-.48f), P(.31f,-.10f) }, gold, 3);
+            DoodleCommerceMesh.Polygon(vh, new[] { P(-.39f,-.36f), P(-.33f,-.48f), P(-.31f,-.10f) }, new Color(.79f,.49f,.12f), 2);
+            DoodleCommerceMesh.Polygon(vh, new[] { P(.39f,-.36f), P(.33f,-.48f), P(.31f,-.10f) }, new Color(.79f,.49f,.12f), 2);
+            DoodleCommerceMesh.Polygon(vh, new[] { P(-.39f,.34f), P(-.36f,.46f), P(-.12f,.51f), P(.34f,.47f), P(.39f,.37f), P(.38f,-.38f), P(.35f,-.46f), P(-.35f,-.47f), P(-.38f,-.36f) }, face, 4);
+            DoodleCommerceMesh.Stroke(vh, P(-.36f,.30f), P(-.35f,-.29f), 3, new Color(1, .97f, .71f));
+        }
+    }
+
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class DoodleSummonCelebration : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+            var r = rectTransform.rect;
+            Vector2 P(float x, float y) { return new Vector2(r.xMin + x * r.width, r.yMin + y * r.height); }
+            float tall = Mathf.Clamp01((r.height - 720) / 800);
+            if (tall < .12f) return;
+            Color[] colors = { new Color(.52f,.85f,.40f), new Color(.99f,.83f,.32f), new Color(.40f,.77f,.98f), new Color(.96f,.54f,.72f) };
+            Vector2[] pieces = { P(.10f,.93f), P(.28f,.968f), P(.82f,.944f), P(.94f,.899f), P(.055f,.862f), P(.91f,.755f), P(.10f,.10f), P(.91f,.111f), P(.18f,.045f), P(.82f,.041f) };
+            for (int i = 0; i < pieces.Length; i++)
+            {
+                float angle = (i % 2 == 0 ? -34 : 37) * Mathf.Deg2Rad;
+                Vector2 axis = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                Vector2 cross = new Vector2(-axis.y, axis.x);
+                Vector2 a = axis * 7, b = cross * 13;
+                DoodleCommerceMesh.Polygon(vh, new[] { pieces[i]-a-b, pieces[i]+a-b, pieces[i]+a+b, pieces[i]-a+b }, colors[i%colors.Length], 3);
+            }
+            var yellow = new Color(1, .77f, .20f);
+            foreach (float y in new[] { .815f, .273f, .065f })
+            {
+                DoodleCommerceMesh.Stroke(vh, P(.045f,y), P(.075f,y-.006f), 5, yellow);
+                DoodleCommerceMesh.Stroke(vh, P(.92f,y), P(.946f,y+.014f), 5, yellow);
+            }
+            DoodleCommerceMesh.Stroke(vh, P(.335f,.94f), P(.353f,.923f), 5, UiKit.Ink);
+            DoodleCommerceMesh.Stroke(vh, P(.665f,.94f), P(.647f,.923f), 5, UiKit.Ink);
+            DoodleCommerceMesh.Stroke(vh, P(.315f,.908f), P(.339f,.903f), 5, UiKit.Ink);
+            DoodleCommerceMesh.Stroke(vh, P(.685f,.908f), P(.661f,.903f), 5, UiKit.Ink);
+        }
+    }
+
+    static class DoodleCommerceMesh
+    {
+        public static void Polygon(VertexHelper vh, Vector2[] points, Color fill, float outline)
+        {
+            int start = vh.currentVertCount;
+            Vector2 center = Vector2.zero;
+            foreach (var p in points) center += p;
+            center /= points.Length;
+            vh.AddVert(center, fill, Vector2.zero);
+            foreach (var p in points) vh.AddVert(p, fill, Vector2.zero);
+            for (int i = 0; i < points.Length; i++) vh.AddTriangle(start, start + 1 + i, start + 1 + (i + 1) % points.Length);
+            for (int i = 0; i < points.Length; i++) Stroke(vh, points[i], points[(i + 1) % points.Length], outline, UiKit.Ink);
+        }
+        public static void Stroke(VertexHelper vh, Vector2 from, Vector2 to, float width, Color tint)
+        {
+            Vector2 direction = (to - from).normalized;
+            Vector2 normal = new Vector2(-direction.y, direction.x) * width * .5f;
+            int start = vh.currentVertCount;
+            vh.AddVert(from-normal, tint, Vector2.zero); vh.AddVert(from+normal, tint, Vector2.zero);
+            vh.AddVert(to+normal, tint, Vector2.zero); vh.AddVert(to-normal, tint, Vector2.zero);
+            vh.AddTriangle(start,start+1,start+2); vh.AddTriangle(start,start+2,start+3);
         }
     }
 
@@ -356,11 +466,11 @@ namespace DoodleIdle
     public sealed class DoodleCommerceLayout : MonoBehaviour
     {
         public DoodleUiWindow window;
-        public RectTransform tabs, crest, summary, summaryIcon, gauge, actions, confirmRow;
+        public RectTransform tabs, crest, summary, summaryIcon, summaryText, gauge, actions, confirmRow;
         public RectTransform probabilityHeading, probabilityGrades;
         public Text probabilityHeadingText, probabilityExplanation, probabilityGradeTitle, probabilityItemTitle;
         public GridLayoutGroup resultGrid;
-        public Text subtitle, level;
+        public Text subtitle, level, experience;
         public Button confirm;
         public int resultCount;
         bool reflowing;
@@ -408,12 +518,11 @@ namespace DoodleIdle
                     return;
                 }
                 if (!resultGrid || !window.footer || !viewport) return;
-                // Reference 10 is 720 x 1520 after normalization: cards are ~225 high,
-                // result banner sits near y=240, and the actions finish ~100 above the bottom.
+                // Keep the reference's celebration hierarchy while cards retain a 3:4 ratio.
                 float tall = Mathf.Clamp01((window.inner.rect.height - 720) / 800);
                 float header = Mathf.Lerp(Mathf.Max(82, window.headerHeight), 335, tall);
                 float footerGap = Mathf.Lerp(8, 26, tall);
-                float summaryHeight = Mathf.Lerp(46, 124, tall);
+                float summaryHeight = Mathf.Lerp(52, 124, tall);
                 float gaugeHeight = Mathf.Lerp(32, 36, tall);
                 float actionHeight = Mathf.Lerp(68, 106, tall);
                 float confirmHeight = Mathf.Lerp(58, 88, tall);
@@ -429,25 +538,38 @@ namespace DoodleIdle
                     rail.offsetMin = new Vector2(rail.offsetMin.x, footerHeight + bottom + 14);
                     rail.offsetMax = new Vector2(rail.offsetMax.x, -header - 2);
                 }
-                UiKit.Height(summary, summaryHeight); UiKit.Height(level.transform, summaryHeight);
+                UiKit.Height(summary, summaryHeight);
+                UiKit.Height(level.transform, Mathf.Lerp(30, 54, tall));
+                UiKit.Height(experience.transform, Mathf.Lerp(18, 36, tall));
+                summaryText.GetComponent<VerticalLayoutGroup>().spacing = Mathf.Lerp(2, 6, tall);
                 float summaryIconSize = Mathf.Lerp(46, 108, tall);
                 SetIconSize(summaryIcon, summaryIconSize);
-                SetTextSize(level, Mathf.RoundToInt(Mathf.Lerp(30, 40, tall)));
+                SetTextSize(level, Mathf.RoundToInt(Mathf.Lerp(26, 40, tall)));
+                SetTextSize(experience, Mathf.RoundToInt(Mathf.Lerp(18, 29, tall)));
                 var summaryLayout = summary.GetComponent<HorizontalLayoutGroup>();
                 summaryLayout.childAlignment = TextAnchor.MiddleCenter;
                 summaryLayout.childForceExpandWidth = false;
-                var levelSize = level.GetComponent<LayoutElement>();
+                var levelSize = summaryText.GetComponent<LayoutElement>();
                 float availableLevelWidth = Mathf.Max(1, window.footer.rect.width - summaryIconSize - summaryLayout.spacing);
-                levelSize.minWidth = levelSize.preferredWidth = Mathf.Min(level.preferredWidth + 12, availableLevelWidth);
+                levelSize.minWidth = levelSize.preferredWidth = Mathf.Min(Mathf.Max(level.preferredWidth, experience.preferredWidth) + 12, availableLevelWidth);
                 levelSize.flexibleWidth = 0;
                 UiKit.Height(gauge, gaugeHeight);
                 SetTextSize(gauge.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(23, 29, tall)));
                 UiKit.Height(actions, actionHeight);
                 foreach (var button in actions.GetComponentsInChildren<Button>())
                 {
-                    bool free = button.transform.parent == actions;
-                    UiKit.Height(button.transform, free ? actionHeight : actionHeight - 26);
+                    UiKit.Height(button.transform, actionHeight);
                     SetTextSize(button.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(25, 34, tall)));
+                    var cost = button.transform.Find("DiamondCost");
+                    if (cost)
+                    {
+                        var costText = cost.GetComponentInChildren<Text>();
+                        SetTextSize(costText, Mathf.RoundToInt(Mathf.Lerp(20, 26, tall)));
+                        UiKit.Height(costText.transform, Mathf.Lerp(24, 32, tall));
+                        var costSize = costText.GetComponent<LayoutElement>();
+                        costSize.minWidth = costSize.preferredWidth = costText.preferredWidth + 4;
+                        SetIconSize(cost.GetComponentInChildren<Image>().rectTransform, Mathf.Lerp(20, 28, tall));
+                    }
                 }
                 UiKit.Height(confirmRow, confirmHeight); UiKit.Height(confirm.transform, confirmHeight);
                 var confirmSize = confirm.GetComponent<LayoutElement>();
@@ -456,34 +578,20 @@ namespace DoodleIdle
                 SetTextSize(confirm.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(29, 43, tall)));
                 SetTextSize(subtitle, Mathf.RoundToInt(Mathf.Lerp(32, 40, tall)));
 
-                float cellHeight = Mathf.Lerp(150, 225, tall);
                 resultGrid.spacing = new Vector2(10, Mathf.Lerp(8, 16, tall));
-                float gridWidth = ((RectTransform)resultGrid.transform).rect.width;
-                float cellWidth = (gridWidth - resultGrid.padding.horizontal - resultGrid.spacing.x * 4) / 5;
-                resultGrid.cellSize = new Vector2(Mathf.Max(1, cellWidth), cellHeight);
-                foreach (RectTransform card in resultGrid.transform)
-                {
-                    UiKit.Height(card, cellHeight);
-                    foreach (Transform child in card)
-                    {
-                        var rect = child as RectTransform;
-                        if (!rect) continue;
-                        if (child.name == "Quantity gauge")
-                        {
-                            rect.anchorMin = Vector2.zero; rect.anchorMax = new Vector2(1, 0);
-                            rect.offsetMin = new Vector2(5, 5); rect.offsetMax = new Vector2(-5, 32);
-                        }
-                        else if (child.name.StartsWith("Icon: ")) UiKit.Stretch(rect, 12, 38, 12, 32);
-                        else if (child.GetComponent<Text>())
-                        {
-                            rect.anchorMin = new Vector2(0, 1); rect.anchorMax = Vector2.one;
-                            rect.offsetMin = new Vector2(5, -31); rect.offsetMax = new Vector2(-5, -3);
-                        }
-                    }
-                }
+                var bodyLayout = window.content.GetComponent<VerticalLayoutGroup>();
+                float contentWidth = Mathf.Min(760, window.inner.rect.width - 42);
+                // Two rows stay entirely visible even on short screens; long draws still scroll.
+                float fittingWidth = Mathf.Max(1, (viewport.rect.height - 78 - resultGrid.spacing.y) * .5f) * .75f * 5
+                    + resultGrid.spacing.x * 4 + resultGrid.padding.horizontal + bodyLayout.padding.horizontal;
+                contentWidth = Mathf.Min(contentWidth, fittingWidth);
+                window.content.sizeDelta = new Vector2(contentWidth, window.content.sizeDelta.y);
+                float gridWidth = contentWidth - bodyLayout.padding.horizontal;
+                float cellWidth = Mathf.Max(1, (gridWidth - resultGrid.padding.horizontal - resultGrid.spacing.x * 4) / 5);
+                float cellHeight = cellWidth * 4 / 3;
+                resultGrid.cellSize = new Vector2(cellWidth, cellHeight);
                 int rows = Mathf.CeilToInt(resultCount / 5f);
                 float occupied = 58 + 10 + rows * cellHeight + Mathf.Max(0, rows - 1) * resultGrid.spacing.y + 8;
-                var bodyLayout = window.content.GetComponent<VerticalLayoutGroup>();
                 int topPadding = 4 + Mathf.RoundToInt(Mathf.Max(0, viewport.rect.height - occupied) * .5f);
                 if (bodyLayout.padding.top != topPadding)
                     bodyLayout.padding = new RectOffset(bodyLayout.padding.left, bodyLayout.padding.right, topPadding, bodyLayout.padding.bottom);
@@ -491,11 +599,11 @@ namespace DoodleIdle
                 if (crest)
                 {
                     crest.gameObject.SetActive(tall > .12f);
-                    PlaceTop(crest, Mathf.Lerp(40, 111, tall), Vector2.one * Mathf.Lerp(58, 108, tall));
+                    PlaceTop(crest, Mathf.Lerp(40, 138, tall), Vector2.one * Mathf.Lerp(58, 122, tall));
                 }
                 var banner = window.inner.Find("Golden result banner") as RectTransform;
                 float bannerCenter = Mathf.Lerp(43, 239, tall), bannerHeight = Mathf.Lerp(62, 132, tall);
-                if (banner) PlaceTop(banner, bannerCenter, new Vector2(Mathf.Min(window.content.rect.width * .8f, 520), bannerHeight));
+                if (banner) PlaceTop(banner, bannerCenter, new Vector2(Mathf.Min(window.inner.rect.width - 65, 650), bannerHeight));
                 foreach (Transform child in window.inner)
                 {
                     var title = child.GetComponent<Text>();

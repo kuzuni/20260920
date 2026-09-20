@@ -80,7 +80,7 @@ namespace DoodleIdle
         public int ActiveDungeonIndex => services == null ? -1 : services.activeDungeon;
         public int DungeonProgress => services == null ? 0 : services.dungeonProgress;
         public int DungeonKillGoal => serviceTuning.dungeonKills;
-        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + "  " + DungeonProgress + "/" + DungeonKillGoal;
+        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + "  " + UiNumber.Format(DungeonProgress) + "/" + UiNumber.Format(DungeonKillGoal);
         static int SecondsUntil(long ticks) => (int)Math.Max(0, Math.Min(int.MaxValue, Math.Ceiling((ticks - ServiceNow) / (double)TimeSpan.TicksPerSecond)));
         static string ServiceClock(int seconds) => (seconds / 60).ToString("00") + ":" + (seconds % 60).ToString("00");
 
@@ -230,7 +230,7 @@ namespace DoodleIdle
                 foreach(float side in new[]{-1f,1f}) { var extra = UiKit.Icon(card,"Diamond",50).rectTransform; extra.anchorMin=extra.anchorMax=new Vector2(.5f,.57f);extra.anchoredPosition=new Vector2(side*44,-5);extra.localRotation=Quaternion.Euler(0,0,side*-17); }
                 gem.SetAsLastSibling();
             }
-            var amount = UiKit.Text(card, serviceTuning.attendance[index].ToString("N0"), 25, TextAnchor.MiddleCenter, 32);
+            var amount = UiKit.Text(card, UiNumber.Format(serviceTuning.attendance[index]), 25, TextAnchor.MiddleCenter, 32);
             amount.rectTransform.anchorMin = new Vector2(0,0); amount.rectTransform.anchorMax = new Vector2(1,0); amount.rectTransform.pivot = new Vector2(.5f,0); amount.rectTransform.anchoredPosition = new Vector2(0,40); amount.rectTransform.sizeDelta = new Vector2(-8,32);
             var strip = UiKit.Box(card,"Attendance status",claimed ? new Color(.77f,.88f,.66f) : current ? UiKit.Yellow : new Color(.82f,.82f,.82f));
             strip.anchorMin=Vector2.zero;strip.anchorMax=new Vector2(1,0);strip.pivot=new Vector2(.5f,0);strip.anchoredPosition=new Vector2(0,3);strip.sizeDelta=new Vector2(-6,36);strip.GetComponent<Outline>().enabled=false;
@@ -271,7 +271,7 @@ namespace DoodleIdle
                 reward.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 169;
                 var icon = UiKit.Icon(reward, "Diamond", 54).rectTransform;
                 icon.anchorMin = icon.anchorMax = new Vector2(.5f, .7f); icon.anchoredPosition = Vector2.zero;
-                var number = UiKit.Text(reward, serviceTuning.roulette[i].ToString(), 27, TextAnchor.MiddleCenter, 32).rectTransform;
+                var number = UiKit.Text(reward, UiNumber.Format(serviceTuning.roulette[i]), 27, TextAnchor.MiddleCenter, 32).rectTransform;
                 number.anchorMin = new Vector2(0, 0); number.anchorMax = new Vector2(1, .38f); number.offsetMin = number.offsetMax = Vector2.zero;
             }
             var pointer = new GameObject("Roulette pointer", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRoulettePointer)).GetComponent<RectTransform>();
@@ -324,7 +324,7 @@ namespace DoodleIdle
             ServiceText(description, () => "남은 시간 " + ServiceClock(attack ? AttackBuffSeconds : GoldBuffSeconds), 24, 34).alignment=TextAnchor.MiddleLeft;
             ServiceGauge(card, () => attack ? AttackBuffSeconds : GoldBuffSeconds, () => serviceTuning.buffSeconds, true, true);
             UiKit.Button(card, (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "시간 연장" : "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
-            UiKit.Text(card, "다이아 " + serviceTuning.buffPrice + " · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
+            UiKit.Text(card, "다이아 " + UiNumber.Format(serviceTuning.buffPrice) + " · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
         }
 
         public void ExtendBuff(bool attack)
@@ -347,7 +347,7 @@ namespace DoodleIdle
             var rect = fill.rectTransform; rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = Vector2.one * 3; rect.offsetMax = Vector2.one * -3;
             var label = UiKit.Text(separate && !clock ? parent : frame, "", separate ? 22 : 18, separate ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, separate ? 27 : 26);
             if(!separate || clock) UiKit.Stretch(label.rectTransform);
-            Func<string> value = () => clock ? (separate ? "" : ServiceClock(current())) : Math.Min(current(), maximum()).ToString("N0") + "/" + maximum().ToString("N0");
+            Func<string> value = () => clock ? (separate ? "" : ServiceClock(current())) : UiNumber.Format(Math.Min(current(), maximum())) + "/" + UiNumber.Format(maximum());
             Func<float> fraction = () => current() / (float)Math.Max(1, maximum());
             label.text = value(); fill.fillAmount = Mathf.Clamp01(fraction());
             serviceBindings.Add(new ServiceBinding { text = label, value = value, fill = fill, fraction = fraction });
@@ -394,11 +394,11 @@ namespace DoodleIdle
             UiKit.Icon(row, icons[metric], 64);
             var text = UiKit.Column(row, "Quest text", 3, 0); UiKit.Flexible(text, 1);
             string[] labels = { "적 {0}마리 처치", "골드 {0} 획득", "던전 {0}회 도전", "룰렛 {0}회 돌리기", "장비 {0}회 강화", "스킬 {0}회 강화", "PVP {0}회 도전", "뽑기 {0}회 진행" };
-            UiKit.Text(text, string.Format(labels[metric], goal.ToString("N0")), 25, TextAnchor.MiddleLeft, 38);
+            UiKit.Text(text, string.Format(labels[metric], UiNumber.Format(goal)), 25, TextAnchor.MiddleLeft, 38);
             ServiceGauge(text, () => QuestCounters(tab)[metric], () => goal, false, true);
             var reward = UiKit.Column(row, "Quest reward", 2, 0); ServiceWidth(reward,52);
             UiKit.Icon(reward, "Diamond", 46);
-            UiKit.Text(reward, serviceTuning.questRewards[index].ToString(), 23, TextAnchor.MiddleCenter, 29);
+            UiKit.Text(reward, UiNumber.Format(serviceTuning.questRewards[index]), 23, TextAnchor.MiddleCenter, 29);
             var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 72);
             ServiceWidth(claim.transform,94);
             var claimText = claim.GetComponentInChildren<Text>();
@@ -426,7 +426,7 @@ namespace DoodleIdle
 
         void BuildDungeons(RectTransform body)
         {
-            UiKit.Text(body, "필드 전투 연계 도전 · 적 " + serviceTuning.dungeonKills + "마리 처치", 19, TextAnchor.MiddleCenter, 34);
+            UiKit.Text(body, "필드 전투 연계 도전 · 적 " + UiNumber.Format(serviceTuning.dungeonKills) + "마리 처치", 19, TextAnchor.MiddleCenter, 34);
             string[] descriptions = { "골드 획득", "장비 획득", "스킬 획득" };
             for (int i = 0; i < 3; i++)
             {
@@ -513,7 +513,7 @@ namespace DoodleIdle
             var myRow = UiKit.Row(mine, "My ranking", 64);
             UiKit.Icon(myRow, "Player", 62);
             UiKit.Text(myRow, "내 순위 " + (selfIndex + 1) + "위\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
-            UiKit.Text(myRow, "승점 " + services.pvpPoints.ToString("N0") + "\n전투력 " + Power.ToString("N0"), 20, TextAnchor.MiddleRight, 66);
+            UiKit.Text(myRow, "승점 " + UiNumber.Format(services.pvpPoints) + "\n전투력 " + UiNumber.Format(Power), 20, TextAnchor.MiddleRight, 66);
             var actions=UiKit.Row(body,"PVP actions",66,10);
             var challenge = UiKit.Button(actions, "모의 대전 시작", PlayLocalPvp, UiKit.Blue, 66);UiKit.Flexible(challenge.transform,1.6f);
             var attempts=UiKit.Box(actions,"PVP remaining attempts",new Color(.96f,.94f,.9f),66);
@@ -542,8 +542,8 @@ namespace DoodleIdle
                 var number = UiKit.Text(row, (i + 1).ToString(), 22, TextAnchor.MiddleCenter, 42); UiKit.Flexible(number.transform, .45f);
                 UiKit.Icon(row, rank.art, 41);
                 var name = UiKit.Text(row, rank.name, 21, TextAnchor.MiddleLeft, 42); UiKit.Flexible(name.transform, 1.4f);
-                UiKit.Text(row, rank.points.ToString("N0"), 21, TextAnchor.MiddleCenter, 42);
-                UiKit.Text(row, rank.power.ToString("N0"), 21, TextAnchor.MiddleCenter, 42);
+                UiKit.Text(row, UiNumber.Format(rank.points), 21, TextAnchor.MiddleCenter, 42);
+                UiKit.Text(row, UiNumber.Format(rank.power), 21, TextAnchor.MiddleCenter, 42);
             }
             mine.SetAsLastSibling(); actions.SetAsLastSibling();
         }

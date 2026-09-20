@@ -88,15 +88,20 @@ namespace DoodleIdle
             grid.spacing=Vector2.one*8; grid.cellSize=new Vector2(100,cellHeight); r.gameObject.AddComponent<ContentSizeFitter>().verticalFit=ContentSizeFitter.FitMode.PreferredSize;
             r.gameObject.AddComponent<DoodleUiGrid>(); Flexible(r); return r;
         }
+        public static void PortraitGrid(RectTransform grid)
+        {
+            var layout=grid.GetComponent<DoodleUiGrid>();layout.portrait=true;layout.Reflow();
+        }
         public static Button Slot(Transform parent,string name,string icon,int rarity,int count,int needed,bool equipped,bool locked,Action click,float height=112)
         {
             var r=Box(parent,"Slot: "+name,locked ? new Color(.38f,.39f,.40f) : Color.Lerp(Rarity(rarity),Color.white,.55f),height); var b=r.gameObject.AddComponent<Button>(); b.onClick.AddListener(()=>click?.Invoke());
             r.GetComponent<Outline>().effectColor=locked?Ink:Color.Lerp(Rarity(rarity),Ink,.30f);r.GetComponent<Outline>().effectDistance=new Vector2(3,-3);
             var t=Text(r,GradeName(rarity),20,TextAnchor.UpperLeft,25); Stretch(t.rectTransform,6,height-29,5,3); t.color=locked?Color.white:Ink;
             var im=Icon(r,icon,58); Stretch(im.rectTransform,12,33,12,27); if(locked) im.color=Color.black;
-            var gauge=Gauge(r,count+"/"+Mathf.Max(1,needed),count/(float)Mathf.Max(1,needed),24); Stretch(gauge,5,5,5,height-29);gauge.GetComponentInChildren<Text>().resizeTextMaxSize=21;
+            var gauge=Gauge(r,UiNumber.Format(count)+"/"+UiNumber.Format(Mathf.Max(1,needed)),count/(float)Mathf.Max(1,needed),24); Stretch(gauge,5,5,5,height-29);gauge.GetComponentInChildren<Text>().resizeTextMaxSize=21;
             if(equipped) { var mark=Box(r,"Equipped check",new Color(.40f,.73f,.15f));mark.GetComponent<Image>().sprite=Circle;mark.anchorMin=mark.anchorMax=Vector2.one;mark.anchoredPosition=new Vector2(-15,-16);mark.sizeDelta=new Vector2(30,30);var tick=Rect(mark,"White check");Stretch(tick);tick.gameObject.AddComponent<DoodleUiCheck>().raycastTarget=false; }
             if(locked) { var mark=Rect(r,"Locked padlock"); mark.anchorMin=mark.anchorMax=new Vector2(1,0);mark.anchoredPosition=new Vector2(-17,41);mark.sizeDelta=new Vector2(20,25);mark.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget=false; }
+            var adaptive=r.gameObject.AddComponent<DoodleUiSlotLayout>();adaptive.grade=t;adaptive.art=im.rectTransform;adaptive.gauge=gauge;adaptive.Reflow();
             return b;
         }
         public static Sprite Circle => circle ? circle : circle=Shape(true);
@@ -115,6 +120,8 @@ namespace DoodleIdle
         public static Sprite Art(string key)
         {
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
+            string[] currency={"DiamondSingle","DiamondPile","DiamondBag","DiamondChest","DiamondRoyalChest"};
+            int currencyIndex=Array.IndexOf(currency,key);if(currencyIndex>=0){var currencySprite=Cell("UI/CurrencyIcons",currencyIndex,3,2);art[key]=currencySprite;return currencySprite;}
             string[] atlas={"Diamond","Armor","ArmorMetal","Relic","Stats","Pvp","Dungeon","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings","Close","Key"};
             int index=Array.IndexOf(atlas,key); Sprite value=null;
             string[] gear={"Heart","Shield","Speed","Clover","VineClub","ClothClub","SpikeClub","IronClub","ClothArmor","LeatherArmor","WoodArmor","DarkArmor","RedClub","CrystalClub","BoneClub","SunRelic"};
@@ -154,8 +161,34 @@ namespace DoodleIdle
     }
     public sealed class DoodleUiGrid : MonoBehaviour
     {
-        void OnEnable()=>Resize(); void OnRectTransformDimensionsChange()=>Resize();
-        void Resize() { var grid=GetComponent<GridLayoutGroup>(); if(!grid)return; float w=((RectTransform)transform).rect.width; if(w>0) grid.cellSize=new Vector2(Mathf.Max(1,(w-grid.padding.horizontal-grid.spacing.x*(grid.constraintCount-1))/grid.constraintCount),grid.cellSize.y); }
+        public bool portrait;
+        void OnEnable()=>Reflow(); void OnRectTransformDimensionsChange()=>Reflow();
+        public void Reflow() { var grid=GetComponent<GridLayoutGroup>(); if(!grid)return; float w=((RectTransform)transform).rect.width; if(w>0) { float width=Mathf.Max(1,(w-grid.padding.horizontal-grid.spacing.x*(grid.constraintCount-1))/grid.constraintCount);grid.cellSize=new Vector2(width,portrait?width*4f/3f:grid.cellSize.y); } }
+    }
+    public sealed class DoodleUiSlotLayout : MonoBehaviour
+    {
+        public Text grade;
+        public RectTransform art,gauge;
+        Vector2 previousSize;
+        void OnRectTransformDimensionsChange()=>Reflow();
+        void LateUpdate()=>Reflow();
+        public void Reflow()
+        {
+            var rect=(RectTransform)transform;var size=rect.rect.size;
+            if(!grade||!art||!gauge||size.x<=0||size.y<=0||size==previousSize)return;
+            previousSize=size;
+            float scale=Mathf.Clamp(size.x/100f,.6f,1.35f), top=24*scale,bottom=25*scale,pad=5*scale;
+            grade.rectTransform.anchorMin=new Vector2(0,1);grade.rectTransform.anchorMax=Vector2.one;
+            grade.rectTransform.offsetMin=new Vector2(pad,-top);grade.rectTransform.offsetMax=new Vector2(-pad,-2*scale);
+            grade.resizeTextMinSize=Mathf.RoundToInt(12*scale);grade.resizeTextMaxSize=Mathf.RoundToInt(20*scale);
+            UiKit.Stretch(art,8*scale,bottom+9*scale,8*scale,top+2*scale);
+            gauge.anchorMin=Vector2.zero;gauge.anchorMax=new Vector2(1,0);gauge.offsetMin=new Vector2(pad,pad);gauge.offsetMax=new Vector2(-pad,pad+bottom);
+            var amount=gauge.GetComponentInChildren<Text>();amount.resizeTextMinSize=Mathf.RoundToInt(12*scale);amount.resizeTextMaxSize=Mathf.RoundToInt(20*scale);
+            var mark=transform.Find("Equipped check") as RectTransform;
+            if(mark) {mark.sizeDelta=Vector2.one*27;mark.localScale=Vector3.one*scale;mark.anchoredPosition=new Vector2(-13*scale,-14*scale);}
+            var locked=transform.Find("Locked padlock") as RectTransform;
+            if(locked) {locked.sizeDelta=new Vector2(20,25);locked.localScale=Vector3.one*scale;locked.anchoredPosition=new Vector2(-16*scale,bottom+16*scale);}
+        }
     }
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleUiCheck : MaskableGraphic

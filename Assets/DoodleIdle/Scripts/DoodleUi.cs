@@ -131,7 +131,9 @@ namespace DoodleIdle
             ReflowServiceLayouts();
             foreach(var inventory in root.GetComponentsInChildren<DoodleCollectionInventoryViewport>()) inventory.Reflow();
             foreach(var commerce in root.GetComponentsInChildren<DoodleCommerceLayout>()) commerce.Reflow();
+            foreach(var grid in root.GetComponentsInChildren<DoodleUiGrid>()) grid.Reflow();
             UnityEngine.Canvas.ForceUpdateCanvases();
+            foreach(var slot in root.GetComponentsInChildren<DoodleUiSlotLayout>()) slot.Reflow();
         }
         public void ShowPage(string id)
         {
@@ -237,7 +239,7 @@ namespace DoodleIdle
                 var halo=UiKit.Rect(host,"Golden hand drawn rays"); UiKit.Stretch(halo,-24,-24,-24,-24); var rays=halo.gameObject.AddComponent<DoodleRewardRays>(); rays.color=new Color(1,.84f,.21f,.92f); rays.raycastTarget=false;
                 var card=UiKit.Box(host,"Reward frame",UiKit.Rarity(reward.rarity)); UiKit.Stretch(card,3,3,3,3); card.GetComponent<Image>().raycastTarget=false;
                 var icon=UiKit.Icon(card,reward.icon,100); UiKit.Stretch(icon.rectTransform,13,57,13,18);
-                var count=UiKit.Text(card,reward.amount.ToString("N0"),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
+                var count=UiKit.Text(card,UiNumber.Format(reward.amount),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
             }
             var hint=UiKit.Text(area,"화면을 터치하면 닫힙니다",28,TextAnchor.MiddleCenter,50); hint.color=Color.white;
         }
@@ -260,8 +262,8 @@ namespace DoodleIdle
         }
         public void RefreshHud()
         {
-            if(!initialized)return; profile.text=PlayerName+"\n전투력 "+Power.ToString("N0"); walletGold.text=Gold.ToString("N0"); walletDiamond.text=Diamonds.ToString("N0");
-            buffGold.text=Duration(GoldBuffSeconds); buffAttack.text=Duration(AttackBuffSeconds); missionText.text=ActiveDungeonIndex>=0?DungeonMission:"미션 5.\n공격력 15단계 달성\n("+AttackStatLevel+"/15)";
+            if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
+            buffGold.text=Duration(GoldBuffSeconds); buffAttack.text=Duration(AttackBuffSeconds); missionText.text=ActiveDungeonIndex>=0?DungeonMission:"미션 5.\n공격력 15단계 달성\n("+UiNumber.Format(AttackStatLevel)+"/15)";
             goldBuffDot.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffDot.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
             if(missionFill) missionFill.anchorMax=new Vector2(ActiveDungeonIndex>=0?Mathf.Clamp01(DungeonProgress/(float)Mathf.Max(1,DungeonKillGoal)):Mathf.Clamp01(AttackStatLevel/15f),1);
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"Banana"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.15f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }

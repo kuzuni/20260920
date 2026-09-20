@@ -64,7 +64,7 @@ namespace DoodleIdle
             }
             number.origin = position + new Vector2(ParticleRandom(-.25f, .25f), 1.05f);
             number.age = 0; number.drift = ParticleRandom(-.45f, .45f);
-            number.text.text = Mathf.CeilToInt(amount).ToString();
+            number.text.text = UiNumber.Format(System.Math.Ceiling(amount));
             number.text.color = new Color(1, .96f, .76f);
             number.text.rectTransform.localPosition = number.origin * 100;
             number.text.rectTransform.localScale = Vector3.one;

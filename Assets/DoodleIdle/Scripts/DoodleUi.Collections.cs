@@ -77,7 +77,7 @@ namespace DoodleIdle
             UiKit.Text(content, caption, 28, TextAnchor.MiddleCenter, 34);
             var price = UiKit.Row(content, "Coin price", 34, 5);
             UiKit.Icon(price, "Gold", 30);
-            UiKit.Text(price, cost.ToString("N0"), 27, TextAnchor.MiddleCenter, 34);
+            UiKit.Text(price, UiNumber.Format(cost), 27, TextAnchor.MiddleCenter, 34);
             return button;
         }
 
@@ -93,13 +93,13 @@ namespace DoodleIdle
             var power = UiKit.Row(body, "Combat power", 126, 16);
             power.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(42, 0, 0, 0);
             UiKit.Icon(power, "Player", 124);
-            var powerText = UiKit.Text(power, "전투력 " + Power.ToString("N0"), 35, TextAnchor.MiddleCenter, 108);
+            var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(Power), 35, TextAnchor.MiddleCenter, 108);
             CollectionWidth(powerText.transform, 286);
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);
             foreach (int amount in new[] { 1, 10, -1 })
             {
                 int selected = amount;
-                var mode = UiKit.Button(batch, amount < 0 ? "MAX" : "×" + amount, () => { statBatch = selected; RefreshPage(); }, statBatch == amount ? UiKit.Blue : UiKit.Paper, 64);
+                var mode = UiKit.Button(batch, amount < 0 ? "MAX" : "×" + UiNumber.Format(amount), () => { statBatch = selected; RefreshPage(); }, statBatch == amount ? UiKit.Blue : UiKit.Paper, 64);
                 CollectionButtonText(mode, 34);
             }
             foreach (var definition in collectionTuning.stats)
@@ -116,7 +116,7 @@ namespace DoodleIdle
                 UiKit.Text(text, stat.name, 30, TextAnchor.MiddleLeft, 39);
                 float current = StatValue(stat.id);
                 UiKit.Text(text, StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, current + stat.increment * upgrades) + "</color>", 29, TextAnchor.MiddleLeft, 38);
-                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + upgrades + "\n골드 " + cost.ToString("N0"), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + upgrades, cost, () =>
+                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () =>
                 {
                     if (!UpgradeStat(stat.id, statBatch)) { Toast("강화에 필요한 골드가 부족합니다."); return; }
                     Save(); RefreshPage();
@@ -125,7 +125,7 @@ namespace DoodleIdle
             }
         }
 
-        string StatNumber(string id, float value) => id == "speed" ? value.ToString("0.00") : value.ToString("N0");
+        string StatNumber(string id, float value) => UiNumber.Format(value, id == "speed" ? 2 : 1);
 
         public long StatUpgradeQuote(string id, int requested, out int upgrades)
         {
@@ -169,14 +169,14 @@ namespace DoodleIdle
             var selected = items.Find(x => x.id == selectedId) ?? items[0];
             var frame = CollectionBox(body, "Selected equipment", UiKit.Paper);
             var row = UiKit.Row(frame, "Equipment specification", 172, 14);
-            var card = CollectionSlot(row, selected, () => { }, 160);
+            var card = CollectionSlot(row, selected, () => { }, 128 * 4f / 3);
             var slotLayout = card.GetComponent<LayoutElement>();
             slotLayout.minWidth = 128; slotLayout.preferredWidth = 128; slotLayout.flexibleWidth = 0;
             var info = UiKit.Column(row, "Item information", 4, 1);
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
-            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + ItemOwnedValue(selected).ToString("0.#") + "%");
-            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "방어력" : "공격력") + " +" + ItemEquipValue(selected).ToString("N0"));
+            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%");
+            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "방어력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)));
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             CollectionButtonText(UiKit.Button(actions, "강화", () => UpgradeSelected(selected, false), UiKit.Blue, 46), 28);
             CollectionButtonText(UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46), 28);
@@ -200,16 +200,17 @@ namespace DoodleIdle
         void BuildLoadout(RectTransform body, string category, string label, int capacity, int columns)
         {
             var equipped = EquippedItems(category);
-            UiKit.Text(body, "장착 슬롯 " + equipped.Count + "/" + capacity, 32, TextAnchor.MiddleLeft, 42);
-            float slotHeight = category == "Companion" ? 166 : 118;
+            UiKit.Text(body, "장착 슬롯 " + UiNumber.Format(equipped.Count) + "/" + UiNumber.Format(capacity), 32, TextAnchor.MiddleLeft, 42);
+            const float slotHeight = 100 * 4f / 3;
             var slots = UiKit.Grid(body, "Equipped " + category, columns, slotHeight);
+            UiKit.PortraitGrid(slots);
             for (int i = 0; i < capacity; i++)
             {
                 if (i < equipped.Count)
                 {
                     var item = equipped[i];
                     var card = CollectionSlot(slots, item, () => ShowCollectionDetail(item), slotHeight);
-                    card.GetComponentInChildren<Text>().text = (i + 1) + " " + GradeNames[item.rarity];
+                    card.GetComponentInChildren<Text>().text = UiNumber.Format(i + 1) + " " + GradeNames[item.rarity];
                 }
                 else UiKit.Slot(slots, "빈 슬롯", "", 0, 0, 0, false, false, () => Toast("보유 " + label + "을 선택해 장착하세요."), slotHeight);
             }
@@ -223,9 +224,9 @@ namespace DoodleIdle
 
         void OwnershipStrip(RectTransform parent, string category)
         {
-            string effect = "공격력 +" + EffectBonus("attack", category).ToString("0.#") + "%";
+            string effect = "공격력 +" + UiNumber.Format(EffectBonus("attack", category)) + "%";
             float health = EffectBonus("health", category);
-            if (health > 0) effect += " · 체력 +" + health.ToString("0.#") + "%";
+            if (health > 0) effect += " · 체력 +" + UiNumber.Format(health) + "%";
             if (category == "Equipment")
             {
                 var row = UiKit.Row(parent, "Total ownership", 42, 0);
@@ -255,8 +256,9 @@ namespace DoodleIdle
             var scroll = host.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false; scroll.viewport = viewport;
             scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 38;
-            float cellHeight = category == "Companion" ? 148 : category == "Skill" ? 128 : 132;
+            const float cellHeight = 100 * 4f / 3;
             var grid = UiKit.Grid(viewport, "Collection inventory", columns, cellHeight);
+            UiKit.PortraitGrid(grid);
             grid.GetComponent<GridLayoutGroup>().padding = new RectOffset(4, 4, 4, 4);
             grid.anchorMin = new Vector2(0, 1); grid.anchorMax = Vector2.one;
             grid.pivot = new Vector2(.5f, 1); grid.anchoredPosition = Vector2.zero; grid.sizeDelta = Vector2.zero;
@@ -297,7 +299,7 @@ namespace DoodleIdle
             {
                 int upgrades = 0;
                 foreach (var item in Items(category)) while (UpgradeItem(item)) upgrades++;
-                Save(); RefreshPage(); Toast(upgrades > 0 ? upgrades + "회 강화했습니다." : "강화할 수 있는 수량이 없습니다.");
+                Save(); RefreshPage(); Toast(upgrades > 0 ? UiNumber.Format(upgrades) + "회 강화했습니다." : "강화할 수 있는 수량이 없습니다.");
             }, UiKit.Blue, 68);
             var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast("강한 " + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
             CollectionButtonText(upgrade, 33); CollectionButtonText(auto, 33);
@@ -318,7 +320,7 @@ namespace DoodleIdle
             if (detail) CloseDetail();
             RefreshPage();
             if (detail) ShowCollectionDetail(item);
-            Toast(item.name + " 강화 완료 · Lv. " + item.level);
+            Toast(item.name + " 강화 완료 · Lv. " + UiNumber.Format(item.level));
         }
 
         void ShowCollectionDetail(UiItem item)
@@ -338,7 +340,7 @@ namespace DoodleIdle
                 var portrait = UiKit.Icon(display, item.icon, 90);
                 if (!item.discovered) portrait.color = Color.black;
                 var quantity = UiKit.Row(body, "Detail quantity", 26, 0);
-                var gauge = UiKit.Gauge(quantity, item.count + "/" + CopiesNeeded(item), item.count / (float)CopiesNeeded(item), 26);
+                var gauge = UiKit.Gauge(quantity, UiNumber.Format(item.count) + "/" + UiNumber.Format(CopiesNeeded(item)), item.count / (float)CopiesNeeded(item), 26);
                 CollectionWidth(gauge, 174);
                 var effects = CollectionBox(body, "Equipment effect", new Color(.965f, .943f, .874f));
                 effects.GetComponent<Outline>().enabled = false;
@@ -358,7 +360,7 @@ namespace DoodleIdle
                 CollectionLabelPill(ownedHeading, "보유 효과", new Color(.79f, .95f, .69f), 106, 26, 22);
                 var ownedValue = UiKit.Box(owned, "Ownership value", UiKit.Paper, 26);
                 ownedValue.GetComponent<Outline>().enabled = false;
-                var ownedText = UiKit.Text(ownedValue, EffectName(item.effect) + " +" + ItemOwnedValue(item).ToString("0.#") + "%", 22, TextAnchor.MiddleLeft, 26);
+                var ownedText = UiKit.Text(ownedValue, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "%", 22, TextAnchor.MiddleLeft, 26);
                 UiKit.Stretch(ownedText.rectTransform, 7, 1, 7, 1);
                 if (item.category == "Skill")
                 {
@@ -389,16 +391,16 @@ namespace DoodleIdle
                     var potency = CollectionBox(measures, "Skill potency", UiKit.Paper);
                     potency.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
                     potency.GetComponent<Outline>().effectColor = new Color(.89f, .81f, .70f);
-                    UiKit.Text(potency, "위력  Lv. " + item.level, 18, TextAnchor.MiddleLeft, 20);
-                    UiKit.Text(potency, ItemEquipValue(item).ToString("0.#"), 23, TextAnchor.MiddleLeft, 24);
+                    UiKit.Text(potency, "위력  Lv. " + UiNumber.Format(item.level), 18, TextAnchor.MiddleLeft, 20);
+                    UiKit.Text(potency, UiNumber.Format(ItemEquipValue(item)), 23, TextAnchor.MiddleLeft, 24);
                     var reuse = CollectionBox(measures, "Skill reuse", UiKit.Paper);
                     reuse.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
                     reuse.GetComponent<Outline>().effectColor = new Color(.89f, .81f, .70f);
                     UiKit.Text(reuse, "재사용", 18, TextAnchor.MiddleLeft, 20);
-                    UiKit.Text(reuse, interval > 0 ? interval.ToString("0.##") + "초" : "자동", 23, TextAnchor.MiddleLeft, 24);
-                    UiKit.Text(body, "자동 전투 유지 · 장착 공격력 +" + (ItemEquipValue(item) * .02f).ToString("0.##") + "%", 15, TextAnchor.MiddleCenter, 20);
+                    UiKit.Text(reuse, interval > 0 ? UiNumber.Format(interval, 2) + "초" : "자동", 23, TextAnchor.MiddleLeft, 24);
+                    UiKit.Text(body, "자동 전투 유지 · 장착 공격력 +" + UiNumber.Format(ItemEquipValue(item) * .02f, 2) + "%", 15, TextAnchor.MiddleCenter, 20);
                 }
-                else UiKit.Text(body, "장착 공격력 +" + ItemEquipValue(item).ToString("0.#") + "%", 23, TextAnchor.MiddleCenter, 32);
+                else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);
                 var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
                 CollectionButtonText(UiKit.Button(buttons, "강화", () => UpgradeSelected(item, true), UiKit.Blue, 56), 27);
@@ -450,7 +452,7 @@ namespace DoodleIdle
             UiKit.Stretch(noteText.rectTransform, 4, 2, 4, 2);
             var totals = CollectionBox(body, "Relic effects", new Color(.89f, .985f, .85f));
             totals.GetComponent<Outline>().effectColor = new Color(.27f, .53f, .23f);
-            UiKit.Text(totals, "총 유물 효과   공격력 +" + EffectBonus("attack", "Relic").ToString("0.#") + "% · 체력 +" + EffectBonus("health", "Relic").ToString("0.#") + "%", 26, TextAnchor.MiddleCenter, 46);
+            UiKit.Text(totals, "총 유물 효과   공격력 +" + UiNumber.Format(EffectBonus("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectBonus("health", "Relic")) + "%", 26, TextAnchor.MiddleCenter, 46);
             foreach (var entry in Items("Relic"))
             {
                 var item = entry;
@@ -462,10 +464,10 @@ namespace DoodleIdle
                 CollectionColumnWidth(info, 1.6f);
                 var title = UiKit.Row(info, "Relic name and stage", 34, 5);
                 UiKit.Text(title, item.name, 27, TextAnchor.MiddleLeft, 34);
-                CollectionLabelPill(title, "Lv. " + item.level, new Color(.94f, .90f, .82f), 64, 32, 23);
-                UiKit.Text(info, EffectName(item.effect) + " +" + ItemOwnedValue(item).ToString("0.#") + "% → <color=#216B20>+" + (ItemOwnedValue(item) + collectionTuning.relicStepPercent).ToString("0.#") + "%</color>", 24, TextAnchor.MiddleLeft, 34);
-                UiKit.Text(info, "성공 확률 " + (RelicSuccessChance(item) * 100).ToString("0") + "%", 23, TextAnchor.MiddleLeft, 30);
-                var button = CollectionCoinButton(row, item.discovered ? "강화\n골드 " + RelicUpgradeCost(item).ToString("N0") : "미획득", item.discovered ? "강화" : "미획득", RelicUpgradeCost(item), () =>
+                CollectionLabelPill(title, "Lv. " + UiNumber.Format(item.level), new Color(.94f, .90f, .82f), 64, 32, 23);
+                UiKit.Text(info, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "% → <color=#216B20>+" + UiNumber.Format(ItemOwnedValue(item) + collectionTuning.relicStepPercent) + "%</color>", 24, TextAnchor.MiddleLeft, 34);
+                UiKit.Text(info, "성공 확률 " + UiNumber.Format(RelicSuccessChance(item) * 100, 0) + "%", 23, TextAnchor.MiddleLeft, 30);
+                var button = CollectionCoinButton(row, item.discovered ? "강화\n골드 " + UiNumber.Format(RelicUpgradeCost(item)) : "미획득", item.discovered ? "강화" : "미획득", RelicUpgradeCost(item), () =>
                 {
                     bool success;
                     if (!TryUpgradeRelic(item, out success)) { Toast("강화 골드가 부족하거나 최대 단계입니다."); return; }
@@ -478,7 +480,7 @@ namespace DoodleIdle
             {
                 int attempted = 0, successes = 0;
                 foreach (var item in Items("Relic")) { bool success; if (TryUpgradeRelic(item, out success)) { attempted++; if (success) successes++; } }
-                Save(); RefreshPage(); Toast(attempted == 0 ? "강화 가능한 유물이 없습니다." : attempted + "회 시도 · " + successes + "회 성공");
+                Save(); RefreshPage(); Toast(attempted == 0 ? "강화 가능한 유물이 없습니다." : UiNumber.Format(attempted) + "회 시도 · " + UiNumber.Format(successes) + "회 성공");
             }, UiKit.Blue, 68);
             CollectionButtonText(bulk, 34);
         }
@@ -524,9 +526,10 @@ namespace DoodleIdle
             {
                 var spec = body.Find("Selected equipment/Equipment specification");
                 Layout(spec.parent.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(7, 7, 5, 5));
-                Height(spec, 120);
+                Height(spec, 128);
                 var selected = spec.GetChild(0);
-                Card(selected, 112, false, 0);
+                Height(selected, 128);
+                Width(selected, 96);
                 var info = spec.Find("Item information");
                 Layout(info.GetComponent<VerticalLayoutGroup>(), 3, null);
                 Height(info.GetChild(0), 24); Font(info.GetChild(0).GetComponent<Text>(), 24);
@@ -546,9 +549,8 @@ namespace DoodleIdle
             {
                 Height(body.GetChild(0), 28); Font(body.GetChild(0).GetComponent<Text>(), 25);
                 var slots = body.Find("Equipped " + category);
-                float shortHeight = category == "Skill" ? 56 : 72;
-                Grid(slots.GetComponent<GridLayoutGroup>(), shortHeight);
-                for (int i = 0; i < slots.childCount; i++) Card(slots.GetChild(i), shortHeight, true, i + 1);
+                Columns(slots.GetComponent<GridLayoutGroup>(), category == "Skill" ? 8 : 5);
+                for (int i = 0; i < slots.childCount; i++) EquippedNumber(slots.GetChild(i), i + 1);
                 var ownership = body.Find("Total ownership");
                 Layout(ownership.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(4, 4, 1, 1));
                 var badges = ownership.Find("Ownership badges"); Height(badges, 30);
@@ -564,8 +566,7 @@ namespace DoodleIdle
                 }
             }
             var inventory = body.Find("Collection inventory viewport/Inventory clipping area/Collection inventory");
-            Grid(inventory.GetComponent<GridLayoutGroup>(), 96);
-            foreach (Transform card in inventory) Card(card, 96, false, 0);
+            Columns(inventory.GetComponent<GridLayoutGroup>(), equipment ? 5 : 6);
             Reflow();
         }
 
@@ -591,42 +592,28 @@ namespace DoodleIdle
             rules.Add(shortMode => { layout.spacing = shortMode ? spacing : originalSpacing; layout.padding = shortMode && padding != null ? padding : originalPadding; });
         }
 
-        void Grid(GridLayoutGroup grid, float height)
+        void Width(Transform target, float small)
         {
-            float original = grid.cellSize.y;
-            rules.Add(shortMode => grid.cellSize = new Vector2(grid.cellSize.x, shortMode ? height : original));
+            var element = target.GetComponent<LayoutElement>();
+            float min = element.minWidth, preferred = element.preferredWidth;
+            rules.Add(shortMode => { element.minWidth = shortMode ? small : min; element.preferredWidth = shortMode ? small : preferred; });
         }
 
-        void Card(Transform card, float height, bool equipped, int number)
+        void Columns(GridLayoutGroup grid, int shortColumns)
         {
-            Height(card, height);
-            var label = card.GetChild(0).GetComponent<Text>();
-            var icon = card.GetChild(1) as RectTransform;
-            var gauge = card.Find("Quantity gauge") as RectTransform;
-            var mark = card.Find("Equipped check") as RectTransform;
-            string originalText = label.text;
-            Vector2 labelMin = label.rectTransform.offsetMin, labelMax = label.rectTransform.offsetMax;
-            Vector2 iconMin = icon.offsetMin, iconMax = icon.offsetMax;
-            Vector2 gaugeMin = gauge.offsetMin, gaugeMax = gauge.offsetMax;
-            Vector2 markSize = mark ? mark.sizeDelta : Vector2.zero, markPosition = mark ? mark.anchoredPosition : Vector2.zero;
-            bool gaugeActive = gauge.gameObject.activeSelf;
+            int original = grid.constraintCount;
             rules.Add(shortMode =>
             {
-                label.text = shortMode && equipped ? number.ToString() : originalText;
-                label.rectTransform.offsetMin = shortMode ? new Vector2(6, height - 29) : labelMin;
-                label.rectTransform.offsetMax = shortMode ? new Vector2(-5, -3) : labelMax;
-                icon.offsetMin = shortMode ? new Vector2(equipped ? 22 : 12, equipped ? 4 : 33) : iconMin;
-                icon.offsetMax = shortMode ? new Vector2(equipped ? -18 : -12, equipped ? -4 : -27) : iconMax;
-                gauge.gameObject.SetActive(shortMode && equipped ? false : gaugeActive);
-                gauge.offsetMin = shortMode ? new Vector2(5, 5) : gaugeMin;
-                gauge.offsetMax = shortMode ? new Vector2(-5, -(height - 29)) : gaugeMax;
-                if (mark)
-                {
-                    mark.sizeDelta = shortMode && equipped ? Vector2.one * 22 : markSize;
-                    mark.anchoredPosition = shortMode && equipped ? new Vector2(-13, -13) : markPosition;
-                }
+                grid.constraintCount = shortMode ? shortColumns : original;
+                UiKit.PortraitGrid((RectTransform)grid.transform);
             });
-            if (equipped) Font(label, 17);
+        }
+
+        void EquippedNumber(Transform card, int number)
+        {
+            var label = card.GetChild(0).GetComponent<Text>();
+            string originalText = label.text;
+            rules.Add(shortMode => label.text = shortMode ? UiNumber.Format(number) : originalText);
         }
 
         void LateUpdate() => Reflow();
