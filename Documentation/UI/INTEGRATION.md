@@ -30,4 +30,3 @@ Only the DoodleUi.* PlayerPrefs keys belong to this feature. Gold, diamonds, col
 Run only .github/workflows/doodle-idle-tests.yml on GitHub-hosted Ubuntu. The current task never starts local Unity, play mode, a game or local tests. Existing combat tests remain, plus native UI interaction tests and actual URP raster captures at720x1520,720x1280,900x900,1440x900. The action uploads NUnit XML, editor logs and artifacts/screenshots. Visual geometry errors do not suppress captures; the final capture test still fails until fixed.
 
 Latest commit/run status and remaining work are recorded in PROGRESS.md. A successful compile is not a completed visual review.
-
