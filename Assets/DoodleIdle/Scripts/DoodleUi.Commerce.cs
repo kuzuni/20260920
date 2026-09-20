@@ -622,7 +622,10 @@ namespace DoodleIdle
                 resultGrid.cellSize = new Vector2(cellWidth, cellHeight);
                 int rows = Mathf.CeilToInt(resultCount / 5f);
                 float occupied = 58 + 10 + rows * cellHeight + Mathf.Max(0, rows - 1) * resultGrid.spacing.y + 8;
-                int topPadding = 4 + Mathf.RoundToInt(Mathf.Max(0, viewport.rect.height - occupied) * .5f);
+                // Canvas scale conversion can land on either side of a half-unit rounding tie.
+                // Normalize that noise so identical portrait layouts keep identical row placement.
+                float spareHeight = Mathf.Round(Mathf.Max(0, viewport.rect.height - occupied) * 100) / 100;
+                int topPadding = 4 + Mathf.RoundToInt(spareHeight * .5f);
                 if (bodyLayout.padding.top != topPadding)
                     bodyLayout.padding = new RectOffset(bodyLayout.padding.left, bodyLayout.padding.right, topPadding, bodyLayout.padding.bottom);
 

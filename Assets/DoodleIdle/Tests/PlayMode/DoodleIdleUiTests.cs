@@ -613,8 +613,18 @@ namespace DoodleIdle.Tests
         {
             // Progress and randomly summoned items change between resolution passes.
             // Keep frames, icons and labels; omit data-dependent fill lengths and ownership decorations.
-            if (node.name == "Fill" || node.name == "Equipped check" || node.name == "Locked padlock") return;
+            if (node.name == "Fill" || node.name == "Scroll thumb" || node.name == "Equipped check" || node.name == "Locked padlock") return;
             geometry[path] = UiLocalBounds(origin, node);
+            // These centered text/icon groups fit their current Lv/XP/price strings. The
+            // values and font advance rounding can change across captures; their row bounds
+            // and icon dimensions, rather than text-dependent offsets, must remain fixed.
+            if (node.name == "Summon progress summary" || node.name == "DiamondCost")
+            {
+                int index = 0;
+                foreach (var icon in node.GetComponentsInChildren<Image>().Where(image => image.name.StartsWith("Icon: ")))
+                    geometry[path + "/icon/" + index++] = new Rect(Vector2.zero, icon.rectTransform.rect.size);
+                return;
+            }
             for (int i = 0; i < node.childCount; i++)
                 if (node.GetChild(i) is RectTransform child)
                     CaptureReferenceTree(origin, child, path + "/" + i, geometry);
