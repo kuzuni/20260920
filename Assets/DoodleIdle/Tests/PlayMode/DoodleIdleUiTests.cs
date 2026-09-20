@@ -400,6 +400,7 @@ namespace DoodleIdle.Tests
             string file = "ui-" + size.x + "x" + size.y + "-" + state + ".png";
             var rewardCards = new List<RectInt>();
             var rewardRays = new List<RectInt>();
+            RectInt? popupPixels = null;
             var frame = CaptureFrame(file, size.x, size.y, true, () =>
             {
                 if (bottom)
@@ -493,6 +494,8 @@ namespace DoodleIdle.Tests
                     rewardCards.Add(UiPixelBounds(card, size));
                 foreach (var rays in UiRoot.GetComponentsInChildren<DoodleRewardRays>())
                     rewardRays.Add(UiPixelBounds(rays.rectTransform, size));
+                var topWindow = UiRoot.GetComponentsInChildren<DoodleUiWindow>().LastOrDefault();
+                if (topWindow && !topWindow.full) popupPixels = UiPixelBounds((RectTransform)topWindow.transform, size);
             });
             var pixels = frame.GetPixels32();
             if (state == "24-dungeon-clear" || state == "25-rewards" || state == "25b-rewards-multiple")
@@ -527,12 +530,11 @@ namespace DoodleIdle.Tests
             }
             else
             {
-                var topWindow = UiRoot.GetComponentsInChildren<DoodleUiWindow>().LastOrDefault();
-                if (topWindow && !topWindow.full)
+                if (popupPixels.HasValue)
                 {
                     // A uniformly fitted detail popup deliberately occupies less screen area.
                     // Inspect its actual pixels rather than requiring it to fill the landscape screen.
-                    var region = UiPixelBounds((RectTransform)topWindow.transform, size);
+                    var region = popupPixels.Value;
                     int cream = 0, ink = 0;
                     for (int y = region.yMin; y < region.yMax; y++) for (int x = region.xMin; x < region.xMax; x++)
                     {
