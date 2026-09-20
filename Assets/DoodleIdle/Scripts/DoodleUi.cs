@@ -195,7 +195,7 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(ActivePage))return;
             bool full=ActivePage=="Chat";
             var dim=Dim(pageLayer,"Dim: "+ActivePage,()=>ClosePage(),full?1:.30f);
-            var body=Window(dim,Title(ActivePage),full,()=>ClosePage()); BuildPage(body); Relayout(true);
+            var body=Window(dim,Title(ActivePage),full,()=>ClosePage(),Array.IndexOf(pages,ActivePage)>=0); BuildPage(body); Relayout(true);
         }
         static string Title(string id)
         {
@@ -213,7 +213,7 @@ namespace DoodleIdle
         {
             var dim=UiKit.Rect(parent,name); UiKit.Stretch(dim); var im=dim.gameObject.AddComponent<Image>(); im.color=new Color(.03f,.025f,.015f,alpha); dim.gameObject.AddComponent<Button>().onClick.AddListener(()=>close()); return dim;
         }
-        RectTransform Window(RectTransform dim,string title,bool full,Action close)
+        RectTransform Window(RectTransform dim,string title,bool full,Action close,bool bottomNavigation=false)
         {
             var panel=UiKit.Box(dim,"Panel: "+title,UiKit.Paper); panel.GetComponent<LayoutElement>().ignoreLayout=true;
             float w=Mathf.Min(610,safe.rect.width-44),h=Mathf.Min(940,Mathf.Max(200,safe.rect.height-215));
@@ -233,23 +233,20 @@ namespace DoodleIdle
             var railImage=rail.gameObject.AddComponent<Image>();railImage.sprite=UiKit.Frame;railImage.type=Image.Type.Sliced;railImage.color=new Color(.83f,.83f,.8f);
             var handle=UiKit.Rect(rail,"Scroll thumb");UiKit.Stretch(handle);var handleImage=handle.gameObject.AddComponent<Image>();handleImage.sprite=UiKit.Frame;handleImage.type=Image.Type.Sliced;handleImage.color=UiKit.Green;
             var scrollbar=rail.gameObject.AddComponent<Scrollbar>();scrollbar.direction=Scrollbar.Direction.BottomToTop;scrollbar.handleRect=handle;scrollbar.targetGraphic=handleImage;scroll.verticalScrollbar=scrollbar;scroll.verticalScrollbarVisibility=ScrollRect.ScrollbarVisibility.AutoHide;
-            var responsive=panel.gameObject.AddComponent<DoodleUiWindow>(); responsive.full=full; responsive.content=content; responsive.inner=inner; responsive.viewport=viewport;responsive.rail=rail;responsive.titleText=titleText;responsive.closeButton=(RectTransform)x.transform; SetWindowProfile(responsive,title);responsive.Reflow(safe);
+            var responsive=panel.gameObject.AddComponent<DoodleUiWindow>(); responsive.full=full;responsive.bottomNavigation=bottomNavigation; responsive.content=content; responsive.inner=inner; responsive.viewport=viewport;responsive.rail=rail;responsive.titleText=titleText;responsive.closeButton=(RectTransform)x.transform; SetWindowProfile(responsive,title);responsive.Reflow(safe);
             var motion=panel.gameObject.AddComponent<DoodlePopupMotion>();if(!rebuildingPage)motion.Open();
             return content;
         }
         static void SetWindowProfile(DoodleUiWindow window,string title)
         {
-            // Measurements from the committed designs, normalized to a 720-wide canvas.
+            // Bottom navigation panels share the user's final RectTransform specification.
+            // Secondary/service windows retain their individual reference measurements.
+            if(window.bottomNavigation) {
+                window.maxWidth=679.9417f;window.maxHeight=1232.817f;
+                if(title=="스탯")window.headerHeight=90;
+                return;
+            }
             switch(title) {
-                case "스탯": window.maxWidth=576;window.maxHeight=1010;window.centerFromTop=.442f;window.headerHeight=90;break;
-                case "장비": window.maxWidth=568;window.maxHeight=856;window.centerFromTop=.480f;break;
-                case "스킨": window.maxWidth=568;window.maxHeight=856;window.centerFromTop=.480f;break;
-                case "스킬": window.maxWidth=552;window.maxHeight=1008;window.centerFromTop=.515f;break;
-                case "동료": window.maxWidth=582;window.maxHeight=866;window.centerFromTop=.494f;break;
-                case "유물": window.maxWidth=568;window.maxHeight=880;window.centerFromTop=.484f;break;
-                case "던전": window.maxWidth=588;window.maxHeight=820;window.centerFromTop=.48f;break;
-                case "PVP": window.maxWidth=574;window.maxHeight=925;window.centerFromTop=.47f;break;
-                case "상점": window.maxWidth=570;window.maxHeight=1010;window.centerFromTop=.49f;break;
                 case "뽑기 확률": case "뽑기 확률 안내": window.maxWidth=570;window.maxHeight=1110;window.centerFromTop=.52f;break;
                 case "출석 보상": case "룰렛": window.maxWidth=576;window.maxHeight=865;window.centerFromTop=.49f;break;
                 case "버프": window.maxWidth=558;window.maxHeight=860;window.centerFromTop=.49f;break;
@@ -331,7 +328,7 @@ namespace DoodleIdle
     }
     public sealed class DoodleUiWindow : MonoBehaviour
     {
-        public bool full;
+        public bool full,bottomNavigation;
         public float maxWidth=570,maxHeight=880,centerFromTop=.5f,headerHeight=80;
         public int titleSize=48;
         public RectTransform content,inner,footer,viewport,rail,closeButton;
@@ -341,6 +338,11 @@ namespace DoodleIdle
             var panel=(RectTransform)transform;
             float width=maxWidth;
             if(full) { UiKit.Stretch(panel); inner.anchorMin=safe.anchorMin;inner.anchorMax=safe.anchorMax;inner.offsetMin=inner.offsetMax=Vector2.zero; width=Mathf.Min(802,safe.rect.width); }
+            else if(bottomNavigation) {
+                panel.anchorMin=panel.anchorMax=panel.pivot=Vector2.one*.5f;
+                panel.sizeDelta=new Vector2(width,maxHeight);
+                panel.anchoredPosition=new Vector2(0,33.8761f);
+            }
             else {
                 float height=safe.rect.height;
                 panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,maxHeight);

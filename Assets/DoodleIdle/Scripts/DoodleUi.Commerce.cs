@@ -101,9 +101,8 @@ namespace DoodleIdle
         void BuildShop(RectTransform body)
         {
             if (summonStates.Count == 0) InitCommerce();
-            body.GetComponent<VerticalLayoutGroup>().spacing = 8;
             var window = body.GetComponentInParent<DoodleUiWindow>();
-            if (window) { window.maxWidth = 570; window.maxHeight = shopTab == 0 ? 1010 : 880; }
+            body.GetComponent<VerticalLayoutGroup>().spacing = 8;
             var tabs = UiKit.Row(body, "ShopTabs", 64, 2);
             CommerceButtonText(UiKit.Button(tabs, "뽑기", () => { shopTab = 0; RefreshPage(); }, shopTab == 0 ? UiKit.Yellow : UiKit.Paper, 64), 35);
             CommerceButtonText(UiKit.Button(tabs, "재화", () => { shopTab = 1; RefreshPage(); }, shopTab == 1 ? UiKit.Blue : UiKit.Paper, 64), 35);

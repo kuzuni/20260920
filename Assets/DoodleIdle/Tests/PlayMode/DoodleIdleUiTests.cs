@@ -635,6 +635,7 @@ namespace DoodleIdle.Tests
             foreach (var window in UiRoot.GetComponentsInChildren<DoodleUiWindow>().Where(w => !w.full))
             {
                 var panel = (RectTransform)window.transform;
+                if (IsMainNavigationPopup(window)) AssertMainNavigationPopupRect(panel, context);
                 string key = state + "/" + panel.name;
                 var geometry = new Dictionary<string, Rect> { { "panel", panel.rect } };
                 foreach (var icon in panel.GetComponentsInChildren<Image>().Where(i => i.name.StartsWith("Icon: ")))
@@ -696,10 +697,35 @@ namespace DoodleIdle.Tests
             }
         }
 
+        bool IsMainNavigationPopup(DoodleUiWindow window)
+        {
+            return window.transform.IsChildOf(UiNode("Primary modal layer")) && new[]
+            {
+                "Panel: 스탯", "Panel: 장비", "Panel: 스킬", "Panel: 동료", "Panel: 유물",
+                "Panel: 스킨", "Panel: 던전", "Panel: PVP", "Panel: 상점"
+            }.Contains(window.name);
+        }
+
+        static void AssertMainNavigationPopupRect(RectTransform panel, string context)
+        {
+            string label = context + " " + panel.name;
+            var center = new Vector2(.5f, .5f);
+            Assert.That(panel.anchorMin, Is.EqualTo(center), label + " centered minimum anchor");
+            Assert.That(panel.anchorMax, Is.EqualTo(center), label + " centered maximum anchor");
+            Assert.That(panel.pivot, Is.EqualTo(center), label + " centered pivot");
+            Assert.That(panel.anchoredPosition.x, Is.EqualTo(0).Within(.001f), label + " requested X");
+            Assert.That(panel.anchoredPosition.y, Is.EqualTo(33.8761f).Within(.001f), label + " requested Y");
+            Assert.That(panel.sizeDelta.x, Is.EqualTo(679.9417f).Within(.001f), label + " requested width");
+            Assert.That(panel.sizeDelta.y, Is.EqualTo(1232.817f).Within(.001f), label + " requested height");
+            Assert.That(panel.rect.width, Is.EqualTo(679.9417f).Within(.001f), label + " actual width");
+            Assert.That(panel.rect.height, Is.EqualTo(1232.817f).Within(.001f), label + " actual height");
+            Assert.That(Vector3.Distance(panel.localScale, Vector3.one), Is.LessThan(.001f), label + " settled local scale");
+        }
+
         void AssertReferenceProportions(string state, string context)
         {
-            // Broad measured bands from FinalDesign, independent of runtime layout constants.
-            // These guard against returning to tiny navigation, generic oversized panels and empty result pages.
+            // HUD bands retain the original design. Main popup dimensions follow the user's
+            // later exact RectTransform specification, independent of runtime layout constants.
             var canvas = (RectTransform)UiRoot;
             if (state == "01-main")
             {
@@ -711,15 +737,13 @@ namespace DoodleIdle.Tests
                 var mission = (RectTransform)UiNode("Mission");
                 Assert.That(mission.rect.height, Is.InRange(174f, 194f), context + " mission card must also fit its explicit reward button");
             }
-            if (state == "02-stats" || state == "04-club" || state == "05-skills" || state == "06-dungeons")
+            foreach (var window in UiRoot.GetComponentsInChildren<DoodleUiWindow>().Where(IsMainNavigationPopup))
             {
-                var window = UiRoot.GetComponentsInChildren<DoodleUiWindow>().Last();
                 var bounds = UiLocalBounds(canvas, (RectTransform)window.transform);
-                Assert.That(bounds.width / canvas.rect.width, Is.InRange(.75f, .83f), context + " reference panel width");
-                bool fiveStatOrSkill=state=="02-stats"||state=="05-skills";
-                Assert.That(bounds.height, Is.InRange(fiveStatOrSkill ? 970f : 790f, fiveStatOrSkill ? 1040f : 900f), context + " reference panel height with five growth stats");
-                float center = (canvas.rect.yMax - bounds.center.y) / canvas.rect.height;
-                Assert.That(center, Is.InRange(.41f, .54f), context + " reference panel placement");
+                Assert.That(bounds.width, Is.EqualTo(679.9417f).Within(.01f), context + " specified panel width");
+                Assert.That(bounds.height, Is.EqualTo(1232.817f).Within(.01f), context + " specified panel height");
+                Assert.That(bounds.center.x, Is.EqualTo(0).Within(.01f), context + " specified panel horizontal center");
+                Assert.That(bounds.center.y, Is.EqualTo(33.8761f).Within(.01f), context + " specified panel vertical center");
             }
         }
 

@@ -158,8 +158,6 @@ namespace DoodleIdle
         {
             InitSkins();
             body.GetComponent<VerticalLayoutGroup>().spacing = 8;
-            var window = body.GetComponentInParent<DoodleUiWindow>();
-            if (window) { window.maxWidth = 570; window.maxHeight = 1000; }
             var list = skinCatalog.FindAll(x => x.category == skinCategory);
             string selectedId = skinCategory == "Weapon" ? selectedWeaponSkin : selectedAppearanceSkin;
             var selected = list.Find(x => x.id == selectedId) ?? list[0];
