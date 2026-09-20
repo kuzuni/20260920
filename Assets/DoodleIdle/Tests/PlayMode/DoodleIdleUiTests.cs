@@ -362,6 +362,7 @@ namespace DoodleIdle.Tests
                         Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), file + " equipment spec scrolled away after tab switch");
                     }
                     AssertUiGeometry(file);
+                    if (size.x == 720 && size.y == 1520) AssertReferenceProportions(state, file);
                     if (state == "07b-pvp-bottom")
                     {
                         var lastRank = (RectTransform)UiNode("Rank 100");
@@ -431,6 +432,32 @@ namespace DoodleIdle.Tests
             int right = Mathf.Clamp(Mathf.CeilToInt((bounds.xMax - area.xMin) / area.width * size.x), 0, size.x);
             int top = Mathf.Clamp(Mathf.CeilToInt((bounds.yMax - area.yMin) / area.height * size.y), 0, size.y);
             return new RectInt(left, bottom, right - left, top - bottom);
+        }
+
+        void AssertReferenceProportions(string state, string context)
+        {
+            // Broad measured bands from FinalDesign, independent of runtime layout constants.
+            // These guard against returning to tiny navigation, generic oversized panels and empty result pages.
+            var canvas = (RectTransform)UiRoot;
+            if (state == "01-main")
+            {
+                var nav = (RectTransform)UiNode("Bottom navigation");
+                var bounds = UiLocalBounds(canvas, nav);
+                Assert.That(bounds.height, Is.InRange(138f, 158f), context + " reference navigation height");
+                var dock = (RectTransform)UiNode("Eight equipped cooldowns");
+                Assert.That(dock.rect.height, Is.InRange(78f, 90f), context + " reference cooldown diameter");
+                var mission = (RectTransform)UiNode("Mission");
+                Assert.That(mission.rect.height, Is.InRange(130f, 155f), context + " reference mission card height");
+            }
+            if (state == "02-stats" || state == "04-club" || state == "05-skills" || state == "06-dungeons")
+            {
+                var window = UiRoot.GetComponentsInChildren<DoodleUiWindow>().Last();
+                var bounds = UiLocalBounds(canvas, (RectTransform)window.transform);
+                Assert.That(bounds.width / canvas.rect.width, Is.InRange(.75f, .83f), context + " reference panel width");
+                Assert.That(bounds.height, Is.InRange(state == "05-skills" ? 970f : 790f, state == "05-skills" ? 1040f : 900f), context + " reference panel height");
+                float center = (canvas.rect.yMax - bounds.center.y) / canvas.rect.height;
+                Assert.That(center, Is.InRange(.41f, .54f), context + " reference panel placement");
+            }
         }
 
         void AssertUiGeometry(string context)

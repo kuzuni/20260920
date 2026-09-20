@@ -42,6 +42,7 @@ namespace DoodleIdle
             public Func<string> value;
             public Image fill;
             public Func<float> fraction;
+            public Action refresh;
         }
 
         sealed class LocalRank
@@ -109,7 +110,9 @@ namespace DoodleIdle
             Application.targetFrameRate = services.powerSaving ? 30 : 60;
             ApplyServiceAudioSettings();
             localMessages.Add(new LocalMessage { author = "구름발 · 예시", art = "StormCloud", content = "안녕하세요! 이 화면은 로컬 채팅 예시입니다." });
+            localMessages.Add(new LocalMessage { author = "내 메시지 · 예시", art = "Player", content = "안녕하세요!", self = true });
             localMessages.Add(new LocalMessage { author = "버섯대장 · 예시", art = "MushroomA", content = "입력한 메시지는 이 기기에서만 표시돼요." });
+            localMessages.Add(new LocalMessage { author = "내 메시지 · 예시", art = "Player", content = "직접 입력해 볼게요.", self = true });
             SaveServices();
         }
 
@@ -163,6 +166,7 @@ namespace DoodleIdle
                 var binding = serviceBindings[i];
                 if (!binding.text) { serviceBindings.RemoveAt(i); continue; }
                 binding.text.text = binding.value();
+                binding.refresh?.Invoke();
                 if (binding.fill && binding.fraction != null) binding.fill.fillAmount = Mathf.Clamp01(binding.fraction());
             }
             if (Time.unscaledTime >= nextServiceSave)
@@ -205,7 +209,7 @@ namespace DoodleIdle
         {
             UiKit.Text(body, "7일 출석", 27, TextAnchor.MiddleCenter, 38);
             UiKit.Text(body, "매일 UTC 00:00 초기화", 18, TextAnchor.MiddleCenter, 26);
-            var grid = UiKit.Grid(body, "Attendance days", 3, 155);
+            var grid = UiKit.Grid(body, "Attendance days", 3, 195);
             for (int i = 0; i < 6; i++) AttendanceCard(grid, i);
             AttendanceCard(body, 6);
             var claim = UiKit.Button(body, services.attendanceDay == services.day ? "오늘 보상 받음" : "오늘 보상 받기", ClaimAttendance, UiKit.Blue, 60);
@@ -216,12 +220,21 @@ namespace DoodleIdle
         {
             bool claimed = index < services.attendanceIndex;
             bool current = index == services.attendanceIndex;
-            var card = ServiceCard(parent, "Attendance day " + (index + 1), claimed ? UiKit.Green : current ? UiKit.Yellow : UiKit.Paper);
-            UiKit.Text(card, (index + 1) + "일차", 22, TextAnchor.MiddleCenter, 30);
-            var line = UiKit.Row(card, "Reward", 48);
-            UiKit.Icon(line, "Diamond", 45);
-            UiKit.Text(line, serviceTuning.attendance[index].ToString("N0"), 23, TextAnchor.MiddleCenter, 44);
-            UiKit.Text(card, claimed ? "받음" : current ? "오늘" : "대기 중", 20, TextAnchor.MiddleCenter, 28);
+            var card = UiKit.Box(parent, "Attendance day " + (index + 1), claimed ? new Color(.91f,.96f,.85f) : current ? new Color(1,.97f,.83f) : new Color(.93f,.93f,.93f), index == 6 ? 182 : 195);
+            var day = UiKit.Text(card, (index + 1) + "일차", 27, TextAnchor.MiddleCenter, 36);
+            day.rectTransform.anchorMin = new Vector2(0,1); day.rectTransform.anchorMax = Vector2.one; day.rectTransform.pivot = new Vector2(.5f,1); day.rectTransform.anchoredPosition = new Vector2(0,-8); day.rectTransform.sizeDelta = new Vector2(-12,36);
+            var gem = UiKit.Icon(card, "Diamond", index == 6 ? 66 : 70).rectTransform;
+            gem.anchorMin = gem.anchorMax = new Vector2(.5f,.57f); gem.anchoredPosition = Vector2.zero;
+            if(index == 6) {
+                gem.anchoredPosition = new Vector2(0,1);
+                foreach(float side in new[]{-1f,1f}) { var extra = UiKit.Icon(card,"Diamond",50).rectTransform; extra.anchorMin=extra.anchorMax=new Vector2(.5f,.57f);extra.anchoredPosition=new Vector2(side*44,-5);extra.localRotation=Quaternion.Euler(0,0,side*-17); }
+                gem.SetAsLastSibling();
+            }
+            var amount = UiKit.Text(card, serviceTuning.attendance[index].ToString("N0"), 25, TextAnchor.MiddleCenter, 32);
+            amount.rectTransform.anchorMin = new Vector2(0,0); amount.rectTransform.anchorMax = new Vector2(1,0); amount.rectTransform.pivot = new Vector2(.5f,0); amount.rectTransform.anchoredPosition = new Vector2(0,40); amount.rectTransform.sizeDelta = new Vector2(-8,32);
+            var strip = UiKit.Box(card,"Attendance status",claimed ? new Color(.77f,.88f,.66f) : current ? UiKit.Yellow : new Color(.82f,.82f,.82f));
+            strip.anchorMin=Vector2.zero;strip.anchorMax=new Vector2(1,0);strip.pivot=new Vector2(.5f,0);strip.anchoredPosition=new Vector2(0,3);strip.sizeDelta=new Vector2(-6,36);strip.GetComponent<Outline>().enabled=false;
+            var status = UiKit.Text(strip, claimed ? "✓ 받음" : current ? "오늘" : "대기 중", 24, TextAnchor.MiddleCenter, 36); UiKit.Stretch(status.rectTransform,3,1,3,1);
         }
 
         public void ClaimAttendance()
@@ -242,33 +255,35 @@ namespace DoodleIdle
         void BuildRoulette(RectTransform body)
         {
             DoodleRouletteLayout responsive = null;
-            var remaining = ServiceText(body, () => "오늘 남은 횟수 " + Math.Max(0, serviceTuning.dailySpins - services.spins) + "/" + serviceTuning.dailySpins + (responsive && responsive.Compact ? " · 각 칸 12.5%" : ""), 25, 40);
+            var countBadge=UiKit.Box(body,"Roulette attempts",new Color(1,.97f,.87f),54);
+            var remaining = ServiceText(countBadge, () => "오늘 남은 횟수 " + Math.Max(0, serviceTuning.dailySpins - services.spins) + "/" + serviceTuning.dailySpins + (responsive && responsive.Compact ? " · 각 칸 12.5%" : ""), 29, 54);UiKit.Stretch(remaining.rectTransform,6,2,6,2);
             var odds = UiKit.Text(body, "하루 5회 · 각 칸 확률 12.5%", 18, TextAnchor.MiddleCenter, 28);
             var holder = new GameObject("Roulette area", typeof(RectTransform), typeof(LayoutElement)).GetComponent<RectTransform>();
             holder.SetParent(body, false); UiKit.Height(holder, 340);
             var wheel = new GameObject("Roulette wheel", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRouletteGraphic)).GetComponent<RectTransform>();
-            wheel.SetParent(holder, false); wheel.anchorMin = wheel.anchorMax = new Vector2(.5f, .5f); wheel.sizeDelta = new Vector2(320, 320);
+            wheel.SetParent(holder, false); wheel.anchorMin = wheel.anchorMax = new Vector2(.5f, .5f); wheel.sizeDelta = new Vector2(480, 480);
             wheel.GetComponent<DoodleRouletteGraphic>().raycastTarget = false;
             for (int i = 0; i < serviceTuning.roulette.Length; i++)
             {
                 float angle = (90 - (i + .5f) * 45) * Mathf.Deg2Rad;
                 var reward = new GameObject("Wheel reward " + i, typeof(RectTransform)).GetComponent<RectTransform>();
-                reward.SetParent(wheel, false); reward.anchorMin = reward.anchorMax = Vector2.one * .5f; reward.sizeDelta = new Vector2(68, 58);
-                reward.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 112;
-                var icon = UiKit.Icon(reward, "Diamond", 34).rectTransform;
+                reward.SetParent(wheel, false); reward.anchorMin = reward.anchorMax = Vector2.one * .5f; reward.sizeDelta = new Vector2(86, 82);
+                reward.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 169;
+                var icon = UiKit.Icon(reward, "Diamond", 54).rectTransform;
                 icon.anchorMin = icon.anchorMax = new Vector2(.5f, .7f); icon.anchoredPosition = Vector2.zero;
-                var number = UiKit.Text(reward, serviceTuning.roulette[i].ToString(), 19, TextAnchor.MiddleCenter, 24).rectTransform;
+                var number = UiKit.Text(reward, serviceTuning.roulette[i].ToString(), 27, TextAnchor.MiddleCenter, 32).rectTransform;
                 number.anchorMin = new Vector2(0, 0); number.anchorMax = new Vector2(1, .38f); number.offsetMin = number.offsetMax = Vector2.zero;
             }
             var pointer = new GameObject("Roulette pointer", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRoulettePointer)).GetComponent<RectTransform>();
             pointer.SetParent(holder, false);
             pointer.anchorMin = pointer.anchorMax = new Vector2(.5f, 1); pointer.pivot = new Vector2(.5f, 1); pointer.sizeDelta = new Vector2(45, 45); pointer.anchoredPosition = Vector2.zero;
             pointer.GetComponent<DoodleRoulettePointer>().raycastTarget = false;
-            var spin = UiKit.Button(body, rouletteSpinning ? "돌리는 중" : "돌리기", () => StartCoroutine(SpinRoulette(wheel)), UiKit.Blue, 60);
+            var paw = ServiceSymbol(wheel,"Paw",52); paw.anchorMin=paw.anchorMax=Vector2.one*.5f;paw.anchoredPosition=Vector2.zero;
+            var spin = UiKit.Button(body, rouletteSpinning ? "돌리는 중" : "돌리기", () => StartCoroutine(SpinRoulette(wheel)), UiKit.Blue, 90);
             spin.interactable = !rouletteSpinning && services.spins < serviceTuning.dailySpins;
             responsive = holder.gameObject.AddComponent<DoodleRouletteLayout>();
             responsive.viewport = body.parent as RectTransform; responsive.body = body; responsive.wheel = wheel; responsive.pointer = pointer;
-            responsive.remaining = remaining; responsive.odds = odds; responsive.spin = spin; responsive.Reflow();
+            responsive.remaining = remaining; responsive.counter=countBadge; responsive.odds = odds; responsive.spin = spin; responsive.Reflow();
         }
 
         IEnumerator SpinRoulette(RectTransform wheel)
@@ -299,17 +314,17 @@ namespace DoodleIdle
         void BuildBuffCard(Transform body, bool attack)
         {
             var card = ServiceCard(body, attack ? "Attack buff" : "Gold buff", UiKit.Paper);
-            var row = UiKit.Row(card, "Buff", 94);
-            UiKit.Icon(row, attack ? "Club" : "Gold", 84);
+            var row = UiKit.Row(card, "Buff", 183,16);
+            UiKit.Icon(row, attack ? "Club" : "Gold", 136);
             var description = UiKit.Column(row, "Buff description", 4, 0);
-            UiKit.Text(description, attack ? "공격력 버프" : "골드 버프", 27, TextAnchor.MiddleLeft, 38);
-            UiKit.Text(description, (attack ? "공격력 +" : "골드 획득 +") + ((attack ? serviceTuning.attackBuff : serviceTuning.goldBuff) * 100).ToString("0") + "%", 23, TextAnchor.MiddleLeft, 32);
-            ServiceText(card, () => (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "활성화 중 · 남은 시간 " + ServiceClock(attack ? AttackBuffSeconds : GoldBuffSeconds) : "비활성", 22, 34);
-            ServiceGauge(card, () => attack ? AttackBuffSeconds : GoldBuffSeconds, () => serviceTuning.buffSeconds, true);
-            UiKit.Button(card, (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "시간 연장" : "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 54);
-            var cost = UiKit.Row(card, "Buff cost", 32);
-            UiKit.Icon(cost, "Diamond", 28);
-            UiKit.Text(cost, serviceTuning.buffPrice + " · " + (serviceTuning.buffSeconds / 60) + "분", 20, TextAnchor.MiddleCenter, 30);
+            UiKit.Text(description, attack ? "공격력 버프" : "골드 버프", 34, TextAnchor.MiddleLeft, 47);
+            UiKit.Text(description, (attack ? "공격력 +" : "골드 획득 +") + ((attack ? serviceTuning.attackBuff : serviceTuning.goldBuff) * 100).ToString("0") + "%", 27, TextAnchor.MiddleLeft, 38);
+            var badge=UiKit.Box(description,"Buff status",(attack ? AttackBuffSeconds : GoldBuffSeconds)>0?UiKit.Green:new Color(.88f,.88f,.88f),34); badge.GetComponent<Outline>().enabled=false;
+            var status=ServiceText(badge,()=> (attack ? AttackBuffSeconds : GoldBuffSeconds)>0?"활성화 중":"비활성",24,34);UiKit.Stretch(status.rectTransform);
+            ServiceText(description, () => "남은 시간 " + ServiceClock(attack ? AttackBuffSeconds : GoldBuffSeconds), 24, 34).alignment=TextAnchor.MiddleLeft;
+            ServiceGauge(card, () => attack ? AttackBuffSeconds : GoldBuffSeconds, () => serviceTuning.buffSeconds, true, true);
+            UiKit.Button(card, (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "시간 연장" : "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
+            UiKit.Text(card, "다이아 " + serviceTuning.buffPrice + " · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
         }
 
         public void ExtendBuff(bool attack)
@@ -321,18 +336,18 @@ namespace DoodleIdle
             Diamonds -= serviceTuning.buffPrice; Save(); RefreshPage();
         }
 
-        void ServiceGauge(Transform parent, Func<int> current, Func<int> maximum, bool clock = false)
+        void ServiceGauge(Transform parent, Func<int> current, Func<int> maximum, bool clock = false, bool separate = false)
         {
-            var frame = UiKit.Box(parent, "Live progress gauge", new Color(.82f, .82f, .79f), 26);
+            var frame = UiKit.Box(parent, "Live progress gauge", new Color(.82f, .82f, .79f), separate ? 19 : 26);
             var fill = new GameObject("Progress fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             fill.transform.SetParent(frame, false); fill.color = UiKit.Green; fill.raycastTarget = false;
             fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Horizontal;
             // Filled Image requires a sprite. WhiteTexture provides a plain stretchable fill.
             fill.sprite = ServiceSolidSprite;
             var rect = fill.rectTransform; rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = Vector2.one * 3; rect.offsetMax = Vector2.one * -3;
-            var label = UiKit.Text(frame, "", 18, TextAnchor.MiddleCenter, 26);
-            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one; label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
-            Func<string> value = () => clock ? ServiceClock(current()) : Math.Min(current(), maximum()).ToString("N0") + "/" + maximum().ToString("N0");
+            var label = UiKit.Text(separate && !clock ? parent : frame, "", separate ? 22 : 18, separate ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, separate ? 27 : 26);
+            if(!separate || clock) UiKit.Stretch(label.rectTransform);
+            Func<string> value = () => clock ? (separate ? "" : ServiceClock(current())) : Math.Min(current(), maximum()).ToString("N0") + "/" + maximum().ToString("N0");
             Func<float> fraction = () => current() / (float)Math.Max(1, maximum());
             label.text = value(); fill.fillAmount = Mathf.Clamp01(fraction());
             serviceBindings.Add(new ServiceBinding { text = label, value = value, fill = fill, fraction = fraction });
@@ -351,11 +366,11 @@ namespace DoodleIdle
         void BuildQuests(RectTransform body)
         {
             ServiceText(body, QuestResetLabel, 20, 34);
-            var tabs = UiKit.Row(body, "Quest tabs", 50);
+            var tabs = UiKit.Row(body, "Quest tabs", 60);
             string[] names = { "일일", "반복", "주간" };
-            for (int i = 0; i < 3; i++) { int tab = i; UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : UiKit.Paper); }
+            for (int i = 0; i < 3; i++) { int tab = i; UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : new Color(.92f,.92f,.92f),60); }
             for (int i = 0; i < 4; i++) QuestCard(body, i);
-            UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 58);
+            UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);
         }
 
         string QuestResetLabel()
@@ -374,20 +389,21 @@ namespace DoodleIdle
         {
             int tab = questTab, metric = QuestMetrics[tab][index], goal = QuestGoal(tab, index);
             var card = ServiceCard(parent, "Quest " + tab + " " + index, UiKit.Paper);
-            var row = UiKit.Row(card, "Quest summary", 100);
-            string[] icons = { "BatA", "Gold", "Dungeon", "Roulette", "Club", "Banana", "Club", "Diamond" };
-            UiKit.Icon(row, icons[metric], 54);
-            var text = UiKit.Column(row, "Quest text", 5, 0); UiKit.Flexible(text, 3);
+            var row = UiKit.Row(card, "Quest summary", 102,8);
+            string[] icons = { "BatA", "Gold", "Dungeon", "Roulette", "Pvp", "Banana", "Pvp", "Roulette" };
+            UiKit.Icon(row, icons[metric], 64);
+            var text = UiKit.Column(row, "Quest text", 3, 0); UiKit.Flexible(text, 1);
             string[] labels = { "적 {0}마리 처치", "골드 {0} 획득", "던전 {0}회 도전", "룰렛 {0}회 돌리기", "장비 {0}회 강화", "스킬 {0}회 강화", "PVP {0}회 도전", "뽑기 {0}회 진행" };
-            UiKit.Text(text, string.Format(labels[metric], goal.ToString("N0")), 20, TextAnchor.MiddleLeft, 42);
-            ServiceGauge(text, () => QuestCounters(tab)[metric], () => goal);
-            var reward = UiKit.Column(row, "Quest reward", 2, 0); UiKit.Flexible(reward, .65f);
-            UiKit.Icon(reward, "Diamond", 36);
-            UiKit.Text(reward, serviceTuning.questRewards[index].ToString(), 18, TextAnchor.MiddleCenter, 26);
-            var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 60);
-            UiKit.Flexible(claim.transform, .9f);
+            UiKit.Text(text, string.Format(labels[metric], goal.ToString("N0")), 25, TextAnchor.MiddleLeft, 38);
+            ServiceGauge(text, () => QuestCounters(tab)[metric], () => goal, false, true);
+            var reward = UiKit.Column(row, "Quest reward", 2, 0); ServiceWidth(reward,52);
+            UiKit.Icon(reward, "Diamond", 46);
+            UiKit.Text(reward, serviceTuning.questRewards[index].ToString(), 23, TextAnchor.MiddleCenter, 29);
+            var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 72);
+            ServiceWidth(claim.transform,94);
             var claimText = claim.GetComponentInChildren<Text>();
-            serviceBindings.Add(new ServiceBinding { text = claimText, value = () => QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] >= goal ? "받기" : "진행 중" });
+            Action refresh=()=>claim.GetComponent<Image>().color=!QuestClaimed(tab,index)&&QuestCounters(tab)[metric]>=goal?UiKit.Yellow:new Color(.89f,.89f,.89f);
+            serviceBindings.Add(new ServiceBinding { text = claimText, value = () => QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] >= goal ? "받기" : "진행 중",refresh=refresh }); refresh();
             claimText.text = QuestClaimed(tab, index) ? "받음" : QuestCounters(tab)[metric] >= goal ? "받기" : "진행 중";
         }
 
@@ -411,23 +427,27 @@ namespace DoodleIdle
         void BuildDungeons(RectTransform body)
         {
             UiKit.Text(body, "필드 전투 연계 도전 · 적 " + serviceTuning.dungeonKills + "마리 처치", 19, TextAnchor.MiddleCenter, 34);
-            string[] icons = { "Dungeon", "MushroomA", "DevilA" };
             string[] descriptions = { "골드 획득", "장비 획득", "스킬 획득" };
             for (int i = 0; i < 3; i++)
             {
                 int index = i;
-                var card = ServiceCard(body, DungeonNames[i], i == 0 ? UiKit.Yellow : i == 1 ? UiKit.Green : new Color(.89f, .84f, .96f));
-                var row = UiKit.Row(card, "Dungeon", 108);
-                UiKit.Icon(row, icons[i], 86);
+                var card = ServiceCard(body, DungeonNames[i], i == 0 ? new Color(1,.97f,.85f) : i == 1 ? new Color(.91f,.96f,.85f) : new Color(.94f,.9f,.98f));
+                var row = UiKit.Row(card, "Dungeon", 184,8);
+                var art = UiKit.Rect(row,"Dungeon illustration"); ServiceWidth(art,170);UiKit.Height(art,174);
+                var cave=UiKit.Icon(art,"Dungeon",164).rectTransform;cave.anchorMin=cave.anchorMax=Vector2.one*.5f;cave.anchoredPosition=Vector2.zero;
+                if(i>0) {var emblem=UiKit.Icon(art,i==1?"MushroomA":"DevilA",82).rectTransform;emblem.anchorMin=emblem.anchorMax=new Vector2(.5f,.76f);emblem.anchoredPosition=Vector2.zero; cave.anchoredPosition=new Vector2(0,-20);}
                 var info = UiKit.Column(row, "Dungeon info", 3, 0); UiKit.Flexible(info, 2);
-                UiKit.Text(info, DungeonNames[i], 27, TextAnchor.MiddleLeft, 38);
-                UiKit.Text(info, descriptions[i], 22, TextAnchor.MiddleLeft, 32);
-                var key = UiKit.Row(card, "Independent daily attempts", 40);
-                UiKit.Icon(key, "Key", 32);
-                ServiceText(key, () => Math.Max(0, serviceTuning.dungeonAttempts - services.dungeonUsed[index]) + "/" + serviceTuning.dungeonAttempts + "  오늘 남은 도전", 21, 36);
-                if (services.activeDungeon == i) ServiceGauge(card, () => services.dungeonProgress, () => serviceTuning.dungeonKills);
-                var enter = UiKit.Button(card, services.activeDungeon == i ? "도전 진행 중" : "입장", () => EnterDungeon(index), UiKit.Blue, 52);
+                UiKit.Text(info, DungeonNames[i], 34, TextAnchor.MiddleLeft, 46);
+                UiKit.Text(info, descriptions[i], 25, TextAnchor.MiddleLeft, 33);
+                var actions=UiKit.Row(info,"Dungeon actions",82,8);
+                var count=UiKit.Column(actions,"Attempts",2,0);
+                var key = UiKit.Row(count, "Independent daily attempts", 43,3);
+                UiKit.Icon(key, "Key", 35);
+                ServiceText(key, () => Math.Max(0, serviceTuning.dungeonAttempts - services.dungeonUsed[index]) + "/" + serviceTuning.dungeonAttempts, 29, 41);
+                UiKit.Text(count,"오늘 남은 도전",18,TextAnchor.MiddleCenter,24);
+                var enter = UiKit.Button(actions, services.activeDungeon == i ? "진행 중" : "입장", () => EnterDungeon(index), UiKit.Blue, 76);ServiceWidth(enter.transform,118);
                 enter.interactable = services.activeDungeon < 0 && services.dungeonUsed[i] < serviceTuning.dungeonAttempts;
+                if (services.activeDungeon == i) ServiceGauge(card, () => services.dungeonProgress, () => serviceTuning.dungeonKills);
             }
             UiKit.Text(body, "각 던전은 UTC 00:00에 각각 3회 충전", 17, TextAnchor.MiddleCenter, 28);
         }
@@ -474,37 +494,42 @@ namespace DoodleIdle
 
         void BuildPvp(RectTransform body)
         {
-            UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 18, TextAnchor.MiddleCenter, 32);
+            UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 17, TextAnchor.MiddleCenter, 26);
             var ranks = LocalRanking();
             var podium = UiKit.Row(body, "Top three podium", 190);
             foreach (int position in new[] { 1, 0, 2 })
             {
                 var rank = ranks[position];
-                var card = ServiceCard(podium, "Podium rank " + (position + 1), position == 0 ? UiKit.Yellow : position == 1 ? new Color(.85f, .88f, .91f) : new Color(.87f, .72f, .56f));
-                UiKit.Text(card, rank.name, 20, TextAnchor.MiddleCenter, 27);
-                var image = UiKit.Icon(card, rank.art, position == 0 ? 78 : 62);
-                image.GetComponent<LayoutElement>().flexibleWidth = 1;
-                UiKit.Text(card, (position + 1).ToString(), 33, TextAnchor.MiddleCenter, 40);
+                var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,190);
+                float stepHeight=position==0?84:position==1?57:42;
+                var step=UiKit.Box(card,"Podium pedestal",position==0?UiKit.Yellow:position==1?new Color(.84f,.85f,.87f):new Color(.87f,.7f,.53f));
+                step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
+                var number=UiKit.Text(step,(position+1).ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform);
+                var image=UiKit.Icon(card,rank.art,position==0?78:70).rectTransform;image.anchorMin=image.anchorMax=new Vector2(.5f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,stepHeight-2);
+                var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,stepHeight+(position==0?78:70));
             }
             int selfIndex = ranks.FindIndex(r => r.self);
             var mine = ServiceCard(body, "My rank", UiKit.Yellow);
-            var myRow = UiKit.Row(mine, "My ranking", 72);
+            var myRow = UiKit.Row(mine, "My ranking", 64);
             UiKit.Icon(myRow, "Player", 62);
             UiKit.Text(myRow, "내 순위 " + (selfIndex + 1) + "위\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
             UiKit.Text(myRow, "승점 " + services.pvpPoints.ToString("N0") + "\n전투력 " + Power.ToString("N0"), 20, TextAnchor.MiddleRight, 66);
-            var challenge = UiKit.Button(body, "모의 대전 시작  ·  " + Math.Max(0, serviceTuning.pvpAttempts - services.pvpUsed) + "/" + serviceTuning.pvpAttempts, PlayLocalPvp, UiKit.Blue, 56);
+            var actions=UiKit.Row(body,"PVP actions",66,10);
+            var challenge = UiKit.Button(actions, "모의 대전 시작", PlayLocalPvp, UiKit.Blue, 66);UiKit.Flexible(challenge.transform,1.6f);
+            var attempts=UiKit.Box(actions,"PVP remaining attempts",new Color(.96f,.94f,.9f),66);
+            var attemptLabel=UiKit.Text(attempts,"오늘 도전 "+Math.Max(0,serviceTuning.pvpAttempts-services.pvpUsed)+"/"+serviceTuning.pvpAttempts,23,TextAnchor.MiddleCenter,66);UiKit.Stretch(attemptLabel.rectTransform,5,3,5,3);
             challenge.interactable = services.pvpUsed < serviceTuning.pvpAttempts;
-            UiKit.Text(body, "랭킹 1~100위", 25, TextAnchor.MiddleCenter, 42);
+            var banner=UiKit.Box(body,"Ranking title",new Color(1,.97f,.85f),42); var title=UiKit.Text(banner,"랭킹 1~100위",29,TextAnchor.MiddleCenter,42);UiKit.Stretch(title.rectTransform);
             var header = UiKit.Row(body, "Ranking columns", 32);
             UiKit.Text(header, "순위", 18, TextAnchor.MiddleCenter, 30);
             UiKit.Text(header, "이름", 18, TextAnchor.MiddleCenter, 30);
             UiKit.Text(header, "승점", 18, TextAnchor.MiddleCenter, 30);
             UiKit.Text(header, "전투력", 18, TextAnchor.MiddleCenter, 30);
-            var listFrame = UiKit.Box(body, "Scrollable ranking 1 to 100", UiKit.Paper, 330);
+            var listFrame = UiKit.Box(body, "Scrollable ranking 1 to 100", UiKit.Paper, 315);
             var viewport = new GameObject("Ranking viewport", typeof(RectTransform), typeof(Image), typeof(Mask)).GetComponent<RectTransform>();
             viewport.SetParent(listFrame, false); viewport.anchorMin = Vector2.zero; viewport.anchorMax = Vector2.one; viewport.offsetMin = new Vector2(5, 5); viewport.offsetMax = new Vector2(-5, -5);
             viewport.GetComponent<Image>().color = UiKit.Paper; viewport.GetComponent<Mask>().showMaskGraphic = false;
-            var rankingBody = UiKit.Column(viewport, "Ranking content", 6, 3);
+            var rankingBody = UiKit.Column(viewport, "Ranking content", 3, 2);
             rankingBody.anchorMin = new Vector2(0, 1); rankingBody.anchorMax = Vector2.one; rankingBody.pivot = new Vector2(.5f, 1); rankingBody.sizeDelta = Vector2.zero;
             var rankingScroll = listFrame.gameObject.AddComponent<ScrollRect>(); rankingScroll.viewport = viewport; rankingScroll.content = rankingBody; rankingScroll.horizontal = false;
             rankingScroll.movementType = ScrollRect.MovementType.Clamped; rankingScroll.scrollSensitivity = 35;
@@ -512,14 +537,15 @@ namespace DoodleIdle
             {
                 var rank = ranks[i];
                 var card = ServiceCard(rankingBody, "Rank " + (i + 1), rank.self ? UiKit.Yellow : UiKit.Paper);
+                card.GetComponent<VerticalLayoutGroup>().padding=new RectOffset(7,7,2,2);
                 var row = UiKit.Row(card, "Player rank", 44, 4);
                 var number = UiKit.Text(row, (i + 1).ToString(), 22, TextAnchor.MiddleCenter, 42); UiKit.Flexible(number.transform, .45f);
-                UiKit.Icon(row, rank.art, 38);
-                var name = UiKit.Text(row, rank.name, 18, TextAnchor.MiddleLeft, 42); UiKit.Flexible(name.transform, 1.4f);
-                UiKit.Text(row, rank.points.ToString("N0"), 18, TextAnchor.MiddleCenter, 42);
-                UiKit.Text(row, rank.power.ToString("N0"), 18, TextAnchor.MiddleCenter, 42);
+                UiKit.Icon(row, rank.art, 41);
+                var name = UiKit.Text(row, rank.name, 21, TextAnchor.MiddleLeft, 42); UiKit.Flexible(name.transform, 1.4f);
+                UiKit.Text(row, rank.points.ToString("N0"), 21, TextAnchor.MiddleCenter, 42);
+                UiKit.Text(row, rank.power.ToString("N0"), 21, TextAnchor.MiddleCenter, 42);
             }
-            mine.SetAsLastSibling(); challenge.transform.SetAsLastSibling();
+            mine.SetAsLastSibling(); actions.SetAsLastSibling();
         }
 
         public void PlayLocalPvp()
@@ -540,17 +566,21 @@ namespace DoodleIdle
 
         void BuildChat(RectTransform body)
         {
-            UiKit.Text(body, "전체 채팅 · 로컬 데모", 27, TextAnchor.MiddleCenter, 48);
-            UiKit.Text(body, "네트워크 미연결 · 메시지는 다른 사람에게 전송되지 않습니다", 18, TextAnchor.MiddleCenter, 50);
+            var channel=UiKit.Box(body,"Chat channel",new Color(.91f,.91f,.91f),62);channel.GetComponent<Outline>().enabled=false;
+            var channelText=UiKit.Text(channel,"전체 채팅 · 로컬 데모",31,TextAnchor.MiddleCenter,62);UiKit.Stretch(channelText.rectTransform);
+            UiKit.Text(body, "네트워크 미연결 · 메시지는 다른 사람에게 전송되지 않습니다", 17, TextAnchor.MiddleCenter, 30);
             foreach (var message in localMessages)
             {
-                float messageHeight = Mathf.Max(122, 64 + Mathf.CeilToInt(message.content.Length / 20f) * 29);
+                float messageHeight = Mathf.Max(162, 82 + Mathf.CeilToInt(message.content.Length / 16f) * 31);
                 var row = UiKit.Row(body, "Chat message", messageHeight, 10);
-                if (!message.self) UiKit.Icon(row, message.art, 62);
-                var bubble = ServiceCard(row, "Message bubble", message.self ? UiKit.Yellow : UiKit.Paper); UiKit.Flexible(bubble, 5);
-                UiKit.Text(bubble, message.author, 20, message.self ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft, 28);
-                var text = UiKit.Text(bubble, message.content, 23, TextAnchor.UpperLeft, messageHeight - 62); text.supportRichText = false;
-                if (message.self) UiKit.Icon(row, message.art, 62);
+                if(message.self) ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);else ChatPortrait(row,message.art);
+                var column=UiKit.Column(row,"Chat message text",5,0);
+                UiKit.Text(column, message.author, 26, message.self ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft, 38);
+                var bubble = ServiceCard(column, "Message bubble", message.self ? new Color(1,.95f,.7f) : UiKit.Paper);
+                var text = UiKit.Text(bubble, message.content, 29, TextAnchor.MiddleLeft, messageHeight - 70); text.supportRichText = false;
+                var tail=ServiceSymbol(bubble,message.self?"TailRight":"TailLeft",20);tail.anchorMin=tail.anchorMax=new Vector2(message.self?1:0,.5f);tail.anchoredPosition=new Vector2(message.self?8:-8,0);
+                tail.GetComponent<LayoutElement>().ignoreLayout=true;tail.GetComponent<DoodleServiceSymbol>().accent=message.self?new Color(1,.95f,.7f):UiKit.Paper;
+                if (message.self) ChatPortrait(row,message.art);else ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);
             }
             var footer = UiKit.Footer(body, "Chat footer", 96);
             var inputRow = UiKit.Row(footer, "Chat composer", 62);
@@ -575,6 +605,12 @@ namespace DoodleIdle
             StartCoroutine(ScrollChatToLatest(body));
         }
 
+        void ChatPortrait(Transform parent,string art)
+        {
+            var circle=UiKit.Box(parent,"Chat portrait",new Color(.91f,.91f,.91f),108);ServiceWidth(circle,108);circle.GetComponent<Image>().sprite=UiKit.Circle;circle.GetComponent<Image>().type=Image.Type.Simple;
+            var image=UiKit.Icon(circle,art,88).rectTransform;image.anchorMin=image.anchorMax=Vector2.one*.5f;image.anchoredPosition=Vector2.zero;
+        }
+
         IEnumerator ScrollChatToLatest(RectTransform body)
         {
             yield return null;
@@ -586,51 +622,61 @@ namespace DoodleIdle
         void BuildSettings(RectTransform body)
         {
             var account = ServiceCard(body, "Account connection", UiKit.Paper);
-            UiKit.Text(account, "계정연동 · 연동 안 됨", 25, TextAnchor.MiddleLeft, 40);
-            UiKit.Button(account, "연동하기", () => ShowDetail("계정연동", panel => UiKit.Text(panel, "계정 제공자와 서버가 연결되지 않았습니다.\n진행 상황은 현재 기기에만 저장됩니다.", 23, TextAnchor.MiddleCenter, 104)), UiKit.Blue);
+            var accountRow=UiKit.Row(account,"Account row",88,12);ServiceSymbol(accountRow,"Account",58);
+            var accountInfo=UiKit.Column(accountRow,"Account status",2,0);UiKit.Text(accountInfo,"계정연동",27,TextAnchor.MiddleLeft,36);UiKit.Text(accountInfo,"연동 안 됨",23,TextAnchor.MiddleLeft,32).color=new Color(.8f,.12f,.1f);
+            var link=UiKit.Button(accountRow, "연동하기", () => ShowDetail("계정연동", panel => UiKit.Text(panel, "계정 제공자와 서버가 연결되지 않았습니다.\n진행 상황은 현재 기기에만 저장됩니다.", 23, TextAnchor.MiddleCenter, 104)), UiKit.Blue,64);ServiceWidth(link.transform,144);
             var power = ServiceCard(body, "Power saving", UiKit.Paper);
-            UiKit.Button(power, "절전모드  " + (services.powerSaving ? "켜짐 · 30 FPS" : "꺼짐 · 60 FPS"), () =>
+            power.name="절전모드  " + (services.powerSaving ? "켜짐 · 30 FPS" : "꺼짐 · 60 FPS");
+            var toggle=power.gameObject.AddComponent<Button>();toggle.targetGraphic=power.GetComponent<Image>();toggle.onClick.AddListener(()=>
             {
                 services.powerSaving = !services.powerSaving;
                 Application.targetFrameRate = services.powerSaving ? 30 : 60; Save(); RefreshPage();
-            }, services.powerSaving ? UiKit.Green : UiKit.Paper);
+            });
+            var powerRow=UiKit.Row(power,"Power saving row",82,12);ServiceSymbol(powerRow,"Leaf",58);
+            UiKit.Text(powerRow,"절전모드",27,TextAnchor.MiddleLeft,42);
+            var switchTrack=UiKit.Box(powerRow,"Power saving toggle",services.powerSaving?UiKit.Green:new Color(.68f,.68f,.68f),40);ServiceWidth(switchTrack,76);
+            var knob=UiKit.Box(switchTrack,"Toggle knob",Color.white);knob.GetComponent<Image>().sprite=UiKit.Circle;knob.GetComponent<Image>().type=Image.Type.Simple;knob.anchorMin=knob.anchorMax=new Vector2(services.powerSaving?1:0,.5f);knob.anchoredPosition=new Vector2(services.powerSaving?-20:20,0);knob.sizeDelta=Vector2.one*34;
+            var powerState=UiKit.Text(powerRow,services.powerSaving?"켜짐":"꺼짐",24,TextAnchor.MiddleCenter,40);ServiceWidth(powerState.transform,48);
             ServiceVolume(body, "배경음", true); ServiceVolume(body, "효과음", false);
             UiKit.Button(body, game && game.paused ? "계속하기" : "일시정지", () =>
             {
                 if (game) game.TogglePause();
                 RefreshPage();
-            }, UiKit.Paper, 50);
+            }, UiKit.Paper, 42);
             if (FindObjectsByType<AudioSource>(FindObjectsSortMode.None).Length == 0)
-                UiKit.Text(body, "사운드 소스 미등록 · 음량 설정은 저장됩니다", 17, TextAnchor.MiddleCenter, 40);
+                UiKit.Text(body, "사운드 소스 미등록 · 음량 설정은 저장됩니다", 16, TextAnchor.MiddleCenter, 24);
             UiKit.Button(body, "게임종료", () => ShowDetail("게임을 종료할까요?", panel =>
             {
                 UiKit.Text(panel, "현재 진행 상황을 저장합니다", 23, TextAnchor.MiddleCenter, 48);
                 UiKit.Button(panel, "게임종료", () => { Save(); PlayerPrefs.Save(); Application.Quit(); }, UiKit.Red, 58);
-            }), UiKit.Red, 62);
+            }), new Color(1,.56f,.57f), 68);
         }
 
         void ServiceVolume(Transform parent, string title, bool music)
         {
             var card = ServiceCard(parent, title, UiKit.Paper);
-            var label = UiKit.Text(card, title, 25, TextAnchor.MiddleLeft, 35);
-            var track = UiKit.Box(card, title + " slider", new Color(.77f, .77f, .74f), 40);
+            var row=UiKit.Row(card,title+" setting",84,12);ServiceSymbol(row,music?"Music":"Speaker",58);
+            var details=UiKit.Column(row,title+" controls",5,0);UiKit.Text(details,title,27,TextAnchor.MiddleLeft,36);
+            var controls=UiKit.Row(details,title+" slider row",34,10);
+            var track = UiKit.Box(controls, title + " slider", new Color(.77f, .77f, .74f), 28);
+            var label=UiKit.Text(controls,"",24,TextAnchor.MiddleRight,32);ServiceWidth(label.transform,58);
             var slider = track.gameObject.AddComponent<Slider>(); slider.minValue = 0; slider.maxValue = 1;
             var fill = new GameObject("Volume fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>(); fill.transform.SetParent(track, false); fill.color = UiKit.Green;
             fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = Vector2.one; fill.rectTransform.offsetMin = new Vector2(4, 8); fill.rectTransform.offsetMax = new Vector2(-4, -8);
             var handleArea = new GameObject("Volume handle bounds", typeof(RectTransform)).GetComponent<RectTransform>();
             handleArea.SetParent(track, false); handleArea.anchorMin = Vector2.zero; handleArea.anchorMax = Vector2.one;
-            handleArea.offsetMin = new Vector2(17, 6); handleArea.offsetMax = new Vector2(-17, -6);
+            handleArea.offsetMin = new Vector2(14, 1); handleArea.offsetMax = new Vector2(-14, -1);
             var handle = new GameObject("Volume handle", typeof(RectTransform), typeof(Image), typeof(Outline)).GetComponent<Image>(); handle.transform.SetParent(handleArea, false); handle.color = UiKit.Paper;
             handle.sprite = UiKit.Circle; handle.preserveAspect = true;
             handle.rectTransform.anchorMin = Vector2.zero; handle.rectTransform.anchorMax = new Vector2(0, 1); handle.rectTransform.sizeDelta = new Vector2(28, 0);
             handle.GetComponent<Outline>().effectColor = UiKit.Ink; handle.GetComponent<Outline>().effectDistance = new Vector2(2, -2);
             slider.fillRect = fill.rectTransform; slider.handleRect = handle.rectTransform; slider.targetGraphic = handle;
             slider.value = music ? services.music : services.effects;
-            label.text = title + "  " + Mathf.RoundToInt(slider.value * 100) + "%";
+            label.text = Mathf.RoundToInt(slider.value * 100) + "%";
             slider.onValueChanged.AddListener(value =>
             {
                 if (music) services.music = value; else services.effects = value;
-                label.text = title + "  " + Mathf.RoundToInt(value * 100) + "%";
+                label.text = Mathf.RoundToInt(value * 100) + "%";
                 ApplyServiceAudioSettings(); SaveServices();
             });
         }
@@ -641,15 +687,69 @@ namespace DoodleIdle
             foreach (var source in FindObjectsByType<AudioSource>(FindObjectsSortMode.None)) source.volume = source.loop ? services.music : services.effects;
         }
 
+        static void ServiceWidth(Transform target,float width)
+        {
+            var element=target.GetComponent<LayoutElement>()??target.gameObject.AddComponent<LayoutElement>();element.minWidth=element.preferredWidth=width;element.flexibleWidth=0;
+        }
+
+        static RectTransform ServiceSymbol(Transform parent,string kind,float size)
+        {
+            var rect=UiKit.Rect(parent,"Service symbol: "+kind);rect.gameObject.AddComponent<CanvasRenderer>();var symbol=rect.gameObject.AddComponent<DoodleServiceSymbol>();symbol.kind=kind;symbol.raycastTarget=false;rect.sizeDelta=Vector2.one*size;ServiceWidth(rect,size);UiKit.Height(rect,size);return rect;
+        }
+
         public void ReflowServiceLayouts()
         {
             foreach (var roulette in GetComponentsInChildren<DoodleRouletteLayout>()) roulette.Reflow();
         }
     }
 
+    /// <summary>Small native line icons and speech tails; these stay independent of sprite atlases.</summary>
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class DoodleServiceSymbol : MaskableGraphic
+    {
+        public string kind;
+        public Color accent=Color.white;
+        Vector2 P(float x,float y)=>rectTransform.rect.center+new Vector2(x*rectTransform.rect.width/64f,y*rectTransform.rect.height/64f);
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+            switch(kind)
+            {
+                case "Account":
+                    Disc(vh,0,16,13,13,UiKit.Ink);Disc(vh,0,16,9,9,UiKit.Paper);
+                    Arc(vh,0,-23,23,0,180,4,UiKit.Ink);Line(vh,-23,-23,-23,-31,4);Line(vh,23,-23,23,-31,4);Line(vh,-23,-31,23,-31,4);break;
+                case "Leaf":
+                    Poly(vh,new[]{P(-19,-13),P(-20,4),P(-10,21),P(25,30),P(25,8),P(15,-14),P(-3,-23)},UiKit.Ink);
+                    Poly(vh,new[]{P(-14,-10),P(-15,3),P(-6,17),P(20,24),P(20,8),P(12,-10),P(-2,-18)},UiKit.Green);
+                    Line(vh,-24,-29,12,13,4);break;
+                case "Music":
+                    Line(vh,-12,-15,-12,23,5);Line(vh,17,-10,17,28,5);Line(vh,-12,23,17,28,6);Line(vh,-12,15,17,20,4);Disc(vh,-19,-17,9,7,UiKit.Ink);Disc(vh,10,-12,9,7,UiKit.Ink);break;
+                case "Speaker":
+                    Poly(vh,new[]{P(-27,-11),P(-15,-11),P(3,-25),P(3,25),P(-15,11),P(-27,11)},UiKit.Ink);
+                    Poly(vh,new[]{P(-23,-7),P(-13,-7),P(-1,-17),P(-1,17),P(-13,7),P(-23,7)},new Color(.65f,.65f,.65f));
+                    Arc(vh,2,0,15,-55,55,4,UiKit.Ink);Arc(vh,2,0,26,-55,55,4,UiKit.Ink);break;
+                case "Paw":
+                    Color pink=new Color(.94f,.56f,.56f);Disc(vh,0,-8,15,12,pink);Disc(vh,-20,6,6,8,pink);Disc(vh,-8,19,6,8,pink);Disc(vh,8,19,6,8,pink);Disc(vh,20,6,6,8,pink);break;
+                case "TailLeft": case "TailRight":
+                    float side=kind=="TailLeft"?-1:1;Poly(vh,new[]{P(side*30,0),P(-side*16,24),P(-side*16,-24)},UiKit.Ink);Poly(vh,new[]{P(side*18,0),P(-side*20,16),P(-side*20,-16)},accent);break;
+            }
+        }
+        void Disc(VertexHelper vh,float x,float y,float rx,float ry,Color tint)
+        {
+            for(int i=0;i<32;i++){float a=i*Mathf.PI/16,b=(i+1)*Mathf.PI/16;Poly(vh,new[]{P(x,y),P(x+Mathf.Cos(a)*rx,y+Mathf.Sin(a)*ry),P(x+Mathf.Cos(b)*rx,y+Mathf.Sin(b)*ry)},tint);}
+        }
+        void Arc(VertexHelper vh,float x,float y,float radius,float from,float to,float width,Color tint)
+        {
+            for(int i=0;i<28;i++){float a=Mathf.Lerp(from,to,i/28f)*Mathf.Deg2Rad,b=Mathf.Lerp(from,to,(i+1)/28f)*Mathf.Deg2Rad;Stroke(vh,P(x+Mathf.Cos(a)*radius,y+Mathf.Sin(a)*radius),P(x+Mathf.Cos(b)*radius,y+Mathf.Sin(b)*radius),width*rectTransform.rect.width/64f,tint);}
+        }
+        void Line(VertexHelper vh,float x,float y,float xx,float yy,float width)=>Stroke(vh,P(x,y),P(xx,yy),width*rectTransform.rect.width/64f,UiKit.Ink);
+        static void Stroke(VertexHelper vh,Vector2 a,Vector2 b,float width,Color tint){Vector2 axis=(b-a).normalized;Vector2 n=new Vector2(-axis.y,axis.x)*width*.5f;Poly(vh,new[]{a-n,a+n,b+n,b-n},tint);}
+        static void Poly(VertexHelper vh,Vector2[] points,Color tint){int start=vh.currentVertCount;foreach(var point in points)vh.AddVert(point,tint,Vector2.zero);for(int i=1;i<points.Length-1;i++)vh.AddTriangle(start,start+i,start+i+1);}
+    }
+
     public sealed class DoodleRouletteLayout : MonoBehaviour
     {
-        public RectTransform viewport, body, wheel, pointer;
+        public RectTransform viewport, body, wheel, pointer, counter;
         public Text remaining, odds;
         public Button spin;
         public bool Compact { get; private set; }
@@ -659,22 +759,22 @@ namespace DoodleIdle
             if (!viewport || !body || !wheel || !pointer || !remaining || !odds || !spin) return;
             var holder = (RectTransform)transform;
             Compact = viewport.rect.height < 500;
-            float remainingHeight = Compact ? 28 : 40, oddsHeight = Compact ? 0 : 28, spinHeight = Compact ? 40 : 60;
+            float remainingHeight = Compact ? 30 : 54, oddsHeight = Compact ? 0 : 28, spinHeight = Compact ? 42 : 90;
             var layout = body.GetComponent<VerticalLayoutGroup>();
             float spacing = Compact ? 4 : 10;
             if (layout) layout.spacing = spacing;
             odds.gameObject.SetActive(!Compact);
             remaining.text = remaining.text.Replace(" · 각 칸 12.5%", "") + (Compact ? " · 각 칸 12.5%" : "");
-            UiKit.Height(remaining.transform, remainingHeight); remaining.resizeTextMaxSize = Compact ? 20 : 25;
+            UiKit.Height(counter ? counter : remaining.transform, remainingHeight); remaining.resizeTextMaxSize = Compact ? 20 : 29;
             UiKit.Height(spin.transform, spinHeight);
             float otherHeight = remainingHeight + oddsHeight + spinHeight + spacing * (Compact ? 2 : 3) + (layout ? layout.padding.vertical : 8);
             float availableHeight = Mathf.Max(36, viewport.rect.height - otherHeight - 2);
             float availableWidth = Mathf.Max(72, viewport.rect.width - 16);
-            float scale = Mathf.Min(1, Mathf.Min(availableHeight, availableWidth) / 360f);
+            float scale = Mathf.Min(1, Mathf.Min(availableHeight, availableWidth) / 520f);
             wheel.localScale = pointer.localScale = Vector3.one * scale;
             wheel.anchoredPosition = new Vector2(0, -10 * scale);
             var sizing = holder.GetComponent<LayoutElement>();
-            float height = 360 * scale;
+            float height = 520 * scale;
             if (Mathf.Abs(sizing.preferredHeight - height) > .1f) sizing.minHeight = sizing.preferredHeight = height;
         }
     }
@@ -717,8 +817,8 @@ namespace DoodleIdle
             for (int i = 0; i < 48; i++)
             {
                 float a = i * Mathf.PI * 2 / 48, b = (i + 1) * Mathf.PI * 2 / 48;
-                Triangle(helper, Vector2.zero, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 33, new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * 33, UiKit.Ink);
-                Triangle(helper, Vector2.zero, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 29, new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * 29, UiKit.Paper);
+                Triangle(helper, Vector2.zero, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 50, new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * 50, UiKit.Ink);
+                Triangle(helper, Vector2.zero, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 46, new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * 46, UiKit.Paper);
             }
         }
         static void Triangle(VertexHelper vh, Vector2 a, Vector2 b, Vector2 c, Color color)

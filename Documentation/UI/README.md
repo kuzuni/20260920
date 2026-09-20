@@ -8,6 +8,7 @@
 - 데이터·전투 연결·외부 기능의 제한: [INTEGRATION.md](INTEGRATION.md)
 - 검증 커밋·CI·캡처·남은 작업: [PROGRESS.md](PROGRESS.md)
 - 그림체·생성 이미지·폰트 출처: [ART.md](ART.md)
+- 시안 치수·화면별 배치 비교 기준: [REFERENCE_ALIGNMENT.md](REFERENCE_ALIGNMENT.md)
 
 수치와 가격은 `Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json`, `UI/ServicesTuning.json`, `UiCommerce.json`에서 조정할 수 있습니다. 생성 아이콘은 같은 경로의 `UI/Icons.png`, `UI/GearIcons.png`에 있으며 기존 플레이어와 스킬 이미지도 함께 재사용합니다.
 
