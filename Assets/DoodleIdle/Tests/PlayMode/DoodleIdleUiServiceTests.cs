@@ -225,18 +225,35 @@ namespace DoodleIdle.Tests
             var ui = game.Ui;
             var tuning = ServiceTestTuning;
             Assert.That(tuning.dungeonAttempts, Is.EqualTo(3));
+            Assert.That(tuning.dungeonKills, Is.EqualTo(30), "The gold dungeon retains its thirty-kill baseline.");
             int equipment = ui.Items("Armor").Sum(x => x.count) + ui.Items("Club").Sum(x => x.count);
             int skills = ui.Items("Skill").Sum(x => x.count);
+            int mainStage = ui.MainStage, mainProgress = ui.MainStageKillProgress;
             int initialKills = game.Kills;
+            int requiredKills = 0;
+            UiOpen("Dungeons");
+            var keys = UiRoot.GetComponentsInChildren<DoodleServiceSymbol>().Where(s => s.kind == "DungeonKey").ToArray();
+            Assert.That(keys.Length, Is.EqualTo(3));
+            Assert.That(keys.Select(k => k.accent).Distinct().Count(), Is.EqualTo(3), "Each dungeon requires a distinct key color.");
+            Assert.That(keys[0].accent.r, Is.GreaterThan(keys[0].accent.b));
+            Assert.That(keys[1].accent.b, Is.GreaterThan(keys[1].accent.r));
+            Assert.That(keys[2].accent.r, Is.GreaterThan(keys[2].accent.g));
+            foreach (string keyName in new[] { "노랑 열쇠", "파랑 열쇠", "보라 열쇠" })
+                Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text == keyName), Is.True, "Key types also need a readable label.");
             for (int dungeon = 0; dungeon < 3; dungeon++)
             {
                 for (int attempt = 0; attempt < 3; attempt++)
                 {
                     UiOpen("Dungeons");
                     long gold = ui.Gold;
+                    int diamonds = ui.Diamonds, tickets = ui.RelicTickets;
                     ui.EnterDungeon(dungeon);
+                    int goal = ui.DungeonKillGoal;
+                    requiredKills += goal;
                     Assert.That(ui.ActiveDungeonIndex, Is.EqualTo(dungeon));
                     Assert.That(ui.Gold, Is.EqualTo(gold), "Entering cannot grant a clear reward.");
+                    Assert.That(ui.Diamonds, Is.EqualTo(diamonds));
+                    Assert.That(ui.RelicTickets, Is.EqualTo(tickets));
                     Assert.That(ServiceStateValue<int[]>("dungeonUsed")[dungeon], Is.EqualTo(attempt + 1));
                     if (dungeon < 2) Assert.That(ServiceStateValue<int[]>("dungeonUsed")[dungeon + 1], Is.Zero);
                     ui.EnterDungeon((dungeon + 1) % 3);
@@ -245,21 +262,35 @@ namespace DoodleIdle.Tests
                     yield return null;
                     Assert.That(ui.ActiveDungeonIndex, Is.EqualTo(dungeon));
                     Assert.That(ui.DungeonProgress, Is.EqualTo(ui.DungeonKillGoal - 1));
+                    Assert.That(ui.Diamonds, Is.EqualTo(diamonds));
+                    Assert.That(ui.RelicTickets, Is.EqualTo(tickets));
                     DefeatActualServiceEnemies(1);
                     yield return null;
                     Assert.That(ui.ActiveDungeonIndex, Is.EqualTo(-1));
                     Assert.That(ui.HasOverlay, Is.True, "A real completion must display its reward overlay.");
                     if (dungeon == 0) Assert.That(ui.Gold, Is.GreaterThanOrEqualTo(gold + tuning.dungeonGold));
+                    Assert.That(ui.Diamonds, Is.EqualTo(diamonds + (dungeon == 1 ? tuning.dungeonDiamonds : 0)));
+                    Assert.That(ui.RelicTickets, Is.EqualTo(tickets + (dungeon == 2 ? tuning.dungeonRelicTickets : 0)));
+                    Assert.That(ui.GetDungeonStage(dungeon), Is.EqualTo(attempt + 1));
+                    var rewardIcons = UiNode("Individual rewards").GetComponentsInChildren<Image>().Where(x => x.name.StartsWith("Icon: ")).ToArray();
+                    Assert.That(rewardIcons.Length, Is.EqualTo(1));
+                    Assert.That(rewardIcons[0].sprite, Is.SameAs(UiKit.Art(dungeon == 0 ? "Gold" : dungeon == 1 ? "Diamond" : "Relic")));
                     ui.CloseDetail();
                 }
                 ui.EnterDungeon(dungeon);
                 Assert.That(ui.ActiveDungeonIndex, Is.EqualTo(-1), "A fourth entry must be rejected for that dungeon.");
                 Assert.That(ServiceStateValue<int[]>("dungeonUsed")[dungeon], Is.EqualTo(3));
             }
-            Assert.That(game.Kills - initialKills, Is.EqualTo(ui.DungeonKillGoal * 9));
-            Assert.That(ui.Items("Armor").Sum(x => x.count) + ui.Items("Club").Sum(x => x.count), Is.EqualTo(equipment + 3));
-            Assert.That(ui.Items("Skill").Sum(x => x.count), Is.EqualTo(skills + 3));
+            Assert.That(game.Kills - initialKills, Is.EqualTo(requiredKills));
+            Assert.That(ui.Items("Armor").Sum(x => x.count) + ui.Items("Club").Sum(x => x.count), Is.EqualTo(equipment));
+            Assert.That(ui.Items("Skill").Sum(x => x.count), Is.EqualTo(skills));
+            Assert.That(ui.MainStage, Is.EqualTo(mainStage), "Dungeon kills cannot also clear a main stage.");
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(mainProgress));
+            Assert.That(ui.HighestDungeonStage, Is.EqualTo(3));
             Assert.That(ServiceStateValue<int[]>("dungeonUsed"), Is.All.EqualTo(3));
+            typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
+            Assert.That(ui.HighestDungeonStage, Is.EqualTo(3), "Real dungeon clears must survive loading the saved profile.");
+            Assert.That(ui.RelicTickets, Is.EqualTo(3 * tuning.dungeonRelicTickets));
         }
 
         [UnityTest]
@@ -299,10 +330,7 @@ namespace DoodleIdle.Tests
             UiOpen("Settings"); UiOpen("Chat");
             Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text == message), Is.True, "Local messages survive navigating between pages.");
             UiOpen("Settings");
-            UiClick("계속하기");
-            Assert.That(game.paused, Is.False);
-            Assert.That(PlayerBody().simulated, Is.True);
-            UiClick("일시정지");
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "계속하기" || b.name == "일시정지"), Is.False, "Settings must no longer expose pause controls.");
             Assert.That(game.paused, Is.True);
             Assert.That(PlayerBody().simulated, Is.False);
             Assert.That(EnemyBodies().All(b => !b.simulated), Is.True);

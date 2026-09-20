@@ -21,6 +21,12 @@ namespace DoodleIdle
         public RectTransform SafeRoot => safe;
         RectTransform root,safe,pageLayer,overlayLayer,nav,header,skillDock,shortcuts,mission;
         Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast;
+        Text powerToast,cameraLabel,stageLabel;
+        Button missionClaim;
+        RectTransform cameraControl,stageInfo;
+        public int CameraMode { get; private set; } = 1;
+        float powerToastUntil;
+        bool rebuildingPage;
         RectTransform missionFill;
         Image goldBuffDot,attackBuffDot;
         readonly List<GameObject> overlayStack=new List<GameObject>();
@@ -28,9 +34,9 @@ namespace DoodleIdle
         readonly List<Image> hudIcons=new List<Image>();
         readonly List<Image> navIcons=new List<Image>();
         readonly List<Text> navLabels=new List<Text>();
-        readonly string[] pages={"Stats","Equipment","Skills","Companions","Relics","Dungeons","Pvp","Shop"};
-        readonly string[] titles={"스탯","장비","스킬","동료","유물","던전","PVP","상점"};
-        readonly string[] navArt={"Stats","ArmorMetal","Banana","Player","Relic","Dungeon","Pvp","Shop"};
+        readonly string[] pages={"Stats","Equipment","Skills","Companions","Relics","Skins","Dungeons","Pvp","Shop"};
+        readonly string[] titles={"스탯","장비","스킬","동료","유물","스킨","던전","PVP","상점"};
+        readonly string[] navArt={"Stats","ArmorMetal","Banana","Player","Relic","ClothArmor","Dungeon","Pvp","Shop"};
         int consumeThroughFrame,lastKills;
         bool releaseLatch,initialized;
         float toastUntil;
@@ -45,7 +51,8 @@ namespace DoodleIdle
             if(initialized)return; initialized=true; game=owner; root=(RectTransform)canvasRoot; Canvas=root.GetComponent<Canvas>();
             font=Resources.Load<Font>("DoodleIdle/UI/DisplayFont"); UiKit.Font=font;
             long.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","125480"),out Gold); Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",1250);
-            InitCollections(); InitCommerce(); InitServices();
+            InitCollections(); InitSkins(); InitCommerce(); InitServices();
+            CameraMode=Mathf.Clamp(PlayerPrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
             safe=UiKit.Rect(root,"Safe area"); UiKit.Stretch(safe);
             BuildMain();
             pageLayer=UiKit.Rect(root,"Primary modal layer"); UiKit.Stretch(pageLayer);
@@ -53,6 +60,9 @@ namespace DoodleIdle
             overlayLayer=UiKit.Rect(root,"Detail and fullscreen layer"); UiKit.Stretch(overlayLayer);
             toast=UiKit.Text(root,"",24,TextAnchor.MiddleCenter,58); toast.color=Color.white; toast.gameObject.AddComponent<Outline>().effectColor=Color.black;
             Anchor(toast.rectTransform,new Vector2(.5f,1),new Vector2(0,-115),new Vector2(620,58));
+            powerToast=UiKit.Text(root,"",27,TextAnchor.MiddleCenter,62);powerToast.gameObject.name="Power change toast";powerToast.color=UiKit.Green;
+            powerToast.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
+            Anchor(powerToast.rectTransform,new Vector2(.5f,1),new Vector2(0,-175),new Vector2(620,62));
             Relayout(true); RefreshHud();
         }
         void BuildMain()
@@ -69,8 +79,15 @@ namespace DoodleIdle
             string[] ids={"Attendance","Roulette","Buffs","Quests","Chat"},names={"출석","룰렛","버프","퀘스트","채팅"};
             for(int i=0;i<ids.Length;i++) { string id=ids[i]; IconButton(shortcuts,id,names[i],id,()=>ShowPage(id),96); }
             mission=UiKit.Box(safe,"Mission",UiKit.Paper,144); Anchor(mission,new Vector2(1,0),new Vector2(-160,396),new Vector2(300,144));
-            var m=UiKit.Row(mission,"Mission row",100,8); UiKit.Stretch(m,13,35,13,8); UiKit.Icon(m,"Quests",48); missionText=UiKit.Text(m,"",26,TextAnchor.MiddleLeft,96);
-            var missionGauge=UiKit.Gauge(mission,"",0,18); missionGauge.anchorMin=Vector2.zero;missionGauge.anchorMax=new Vector2(1,0);missionGauge.offsetMin=new Vector2(18,14);missionGauge.offsetMax=new Vector2(-18,32); missionFill=(RectTransform)missionGauge.Find("Fill");
+            var m=UiKit.Row(mission,"Mission row",100,8); UiKit.Stretch(m,13,66,13,8); UiKit.Icon(m,"Quests",44); missionText=UiKit.Text(m,"",24,TextAnchor.MiddleLeft,96);
+            var missionGauge=UiKit.Gauge(mission,"",0,14); missionGauge.anchorMin=Vector2.zero;missionGauge.anchorMax=new Vector2(1,0);missionGauge.offsetMin=new Vector2(18,47);missionGauge.offsetMax=new Vector2(-18,61); missionFill=(RectTransform)missionGauge.Find("Fill");
+            missionClaim=UiKit.Button(mission,"500 다이아 받기",()=>ClaimMainMission(),UiKit.Yellow,34);missionClaim.name="Claim main mission";
+            var claimRect=(RectTransform)missionClaim.transform;claimRect.anchorMin=Vector2.zero;claimRect.anchorMax=new Vector2(1,0);claimRect.offsetMin=new Vector2(12,8);claimRect.offsetMax=new Vector2(-12,42);
+            missionClaim.GetComponentInChildren<Text>().resizeTextMaxSize=22;
+            var cameraButton=UiKit.Button(safe,"카메라  1",CycleCameraMode,UiKit.Paper,40);cameraButton.name="Camera mode";
+            cameraControl=(RectTransform)cameraButton.transform;cameraLabel=cameraButton.GetComponentInChildren<Text>();cameraLabel.resizeTextMaxSize=23;
+            stageInfo=UiKit.Rect(safe,"Stage progress");stageLabel=UiKit.Text(stageInfo,"",18,TextAnchor.MiddleLeft,38);UiKit.Stretch(stageLabel.rectTransform);
+            stageLabel.color=UiKit.Ink;stageLabel.gameObject.AddComponent<Outline>().effectColor=UiKit.Paper;
             skillDock=UiKit.Row(safe,"Eight equipped cooldowns",84,8); Anchor(skillDock,new Vector2(.5f,0),new Vector2(0,249),new Vector2(696,84));
             skillDock.gameObject.AddComponent<DoodleUiSquareRow>();
             for(int i=0;i<8;i++) {
@@ -121,8 +138,10 @@ namespace DoodleIdle
             foreach(var label in navLabels) { UiKit.Height(label.transform.parent,navHeight-14);label.resizeTextMaxSize=tall?27:21;UiKit.Stretch(label.rectTransform,1,5,1,navHeight-48);var icon=label.transform.parent.GetComponentsInChildren<Image>()[1]; UiKit.Stretch(icon.rectTransform,7,tall?43:30,7,tall?18:6); }
             shortcuts.anchoredPosition=new Vector2(16,tall?-215:-210);shortcuts.sizeDelta=new Vector2(tall?84:64,shortcuts.sizeDelta.y);shortcuts.GetComponent<VerticalLayoutGroup>().spacing=tall?12:6;
             foreach(Transform button in shortcuts) { float height=tall?96:60;UiKit.Height(button,height);var label=button.GetComponentInChildren<Text>();label.resizeTextMaxSize=tall?27:19;UiKit.Stretch(label.rectTransform,1,2,1,height-(tall?32:22));UiKit.Stretch(button.GetComponentsInChildren<Image>()[1].rectTransform,7,tall?33:22,7,5); }
-            mission.sizeDelta=new Vector2(tall?300:270,tall?144:104);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?396:242);missionText.resizeTextMaxSize=tall?26:20;UiKit.Height(missionText.transform,tall?96:60);
-            foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) window.Reflow(safe);
+            mission.sizeDelta=new Vector2(tall?300:270,tall?184:152);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?408:278);missionText.resizeTextMaxSize=tall?24:19;UiKit.Height(missionText.transform,tall?96:68);
+            Anchor(cameraControl,new Vector2(0,0),new Vector2(96,tall?329:208),new Vector2(164,tall?42:34));
+            Anchor(stageInfo,new Vector2(0,0),new Vector2(140,tall?378:246),new Vector2(250,42));
+            foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) if(!window.GetComponent<DoodlePopupMotion>() || !window.GetComponent<DoodlePopupMotion>().IsClosing) window.Reflow(safe);
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
             foreach(var squares in root.GetComponentsInChildren<DoodleUiSquareRow>()) squares.Reflow();
             UnityEngine.Canvas.ForceUpdateCanvases();
@@ -134,18 +153,27 @@ namespace DoodleIdle
             foreach(var grid in root.GetComponentsInChildren<DoodleUiGrid>()) grid.Reflow();
             UnityEngine.Canvas.ForceUpdateCanvases();
             foreach(var slot in root.GetComponentsInChildren<DoodleUiSlotLayout>()) slot.Reflow();
+            foreach(var button in root.GetComponentsInChildren<Button>())
+            {
+                var element=button.GetComponent<LayoutElement>();
+                if(!element || element.ignoreLayout || button.GetComponent<DoodleButtonMotion>())continue;
+                var motion=button.gameObject.AddComponent<DoodleButtonMotion>();var action=button.onClick;
+                button.onClick=new Button.ButtonClickedEvent();button.onClick.AddListener(()=>{motion.Pulse();action.Invoke();});
+            }
         }
         public void ShowPage(string id)
         {
+            StopRepeating();
+            if(ActivePage==id){ClosePage();return;}
             ConsumeGesture(); ClearOverlays();
-            ActivePage=ActivePage==id?null:id; RenderPage(); RefreshHud();
+            ActivePage=id; RenderPage(); RefreshHud();
         }
-        public void ClosePage() { ConsumeGesture(); ClearOverlays(); ActivePage=null; RenderPage(); }
+        public void ClosePage() { StopRepeating(); ConsumeGesture(); ClearOverlays(); if(pageLayer&&pageLayer.childCount>0)DoodlePopupMotion.Close(pageLayer.GetChild(0).gameObject,root); ActivePage=null; RenderPage(); }
         public void RefreshPage()
         {
             var previous=pageLayer?pageLayer.GetComponentInChildren<ScrollRect>():null;
             float position=previous&&previous.content.rect.height>previous.viewport.rect.height+1?previous.verticalNormalizedPosition:1;
-            if(!string.IsNullOrEmpty(ActivePage)) { RenderPage(); Relayout(true); var next=pageLayer.GetComponentInChildren<ScrollRect>(); if(next)next.verticalNormalizedPosition=position; }
+            if(!string.IsNullOrEmpty(ActivePage)) { rebuildingPage=true;try{RenderPage();}finally{rebuildingPage=false;} Relayout(true); var next=pageLayer.GetComponentInChildren<ScrollRect>(); if(next)next.verticalNormalizedPosition=position; }
             RefreshHud();
         }
         void RenderPage()
@@ -160,13 +188,13 @@ namespace DoodleIdle
         }
         static string Title(string id)
         {
-            string[] ids={"Stats","Equipment","Skills","Companions","Relics","Dungeons","Pvp","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings"};
-            string[] names={"스탯","장비","스킬","동료","유물","던전","PVP","상점","출석 보상","룰렛","버프","퀘스트","채팅","설정"}; int i=Array.IndexOf(ids,id); return i<0?id:names[i];
+            string[] ids={"Stats","Equipment","Skills","Companions","Relics","Skins","Dungeons","Pvp","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings"};
+            string[] names={"스탯","장비","스킬","동료","유물","스킨","던전","PVP","상점","출석 보상","룰렛","버프","퀘스트","채팅","설정"}; int i=Array.IndexOf(ids,id); return i<0?id:names[i];
         }
         void BuildPage(RectTransform body)
         {
             switch(ActivePage) {
-                case "Stats": BuildStats(body); break; case "Equipment": BuildEquipment(body); break; case "Skills": BuildSkills(body); break; case "Companions": BuildCompanions(body); break; case "Relics": BuildRelics(body); break;
+                case "Stats": BuildStats(body); break; case "Equipment": BuildEquipment(body); break; case "Skills": BuildSkills(body); break; case "Companions": BuildCompanions(body); break; case "Relics": BuildRelics(body); break; case "Skins": BuildSkins(body); break;
                 case "Dungeons": BuildDungeons(body); break; case "Pvp": BuildPvp(body); break; case "Shop": BuildShop(body); break; case "Attendance": BuildAttendance(body); break; case "Roulette": BuildRoulette(body); break; case "Buffs": BuildBuffs(body); break; case "Quests": BuildQuests(body); break; case "Chat": BuildChat(body); break; case "Settings": BuildSettings(body); break;
             }
         }
@@ -195,14 +223,16 @@ namespace DoodleIdle
             var handle=UiKit.Rect(rail,"Scroll thumb");UiKit.Stretch(handle);var handleImage=handle.gameObject.AddComponent<Image>();handleImage.sprite=UiKit.Frame;handleImage.type=Image.Type.Sliced;handleImage.color=UiKit.Green;
             var scrollbar=rail.gameObject.AddComponent<Scrollbar>();scrollbar.direction=Scrollbar.Direction.BottomToTop;scrollbar.handleRect=handle;scrollbar.targetGraphic=handleImage;scroll.verticalScrollbar=scrollbar;scroll.verticalScrollbarVisibility=ScrollRect.ScrollbarVisibility.AutoHide;
             var responsive=panel.gameObject.AddComponent<DoodleUiWindow>(); responsive.full=full; responsive.content=content; responsive.inner=inner; responsive.viewport=viewport;responsive.rail=rail;responsive.titleText=titleText;responsive.closeButton=(RectTransform)x.transform; SetWindowProfile(responsive,title);responsive.Reflow(safe);
+            var motion=panel.gameObject.AddComponent<DoodlePopupMotion>();if(!rebuildingPage)motion.Open();
             return content;
         }
         static void SetWindowProfile(DoodleUiWindow window,string title)
         {
             // Measurements from the committed designs, normalized to a 720-wide canvas.
             switch(title) {
-                case "스탯": window.maxWidth=576;window.maxHeight=850;window.centerFromTop=.442f;window.headerHeight=90;break;
+                case "스탯": window.maxWidth=576;window.maxHeight=1010;window.centerFromTop=.442f;window.headerHeight=90;break;
                 case "장비": window.maxWidth=568;window.maxHeight=856;window.centerFromTop=.480f;break;
+                case "스킨": window.maxWidth=568;window.maxHeight=856;window.centerFromTop=.480f;break;
                 case "스킬": window.maxWidth=552;window.maxHeight=1008;window.centerFromTop=.515f;break;
                 case "동료": window.maxWidth=582;window.maxHeight=866;window.centerFromTop=.494f;break;
                 case "유물": window.maxWidth=568;window.maxHeight=880;window.centerFromTop=.484f;break;
@@ -220,7 +250,7 @@ namespace DoodleIdle
         {
             ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); var body=Window(dim,title,false,CloseDetail); build(body); Relayout(true);
         }
-        public void CloseDetail() { ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); last.SetActive(false); Destroy(last); RefreshHud(); }
+        public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); DoodlePopupMotion.Close(last,root); RefreshHud(); }
         public void ShowFullscreen(string title,Action<RectTransform> build)
         {
             if(fullscreenBuilder!=null && overlayStack.Count>0) CloseDetail();
@@ -242,9 +272,20 @@ namespace DoodleIdle
                 var count=UiKit.Text(card,UiNumber.Format(reward.amount),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
             }
             var hint=UiKit.Text(area,"화면을 터치하면 닫힙니다",28,TextAnchor.MiddleCenter,50); hint.color=Color.white;
+            area.gameObject.AddComponent<DoodlePopupMotion>().Open();
         }
         public void Toast(string message) { if(!toast)return; toast.text=message; toastUntil=Time.unscaledTime+3.5f; toast.transform.SetAsLastSibling(); }
-        public void Save() { PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); SaveCollections(); SaveCommerce(); SaveServices(); PlayerPrefs.Save(); }
+        public void Save() { PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
+        public void NotifyPowerChanged(long before,string reason=null)
+        {
+            if(!powerToast)return;long after=Power,change=after-before;
+            powerToast.text="전투력 "+UiNumber.Format(before)+" → "+UiNumber.Format(after)+"  ("+(change>0?"+":"")+UiNumber.Format(change)+")";
+            if(!string.IsNullOrEmpty(reason))powerToast.text=reason+"\n"+powerToast.text;
+            powerToast.color=change<0?UiKit.Red:change>0?UiKit.Green:UiKit.Paper;powerToastUntil=Time.unscaledTime+2.5f;powerToast.transform.SetAsLastSibling();
+        }
+        void StopRepeating() { if(Canvas){var driver=Canvas.GetComponent<DoodleUiRepeatDriver>();if(driver)driver.Stop();} }
+        void ApplyCameraMode() { if(game)game.SetUiCameraSize(new[]{8.5f,11f,14.5f}[CameraMode-1]);if(cameraLabel)cameraLabel.text="카메라  "+CameraMode; }
+        public void CycleCameraMode() { CameraMode=CameraMode%3+1;ApplyCameraMode();Save(); }
         void OnApplicationPause(bool paused) { if(initialized&&paused)Save(); }
         void OnApplicationQuit() { if(initialized)Save(); }
         void ConsumeGesture() { consumeThroughFrame=Time.frameCount+2; releaseLatch=Pointer.current!=null&&Pointer.current.press.isPressed; game.CancelUiPointer(); }
@@ -257,15 +298,17 @@ namespace DoodleIdle
             if(game.Kills<lastKills)lastKills=game.Kills;
             if(game.Kills>lastKills) { int earned=Mathf.Max(1,Mathf.RoundToInt((game.Kills-lastKills)*10*GoldGainMultiplier*GoldBuffMultiplier)); Gold+=earned; RecordServiceProgress("gold",earned); lastKills=game.Kills; }
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
-            RefreshHud(); if(toast&&Time.unscaledTime>toastUntil)toast.text="";
+            RefreshHud(); if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
             if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }
         }
         public void RefreshHud()
         {
             if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
-            buffGold.text=Duration(GoldBuffSeconds); buffAttack.text=Duration(AttackBuffSeconds); missionText.text=ActiveDungeonIndex>=0?DungeonMission:"미션 5.\n공격력 15단계 달성\n("+UiNumber.Format(AttackStatLevel)+"/15)";
+            buffGold.text=Duration(GoldBuffSeconds); buffAttack.text=Duration(AttackBuffSeconds); missionText.text=MainMissionText;
+            missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
+            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"메인 스테이지 "+UiNumber.Format(MainStage+1)+"\n"+UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal);
             goldBuffDot.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffDot.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
-            if(missionFill) missionFill.anchorMax=new Vector2(ActiveDungeonIndex>=0?Mathf.Clamp01(DungeonProgress/(float)Mathf.Max(1,DungeonKillGoal)):Mathf.Clamp01(AttackStatLevel/15f),1);
+            if(missionFill) missionFill.anchorMax=new Vector2(MainMissionFraction,1);
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"Banana"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.15f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));

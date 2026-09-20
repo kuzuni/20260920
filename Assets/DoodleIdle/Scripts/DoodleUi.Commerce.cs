@@ -136,7 +136,7 @@ namespace DoodleIdle
         void BuildSummonRow(RectTransform body, string category)
         {
             var state = summonStates[category];
-            var row = CommerceFramedRow(body, "Summon_" + category, 176);
+            var row = CommerceFramedRow(body, "Summon_" + category, category == "Relic" ? 224 : 176);
             UiKit.Icon(row, category, 142);
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
@@ -149,6 +149,17 @@ namespace DoodleIdle
             int needed = CommerceExperienceNeeded(state);
             UiKit.Gauge(content, UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), (float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
             BuildSummonButtons(content, category);
+            if (category == "Relic")
+            {
+                var tickets = UiKit.Row(content, "Relic ticket actions", 48, 6);
+                UiKit.Text(tickets, "유물 뽑기권 " + UiNumber.Format(RelicTickets) + "장", 21, TextAnchor.MiddleLeft, 48);
+                var use = UiKit.Button(tickets, "1장 뽑기", () => TrySummonRelicTicket(), UiKit.Blue, 48);
+                use.name = "RelicTicketSummon";
+                var width = use.GetComponent<LayoutElement>();
+                width.minWidth = width.preferredWidth = 104; width.flexibleWidth = 0;
+                CommerceButtonText(use, 22);
+                use.interactable = RelicTickets > 0;
+            }
         }
 
         void BuildSummonButtons(Transform parent, string category, bool result = false)
@@ -205,18 +216,37 @@ namespace DoodleIdle
             Diamonds -= cost;
             var state = summonStates[category];
             if (free) state.freeUsedDay = CommerceDay();
+            CompleteSummon(category, rewards);
+            return true;
+        }
+
+        public bool TrySummonRelicTicket()
+        {
+            if (summonStates.Count == 0) InitCommerce();
+            if (RelicTickets < 1) { Toast("유물 뽑기권이 부족해요."); return false; }
+            var reward = GrantItem("Relic", commerceRandom);
+            if (reward == null) { Toast("유물 데이터를 확인해 주세요."); return false; }
+            long before = Power;
+            if (!TrySpendRelicTickets(1)) return false;
+            CompleteSummon("Relic", new List<UiItem> { reward });
+            NotifyPowerChanged(before, "유물 뽑기권 사용");
+            return true;
+        }
+
+        void CompleteSummon(string category, List<UiItem> rewards)
+        {
+            var state = summonStates[category];
             foreach (var item in rewards) AddItem(item, 1);
-            state.experience += count;
+            state.experience += rewards.Count;
             while (state.experience >= CommerceExperienceNeeded(state))
             {
                 state.experience -= CommerceExperienceNeeded(state);
                 state.level++;
             }
-            RecordServiceProgress("summon", count);
+            RecordServiceProgress("summon", rewards.Count);
             Save();
             RefreshPage();
             ShowSummonResults(category, rewards);
-            return true;
         }
 
         void ShowSummonResults(string category, List<UiItem> rewards)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +10,7 @@ namespace DoodleIdle
     {
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4";
         int statBatch = 1;
+        bool collectionBulkRunning;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
@@ -96,7 +98,7 @@ namespace DoodleIdle
             var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(Power), 35, TextAnchor.MiddleCenter, 108);
             CollectionWidth(powerText.transform, 286);
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);
-            foreach (int amount in new[] { 1, 10, -1 })
+            foreach (int amount in new[] { 1, 10, 100, -1 })
             {
                 int selected = amount;
                 var mode = UiKit.Button(batch, amount < 0 ? "MAX" : "×" + UiNumber.Format(amount), () => { statBatch = selected; RefreshPage(); }, statBatch == amount ? UiKit.Blue : UiKit.Paper, 64);
@@ -115,17 +117,21 @@ namespace DoodleIdle
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name, 30, TextAnchor.MiddleLeft, 39);
                 float current = StatValue(stat.id);
-                UiKit.Text(text, StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, current + stat.increment * upgrades) + "</color>", 29, TextAnchor.MiddleLeft, 38);
-                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () =>
+                float next = current + stat.increment * upgrades;
+                if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
+                UiKit.Text(text, StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
+                Func<bool> purchase = () =>
                 {
-                    if (!UpgradeStat(stat.id, statBatch)) { Toast("강화에 필요한 골드가 부족합니다."); return; }
-                    Save(); RefreshPage();
-                }, 94, 164);
+                    if (!UpgradeStat(stat.id, statBatch)) return false;
+                    Save(); RefreshPage(); return true;
+                };
+                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () => { if (!purchase()) Toast("강화 골드가 부족하거나 최대 단계입니다."); }, 94, 164);
                 button.interactable = upgrades > 0 && Gold >= cost;
+                UiKit.Repeat(button, "stat:" + stat.id, purchase);
             }
         }
 
-        string StatNumber(string id, float value) => UiNumber.Format(value, id == "speed" ? 2 : 1);
+        string StatNumber(string id, float value) => UiNumber.Format(value, IsCriticalChance(id) ? 2 : 1) + (IsCriticalChance(id) ? "%" : id == "healthRegen" ? "/초" : "");
 
         public long StatUpgradeQuote(string id, int requested, out int upgrades)
         {
@@ -133,7 +139,7 @@ namespace DoodleIdle
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
             upgrades = 0;
             if (stat == null) return 0;
-            int available = collectionTuning.maxStatLevel - StatLevel(id);
+            int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));
             int target = requested < 0 ? available : Math.Min(Math.Max(0, requested), available);
             long total = 0;
             for (int i = 0; i < target; i++)
@@ -155,9 +161,11 @@ namespace DoodleIdle
             int count;
             long cost = StatUpgradeQuote(id, requested, out count);
             if (count == 0 || cost > Gold) return false;
+            long before = Power;
             Gold -= cost;
             statLevels[id] += count;
             RecordServiceProgress("statUpgrade", count);
+            NotifyPowerChanged(before, "스탯 강화");
             return true;
         }
 
@@ -176,10 +184,15 @@ namespace DoodleIdle
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
             CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%");
-            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "방어력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)));
+            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)));
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
-            CollectionButtonText(UiKit.Button(actions, "강화", () => UpgradeSelected(selected, false), UiKit.Blue, 46), 28);
-            CollectionButtonText(UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46), 28);
+            if (selected.discovered)
+            {
+                var upgrade = UiKit.Button(actions, "강화", () => UpgradeSelected(selected, false), UiKit.Blue, 46);
+                CollectionButtonText(upgrade, 28);
+                CollectionButtonText(UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46), 28);
+            }
+            else UiKit.Text(actions, "미획득", 24, TextAnchor.MiddleCenter, 32);
             OwnershipStrip(body, "Equipment");
             BuildInventory(body, items, item =>
             {
@@ -189,8 +202,8 @@ namespace DoodleIdle
             var footer = UiKit.Footer(body, "Equipment footer", 130);
             CollectionActions(footer, equipmentCategory);
             var tabs = UiKit.Row(footer, "Equipment tabs", 52, 4);
-            CollectionButtonText(UiKit.Button(tabs, "갑옷", () => { equipmentCategory = "Armor"; RefreshPage(); }, equipmentCategory == "Armor" ? UiKit.Yellow : UiKit.Paper, 52), 31);
-            CollectionButtonText(UiKit.Button(tabs, "몽둥이", () => { equipmentCategory = "Club"; RefreshPage(); }, equipmentCategory == "Club" ? UiKit.Yellow : UiKit.Paper, 52), 31);
+            CollectionButtonText(UiKit.EquipmentTab(tabs, "갑옷", () => { equipmentCategory = "Armor"; RefreshPage(); }, equipmentCategory == "Armor", 52), 31);
+            CollectionButtonText(UiKit.EquipmentTab(tabs, "몽둥이", () => { equipmentCategory = "Club"; RefreshPage(); }, equipmentCategory == "Club", 52), 31);
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
@@ -295,32 +308,31 @@ namespace DoodleIdle
         void CollectionActions(RectTransform parent, string category)
         {
             var row = UiKit.Row(parent, "Collection actions", 68, 14);
-            var upgrade = UiKit.Button(row, "일괄강화", () =>
-            {
-                int upgrades = 0;
-                foreach (var item in Items(category)) while (UpgradeItem(item)) upgrades++;
-                Save(); RefreshPage(); Toast(upgrades > 0 ? UiNumber.Format(upgrades) + "회 강화했습니다." : "강화할 수 있는 수량이 없습니다.");
-            }, UiKit.Blue, 68);
+            var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
+            upgrade.interactable = !collectionBulkRunning;
             var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast("강한 " + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
             CollectionButtonText(upgrade, 33); CollectionButtonText(auto, 33);
         }
 
         public void AutoEquip(string category)
         {
+            long before = Power;
             var owned = Items(category).FindAll(x => x.discovered);
             owned.Sort((a, b) => { int score = ItemEquipValue(b).CompareTo(ItemEquipValue(a)); return score != 0 ? score : string.CompareOrdinal(a.id, b.id); });
             foreach (var item in Items(category)) item.equipped = false;
             for (int i = 0; i < Math.Min(EquipLimit(category), owned.Count); i++) { owned[i].equipped = true; owned[i].slot = i; }
+            NotifyPowerChanged(before, "자동 장착");
         }
 
-        void UpgradeSelected(UiItem item, bool detail)
+        bool UpgradeSelected(UiItem item, bool detail, bool showMessage = true)
         {
-            if (!UpgradeItem(item)) { Toast(item.discovered ? "강화 수량이 부족하거나 최대 단계입니다." : "아직 획득하지 않았습니다."); return; }
+            if (!UpgradeItem(item)) { if (showMessage) Toast(item.discovered ? "강화 수량이 부족하거나 최대 단계입니다." : "아직 획득하지 않았습니다."); return false; }
             Save();
             if (detail) CloseDetail();
             RefreshPage();
             if (detail) ShowCollectionDetail(item);
-            Toast(item.name + " 강화 완료 · Lv. " + UiNumber.Format(item.level));
+            if (showMessage) Toast(item.name + " 강화 완료 · Lv. " + UiNumber.Format(item.level));
+            return true;
         }
 
         void ShowCollectionDetail(UiItem item)
@@ -402,15 +414,20 @@ namespace DoodleIdle
                 }
                 else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);
-                var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
-                CollectionButtonText(UiKit.Button(buttons, "강화", () => UpgradeSelected(item, true), UiKit.Blue, 56), 27);
-                CollectionButtonText(UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56), 27);
+                if (item.discovered)
+                {
+                    var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
+                    var upgrade = UiKit.Button(buttons, "강화", () => UpgradeSelected(item, true), UiKit.Blue, 56);
+                    CollectionButtonText(upgrade, 27);
+                    CollectionButtonText(UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56), 27);
+                }
             });
         }
 
         void EquipFromUi(UiItem item, bool detail)
         {
             if (!item.discovered) { Toast("아직 획득하지 않았습니다."); return; }
+            long before = Power;
             if (item.equipped)
             {
                 if (!detail) { Toast("장착 중인 장비입니다."); return; }
@@ -431,7 +448,10 @@ namespace DoodleIdle
                             var previous = current;
                             UiKit.Button(body, previous.name + " → " + item.name, () =>
                             {
+                                long replacementBefore = Power;
                                 previous.equipped = false; item.equipped = true; item.slot = previous.slot;
+                                NormalizeEquipment(item.category);
+                                NotifyPowerChanged(replacementBefore, "장착 교체");
                                 Save(); CloseDetail(); if (detail) CloseDetail(); RefreshPage();
                             }, UiKit.Green, 54);
                         }
@@ -441,18 +461,21 @@ namespace DoodleIdle
                 item.equipped = true; item.slot = limit == 1 ? 0 : equipped.Count;
             }
             NormalizeEquipment(item.category);
+            NotifyPowerChanged(before, item.equipped ? "장착" : "장착 해제");
             Save(); if (detail) CloseDetail(); RefreshPage();
         }
 
         void BuildRelics(RectTransform body)
         {
-            var note = UiKit.Box(body, "All relics apply", new Color(.94f, .90f, .82f), 48);
+            var note = UiKit.Box(body, "All relics apply", new Color(.94f, .90f, .82f), 56);
             note.GetComponent<Outline>().enabled = false;
-            var noteText = UiKit.Text(note, "모든 유물 효과가 전체 적용됩니다.", 25, TextAnchor.MiddleCenter, 48);
+            var noteText = UiKit.Text(note, "모든 유물 효과 적용 · 강화 시 같은 유물 1개 소모\n성공 확률 50% · 실패해도 현재 단계 유지", 22, TextAnchor.MiddleCenter, 56);
             UiKit.Stretch(noteText.rectTransform, 4, 2, 4, 2);
             var totals = CollectionBox(body, "Relic effects", new Color(.89f, .985f, .85f));
             totals.GetComponent<Outline>().effectColor = new Color(.27f, .53f, .23f);
-            UiKit.Text(totals, "총 유물 효과   공격력 +" + UiNumber.Format(EffectBonus("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectBonus("health", "Relic")) + "%", 26, TextAnchor.MiddleCenter, 46);
+            string summary = "총 유물 효과   공격력 +" + UiNumber.Format(EffectBonus("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectBonus("health", "Relic")) + "%\n"
+                + "골드 +" + UiNumber.Format(EffectBonus("gold", "Relic")) + "% · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", "Relic")) + "% · 치명 피해 +" + UiNumber.Format(EffectBonus("critDamage", "Relic")) + "%";
+            UiKit.Text(totals, summary, 23, TextAnchor.MiddleCenter, 62);
             foreach (var entry in Items("Relic"))
             {
                 var item = entry;
@@ -466,42 +489,100 @@ namespace DoodleIdle
                 UiKit.Text(title, item.name, 27, TextAnchor.MiddleLeft, 34);
                 CollectionLabelPill(title, "Lv. " + UiNumber.Format(item.level), new Color(.94f, .90f, .82f), 64, 32, 23);
                 UiKit.Text(info, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "% → <color=#216B20>+" + UiNumber.Format(ItemOwnedValue(item) + collectionTuning.relicStepPercent) + "%</color>", 24, TextAnchor.MiddleLeft, 34);
-                UiKit.Text(info, "성공 확률 " + UiNumber.Format(RelicSuccessChance(item) * 100, 0) + "%", 23, TextAnchor.MiddleLeft, 30);
-                var button = CollectionCoinButton(row, item.discovered ? "강화\n골드 " + UiNumber.Format(RelicUpgradeCost(item)) : "미획득", item.discovered ? "강화" : "미획득", RelicUpgradeCost(item), () =>
-                {
-                    bool success;
-                    if (!TryUpgradeRelic(item, out success)) { Toast("강화 골드가 부족하거나 최대 단계입니다."); return; }
-                    Save(); RefreshPage(); Toast(success ? item.name + " 강화 성공!" : "강화 실패 · 현재 단계는 유지됩니다.");
-                }, 94, 146);
-                button.interactable = item.discovered && item.level < collectionTuning.maxItemLevel && Gold >= RelicUpgradeCost(item);
+                UiKit.Text(info, "성공 확률 50%", 23, TextAnchor.MiddleLeft, 30);
+                Func<bool> attempt = () => UpgradeRelicFromUi(item, false);
+                string caption = !item.discovered ? "미획득" : item.level >= collectionTuning.maxItemLevel ? "최대 단계" : "강화";
+                var button = UiKit.Button(row, caption + "\n" + UiNumber.Format(item.count) + " / 1개", () => UpgradeRelicFromUi(item, true), UiKit.Yellow, 94);
+                CollectionWidth(button.transform, 146);
+                button.interactable = item.discovered && item.count > 0 && item.level < collectionTuning.maxItemLevel && !collectionBulkRunning;
+                UiKit.Repeat(button, "relic:" + item.id, attempt);
             }
             var footer = UiKit.Footer(body, "Relic footer", 72);
-            var bulk = UiKit.Button(footer, "일괄강화", () =>
-            {
-                int attempted = 0, successes = 0;
-                foreach (var item in Items("Relic")) { bool success; if (TryUpgradeRelic(item, out success)) { attempted++; if (success) successes++; } }
-                Save(); RefreshPage(); Toast(attempted == 0 ? "강화 가능한 유물이 없습니다." : UiNumber.Format(attempted) + "회 시도 · " + UiNumber.Format(successes) + "회 성공");
-            }, UiKit.Blue, 68);
+            var bulk = UiKit.Button(footer, "일괄강화", () => StartCollectionBulk("Relic"), UiKit.Blue, 68);
+            bulk.interactable = !collectionBulkRunning;
             CollectionButtonText(bulk, 34);
         }
 
-        public float RelicSuccessChance(UiItem item) => Mathf.Clamp(1 - Math.Max(0, item.level - 1) * collectionTuning.relicChanceLoss, collectionTuning.relicMinimumChance, 1);
-        public long RelicUpgradeCost(UiItem item) => (long)Math.Min(long.MaxValue / 2d, Math.Ceiling(collectionTuning.relicBaseCost * (1 + item.rarity * .25) * Math.Pow(collectionTuning.relicCostGrowth, Math.Max(0, item.level - 1))));
-        public bool TryUpgradeRelic(UiItem item, out bool success)
+        bool UpgradeRelicFromUi(UiItem item, bool showMessage)
+        {
+            bool success;
+            if (!TryUpgradeRelic(item, out success))
+            {
+                if (showMessage) Toast("강화할 유물이 없거나 최대 단계입니다.");
+                return false;
+            }
+            Save(); RefreshPage();
+            if (showMessage) Toast(success ? item.name + " 강화 성공!" : "강화 실패 · 유물 1개 소모, 현재 단계 유지");
+            return true;
+        }
+
+        void StartCollectionBulk(string category)
+        {
+            if (collectionBulkRunning) return;
+            StartCoroutine(UpgradeCollectionBulk(category));
+        }
+
+        IEnumerator UpgradeCollectionBulk(string category)
+        {
+            collectionBulkRunning = true;
+            long before = Power;
+            long attempts = 0, successes = 0;
+            int chunk = 0;
+            try
+            {
+                foreach (var item in Items(category))
+                {
+                    while (true)
+                    {
+                        bool success = true;
+                        bool attempted = category == "Relic" ? TryUpgradeRelic(item, out success, false) : UpgradeItem(item, false);
+                        if (!attempted) break;
+                        attempts++;
+                        if (success) successes++;
+                        if (++chunk < 64) continue;
+                        chunk = 0;
+                        Save();
+                        RefreshCollectionBulkPage(category);
+                        yield return null;
+                    }
+                }
+            }
+            finally
+            {
+                collectionBulkRunning = false;
+                Save();
+                NotifyPowerChanged(before, "일괄 강화");
+            }
+            RefreshCollectionBulkPage(category);
+            Toast(attempts == 0 ? "강화 가능한 수량이 없습니다." : category == "Relic"
+                ? UiNumber.Format(attempts) + "개 소모 · " + UiNumber.Format(successes) + "회 성공"
+                : UiNumber.Format(successes) + "회 강화했습니다.");
+        }
+
+        void RefreshCollectionBulkPage(string category)
+        {
+            string page = category == "Armor" || category == "Club" ? "Equipment" : category == "Skill" ? "Skills" : category == "Companion" ? "Companions" : "Relics";
+            if (ActivePage == page) RefreshPage();
+        }
+
+        public float RelicSuccessChance(UiItem item) => .5f;
+        // The upgrade cost is a count of this relic, never a gold price.
+        public long RelicUpgradeCost(UiItem item) => 1;
+        public bool TryUpgradeRelic(UiItem item, out bool success, bool notifyPower = true)
         {
             success = false;
-            if (item == null || item.category != "Relic" || !item.discovered || item.level >= collectionTuning.maxItemLevel) return false;
-            long cost = RelicUpgradeCost(item);
-            if (Gold < cost) return false;
-            Gold -= cost;
-            success = collectionRandom.NextDouble() < RelicSuccessChance(item);
+            if (item == null || item.category != "Relic" || !item.discovered || item.count < 1 || item.level >= collectionTuning.maxItemLevel) return false;
+            long before = notifyPower ? Power : 0;
+            item.count--;
+            success = collectionRandom.NextDouble() < .5;
             if (success) { item.level++; RecordServiceProgress("relicUpgrade", 1); }
+            if (notifyPower) NotifyPowerChanged(before, "유물 강화");
             return true;
         }
 
         static string EffectName(string effect)
         {
-            switch (effect) { case "health": return "체력"; case "defense": return "방어력"; case "speed": return "공격 속도"; case "gold": return "골드 획득"; default: return "공격력"; }
+            switch (effect) { case "health": return "체력"; case "healthRegen": return "체력 회복"; case "critDamage": return "치명타 피해"; case "crit2Chance": return "2배 치명타 확률"; case "crit4Chance": return "4배 치명타 확률"; case "gold": return "골드 획득"; default: return "공격력"; }
         }
         static string CategoryName(string category)
         {

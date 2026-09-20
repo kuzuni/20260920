@@ -57,7 +57,7 @@ namespace DoodleIdle
             bool moving = actor.body.simulated && actor.body.linearVelocity.sqrMagnitude > .0025f;
             actor.walkClock = moving ? actor.walkClock + dt : 0;
             int frame = moving ? (int)(actor.walkClock * 6 + actor.phase) % 2 : 0;
-            Sprite art = actor.isPlayer ? (frame == 0 ? sprites[0] : playerWalkB) : enemyWalkFrames[actor.kind][frame];
+            Sprite art = actor.isPlayer ? PlayerSkinFrame(frame == 0 ? sprites[0] : playerWalkB) : enemyWalkFrames[actor.kind][frame];
             if (actor.art.sprite != art) SetSpriteArt(actor.art, art);
         }
         void DisposeActorAnimations()

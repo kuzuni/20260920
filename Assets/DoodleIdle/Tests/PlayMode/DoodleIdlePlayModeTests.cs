@@ -58,6 +58,7 @@ namespace DoodleIdle.Tests
 
         Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true, System.Action beforeRender = null)
         {
+            DoodlePopupMotion.CompleteAll(game.Ui.Canvas.transform);
             var camera = Camera.main;
             var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
             var previousTarget = camera.targetTexture;
@@ -85,6 +86,7 @@ namespace DoodleIdle.Tests
             try
             {
                 beforeRender?.Invoke();
+                DoodlePopupMotion.CompleteAll(game.Ui.Canvas.transform);
                 // A synchronous render has no intervening LateUpdate. Rebuild the actual ScrollRects
                 // after capture navigation so their thumb positions match their visible content.
                 foreach (var scroll in canvas.GetComponentsInChildren<UnityEngine.UI.ScrollRect>())

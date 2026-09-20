@@ -18,6 +18,8 @@ namespace DoodleIdle.Tests
         readonly Dictionary<string, string> uiSavedStrings = new Dictionary<string, string>();
         bool uiHadDiamonds;
         int uiSavedDiamonds;
+        bool uiHadCameraMode;
+        int uiSavedCameraMode;
         readonly List<string> uiCaptureFailures = new List<string>();
 
         [Test]
@@ -44,7 +46,7 @@ namespace DoodleIdle.Tests
             finally { System.Globalization.CultureInfo.CurrentCulture = culture; }
         }
         static readonly string[] UiProfileKeys = {
-            "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1",
+            "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
             "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic"
         };
@@ -62,6 +64,7 @@ namespace DoodleIdle.Tests
             uiHadDiamonds = PlayerPrefs.HasKey("DoodleUi.Diamonds");
             uiSavedDiamonds = PlayerPrefs.GetInt("DoodleUi.Diamonds");
             PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
+            uiHadCameraMode=PlayerPrefs.HasKey("DoodleUi.CameraMode");uiSavedCameraMode=PlayerPrefs.GetInt("DoodleUi.CameraMode");PlayerPrefs.DeleteKey("DoodleUi.CameraMode");
         }
 
         void EndUiTestProfile()
@@ -73,6 +76,7 @@ namespace DoodleIdle.Tests
             }
             if (uiHadDiamonds) PlayerPrefs.SetInt("DoodleUi.Diamonds", uiSavedDiamonds);
             else PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
+            if(uiHadCameraMode)PlayerPrefs.SetInt("DoodleUi.CameraMode",uiSavedCameraMode);else PlayerPrefs.DeleteKey("DoodleUi.CameraMode");
             PlayerPrefs.Save();
         }
 
@@ -90,12 +94,14 @@ namespace DoodleIdle.Tests
             var button = buttons[buttons.Length - 1];
             Assert.That(button.interactable, Is.True, "Button must be usable: " + name);
             ExecuteEvents.Execute(button.gameObject, new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+            DoodlePopupMotion.CompleteAll(UiRoot);
             Canvas.ForceUpdateCanvases();
         }
         void UiOpen(string page)
         {
             game.Ui.ClosePage();
             if (!string.IsNullOrEmpty(page)) game.Ui.ShowPage(page);
+            DoodlePopupMotion.CompleteAll(UiRoot);
             Canvas.ForceUpdateCanvases();
         }
         ScrollRect UiTopScroll()
@@ -117,7 +123,7 @@ namespace DoodleIdle.Tests
             UiClick("Stats", UiNode("Bottom navigation"));
             Assert.That(game.Ui.ActivePage, Is.EqualTo("Stats"));
             Assert.That(game.Ui.BlocksGameplay, Is.True);
-            Assert.That(UiNode("Stat quantity").GetComponentsInChildren<Button>().Length, Is.EqualTo(3));
+            Assert.That(UiNode("Stat quantity").GetComponentsInChildren<Button>().Length, Is.EqualTo(4));
             Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "일괄강화"), Is.False);
             int attack = game.Ui.AttackStatLevel;
             long gold = game.Ui.Gold;
@@ -339,11 +345,23 @@ namespace DoodleIdle.Tests
                 UiOpen("Shop"); UiClick("뽑기", UiNode("ShopTabs")); UiCapture("22-shop-bottom", size, true);
                 UiClick("i", UiNode("Summon_Armor")); UiCapture("23-probabilities", size); UiCapture("23b-probabilities-bottom", size, true);
                 UiOpen(null); game.Ui.ShowRewards("던전 클리어!", new List<UiReward> {
-                    new UiReward { name = "골드", icon = "Gold", amount = 30000, rarity = 0 },
-                    new UiReward { name = "희귀 장비", icon = "Armor", amount = 1, rarity = 2 }
+                    new UiReward { name = "골드", icon = "Gold", amount = 30000, rarity = 0 }
                 }); UiCapture("24-dungeon-clear", size);
                 UiOpen(null); game.Ui.ShowRewards("획득 보상", new List<UiReward> { new UiReward { icon = "Diamond", amount = 100, rarity = 0 } });
                 UiCapture("25-rewards", size);
+                UiOpen("Skins"); UiClick("무기 스킨", UiNode("Skin tabs"));
+                UiClick("SkinSlot_weapon_crystal"); UiCapture("26-skin-weapon-locked", size);
+                UiClick("외형 스킨", UiNode("Skin tabs")); UiClick("SkinSlot_appearance_peach");
+                UiCapture("27-skin-appearance-locked", size);
+                if (!game.Ui.IsSkinOwned("weapon_vine")) Assert.That(game.Ui.TryAcquireSkin("weapon_vine"), Is.True);
+                UiClick("무기 스킨", UiNode("Skin tabs")); UiClick("SkinSlot_weapon_vine");
+                UiCapture("28-skin-owned", size);
+                game.Ui.Gold=100000000;
+                if(game.Ui.AttackStatLevel<15) Assert.That(game.Ui.UpgradeStat("attack",15-game.Ui.AttackStatLevel),Is.True);
+                UiOpen(null); UiCapture("29-mission-ready",size);
+                game.Ui.CycleCameraMode();UiCapture("30-camera-mode-2",size);
+                game.Ui.CycleCameraMode();UiCapture("31-camera-mode-3",size);
+                game.Ui.CycleCameraMode();
                 yield return null;
             }
             Assert.That(uiCaptureFailures, Is.Empty, string.Join("\n", uiCaptureFailures));
@@ -351,6 +369,7 @@ namespace DoodleIdle.Tests
 
         void UiCapture(string state, Vector2Int size, bool bottom = false)
         {
+            game.Ui.Toast(""); UiNode("Power change toast").GetComponent<Text>().text="";
             string file = "ui-" + size.x + "x" + size.y + "-" + state + ".png";
             var rewardCards = new List<RectInt>();
             var rewardRays = new List<RectInt>();
@@ -500,14 +519,15 @@ namespace DoodleIdle.Tests
                 var dock = (RectTransform)UiNode("Eight equipped cooldowns");
                 Assert.That(dock.rect.height, Is.InRange(78f, 90f), context + " reference cooldown diameter");
                 var mission = (RectTransform)UiNode("Mission");
-                Assert.That(mission.rect.height, Is.InRange(130f, 155f), context + " reference mission card height");
+                Assert.That(mission.rect.height, Is.InRange(174f, 194f), context + " mission card must also fit its explicit reward button");
             }
             if (state == "02-stats" || state == "04-club" || state == "05-skills" || state == "06-dungeons")
             {
                 var window = UiRoot.GetComponentsInChildren<DoodleUiWindow>().Last();
                 var bounds = UiLocalBounds(canvas, (RectTransform)window.transform);
                 Assert.That(bounds.width / canvas.rect.width, Is.InRange(.75f, .83f), context + " reference panel width");
-                Assert.That(bounds.height, Is.InRange(state == "05-skills" ? 970f : 790f, state == "05-skills" ? 1040f : 900f), context + " reference panel height");
+                bool fiveStatOrSkill=state=="02-stats"||state=="05-skills";
+                Assert.That(bounds.height, Is.InRange(fiveStatOrSkill ? 970f : 790f, fiveStatOrSkill ? 1040f : 900f), context + " reference panel height with five growth stats");
                 float center = (canvas.rect.yMax - bounds.center.y) / canvas.rect.height;
                 Assert.That(center, Is.InRange(.41f, .54f), context + " reference panel placement");
             }

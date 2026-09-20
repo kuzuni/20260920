@@ -68,7 +68,18 @@ namespace DoodleIdle
         {
             var r=Box(parent,text,color ?? Blue,height); var b=r.gameObject.AddComponent<Button>(); b.targetGraphic=r.GetComponent<Image>();
             var c=b.colors; c.highlightedColor=new Color(1,.98f,.89f); c.pressedColor=new Color(.78f,.78f,.78f); c.disabledColor=new Color(.64f,.64f,.64f); b.colors=c;
-            b.onClick.AddListener(()=>click?.Invoke()); var label=Text(r,text,27,TextAnchor.MiddleCenter,height-8); Stretch(label.rectTransform,5,4,5,4); return b;
+            var motion=r.gameObject.AddComponent<DoodleButtonMotion>();
+            b.onClick.AddListener(()=>{if(motion.ConsumeClick())return;motion.Pulse();click?.Invoke();}); var label=Text(r,text,27,TextAnchor.MiddleCenter,height-8); Stretch(label.rectTransform,5,4,5,4); return b;
+        }
+        public static void Repeat(Button button,string key,Func<bool> action)
+        { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
+        public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
+        {
+            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row)row.spacing=-2;
+            var button=Button(parent,label,click,selected?Yellow:new Color(.87f,.87f,.86f),height);
+            button.GetComponent<Outline>().effectDistance=new Vector2(2.5f,-2.5f);
+            button.GetComponentInChildren<Text>().resizeTextMaxSize=34;
+            return button;
         }
         public static Image Icon(Transform parent,string resource,float size=64)
         {

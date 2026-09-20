@@ -26,9 +26,8 @@ namespace DoodleIdle
     {
         public float costGrowth = 1.08f;
         public int maxStatLevel = 10000, maxItemLevel = 1000, copiesPerUpgrade = 5;
-        public int relicBaseCost = 600;
         public int[] gradeWeights = { 60, 25, 10, 4, 1 };
-        public float relicCostGrowth = 1.16f, relicStepPercent = 2, relicChanceLoss = .035f, relicMinimumChance = .2f;
+        public float relicStepPercent = 2;
         public UiStatDefinition[] stats;
         public UiItem[] items;
     }
@@ -41,12 +40,12 @@ namespace DoodleIdle
         readonly List<UiItem> collectionItems = new List<UiItem>();
         readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
         UiCollectionTuning collectionTuning;
-        float starterDamageBaseline = 1, starterSpeedBaseline = 1;
+        float starterDamageBaseline = 1;
         readonly System.Random collectionRandom = new System.Random();
 
         [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered; }
         [Serializable] sealed class StatSave { public string id; public int level; }
-        [Serializable] sealed class CollectionSave { public List<ItemSave> items = new List<ItemSave>(); public List<StatSave> stats = new List<StatSave>(); }
+        [Serializable] sealed class CollectionSave { public int version; public List<ItemSave> items = new List<ItemSave>(); public List<StatSave> stats = new List<StatSave>(); }
 
         public void InitCollections()
         {
@@ -67,8 +66,7 @@ namespace DoodleIdle
             // pristine catalog BEFORE restoring saves, so a new profile produces exactly
             // 1x original damage/speed and only progression or loadout changes scale it.
             // This baseline follows tuning data rather than silently rebasing saved upgrades.
-            starterDamageBaseline = RawCombatDamageMultiplier;
-            starterSpeedBaseline = RawCombatSpeedMultiplier;
+            starterDamageBaseline = CollectionDamageMultiplier(false);
             string saved = PlayerPrefs.GetString(CollectionsSaveKey, "");
             if (!string.IsNullOrEmpty(saved))
             {
@@ -87,8 +85,17 @@ namespace DoodleIdle
                             item.slot = Math.Max(0, entry.slot);
                         }
                     if (state != null && state.stats != null)
+                    {
                         foreach (var entry in state.stats)
-                            if (statLevels.ContainsKey(entry.id)) statLevels[entry.id] = Mathf.Clamp(entry.level, 0, collectionTuning.maxStatLevel);
+                            if (statLevels.ContainsKey(entry.id)) statLevels[entry.id] = Mathf.Clamp(entry.level, 0, StatMaxLevel(entry.id));
+                        if (state.version < 2)
+                            foreach (var entry in state.stats)
+                            {
+                                string migrated = entry.id == "defense" ? "healthRegen" : entry.id == "speed" ? "crit2Chance" : null;
+                                if (migrated != null && !state.stats.Exists(x => x.id == migrated))
+                                    statLevels[migrated] = Mathf.Clamp(entry.level, 0, StatMaxLevel(migrated));
+                            }
+                    }
                 }
                 catch (ArgumentException) { Debug.LogWarning("Collection save could not be read; using local starter data."); }
             }
@@ -98,7 +105,7 @@ namespace DoodleIdle
         public void SaveCollections()
         {
             if (collectionTuning == null) return;
-            var saved = new CollectionSave();
+            var saved = new CollectionSave { version = 2 };
             foreach (var item in collectionItems)
                 saved.items.Add(new ItemSave { id = item.id, count = item.count, level = item.level, slot = item.slot, equipped = item.equipped, discovered = item.discovered });
             foreach (var pair in statLevels) saved.stats.Add(new StatSave { id = pair.Key, level = pair.Value });
@@ -166,18 +173,41 @@ namespace DoodleIdle
         {
             InitCollections();
             foreach (var stat in collectionTuning.stats)
-                if (stat.id == id) return stat.initial + stat.increment * StatLevel(id);
+                if (stat.id == id)
+                {
+                    float value = stat.initial + stat.increment * StatLevel(id);
+                    return IsCriticalChance(id) ? Mathf.Clamp(value, 0, 100) : value;
+                }
             return 0;
         }
         public float OwnedBonus => EffectBonus("attack");
         public float HealthBonus => EffectBonus("health");
-        public float DefenseBonus => EffectBonus("defense");
         public float GoldGainMultiplier => 1 + EffectBonus("gold") / 100;
-        float RawCombatDamageMultiplier => ((StatValue("attack") + EquippedValue("Club")) / BaseStatValue("attack")) * (1 + (OwnedBonus + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
-        float RawCombatSpeedMultiplier => (StatValue("speed") / BaseStatValue("speed")) * (1 + EffectBonus("speed") / 100);
-        public float CombatDamageMultiplier { get { InitCollections(); return RawCombatDamageMultiplier / Mathf.Max(.001f, starterDamageBaseline); } }
-        public float CombatAttackSpeedMultiplier { get { InitCollections(); return Mathf.Clamp(RawCombatSpeedMultiplier / Mathf.Max(.001f, starterSpeedBaseline), .25f, 3); } }
-        public long Power => (long)Math.Min(long.MaxValue, Math.Round(StatValue("attack") * CombatDamageMultiplier * 70d + StatValue("health") * (1 + HealthBonus / 100) + (StatValue("defense") + EquippedValue("Armor")) * (1 + DefenseBonus / 100) * 5));
+        public float Critical2Chance => Mathf.Clamp(StatValue("crit2Chance") + EffectBonus("crit2Chance"), 0, 100);
+        public float Critical4Chance => Mathf.Clamp(StatValue("crit4Chance") + EffectBonus("crit4Chance"), 0, 100);
+        public float CriticalDamageBonus => Mathf.Max(0, EffectBonus("critDamage"));
+        public float MaxHealth => Mathf.Max(1, (StatValue("health") + EquippedValue("Armor")) * (1 + HealthBonus / 100));
+        public float HealthRegen => Mathf.Max(0, StatValue("healthRegen") * (1 + EffectBonus("healthRegen") / 100));
+        float CollectionDamageMultiplier(bool includeSkins) => ((StatValue("attack") + EquippedValue("Club")) / BaseStatValue("attack")) * (1 + (EffectBonus("attack", null, includeSkins) + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
+        public float CombatDamageMultiplier { get { InitCollections(); return CollectionDamageMultiplier(true) / Mathf.Max(.001f, starterDamageBaseline); } }
+        public float CombatAttackSpeedMultiplier => 1;
+        public double ExpectedCriticalMultiplier
+        {
+            get
+            {
+                double p2 = Critical2Chance / 100d, p4 = Critical4Chance / 100d, bonus = 1 + CriticalDamageBonus / 100d;
+                return (1 - p4) * (1 - p2) + (1 - p4) * p2 * 2 * bonus + p4 * 4 * bonus;
+            }
+        }
+        public long Power => (long)Math.Min(long.MaxValue, Math.Round(BaseStatValue("attack") * CombatDamageMultiplier * ExpectedCriticalMultiplier * 70d + MaxHealth + HealthRegen * 20d));
+        static bool IsCriticalChance(string id) => id == "crit2Chance" || id == "crit4Chance";
+        int StatMaxLevel(string id)
+        {
+            var stat = Array.Find(collectionTuning.stats, x => x.id == id);
+            if (stat == null) return 0;
+            return IsCriticalChance(id) && stat.increment > 0
+                ? Math.Min(collectionTuning.maxStatLevel, Mathf.CeilToInt((100 - stat.initial) / stat.increment)) : collectionTuning.maxStatLevel;
+        }
 
         float EquippedValue(string category)
         {
@@ -196,22 +226,24 @@ namespace DoodleIdle
         }
         float ItemEquipValue(UiItem item) => item.equipValue * (1 + Math.Max(0, item.level - 1) * .15f);
         float ItemOwnedValue(UiItem item) => item.category == "Relic" ? item.level * collectionTuning.relicStepPercent : item.ownedPercent * (1 + Math.Max(0, item.level - 1) * .1f);
-        float EffectBonus(string effect, string category = null)
+        float EffectBonus(string effect, string category = null, bool includeSkins = true)
         {
             InitCollections();
             float value = 0;
             foreach (var item in collectionItems)
                 if (item.discovered && item.effect == effect && (category == null || item.category == category || (category == "Equipment" && (item.category == "Armor" || item.category == "Club")))) value += ItemOwnedValue(item);
-            return value;
+            return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
         }
         public int CopiesNeeded(UiItem item) => collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
-        public bool UpgradeItem(UiItem item)
+        public bool UpgradeItem(UiItem item, bool notifyPower = true)
         {
             if (item == null || !item.discovered || item.category == "Relic" || item.level >= collectionTuning.maxItemLevel || item.count < CopiesNeeded(item)) return false;
+            long before = notifyPower ? Power : 0;
             item.count -= CopiesNeeded(item);
             item.level++;
             if (item.category == "Armor" || item.category == "Club") RecordServiceProgress("equipmentUpgrade", 1);
             if (item.category == "Skill") RecordServiceProgress("skillUpgrade", 1);
+            if (notifyPower) NotifyPowerChanged(before, "강화");
             return true;
         }
     }

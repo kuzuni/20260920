@@ -491,7 +491,7 @@ namespace DoodleIdle
         void Damage(Actor enemy, float amount, Vector2 push)
         {
             if (enemy.hp <= 0) return;
-            amount *= Ui ? Ui.UiDamageMultiplier : 1;
+            amount *= (Ui ? Ui.UiDamageMultiplier : 1) * RollUiCriticalMultiplier();
             enemy.hp -= amount; enemy.flash = .14f;
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
@@ -512,7 +512,7 @@ namespace DoodleIdle
         {
             AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
-            actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : Color.white;
+            actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
@@ -526,6 +526,7 @@ namespace DoodleIdle
             // Sprite pivot is inside the grip; the hand contact follows the head's bob and tilt.
             weapon.position = player.art.transform.TransformPoint(new Vector3(.4f * side, -.18f, 0));
             var art = weapon.GetComponent<SpriteRenderer>();
+            ApplyWeaponSkin(art);
             art.flipX = side < 0;
             weapon.localRotation = Quaternion.Euler(0, 0, side * (-10 - Mathf.Sin(swing * Mathf.PI) * 105));
             art.sortingOrder = player.art.sortingOrder + 2;
@@ -724,6 +725,7 @@ namespace DoodleIdle
             DisposeSkillArt();
             DisposeSummonArt();
             DisposeActorAnimations();
+            DisposeWorldSkins();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }
