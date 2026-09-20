@@ -363,6 +363,23 @@ namespace DoodleIdle.Tests
                     }
                     AssertUiGeometry(file);
                     if (size.x == 720 && size.y == 1520) AssertReferenceProportions(state, file);
+                    if (size.y == 900 && (state == "03-armor" || state == "04-club" || state == "05-skills" || state == "19-companions"))
+                    {
+                        var inventory = UiNode("Collection inventory");
+                        var card = (RectTransform)inventory.GetChild(0);
+                        var outer = inventory.GetComponentsInParent<ScrollRect>().Last().viewport;
+                        var bounds = UiLocalBounds(outer, card);
+                        float visible = Mathf.Min(bounds.yMax, outer.rect.yMax) - Mathf.Max(bounds.yMin, outer.rect.yMin);
+                        Assert.That(visible, Is.GreaterThanOrEqualTo(64), file + " first inventory row must be visible on entry");
+                    }
+                    if (size.y == 900 && state == "23-probabilities")
+                    {
+                        var card = UiRoot.GetComponentsInChildren<RectTransform>().First(t => t.name.StartsWith("Probability_"));
+                        var outer = card.GetComponentInParent<ScrollRect>().viewport;
+                        var bounds = UiLocalBounds(outer, card);
+                        float visible = Mathf.Min(bounds.yMax, outer.rect.yMax) - Mathf.Max(bounds.yMin, outer.rect.yMin);
+                        Assert.That(visible, Is.GreaterThanOrEqualTo(32), file + " an individual probability must be visible on entry");
+                    }
                     if (state == "07b-pvp-bottom")
                     {
                         var lastRank = (RectTransform)UiNode("Rank 100");

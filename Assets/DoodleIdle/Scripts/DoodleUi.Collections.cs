@@ -191,6 +191,7 @@ namespace DoodleIdle
             var tabs = UiKit.Row(footer, "Equipment tabs", 52, 4);
             CollectionButtonText(UiKit.Button(tabs, "갑옷", () => { equipmentCategory = "Armor"; RefreshPage(); }, equipmentCategory == "Armor" ? UiKit.Yellow : UiKit.Paper, 52), 31);
             CollectionButtonText(UiKit.Button(tabs, "몽둥이", () => { equipmentCategory = "Club"; RefreshPage(); }, equipmentCategory == "Club" ? UiKit.Yellow : UiKit.Paper, 52), 31);
+            body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
         void BuildSkills(RectTransform body) => BuildLoadout(body, "Skill", "스킬", 8, 4);
@@ -217,6 +218,7 @@ namespace DoodleIdle
             UiKit.Text(body, "보유 " + label, 32, TextAnchor.MiddleLeft, 44);
             BuildInventory(body, Items(category), ShowCollectionDetail, 4);
             CollectionActions(UiKit.Footer(body, category + " footer", 72), category);
+            body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, category);
         }
 
         void OwnershipStrip(RectTransform parent, string category)
@@ -326,7 +328,7 @@ namespace DoodleIdle
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window)
                 {
-                    window.maxWidth = 360; window.maxHeight = 640; window.centerFromTop = .645f;
+                    window.maxWidth = 360; window.maxHeight = 550; window.centerFromTop = .645f;
                     window.headerHeight = 64; window.titleSize = 33; window.Reflow(safe);
                 }
                 body.GetComponent<VerticalLayoutGroup>().spacing = 5;
@@ -505,6 +507,140 @@ namespace DoodleIdle
         }
     }
 
+    /// <summary>Restores the reference layout after leaving a short viewport.</summary>
+    public sealed class DoodleCollectionReferenceLayout : MonoBehaviour
+    {
+        readonly List<Action<bool>> rules = new List<Action<bool>>();
+        RectTransform body, viewport;
+        bool? compact;
+
+        public void Configure(RectTransform content, string category)
+        {
+            body = content;
+            viewport = body.GetComponentInParent<ScrollRect>().viewport;
+            Layout(body.GetComponent<VerticalLayoutGroup>(), 3, new RectOffset(2, 2, 2, 2));
+            bool equipment = category == "Armor" || category == "Club";
+            if (equipment)
+            {
+                var spec = body.Find("Selected equipment/Equipment specification");
+                Layout(spec.parent.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(7, 7, 5, 5));
+                Height(spec, 120);
+                var selected = spec.GetChild(0);
+                Card(selected, 112, false, 0);
+                var info = spec.Find("Item information");
+                Layout(info.GetComponent<VerticalLayoutGroup>(), 3, null);
+                Height(info.GetChild(0), 24); Font(info.GetChild(0).GetComponent<Text>(), 24);
+                foreach (string effect in new[] { "보유 효과", "장착 효과" })
+                {
+                    var row = info.Find(effect); Height(row, 22);
+                    Height(row.GetChild(0), 22);
+                    foreach (var text in row.GetComponentsInChildren<Text>()) { Height(text.transform, 22); Font(text, 20); }
+                }
+                var actions = info.Find("Selected item actions"); Height(actions, 32);
+                foreach (var button in actions.GetComponentsInChildren<Button>())
+                { Height(button.transform, 32); Font(button.GetComponentInChildren<Text>(), 23); }
+                var ownership = body.Find("Total ownership"); Height(ownership, 32);
+                Height(ownership.GetChild(0), 32); Font(ownership.GetComponentInChildren<Text>(), 22);
+            }
+            else
+            {
+                Height(body.GetChild(0), 28); Font(body.GetChild(0).GetComponent<Text>(), 25);
+                var slots = body.Find("Equipped " + category);
+                float shortHeight = category == "Skill" ? 56 : 72;
+                Grid(slots.GetComponent<GridLayoutGroup>(), shortHeight);
+                for (int i = 0; i < slots.childCount; i++) Card(slots.GetChild(i), shortHeight, true, i + 1);
+                var ownership = body.Find("Total ownership");
+                Layout(ownership.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(4, 4, 1, 1));
+                var badges = ownership.Find("Ownership badges"); Height(badges, 30);
+                foreach (Transform badge in badges)
+                {
+                    Height(badge, 30);
+                    var text = badge.GetComponentInChildren<Text>(); Height(text.transform, 28); Font(text, 23);
+                }
+                foreach (Transform child in body)
+                {
+                    var text = child.GetComponent<Text>();
+                    if (text && text.text.StartsWith("보유 ", StringComparison.Ordinal)) { Height(child, 28); Font(text, 25); }
+                }
+            }
+            var inventory = body.Find("Collection inventory viewport/Inventory clipping area/Collection inventory");
+            Grid(inventory.GetComponent<GridLayoutGroup>(), 96);
+            foreach (Transform card in inventory) Card(card, 96, false, 0);
+            Reflow();
+        }
+
+        void Height(Transform target, float small)
+        {
+            var element = target.GetComponent<LayoutElement>();
+            if (!element) return;
+            float min = element.minHeight, preferred = element.preferredHeight;
+            rules.Add(shortMode => { element.minHeight = shortMode ? small : min; element.preferredHeight = shortMode ? small : preferred; });
+        }
+
+        void Font(Text text, int size)
+        {
+            if (!text) return;
+            int font = text.fontSize, max = text.resizeTextMaxSize;
+            rules.Add(shortMode => { text.fontSize = shortMode ? size : font; text.resizeTextMaxSize = shortMode ? size : max; });
+        }
+
+        void Layout(VerticalLayoutGroup layout, float spacing, RectOffset padding)
+        {
+            float originalSpacing = layout.spacing;
+            RectOffset originalPadding = layout.padding;
+            rules.Add(shortMode => { layout.spacing = shortMode ? spacing : originalSpacing; layout.padding = shortMode && padding != null ? padding : originalPadding; });
+        }
+
+        void Grid(GridLayoutGroup grid, float height)
+        {
+            float original = grid.cellSize.y;
+            rules.Add(shortMode => grid.cellSize = new Vector2(grid.cellSize.x, shortMode ? height : original));
+        }
+
+        void Card(Transform card, float height, bool equipped, int number)
+        {
+            Height(card, height);
+            var label = card.GetChild(0).GetComponent<Text>();
+            var icon = card.GetChild(1) as RectTransform;
+            var gauge = card.Find("Quantity gauge") as RectTransform;
+            var mark = card.Find("Equipped check") as RectTransform;
+            string originalText = label.text;
+            Vector2 labelMin = label.rectTransform.offsetMin, labelMax = label.rectTransform.offsetMax;
+            Vector2 iconMin = icon.offsetMin, iconMax = icon.offsetMax;
+            Vector2 gaugeMin = gauge.offsetMin, gaugeMax = gauge.offsetMax;
+            Vector2 markSize = mark ? mark.sizeDelta : Vector2.zero, markPosition = mark ? mark.anchoredPosition : Vector2.zero;
+            bool gaugeActive = gauge.gameObject.activeSelf;
+            rules.Add(shortMode =>
+            {
+                label.text = shortMode && equipped ? number.ToString() : originalText;
+                label.rectTransform.offsetMin = shortMode ? new Vector2(6, height - 29) : labelMin;
+                label.rectTransform.offsetMax = shortMode ? new Vector2(-5, -3) : labelMax;
+                icon.offsetMin = shortMode ? new Vector2(equipped ? 22 : 12, equipped ? 4 : 33) : iconMin;
+                icon.offsetMax = shortMode ? new Vector2(equipped ? -18 : -12, equipped ? -4 : -27) : iconMax;
+                gauge.gameObject.SetActive(shortMode && equipped ? false : gaugeActive);
+                gauge.offsetMin = shortMode ? new Vector2(5, 5) : gaugeMin;
+                gauge.offsetMax = shortMode ? new Vector2(-5, -(height - 29)) : gaugeMax;
+                if (mark)
+                {
+                    mark.sizeDelta = shortMode && equipped ? Vector2.one * 22 : markSize;
+                    mark.anchoredPosition = shortMode && equipped ? new Vector2(-13, -13) : markPosition;
+                }
+            });
+            if (equipped) Font(label, 17);
+        }
+
+        void LateUpdate() => Reflow();
+        public void Reflow()
+        {
+            if (!body || !viewport || viewport.rect.height <= 0) return;
+            bool shortMode = viewport.rect.height < 500;
+            if (compact == shortMode) return;
+            compact = shortMode;
+            foreach (var rule in rules) rule(shortMode);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(body);
+        }
+    }
+
     /// <summary>Only the item list scrolls in tall windows; short windows can also scroll the header.</summary>
     public sealed class DoodleCollectionInventoryViewport : MonoBehaviour
     {
@@ -539,7 +675,8 @@ namespace DoodleIdle
             }
             if (bodyLayout) otherHeight += bodyLayout.spacing * Math.Max(0, childCount - 1);
             float available = outerViewport.rect.height;
-            float preferred = available >= 600 ? Mathf.Max(140, available - otherHeight - 2) : 180;
+            float preferred = available < 500 ? Mathf.Clamp(available - otherHeight - 2, 96, 112)
+                : available >= 600 ? Mathf.Max(140, available - otherHeight - 2) : 180;
             float itemHeight = LayoutUtility.GetPreferredHeight(grid);
             if (itemHeight > 0) preferred = Mathf.Min(preferred, itemHeight + 2);
             var sizing = GetComponent<LayoutElement>();

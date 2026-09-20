@@ -126,6 +126,8 @@ namespace DoodleIdle
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
             foreach(var squares in root.GetComponentsInChildren<DoodleUiSquareRow>()) squares.Reflow();
             UnityEngine.Canvas.ForceUpdateCanvases();
+            foreach(var collection in root.GetComponentsInChildren<DoodleCollectionReferenceLayout>()) collection.Reflow();
+            UnityEngine.Canvas.ForceUpdateCanvases();
             ReflowServiceLayouts();
             foreach(var inventory in root.GetComponentsInChildren<DoodleCollectionInventoryViewport>()) inventory.Reflow();
             foreach(var commerce in root.GetComponentsInChildren<DoodleCommerceLayout>()) commerce.Reflow();

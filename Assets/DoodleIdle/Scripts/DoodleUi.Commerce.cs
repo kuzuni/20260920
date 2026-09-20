@@ -272,8 +272,8 @@ namespace DoodleIdle
                 var heading = UiKit.Box(body, "Summon probability heading", new Color(.96f, .96f, .94f), 62);
                 var headingText = UiKit.Text(heading, "Lv. " + summonStates[category].level + " " + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
                 UiKit.Stretch(headingText.rectTransform, 5, 2, 5, 2);
-                UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
-                UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
+                var explanation = UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
+                var gradeTitle = UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
                 var grades = UiKit.Row(body, "GradeProbabilities", 86, 5);
                 for (int rarity = 0; rarity < 5; rarity++)
                 {
@@ -285,7 +285,7 @@ namespace DoodleIdle
                     rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
                     rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
                 }
-                UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
+                var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
                 var all = Items(category);
                 for (int rarity = 0; rarity < 5; rarity++)
                 {
@@ -309,6 +309,15 @@ namespace DoodleIdle
                 UiKit.Text(body, "등급 확률 합계 100% · 동일 등급 안에서 균등 추첨\n나눗셈 표기는 반올림하지 않은 정확한 확률입니다.", 19, TextAnchor.MiddleCenter, 60);
                 var footer = UiKit.Footer(body, "Probability confirmation footer", 64);
                 CommerceButtonText(UiKit.Button(footer, "확인", CloseDetail, UiKit.Yellow, 64), 34);
+                if (window)
+                {
+                    var responsive = window.inner.gameObject.AddComponent<DoodleCommerceLayout>();
+                    responsive.window = window;
+                    responsive.probabilityHeading = heading; responsive.probabilityHeadingText = headingText;
+                    responsive.probabilityExplanation = explanation; responsive.probabilityGradeTitle = gradeTitle;
+                    responsive.probabilityGrades = grades; responsive.probabilityItemTitle = itemTitle;
+                    responsive.Reflow();
+                }
             });
         }
 
@@ -348,6 +357,8 @@ namespace DoodleIdle
     {
         public DoodleUiWindow window;
         public RectTransform tabs, crest, summary, summaryIcon, gauge, actions, confirmRow;
+        public RectTransform probabilityHeading, probabilityGrades;
+        public Text probabilityHeadingText, probabilityExplanation, probabilityGradeTitle, probabilityItemTitle;
         public GridLayoutGroup resultGrid;
         public Text subtitle, level;
         public Button confirm;
@@ -365,6 +376,26 @@ namespace DoodleIdle
             {
                 var viewport = window.content.parent as RectTransform;
                 var rail = window.inner.Find("Scroll position") as RectTransform;
+                if (probabilityHeading && viewport)
+                {
+                    bool compact = viewport.rect.height < 500;
+                    UiKit.Height(probabilityHeading, compact ? 48 : 62);
+                    SetTextSize(probabilityHeadingText, compact ? 30 : 35);
+                    UiKit.Height(probabilityExplanation.transform, compact ? 24 : 34);
+                    SetTextSize(probabilityExplanation, compact ? 20 : 24);
+                    UiKit.Height(probabilityGradeTitle.transform, compact ? 28 : 39);
+                    SetTextSize(probabilityGradeTitle, compact ? 24 : 29);
+                    float gradeHeight = compact ? 62 : 86;
+                    UiKit.Height(probabilityGrades, gradeHeight);
+                    foreach (RectTransform card in probabilityGrades)
+                    {
+                        UiKit.Height(card, gradeHeight);
+                        SetTextSize(card.GetComponentInChildren<Text>(), compact ? 26 : 29);
+                    }
+                    UiKit.Height(probabilityItemTitle.transform, compact ? 30 : 44);
+                    SetTextSize(probabilityItemTitle, compact ? 24 : 29);
+                    return;
+                }
                 if (tabs)
                 {
                     tabs.anchorMin = tabs.anchorMax = new Vector2(.5f, 1);
@@ -399,8 +430,16 @@ namespace DoodleIdle
                     rail.offsetMax = new Vector2(rail.offsetMax.x, -header - 2);
                 }
                 UiKit.Height(summary, summaryHeight); UiKit.Height(level.transform, summaryHeight);
-                SetIconSize(summaryIcon, Mathf.Lerp(46, 108, tall));
+                float summaryIconSize = Mathf.Lerp(46, 108, tall);
+                SetIconSize(summaryIcon, summaryIconSize);
                 SetTextSize(level, Mathf.RoundToInt(Mathf.Lerp(30, 40, tall)));
+                var summaryLayout = summary.GetComponent<HorizontalLayoutGroup>();
+                summaryLayout.childAlignment = TextAnchor.MiddleCenter;
+                summaryLayout.childForceExpandWidth = false;
+                var levelSize = level.GetComponent<LayoutElement>();
+                float availableLevelWidth = Mathf.Max(1, window.footer.rect.width - summaryIconSize - summaryLayout.spacing);
+                levelSize.minWidth = levelSize.preferredWidth = Mathf.Min(level.preferredWidth + 12, availableLevelWidth);
+                levelSize.flexibleWidth = 0;
                 UiKit.Height(gauge, gaugeHeight);
                 SetTextSize(gauge.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(23, 29, tall)));
                 UiKit.Height(actions, actionHeight);
