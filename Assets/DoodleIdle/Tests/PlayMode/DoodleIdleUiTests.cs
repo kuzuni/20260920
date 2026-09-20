@@ -399,6 +399,14 @@ namespace DoodleIdle.Tests
                         var bounds = UiLocalBounds(outer, card);
                         float visible = Mathf.Min(bounds.yMax, outer.rect.yMax) - Mathf.Max(bounds.yMin, outer.rect.yMin);
                         Assert.That(visible, Is.GreaterThanOrEqualTo(64), file + " first inventory row must be visible on entry");
+                        var quantity = card.GetComponent<DoodleUiSlotLayout>().gauge;
+                        foreach (var mask in quantity.GetComponentsInParent<RectMask2D>())
+                        {
+                            var viewport = (RectTransform)mask.transform;
+                            var gaugeBounds = UiLocalBounds(viewport, quantity);
+                            Assert.That(gaugeBounds.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin - 2), file + " first row quantity must be visible without scrolling");
+                            Assert.That(gaugeBounds.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax + 2), file + " first row quantity clipped at top");
+                        }
                     }
                     if (size.y == 900 && state == "23-probabilities")
                     {

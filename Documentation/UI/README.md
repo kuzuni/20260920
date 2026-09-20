@@ -10,6 +10,6 @@
 - 그림체·생성 이미지·폰트 출처: [ART.md](ART.md)
 - 시안 치수·화면별 배치 비교 기준: [REFERENCE_ALIGNMENT.md](REFERENCE_ALIGNMENT.md)
 
-수치와 가격은 `Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json`, `UI/ServicesTuning.json`, `UiCommerce.json`에서 조정할 수 있습니다. 생성 아이콘은 같은 경로의 `UI/Icons.png`, `UI/GearIcons.png`에 있으며 기존 플레이어와 스킬 이미지도 함께 재사용합니다.
+수치와 가격은 `Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json`, `UI/ServicesTuning.json`, `UiCommerce.json`에서 조정할 수 있습니다. 생성 아이콘은 같은 경로의 `UI/Icons.png`, `UI/GearIcons.png`, `UI/CurrencyIcons.png`에 있으며 기존 플레이어와 스킬 이미지도 함께 재사용합니다. 게임 수치는 공통 `UiNumber`로 1,000마다 a/b/c/d… 단위를 붙여 표시하며 저장값과 계산은 그대로 유지합니다.
 
 이번 요청의 검증은 GitHub Actions 서버에서만 수행합니다. 로컬 Unity·플레이 모드·게임·테스트는 실행하지 않습니다. Actions의 `doodle-idle-test-results` 아티팩트에는 결과 XML, 로그, 실제 화면 PNG가 있습니다. 화면 비율은 720×1520, 720×1280, 900×900, 1440×900입니다.

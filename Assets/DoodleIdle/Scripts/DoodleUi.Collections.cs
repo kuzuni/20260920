@@ -515,6 +515,7 @@ namespace DoodleIdle
         readonly List<Action<bool>> rules = new List<Action<bool>>();
         RectTransform body, viewport;
         bool? compact;
+        float compactViewportGain;
 
         public void Configure(RectTransform content, string category)
         {
@@ -544,30 +545,59 @@ namespace DoodleIdle
                 { Height(button.transform, 32); Font(button.GetComponentInChildren<Text>(), 23); }
                 var ownership = body.Find("Total ownership"); Height(ownership, 32);
                 Height(ownership.GetChild(0), 32); Font(ownership.GetComponentInChildren<Text>(), 22);
+                CompactFooter(116, 62, 46);
             }
             else
             {
-                Height(body.GetChild(0), 28); Font(body.GetChild(0).GetComponent<Text>(), 25);
+                bool companion = category == "Companion";
+                Height(body.GetChild(0), companion ? 24 : 28); Font(body.GetChild(0).GetComponent<Text>(), companion ? 23 : 25);
                 var slots = body.Find("Equipped " + category);
                 Columns(slots.GetComponent<GridLayoutGroup>(), category == "Skill" ? 8 : 5);
                 for (int i = 0; i < slots.childCount; i++) EquippedNumber(slots.GetChild(i), i + 1);
                 var ownership = body.Find("Total ownership");
                 Layout(ownership.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(4, 4, 1, 1));
-                var badges = ownership.Find("Ownership badges"); Height(badges, 30);
+                var badges = ownership.Find("Ownership badges"); Height(badges, companion ? 24 : 30);
                 foreach (Transform badge in badges)
                 {
-                    Height(badge, 30);
-                    var text = badge.GetComponentInChildren<Text>(); Height(text.transform, 28); Font(text, 23);
+                    Height(badge, companion ? 24 : 30);
+                    var text = badge.GetComponentInChildren<Text>(); Height(text.transform, companion ? 22 : 28); Font(text, companion ? 21 : 23);
                 }
                 foreach (Transform child in body)
                 {
                     var text = child.GetComponent<Text>();
-                    if (text && text.text.StartsWith("보유 ", StringComparison.Ordinal)) { Height(child, 28); Font(text, 25); }
+                    if (text && text.text.StartsWith("보유 ", StringComparison.Ordinal)) { Height(child, companion ? 26 : 28); Font(text, companion ? 24 : 25); }
                 }
+                if (companion) CompactFooter(60, 56, 0);
             }
             var inventory = body.Find("Collection inventory viewport/Inventory clipping area/Collection inventory");
-            Columns(inventory.GetComponent<GridLayoutGroup>(), equipment ? 5 : 6);
+            Columns(inventory.GetComponent<GridLayoutGroup>(), 6);
             Reflow();
+        }
+
+        void CompactFooter(float height, float actionHeight, float tabHeight)
+        {
+            var window = body.GetComponentInParent<DoodleUiWindow>();
+            var footer = window.footer;
+            float originalHeight = footer.sizeDelta.y;
+            compactViewportGain = originalHeight - height;
+            float originalBottom = viewport.offsetMin.y;
+            float originalRailBottom = window.rail.offsetMin.y;
+            var actions = footer.Find("Collection actions");
+            Height(actions, actionHeight);
+            foreach (var button in actions.GetComponentsInChildren<Button>()) Height(button.transform, actionHeight);
+            var tabs = footer.Find("Equipment tabs");
+            if (tabs && tabHeight > 0)
+            {
+                Height(tabs, tabHeight);
+                foreach (var button in tabs.GetComponentsInChildren<Button>()) Height(button.transform, tabHeight);
+            }
+            rules.Add(shortMode =>
+            {
+                float shrink = shortMode ? originalHeight - height : 0;
+                footer.sizeDelta = new Vector2(footer.sizeDelta.x, shortMode ? height : originalHeight);
+                viewport.offsetMin = new Vector2(viewport.offsetMin.x, originalBottom - shrink);
+                window.rail.offsetMin = new Vector2(window.rail.offsetMin.x, originalRailBottom - shrink);
+            });
         }
 
         void Height(Transform target, float small)
@@ -620,7 +650,9 @@ namespace DoodleIdle
         public void Reflow()
         {
             if (!body || !viewport || viewport.rect.height <= 0) return;
-            bool shortMode = viewport.rect.height < 500;
+            // Footer compression adds viewport space; measure the uncompressed height
+            // so a viewport near the breakpoint cannot alternate layouts every frame.
+            bool shortMode = viewport.rect.height - (compact == true ? compactViewportGain : 0) < 500;
             if (compact == shortMode) return;
             compact = shortMode;
             foreach (var rule in rules) rule(shortMode);
@@ -662,7 +694,7 @@ namespace DoodleIdle
             }
             if (bodyLayout) otherHeight += bodyLayout.spacing * Math.Max(0, childCount - 1);
             float available = outerViewport.rect.height;
-            float preferred = available < 500 ? Mathf.Clamp(available - otherHeight - 2, 96, 112)
+            float preferred = available < 500 ? Mathf.Clamp(available - otherHeight, 96, 140)
                 : available >= 600 ? Mathf.Max(140, available - otherHeight - 2) : 180;
             float itemHeight = LayoutUtility.GetPreferredHeight(grid);
             if (itemHeight > 0) preferred = Mathf.Min(preferred, itemHeight + 2);

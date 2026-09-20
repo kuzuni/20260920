@@ -2,9 +2,11 @@
 
 ## Entry and local state
 
-Open the existing SampleScene or DoodleIdle scene normally. Both contain DoodleIdleGame. Its BuildHud automatically installs DoodleUi on the same GameObject and requires no Inspector wiring. All work is in the original C:/Users/user/Documents/GitHub/20260920 workspace on codex/final-game-ui with implementation and CI/visual review complete (source commit 1312cb7,35/35 tests passed).
+Open the existing SampleScene or DoodleIdle scene normally. Both contain DoodleIdleGame. Its BuildHud automatically installs DoodleUi on the same GameObject and requires no Inspector wiring. All work is in the original C:/Users/user/Documents/GitHub/20260920 workspace on codex/final-game-ui. Current implementation and CI/visual-review status are recorded in PROGRESS.md.
 
 Only the DoodleUi.* PlayerPrefs keys belong to this feature. Gold, diamonds, collection ownership/levels/loadouts, draw experience/daily free usage, attendance, roulette, quests, buffs, settings and dungeon progress are saved locally. The test fixture snapshots/restores only those keys. Tunable catalog/stat/relic data is in UI/Collections.json, service data in UI/ServicesTuning.json and draw/shop prices in UiCommerce.json under Resources/DoodleIdle.
+
+UiNumber formats in-game currency, stats, damage, counts and costs with alphabetic thousands: 1a=1,000, 1b=1,000,000, continuing through z to aa. It rounds display to one decimal by default and carries rounding into the next unit. Original values are still used for storage, arithmetic and affordability. Won prices, time, ranks and probabilities retain their conventional units. Shared item grids and selected item previews preserve 3:4 proportions at every supported aspect ratio.
 
 ## Real existing-game connections
 

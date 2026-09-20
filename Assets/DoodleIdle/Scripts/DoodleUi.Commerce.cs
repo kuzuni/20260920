@@ -151,14 +151,14 @@ namespace DoodleIdle
             BuildSummonButtons(content, category);
         }
 
-        void BuildSummonButtons(Transform parent, string category)
+        void BuildSummonButtons(Transform parent, string category, bool result = false)
         {
             var actions = UiKit.Row(parent, "SummonActions", 68, 5);
-            var free = UiKit.Button(actions, "무료 " + commerceTuning.freeCount + "회\n뽑기", () => TrySummon(category, commerceTuning.freeCount, true), UiKit.Green, 68);
+            var free = UiKit.Button(actions, "무료 " + commerceTuning.freeCount + "회\n뽑기", () => TrySummon(category, commerceTuning.freeCount, true), result ? UiKit.Blue : UiKit.Green, 68);
             CommerceButtonText(free, 24);
             free.interactable = CanFreeSummon(category);
-            PaidSummonButton(actions, category, 10, commerceTuning.tenCost, UiKit.Blue);
-            PaidSummonButton(actions, category, 50, commerceTuning.fiftyCost, UiKit.Yellow);
+            PaidSummonButton(actions, category, 10, commerceTuning.tenCost, result ? UiKit.Yellow : UiKit.Blue);
+            PaidSummonButton(actions, category, 50, commerceTuning.fiftyCost, result ? UiKit.Green : UiKit.Yellow);
         }
 
         void PaidSummonButton(Transform parent, string category, int count, int cost, Color color)
@@ -241,8 +241,8 @@ namespace DoodleIdle
                 var level = UiKit.Text(summaryText, CommerceLabel(category) + " 뽑기 Lv. " + UiNumber.Format(state.level), 36, TextAnchor.MiddleLeft, 46);
                 int needed = CommerceExperienceNeeded(state);
                 var experience = UiKit.Text(summaryText, "뽑기 경험치 " + UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), 29, TextAnchor.MiddleLeft, 34);
-                var gauge = UiKit.Gauge(footer, UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), (float)state.experience / needed, 32);
-                BuildSummonButtons(footer, category);
+                var gauge = UiKit.Gauge(footer, "", (float)state.experience / needed, 32);
+                BuildSummonButtons(footer, category, true);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
                 var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
                 var window = body.GetComponentInParent<DoodleUiWindow>();
@@ -596,14 +596,18 @@ namespace DoodleIdle
                 if (bodyLayout.padding.top != topPadding)
                     bodyLayout.padding = new RectOffset(bodyLayout.padding.left, bodyLayout.padding.right, topPadding, bodyLayout.padding.bottom);
 
-                if (crest)
-                {
-                    crest.gameObject.SetActive(tall > .12f);
-                    PlaceTop(crest, Mathf.Lerp(40, 138, tall), Vector2.one * Mathf.Lerp(58, 122, tall));
-                }
                 var banner = window.inner.Find("Golden result banner") as RectTransform;
                 float bannerCenter = Mathf.Lerp(43, 239, tall), bannerHeight = Mathf.Lerp(62, 132, tall);
-                if (banner) PlaceTop(banner, bannerCenter, new Vector2(Mathf.Min(window.inner.rect.width - 65, 650), bannerHeight));
+                if (crest)
+                {
+                    float crestSize = Mathf.Lerp(58, 122, tall);
+                    crest.gameObject.SetActive(tall > .35f);
+                    // Overlap the ribbon's upper border without covering its lettering.
+                    float crestCenter = bannerCenter - bannerHeight * .5f - crestSize * .30f;
+                    PlaceTop(crest, crestCenter, Vector2.one * crestSize);
+                }
+                float bannerWidth = Mathf.Min(window.inner.rect.width - Mathf.Lerp(130, 65, tall), 650);
+                if (banner) PlaceTop(banner, bannerCenter, new Vector2(bannerWidth, bannerHeight));
                 foreach (Transform child in window.inner)
                 {
                     var title = child.GetComponent<Text>();
