@@ -239,9 +239,28 @@ namespace DoodleIdle.Tests
                 Assert.That(detail.GetComponentsInChildren<Transform>().Any(t => t.name == "Probability_" + item.id), Is.True, "Probability disclosure must include " + item.name);
             scroll = UiTopScroll();
             yield return null;
-            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            // The five relics now fit in the unchanged portrait viewport at every aspect ratio.
+            foreach (var item in game.Ui.Items("Relic"))
+            {
+                var row = (RectTransform)UiNode("Probability_" + item.id);
+                var bounds = UiLocalBounds(scroll.viewport, row);
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin - 1));
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(scroll.viewport.rect.yMax + 1));
+            }
+            UiClick("Close 뽑기 확률", detail);
+            scroll = UiTopScroll(); scroll.verticalNormalizedPosition = 1;
+            Canvas.ForceUpdateCanvases();
+            UiClick("i", UiNode("Summon_Armor"));
+            detail = UiNode("Detail dim: 뽑기 확률");
+            scroll = UiTopScroll();
+            yield return null;
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height), "The larger armor catalog still needs scrolling.");
             ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -30) }, ExecuteEvents.scrollHandler);
             Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(1));
+            scroll.verticalNormalizedPosition = 0;
+            Canvas.ForceUpdateCanvases();
+            var lastProbability = (RectTransform)UiNode("Probability_" + game.Ui.Items("Armor").Last().id);
+            Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, lastProbability)), Is.True, "The final armor probability must be reachable.");
             UiClick("Close 뽑기 확률", detail);
             Assert.That(game.Ui.HasOverlay, Is.False);
             Assert.That(game.Ui.ActivePage, Is.EqualTo("Shop"), "Closing a nested probability dialog must preserve the shop.");
@@ -313,7 +332,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator UiFinalTwentyFiveStatesRenderAtAllFourSupportedRatios()
+        public IEnumerator UiFinalStatesPreservePortraitPopupsAtAllFiveSupportedRatios()
         {
             uiCaptureFailures.Clear();
             portraitPopupGeometry.Clear();
@@ -506,8 +525,27 @@ namespace DoodleIdle.Tests
                         uiCaptureFailures.Add(file + " reward card " + i + " has no visible yellow rays outside the frame.");
                 }
             }
-            else if (pixels.Count(p => p.r > 190 && p.g > 180 && p.b > 150) <= size.x * size.y / 30)
-                uiCaptureFailures.Add(file + " must contain rendered cream panels and visible artwork.");
+            else
+            {
+                var topWindow = UiRoot.GetComponentsInChildren<DoodleUiWindow>().LastOrDefault();
+                if (topWindow && !topWindow.full)
+                {
+                    // A uniformly fitted detail popup deliberately occupies less screen area.
+                    // Inspect its actual pixels rather than requiring it to fill the landscape screen.
+                    var region = UiPixelBounds((RectTransform)topWindow.transform, size);
+                    int cream = 0, ink = 0;
+                    for (int y = region.yMin; y < region.yMax; y++) for (int x = region.xMin; x < region.xMax; x++)
+                    {
+                        var p = pixels[y * size.x + x];
+                        if (p.r > 190 && p.g > 180 && p.b > 150) cream++;
+                        if (p.r < 100 && p.g < 100 && p.b < 100) ink++;
+                    }
+                    if (cream <= region.width * region.height * .2f || ink <= region.width * region.height * .002f)
+                        uiCaptureFailures.Add(file + " must render the popup frame and foreground inside its fitted bounds.");
+                }
+                else if (pixels.Count(p => p.r > 190 && p.g > 180 && p.b > 150) <= size.x * size.y / 30)
+                    uiCaptureFailures.Add(file + " must contain rendered cream panels and visible artwork.");
+            }
             Object.Destroy(frame);
         }
 
