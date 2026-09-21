@@ -31,6 +31,7 @@ namespace DoodleIdle
         readonly List<GameObject> overlayStack=new List<GameObject>();
         readonly List<Image> hudMasks=new List<Image>();
         readonly List<Image> hudIcons=new List<Image>();
+        readonly List<DoodleUiPadlock> hudLocks=new List<DoodleUiPadlock>();
         readonly List<Image> navIcons=new List<Image>();
         readonly List<Text> navLabels=new List<Text>();
         readonly string[] pages={"Stats","Equipment","Skills","Companions","Relics","Skins","Dungeons","Pvp","Shop"};
@@ -96,6 +97,8 @@ namespace DoodleIdle
                 var r=UiKit.Box(skillDock,"Skill status "+i,UiKit.Paper,65); r.GetComponent<Image>().sprite=UiKit.Circle;
                 var icon=UiKit.Icon(r,"Banana",48); UiKit.Stretch(icon.rectTransform,8,8,8,8); hudIcons.Add(icon);
                 var mask=UiKit.Rect(r,"Clockwise cooldown mask"); UiKit.Stretch(mask,3,3,3,3); var im=mask.gameObject.AddComponent<Image>(); im.sprite=UiKit.Circle; im.type=Image.Type.Filled; im.fillMethod=Image.FillMethod.Radial360; im.fillClockwise=true; im.fillOrigin=(int)Image.Origin360.Top; im.color=new Color(.06f,.07f,.1f,.58f); im.raycastTarget=false; hudMasks.Add(im);
+                var lockRect=UiKit.Rect(r,"HUD skill lock"); lockRect.anchorMin=lockRect.anchorMax=Vector2.one*.5f; lockRect.sizeDelta=new Vector2(22,28);
+                var padlock=lockRect.gameObject.AddComponent<DoodleUiPadlock>(); padlock.raycastTarget=false; hudLocks.Add(padlock);
             }
         }
         Text BuildBuff(Transform parent,string name,string art)
@@ -342,7 +345,7 @@ namespace DoodleIdle
             stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
-            var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
+            var skills=EquippedSkills; for(int i=0;i<8;i++) { bool locked=i>=UnlockedSkillSlots; bool found=i<skills.Count; hudIcons[i].enabled=!locked; hudLocks[i].gameObject.SetActive(locked); hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));
         public float UiDamageMultiplier => CombatDamageMultiplier*AttackBuffMultiplier;

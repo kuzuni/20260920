@@ -339,6 +339,8 @@ namespace DoodleIdle.Tests
         [Timeout(180000)]
         public IEnumerator AutomaticCombatCastsEquippedLoadoutsAndRefills()
         {
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
+            game.enemyDashEnabled = false; // This fixture isolates the player's full loadout.
             game.companionsEnabled=true;
             foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
             game.summonSkillsEnabled = true;

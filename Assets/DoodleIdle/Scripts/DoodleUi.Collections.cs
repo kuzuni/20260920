@@ -226,14 +226,31 @@ namespace DoodleIdle
         void BuildLoadout(RectTransform body, string category, string label, int capacity, int columns)
         {
             var equipped = EquippedItems(category);
+            int unlocked = EquipLimit(category);
             bool replacing = pendingEquip != null && pendingEquip.category == category;
-            UiKit.Text(body, (replacing ? "교체할 장착 슬롯을 선택하세요" : "장착 슬롯 " + UiNumber.Format(equipped.Count) + "/" + UiNumber.Format(capacity)), 32, TextAnchor.MiddleLeft, 42);
+            UiKit.Text(body, (replacing ? "교체할 장착 슬롯을 선택하세요" : "장착 슬롯 " + UiNumber.Format(equipped.Count) + "/" + UiNumber.Format(unlocked)), 32, TextAnchor.MiddleLeft, 42);
             const float slotHeight = 100 * 4f / 3;
             var slots = UiKit.Grid(body, "Equipped " + category, columns, slotHeight);
             UiKit.PortraitGrid(slots);
             if (replacing) slots.GetComponent<GridLayoutGroup>().padding.top = 30;
             for (int i = 0; i < capacity; i++)
             {
+                if (i >= unlocked) {
+                    int stage = SkillSlotUnlockStage(i);
+                    var locked = UiKit.Button(slots, "", () => Toast("스테이지 " + stage + " 도달 시 해금됩니다."), new Color(.55f, .56f, .57f), slotHeight);
+                    locked.name = "Locked skill slot " + i;
+                    var labelText = locked.GetComponentInChildren<Text>();
+                    labelText.text = stage + "\n스테이지";
+                    labelText.fontSize = labelText.resizeTextMaxSize = 16;
+                    labelText.resizeTextMinSize = 10; labelText.color = Color.white;
+                    labelText.rectTransform.anchorMin = Vector2.zero; labelText.rectTransform.anchorMax = new Vector2(1, .43f);
+                    labelText.rectTransform.offsetMin = new Vector2(2, 3); labelText.rectTransform.offsetMax = new Vector2(-2, 0);
+                    var padlock = UiKit.Rect(locked.transform, "Slot unlock padlock");
+                    padlock.anchorMin = padlock.anchorMax = new Vector2(.5f, .68f);
+                    padlock.sizeDelta = new Vector2(22, 28);
+                    padlock.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget = false;
+                    continue;
+                }
                 if (i < equipped.Count)
                 {
                     var item = equipped[i];
@@ -479,7 +496,7 @@ namespace DoodleIdle
             {
                 var equipped = EquippedItems(item.category);
                 int limit = EquipLimit(item.category);
-                if (limit == 1) foreach (var previous in equipped) previous.equipped = false;
+                if (limit == 1 && IsEquipment(item)) foreach (var previous in equipped) previous.equipped = false;
                 else if (equipped.Count >= limit)
                 {
                     pendingEquip = item;

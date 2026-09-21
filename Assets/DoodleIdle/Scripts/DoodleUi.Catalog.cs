@@ -157,17 +157,30 @@ namespace DoodleIdle
 
         public List<UiItem> EquippedSkills => EquippedItems("Skill");
         public List<UiItem> EquippedCompanions => EquippedItems("Companion");
+        static readonly int[] skillSlotStages = { 1, 50, 100, 200, 350, 500, 800, 1200 };
+        public int SkillSlotUnlockStage(int slot) => skillSlotStages[slot];
+        public int UnlockedSkillSlots {
+            get {
+                int count = 1;
+                while (count < skillSlotStages.Length && MainStage >= skillSlotStages[count] - 1) count++;
+                return count;
+            }
+        }
         List<UiItem> EquippedItems(string category)
         {
-            var equipped = Items(category).FindAll(x => x.equipped && x.discovered);
+            int limit = EquipLimit(category);
+            var equipped = Items(category).FindAll(x => x.equipped && x.discovered && x.slot < limit);
             equipped.Sort((a, b) => a.slot.CompareTo(b.slot));
             return equipped;
         }
-        int EquipLimit(string category) => category == "Skill" ? 8 : category == "Companion" ? 5 : category == "Relic" ? 0 : 1;
+        int EquipLimit(string category) => category == "Skill" ? UnlockedSkillSlots : category == "Companion" ? 5 : category == "Relic" ? 0 : 1;
         void NormalizeEquipment(string category)
         {
-            var equipped = EquippedItems(category);
-            for (int i = 0; i < equipped.Count; i++) { equipped[i].equipped = i < EquipLimit(category); equipped[i].slot = i; }
+            var equipped = Items(category).FindAll(x => x.equipped && x.discovered);
+            equipped.Sort((a, b) => a.slot.CompareTo(b.slot));
+            // Collections load before service progress. Defer the skill cap until its saved stage is known.
+            int limit = category == "Skill" && services == null ? skillSlotStages.Length : EquipLimit(category);
+            for (int i = 0; i < equipped.Count; i++) { equipped[i].equipped = i < limit; equipped[i].slot = i; }
         }
 
         public int StatLevel(string id) { InitCollections(); return statLevels.TryGetValue(id, out int level) ? level : 0; }

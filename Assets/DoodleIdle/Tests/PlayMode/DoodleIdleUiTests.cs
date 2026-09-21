@@ -153,14 +153,14 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Button>().Any(b => b.name == "Slot: " + game.Ui.Items("Club")[0].name), Is.True);
             foreach (var item in game.Ui.Items("Skill")) game.Ui.AddItem(item, 1);
             UiOpen("Skills"); UiScrollBottom(); UiClick("자동장착");
-            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(8));
+            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(game.Ui.UnlockedSkillSlots));
             Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<Button>().Length, Is.EqualTo(8));
             var selected = game.Ui.EquippedSkills[0];
             UiClick("Slot: " + selected.name, UiNode("Equipped Skill"));
             Assert.That(game.Ui.HasOverlay, Is.True);
             UiClick("장착 해제", UiNode("Detail actions"));
             Assert.That(selected.equipped, Is.False);
-            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(7));
+            Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(game.Ui.UnlockedSkillSlots - 1));
             foreach (var item in game.Ui.Items("Companion")) game.Ui.AddItem(item, 1);
             UiOpen("Companions"); UiScrollBottom(); UiClick("자동장착");
             Assert.That(game.Ui.EquippedCompanions.Count, Is.EqualTo(5));

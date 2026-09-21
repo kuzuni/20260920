@@ -30,10 +30,12 @@ namespace DoodleIdle
             services.mainKills = SaturatingAdd(services.mainKills, 1);
             if (boss)
             {
+                int previousSkillSlots = UnlockedSkillSlots;
                 if (MainBossPending)
                     services.mainStage = (int)Math.Min(int.MaxValue, (long)services.mainStage + 1);
                 services.mainStageKillProgress = 0;
                 Save();
+                if (UnlockedSkillSlots != previousSkillSlots && ActivePage == "Skills") RefreshPage();
             }
             else
             {

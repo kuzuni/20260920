@@ -109,6 +109,7 @@ namespace DoodleIdle
             if (services.dungeonUsed == null || services.dungeonUsed.Length != 3) services.dungeonUsed = new int[3];
             if (services.dungeonStages == null || services.dungeonStages.Length != 3) services.dungeonStages = new int[3];
             services.mainStage = Math.Max(0, services.mainStage);
+            if (collectionTuning != null) NormalizeEquipment("Skill");
             services.mainStageKillProgress = Mathf.Clamp(services.mainStageKillProgress, 0, MainStageKillGoal);
             services.mainMissionIndex = Math.Max(0, services.mainMissionIndex);
             services.relicTickets = Math.Max(0, services.relicTickets);

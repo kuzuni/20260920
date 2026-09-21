@@ -22,7 +22,10 @@ namespace DoodleIdle.Tests
             Assert.That(game.StonesLaunched + game.ArrowsLaunched + game.VariantProjectilesLaunched, Is.Zero);
             Assert.That(game.BananasActive, Is.False);
             var arrow = skills.Single(x => x.ability == "Arrows");
-            arrow.discovered = true; arrow.equipped = true; arrow.slot = 0;
+            arrow.discovered = true; arrow.equipped = true; arrow.slot = 1;
+            yield return PhysicsTicks(30);
+            Assert.That(game.SkillActivationCount("Arrows"), Is.Zero, "A skill in a locked slot cannot auto-cast.");
+            arrow.slot = 0;
             yield return PhysicsTicks(30);
             Assert.That(game.SkillActivationCount("Arrows"), Is.EqualTo(1));
             Assert.That(skills.Where(x => x != arrow).Sum(x => game.SkillActivationCount(x.ability)), Is.Zero);
@@ -63,6 +66,7 @@ namespace DoodleIdle.Tests
         public IEnumerator FullLoadoutsReplaceThroughTheirExistingSlotsAndEmptySlotsShowPlus()
         {
             game.TogglePause();
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = game.Ui.Items(category); int capacity = category == "Skill" ? 8 : 5;
                 foreach (var item in items) { game.Ui.AddItem(item, 1); item.equipped = false; }
@@ -118,6 +122,63 @@ namespace DoodleIdle.Tests
             foreach (var renderer in renderers) Object.Destroy(renderer.sharedMaterial);
             Object.Destroy(display); yield return null;
             ExportCompanionProjectileSheets();
+        }
+
+        [UnityTest]
+        public IEnumerator SkillSlotsUnlockAtStageBoundariesAndSavedLoadoutsRespectProgress()
+        {
+            game.TogglePause();
+            var ui = game.Ui;
+            var skills = ui.Items("Skill");
+            foreach (var item in skills) { ui.AddItem(item, 1); item.equipped = false; }
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 0);
+            Assert.That(ui.UnlockedSkillSlots, Is.EqualTo(1));
+            ui.AutoEquip("Skill");
+            Assert.That(ui.EquippedSkills.Count, Is.EqualTo(1));
+            UiOpen("Skills");
+            var candidate = skills.First(x => !x.equipped);
+            UiClick("Slot: " + candidate.name, UiNode("Collection inventory"));
+            UiClick("장착", UiNode("Detail actions"));
+            Assert.That(ui.HasOverlay, Is.False);
+            Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<Transform>().Count(x => x.name == "Replacement arrow"), Is.EqualTo(1));
+            UiClick("Slot: " + ui.EquippedSkills[0].name, UiNode("Equipped Skill"));
+            Assert.That(ui.EquippedSkills.Single(), Is.SameAs(candidate));
+            Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<DoodleUiPadlock>().Length, Is.EqualTo(7));
+            Object.Destroy(CaptureFrame("skill-slots-stage-1.png", 720, 1520));
+            int[] stages = { 50, 100, 200, 350, 500, 800, 1200 };
+            for (int i = 0; i < stages.Length; i++) {
+                ServiceSetSavedField(ServiceStateObject, "mainStage", stages[i] - 2);
+                Assert.That(ui.UnlockedSkillSlots, Is.EqualTo(i + 1), "Immediately before " + stages[i]);
+                ui.AutoEquip("Skill");
+                Assert.That(ui.EquippedSkills.Count, Is.EqualTo(i + 1));
+                UiOpen("Skills");
+                ServiceSetSavedField(ServiceStateObject, "mainStageKillProgress", 100);
+                ui.RecordMainCombatKill(true);
+                Assert.That(ui.MainStage + 1, Is.EqualTo(stages[i]));
+                Assert.That(ui.UnlockedSkillSlots, Is.EqualTo(i + 2));
+                Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<DoodleUiPadlock>().Length, Is.EqualTo(6 - i), "Open UI updates when the boss unlocks a slot.");
+                ui.AutoEquip("Skill");
+                Assert.That(ui.EquippedSkills.Count, Is.EqualTo(i + 2));
+                UiOpen("Skills");
+                if (i == 0 || i == 6) Object.Destroy(CaptureFrame("skill-slots-stage-" + stages[i] + ".png", 720, 1520));
+            }
+            var probes = new System.Collections.Generic.List<GameObject>();
+            try {
+                ui.Save();
+                var restored = GrowthProbe(probes);
+                typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(restored, null);
+                Assert.That(restored.UnlockedSkillSlots, Is.EqualTo(8));
+                Assert.That(restored.EquippedSkills.Count, Is.EqualTo(8), "Saved progress must load before applying the skill slot cap.");
+                ServiceSetSavedField(ServiceStateObject, "mainStage", 0);
+                ui.Save(); // Simulate a legacy early-stage save with eight equipped skills.
+                var legacy = GrowthProbe(probes);
+                typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(legacy, null);
+                Assert.That(legacy.EquippedSkills.Count, Is.EqualTo(1));
+                Assert.That(legacy.Items("Skill").Count(x => x.equipped), Is.EqualTo(1));
+                Assert.That(legacy.Items("Skill").All(x => x.discovered), Is.True, "Only excess equipment is removed; owned skills remain.");
+            }
+            finally { foreach (var probe in probes) Object.Destroy(probe); }
+            yield return null;
         }
 
         void ExportCompanionProjectileSheets()
