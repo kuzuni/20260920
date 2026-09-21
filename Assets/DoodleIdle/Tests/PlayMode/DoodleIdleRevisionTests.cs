@@ -164,6 +164,7 @@ namespace DoodleIdle.Tests
                 typeof(DoodleIdleGame).GetMethod("FixedUpdate", GrowthPrivate).Invoke(game, null);
                 game.TogglePause();
                 Assert.That(game.CurrentThemeIndex, Is.EqualTo(theme));
+                game.Ui.RefreshHud();
                 Assert.That(game.EnemyCount, Is.EqualTo(100));
                 var frames = (Sprite[][])typeof(DoodleIdleGame).GetField("enemyWalkFrames", GrowthPrivate).GetValue(game);
                 Assert.That(frames.Length, Is.EqualTo(3));

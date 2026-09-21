@@ -174,6 +174,8 @@ namespace DoodleIdle
                     services.dungeonProgress += delta;
                     if (services.dungeonProgress >= DungeonKillGoal) CompleteDungeon();
                 }
+                // Persist the whole frame's kill progress, including kills after a boss changed the stage.
+                SaveServices();
             }
             if (Time.unscaledTime < nextServiceTick) return;
             nextServiceTick = Time.unscaledTime + .25f;
@@ -517,7 +519,7 @@ namespace DoodleIdle
             var rewards = new List<UiReward>();
             if (index == 0)
             {
-                Gold += serviceTuning.dungeonGold; RecordServiceProgress("gold", serviceTuning.dungeonGold);
+                Gold = SaturatingAdd(Gold, serviceTuning.dungeonGold); RecordServiceProgress("gold", serviceTuning.dungeonGold);
                 rewards.Add(new UiReward { name = "", icon = "Gold", amount = serviceTuning.dungeonGold, rarity = 0 });
             }
             else if(index == 1)

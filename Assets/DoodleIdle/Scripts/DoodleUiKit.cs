@@ -162,7 +162,12 @@ namespace DoodleIdle
             int index=Array.IndexOf(atlas,key); Sprite value=null;
             string[] gear={"Heart","Shield","Speed","Clover","VineClub","ClothClub","SpikeClub","IronClub","ClothArmor","LeatherArmor","WoodArmor","DarkArmor","RedClub","CrystalClub","BoneClub","SunRelic"};
             int gearIndex=Array.IndexOf(gear,key);
-            if(gearIndex>=0) value=Cell("UI/GearIcons",gearIndex,4,4);
+            if(gearIndex>=0)
+            {
+                var texture=Resources.Load<Texture2D>("DoodleIdle/UI/GearIcons");
+                int[] rows={0,325,640,910,1254}; int row=gearIndex/4;
+                value=TrimmedCell(texture,new Rect(gearIndex%4*texture.width/4f,(1254-rows[row+1])*texture.height/1254f,texture.width/4f,(rows[row+1]-rows[row])*texture.height/1254f));
+            }
             else if(index>=0) value=Cell("UI/Icons",index,4,4);
             else {
                 switch(key) {
