@@ -26,6 +26,8 @@ namespace DoodleIdle.Tests
         {
             BeginUiTestProfile();
             originalTimeScale = Time.timeScale;
+            // Do not let the loaded progress fixture fight before its isolation is ready.
+            Time.timeScale = 0f;
             originalRandom = Random.state;
             Random.InitState(20260920);
             originalScene = SceneManager.GetActiveScene();
@@ -48,6 +50,7 @@ namespace DoodleIdle.Tests
             game.summonSkillsEnabled = false;
             // Individual mechanic tests isolate companion attacks; integration tests enable them explicitly.
             game.companionsEnabled = false;
+            Time.timeScale = originalTimeScale;
         }
 
         [UnityTearDown]
