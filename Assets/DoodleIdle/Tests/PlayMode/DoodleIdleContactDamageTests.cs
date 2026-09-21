@@ -92,6 +92,15 @@ namespace DoodleIdle.Tests
                 body.simulated = true; moving.Add(body);
             }
             var starts = moving.Select(b => b.position).ToArray();
+            foreach (int displayedStage in new[] { 1, 999 }) {
+                ServiceSetSavedField(ServiceStateObject, "mainStage", displayedStage - 1);
+                yield return PhysicsTicks(24);
+                Assert.That(game.EnemyDashCasts, Is.Zero, "No dash before displayed stage 1000.");
+                Assert.That(NamedArt("Enemy dash afterimage"), Is.Empty);
+                Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True);
+            }
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 999); // Displayed stage 1000.
+            for (int i = 0; i < moving.Count; i++) Place(moving[i], starts[i]);
             yield return PhysicsTicks(12);
             Assert.That(game.EnemyDashCasts, Is.Zero);
             for (int i = 0; i < moving.Count; i++) Assert.That(Vector2.Distance(moving[i].position, starts[i]), Is.LessThan(.02));
@@ -110,6 +119,16 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(55);
             Assert.That(game.EnemyDashCasts, Is.EqualTo(casts), "The attack respects its cooldown.");
             Assert.That(NamedArt("Enemy dash afterimage"), Is.Empty);
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 1000); // Still enabled at stage 1001.
+            for (int i = 0; i < moving.Count; i++) {
+                Place(moving[i], starts[i]);
+                representatives[i].GetType().GetField("dashCooldown").SetValue(representatives[i], 0f);
+            }
+            yield return PhysicsTicks(24);
+            Assert.That(game.EnemyDashCasts, Is.EqualTo(casts + representatives.Length));
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 998);
+            yield return PhysicsTicks(1);
+            Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True, "Returning below the threshold cancels an active dash.");
         }
     }
 }

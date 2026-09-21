@@ -9,14 +9,17 @@ namespace DoodleIdle
         [Min(0)] public float enemyDashSpeed = 8;
         public const float EnemyDashWindup = .35f;
         public const float EnemyDashDuration = .3f;
+        public const int EnemyDashStartStage = 1000;
         public int EnemyDashCasts { get; private set; }
 
         void TickEnemyMovement(float dt)
         {
+            // MainStage is zero-based; the HUD displays MainStage + 1.
+            bool canDash = enemyDashEnabled && Ui && Ui.MainStage >= EnemyDashStartStage - 1;
             foreach (var enemy in enemies) {
                 Vector2 toPlayer = player.Position - enemy.Position;
-                if (!enemyDashEnabled) enemy.dashWindup = enemy.enemyDashRemaining = 0;
-                if (enemyDashEnabled && enemy.enemyDashRemaining > 0) {
+                if (!canDash) enemy.dashWindup = enemy.enemyDashRemaining = 0;
+                if (canDash && enemy.enemyDashRemaining > 0) {
                     enemy.enemyDashRemaining = Mathf.Max(0, enemy.enemyDashRemaining - dt);
                     if (enemy.enemyDashRemaining > 0) {
                         enemy.body.linearVelocity = enemy.enemyDashDirection * enemyDashSpeed;
@@ -25,7 +28,7 @@ namespace DoodleIdle
                         continue;
                     }
                 }
-                if (enemyDashEnabled && enemy.dashWindup > 0) {
+                if (canDash && enemy.dashWindup > 0) {
                     enemy.dashWindup = Mathf.Max(0, enemy.dashWindup - dt);
                     enemy.body.linearVelocity = Vector2.zero;
                     if (enemy.dashWindup <= .0001f) {
@@ -41,7 +44,7 @@ namespace DoodleIdle
                     continue;
                 }
                 enemy.dashCooldown = Mathf.Max(0, enemy.dashCooldown - dt);
-                if (enemyDashEnabled && enemy.dashCooldown <= 0 && toPlayer.sqrMagnitude <= 64 && toPlayer.sqrMagnitude > .01f) {
+                if (canDash && enemy.dashCooldown <= 0 && toPlayer.sqrMagnitude <= 64 && toPlayer.sqrMagnitude > .01f) {
                     enemy.dashWindup = EnemyDashWindup;
                     enemy.enemyDashDirection = toPlayer.normalized;
                     enemy.body.linearVelocity = Vector2.zero;
