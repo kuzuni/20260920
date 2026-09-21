@@ -9,6 +9,8 @@ namespace DoodleIdle
         public static readonly string[] Skills = { "Eggplant", "Durian", "Brick", "BeachBall", "Shuriken", "IceSnakeHead", "IceSnakeSegment", "PurpleFireArrow", "BlueMolotov", "RedCloud", "RedCloudB", "RedLightning" };
         public static readonly string[] Companions = { "SporeFairy", "FrostFox", "BrickGolem", "ShurikenTanuki", "BeeKnight" };
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCache() { cache.Clear(); }
         // Pixel regions in the generated 1254px atlas (top-left origin), including its uneven gutters.
         static readonly Rect[] regions = {
             new Rect(20,190,295,210), new Rect(340,140,275,300), new Rect(630,195,300,220), new Rect(965,165,275,265),
@@ -17,7 +19,8 @@ namespace DoodleIdle
         };
         public static Sprite Get(string key)
         {
-            if (cache.TryGetValue(key, out var sprite)) return sprite;
+            if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
+            cache.Remove(key);
             int index=Array.IndexOf(Skills,key), companion=Array.IndexOf(Companions,key);
             if(index<0 && companion<0)return null;
             bool bead=key=="IceSnakeSegment", eggplant=key=="Eggplant";

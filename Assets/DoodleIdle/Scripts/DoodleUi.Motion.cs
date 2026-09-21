@@ -7,6 +7,30 @@ using UnityEngine.UI;
 
 namespace DoodleIdle
 {
+    public sealed class DoodleToastMotion : MonoBehaviour
+    {
+        Sequence sequence;
+        CanvasGroup group;
+        CanvasGroup Opacity {
+            get {
+                if(!group)group=GetComponent<CanvasGroup>()??gameObject.AddComponent<CanvasGroup>();
+                group.blocksRaycasts=group.interactable=false;return group;
+            }
+        }
+        public void Show(float duration)
+        {
+            sequence?.Kill();transform.SetAsLastSibling();
+            var opacity=Opacity;opacity.alpha=0;transform.localScale=Vector3.one*.93f;
+            sequence=DOTween.Sequence().SetUpdate(true);
+            sequence.Append(DOTween.To(()=>opacity.alpha,x=>opacity.alpha=x,1,.2f));
+            sequence.Join(DOTween.To(()=>transform.localScale,x=>transform.localScale=x,Vector3.one,.24f).SetEase(Ease.OutBack));
+            sequence.AppendInterval(Mathf.Max(0,duration-.42f));
+            sequence.Append(DOTween.To(()=>opacity.alpha,x=>opacity.alpha=x,0,.18f));
+        }
+        public void Hide() { sequence?.Kill();Opacity.alpha=0;transform.localScale=Vector3.one; }
+        void OnDestroy() { sequence?.Kill(); }
+    }
+
     /// <summary>Unscaled button motion and a repeat binding that survives page rebuilds.</summary>
     public sealed class DoodleButtonMotion : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {

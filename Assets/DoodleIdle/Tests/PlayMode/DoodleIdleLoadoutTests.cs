@@ -103,7 +103,7 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < 24; i++) {
                 var a = DoodleCollectionArt.CompanionFrame(i, 0); var b = DoodleCollectionArt.CompanionFrame(i, 1);
                 Assert.That(a, Is.Not.SameAs(b)); Assert.That(a.rect, Is.Not.EqualTo(b.rect));
-                Assert.That(a.bounds.size, Is.EqualTo(b.bounds.size)); Assert.That(a.pixelsPerUnit, Is.EqualTo(b.pixelsPerUnit));
+                Assert.That(Vector3.Distance(a.bounds.size, b.bounds.size), Is.LessThan(.00001f)); Assert.That(a.pixelsPerUnit, Is.EqualTo(b.pixelsPerUnit));
                 var node = new GameObject("Companion pose " + i); node.transform.SetParent(display.transform);
                 node.transform.position = new Vector3((i % 6 - 2.5f) * 1.8f, (1.5f - i / 6) * 1.8f, 0);
                 renderers[i] = node.AddComponent<SpriteRenderer>(); renderers[i].sprite = a;

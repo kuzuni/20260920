@@ -56,6 +56,8 @@ namespace DoodleIdle
             public CircleCollider2D collider;
             public float hp = 68, maxHp = 68, flash, phase;
             public float walkClock;
+            public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
+            public Vector2 enemyDashDirection;
             public bool isPlayer, isBoss;
             public int kind;
             public Vector2 Position => body.position;
@@ -219,6 +221,7 @@ namespace DoodleIdle
             foreach (var banana in bananas) if (banana) Destroy(banana.gameObject);
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
+            EnemyDashCasts = 0;
             Elapsed = orbitAngle = dashRemaining = 0;
             ResetSkillActivation();
             bananaCycleAge = 0; BananasActive = SkillEquipped("Banana");
@@ -265,6 +268,7 @@ namespace DoodleIdle
             var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
             if (!isPlayer)
             {
+                actor.dashCooldown = 2 + actor.phase * .4f;
                 NormalizeEnemyFrame(actor,art.sprite);
                 actor.art.flipX = player.Position.x < p.x;
             }
@@ -377,12 +381,7 @@ namespace DoodleIdle
                 Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
                 player.body.linearVelocity = desired;
             }
-            foreach (var enemy in enemies)
-            {
-                Vector2 toPlayer = player.Position - enemy.Position;
-                Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
-                enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
-            }
+            TickEnemyMovement(dt);
             TickPlayerContactDamage(dt);
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
@@ -552,6 +551,7 @@ namespace DoodleIdle
             AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
             actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
+            if (!actor.isPlayer && actor.dashWindup > 0 && actor.flash <= 0) actor.art.color = new Color(1, .75f, .65f);
             if (actor.isPlayer) actor.art.color = PlayerInvulnerabilityTint(actor.art.color);
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);

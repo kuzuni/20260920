@@ -7,6 +7,8 @@ namespace DoodleIdle
     public static class DoodleExpansionArt
     {
         static readonly Dictionary<string, Sprite[]> frames = new Dictionary<string, Sprite[]>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCache() { frames.Clear(); }
         public static Sprite Get(string key, int frame = 0)
         {
             int count;
@@ -18,7 +20,9 @@ namespace DoodleIdle
                 case "NavPottery": case "NavColosseum": count = 1; break;
                 default: return null;
             }
-            if (!frames.TryGetValue(key, out var sprites))
+            bool valid = frames.TryGetValue(key, out var sprites) && sprites.Length == count;
+            if (valid) foreach (var sprite in sprites) if (!sprite || !sprite.texture) { valid = false; break; }
+            if (!valid)
             {
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + (key == "SkillGolem" ? "SkillGolemSlam" : key));
                 if (!texture) throw new InvalidOperationException("Missing expansion art: " + key);

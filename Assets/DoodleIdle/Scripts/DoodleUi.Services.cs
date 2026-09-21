@@ -232,8 +232,6 @@ namespace DoodleIdle
             var grid = UiKit.Grid(body, "Attendance days", 3, 195);
             for (int i = 0; i < 6; i++) AttendanceCard(grid, i);
             AttendanceCard(body, 6);
-            var claim = UiKit.Button(body, services.attendanceDay == services.day ? "오늘 보상 받음" : "오늘 보상 받기", ClaimAttendance, UiKit.Blue, 60);
-            claim.interactable = services.attendanceDay != services.day && services.attendanceIndex < 7;
         }
 
         void AttendanceCard(Transform parent, int index)
@@ -241,6 +239,14 @@ namespace DoodleIdle
             bool claimed = index < services.attendanceIndex;
             bool current = index == services.attendanceIndex;
             var card = UiKit.Box(parent, "Attendance day " + (index + 1), claimed ? new Color(.91f,.96f,.85f) : current ? new Color(1,.97f,.83f) : new Color(.93f,.93f,.93f), index == 6 ? 182 : 195);
+            var claim = card.gameObject.AddComponent<Button>();
+            claim.targetGraphic = card.GetComponent<Image>();
+            claim.transition = Selectable.Transition.None;
+            claim.interactable = current && services.attendanceDay != services.day;
+            claim.onClick.AddListener(() => {
+                ResetServicePeriods();
+                if (index == services.attendanceIndex) ClaimAttendance();
+            });
             var day = UiKit.Text(card, (index + 1) + "일차", 27, TextAnchor.MiddleCenter, 36);
             day.rectTransform.anchorMin = new Vector2(0,1); day.rectTransform.anchorMax = Vector2.one; day.rectTransform.pivot = new Vector2(.5f,1); day.rectTransform.anchoredPosition = new Vector2(0,-8); day.rectTransform.sizeDelta = new Vector2(-12,36);
             var gem = UiKit.Icon(card, "Diamond", index == 6 ? 66 : 70).rectTransform;
@@ -254,7 +260,7 @@ namespace DoodleIdle
             amount.rectTransform.anchorMin = new Vector2(0,0); amount.rectTransform.anchorMax = new Vector2(1,0); amount.rectTransform.pivot = new Vector2(.5f,0); amount.rectTransform.anchoredPosition = new Vector2(0,40); amount.rectTransform.sizeDelta = new Vector2(-8,32);
             var strip = UiKit.Box(card,"Attendance status",claimed ? new Color(.77f,.88f,.66f) : current ? UiKit.Yellow : new Color(.82f,.82f,.82f));
             strip.anchorMin=Vector2.zero;strip.anchorMax=new Vector2(1,0);strip.pivot=new Vector2(.5f,0);strip.anchoredPosition=new Vector2(0,3);strip.sizeDelta=new Vector2(-6,36);strip.GetComponent<Outline>().enabled=false;
-            var status = UiKit.Text(strip, claimed ? "✓ 받음" : current ? "오늘" : "대기 중", 24, TextAnchor.MiddleCenter, 36); UiKit.Stretch(status.rectTransform,3,1,3,1);
+            var status = UiKit.Text(strip, claimed ? "✓ 받음" : current && services.attendanceDay != services.day ? "눌러서 받기" : "대기 중", 24, TextAnchor.MiddleCenter, 36); UiKit.Stretch(status.rectTransform,3,1,3,1);
         }
 
         public void ClaimAttendance()

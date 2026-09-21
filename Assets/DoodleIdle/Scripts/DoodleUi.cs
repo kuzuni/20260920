@@ -57,11 +57,8 @@ namespace DoodleIdle
             pageLayer=UiKit.Rect(root,"Primary modal layer"); UiKit.Stretch(pageLayer);
             BuildNavigation();
             overlayLayer=UiKit.Rect(root,"Detail and fullscreen layer"); UiKit.Stretch(overlayLayer);
-            toast=UiKit.Text(root,"",24,TextAnchor.MiddleCenter,58); toast.color=Color.white; toast.gameObject.AddComponent<Outline>().effectColor=Color.black;
-            Anchor(toast.rectTransform,new Vector2(.5f,1),new Vector2(0,-115),new Vector2(620,58));
-            powerToast=UiKit.Text(root,"",27,TextAnchor.MiddleCenter,62);powerToast.gameObject.name="Power change toast";powerToast.color=UiKit.Green;
-            powerToast.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
-            Anchor(powerToast.rectTransform,new Vector2(.5f,1),new Vector2(0,-175),new Vector2(620,62));
+            toast=BuildToast("Toast",24,-115,70);
+            powerToast=BuildToast("Power change toast",27,-195,76);
             Relayout(true); RefreshHud();
         }
         void BuildMain()
@@ -295,14 +292,28 @@ namespace DoodleIdle
             area.gameObject.AddComponent<DoodlePopupMotion>().Open();
             if (onClose != null) rewardCloseEffects[dim.gameObject] = onClose;
         }
-        public void Toast(string message) { if(!toast)return; toast.text=message; toastUntil=Time.unscaledTime+3.5f; toast.transform.SetAsLastSibling(); }
+        Text BuildToast(string name,int size,float offset,float height)
+        {
+            var panel=UiKit.Box(root,name+" frame",new Color(.24f,.24f,.24f,.9f));
+            Anchor(panel,new Vector2(.5f,1),new Vector2(0,offset),new Vector2(620,height));
+            panel.GetComponent<Image>().raycastTarget=false;
+            var label=UiKit.Text(panel,"",size,TextAnchor.MiddleCenter,height-12);label.name=name;label.color=Color.white;
+            UiKit.Stretch(label.rectTransform,14,6,14,6);
+            panel.gameObject.AddComponent<DoodleToastMotion>().Hide();
+            return label;
+        }
+        public void Toast(string message) {
+            if(!toast)return;toast.text=message;toastUntil=Time.unscaledTime+3.5f;
+            var motion=toast.GetComponentInParent<DoodleToastMotion>();
+            if(string.IsNullOrEmpty(message))motion.Hide();else motion.Show(3.5f);
+        }
         public void Save() { PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
         public void NotifyPowerChanged(long before,string reason=null)
         {
             if(!powerToast)return;long after=Power,change=after-before;
             powerToast.text="전투력 "+UiNumber.Format(before)+" → "+UiNumber.Format(after)+"  ("+(change>0?"+":"")+UiNumber.Format(change)+")";
             if(!string.IsNullOrEmpty(reason))powerToast.text=reason+"\n"+powerToast.text;
-            powerToast.color=change<0?UiKit.Red:change>0?UiKit.Green:UiKit.Paper;powerToastUntil=Time.unscaledTime+2.5f;powerToast.transform.SetAsLastSibling();
+            powerToast.color=change<0?UiKit.Red:change>0?UiKit.Green:UiKit.Paper;powerToastUntil=Time.unscaledTime+2.5f;powerToast.GetComponentInParent<DoodleToastMotion>().Show(2.5f);
         }
         void StopRepeating() { if(Canvas){var driver=Canvas.GetComponent<DoodleUiRepeatDriver>();if(driver)driver.Stop();} }
         void ApplyCameraMode() { if(game)game.SetUiCameraSize(new[]{8.5f,11f,14.5f}[CameraMode-1]);if(cameraLabel)cameraLabel.text="카메라  "+CameraMode; }

@@ -39,6 +39,7 @@ namespace DoodleIdle
                         + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                     if (SegmentDistance(Vector2.zero, relative, next) > radius + .02f) continue;
                     player.hp = Mathf.Max(0, player.hp - enemyContactDamage);
+                    ShowDamageNumber(player.Position, enemyContactDamage, true);
                     PlayerContactHits++; contactInvulnerability = ContactInvulnerabilityDuration;
                     if (player.hp <= 0) {
                         player.hp = player.maxHp;
@@ -55,8 +56,8 @@ namespace DoodleIdle
         Color PlayerInvulnerabilityTint(Color normal)
         {
             if (!PlayerInvulnerable) return normal;
-            bool dark = Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .1f) % 2 == 0;
-            return dark ? new Color(.04f, .04f, .04f, .48f) : new Color(normal.r, normal.g, normal.b, .7f);
+            bool dark = Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .25f) % 2 == 0;
+            return dark ? new Color(.15f, .15f, .15f, .6f) : new Color(normal.r, normal.g, normal.b, .8f);
         }
 
         void UpdatePlayerHealthBar()

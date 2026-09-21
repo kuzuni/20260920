@@ -18,6 +18,8 @@ namespace DoodleIdle
         public static Font Font;
         static readonly Dictionary<string, Sprite> art = new Dictionary<string, Sprite>();
         static Sprite frame, circle;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCache() { art.Clear(); frame = circle = null; Font = null; }
         static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
         public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f), new Color(1,.63f,.65f), new Color(.65f,1,.94f) }[Mathf.Clamp(grade,0,6)];
         public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,6)];
@@ -116,13 +118,19 @@ namespace DoodleIdle
             var t=Text(r,GradeName(rarity),20,TextAnchor.UpperLeft,25); Stretch(t.rectTransform,6,height-29,5,3); t.color=locked?Color.white:Ink;
             var im=Icon(r,icon,58); Stretch(im.rectTransform,12,33,12,27); if(locked) im.color=Color.black;
             var gauge=Gauge(r,UiNumber.Format(count)+"/"+UiNumber.Format(Mathf.Max(1,needed)),count/(float)Mathf.Max(1,needed),24); Stretch(gauge,5,5,5,height-29);gauge.GetComponentInChildren<Text>().resizeTextMaxSize=21;
-            if(equipped) { var mark=Box(r,"Equipped check",new Color(.40f,.73f,.15f));mark.GetComponent<Image>().sprite=Circle;mark.anchorMin=mark.anchorMax=Vector2.one;mark.anchoredPosition=new Vector2(-15,-16);mark.sizeDelta=new Vector2(30,30);var tick=Rect(mark,"White check");Stretch(tick);tick.gameObject.AddComponent<DoodleUiCheck>().raycastTarget=false; }
+            if(equipped) {
+                var mark=Box(r,"Equipped label",new Color(.45f,.45f,.45f,.76f));
+                mark.GetComponent<Image>().raycastTarget=false;
+                mark.anchorMin=new Vector2(0,.5f);mark.anchorMax=new Vector2(1,.5f);
+                mark.anchoredPosition=Vector2.zero;mark.sizeDelta=new Vector2(-10,30);
+                var label=Text(mark,"장착중",22,TextAnchor.MiddleCenter,30);label.color=Color.white;Stretch(label.rectTransform,3,1,3,1);
+            }
             if(locked) { var mark=Rect(r,"Locked padlock"); mark.anchorMin=mark.anchorMax=new Vector2(1,0);mark.anchoredPosition=new Vector2(-17,41);mark.sizeDelta=new Vector2(20,25);mark.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget=false; }
             var adaptive=r.gameObject.AddComponent<DoodleUiSlotLayout>();adaptive.grade=t;adaptive.art=im.rectTransform;adaptive.gauge=gauge;adaptive.Reflow();
             return b;
         }
-        public static Sprite Circle => circle ? circle : circle=Shape(true);
-        public static Sprite Frame => frame ? frame : frame=Shape(false);
+        public static Sprite Circle => circle && circle.texture ? circle : circle=Shape(true);
+        public static Sprite Frame => frame && frame.texture ? frame : frame=Shape(false);
         static Sprite Shape(bool round)
         {
             const int n=96; var tex=new Texture2D(n,n,TextureFormat.RGBA32,false); var p=new Color[n*n];
@@ -136,7 +144,9 @@ namespace DoodleIdle
         }
         public static Sprite Art(string key)
         {
-            if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
+            if(string.IsNullOrEmpty(key)) key="Player";
+            if(art.TryGetValue(key,out var cached) && cached && cached.texture) return cached;
+            art.Remove(key);
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
             var expansion=DoodleExpansionArt.Get(key);if(expansion){art[key]=expansion;return expansion;}
             if(key=="AddSlot" || key=="ReplaceArrow")
@@ -280,8 +290,11 @@ namespace DoodleIdle
             UiKit.Stretch(art,8*scale,bottom+9*scale,8*scale,top+2*scale);
             gauge.anchorMin=Vector2.zero;gauge.anchorMax=new Vector2(1,0);gauge.offsetMin=new Vector2(pad,pad);gauge.offsetMax=new Vector2(-pad,pad+bottom);
             var amount=gauge.GetComponentInChildren<Text>();amount.resizeTextMinSize=Mathf.RoundToInt(12*scale);amount.resizeTextMaxSize=Mathf.RoundToInt(20*scale);
-            var mark=transform.Find("Equipped check") as RectTransform;
-            if(mark) {mark.sizeDelta=Vector2.one*27;mark.localScale=Vector3.one*scale;mark.anchoredPosition=new Vector2(-13*scale,level?-top-15*scale:-14*scale);}
+            var mark=transform.Find("Equipped label") as RectTransform;
+            if(mark) {
+                mark.sizeDelta=new Vector2(-10*scale,30*scale);mark.anchoredPosition=Vector2.zero;
+                var label=mark.GetComponentInChildren<Text>();label.resizeTextMinSize=9;label.resizeTextMaxSize=Mathf.RoundToInt(22*scale);
+            }
             var locked=transform.Find("Locked padlock") as RectTransform;
             if(locked) {locked.sizeDelta=new Vector2(20,25);locked.localScale=Vector3.one*scale;locked.anchoredPosition=new Vector2(-16*scale,bottom+16*scale);}
         }

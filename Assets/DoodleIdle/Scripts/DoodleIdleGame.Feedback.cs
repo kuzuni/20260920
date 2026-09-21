@@ -42,7 +42,7 @@ namespace DoodleIdle
             actor.healthBack.sortingOrder = Order(actor.Position) + 3;
             actor.healthFill.sortingOrder = Order(actor.Position) + 4;
         }
-        void ShowDamageNumber(Vector2 position, float amount)
+        void ShowDamageNumber(Vector2 position, float amount, bool playerHit = false)
         {
             if (damageNumbers.Count >= MaxDamageNumbers)
             {
@@ -65,7 +65,8 @@ namespace DoodleIdle
             number.origin = position + new Vector2(ParticleRandom(-.25f, .25f), 1.05f);
             number.age = 0; number.drift = ParticleRandom(-.45f, .45f);
             number.text.text = UiNumber.Format(System.Math.Ceiling(amount));
-            number.text.color = new Color(1, .96f, .76f);
+            number.text.name = playerHit ? "Player damage number" : "Enemy damage number";
+            number.text.color = playerHit ? new Color(.62f, .62f, .62f) : new Color(1, .96f, .76f);
             number.text.rectTransform.localPosition = number.origin * 100;
             number.text.rectTransform.localScale = Vector3.one;
             number.text.gameObject.SetActive(true); damageNumbers.Add(number);
@@ -81,7 +82,9 @@ namespace DoodleIdle
                 }
                 number.text.rectTransform.localPosition = (number.origin + new Vector2(number.drift * number.age, number.age * 1.05f)) * 100;
                 number.text.rectTransform.localScale = Vector3.one * (1 + .15f * Mathf.Sin(Mathf.Clamp01(number.age / .2f) * Mathf.PI));
-                number.text.color = new Color(1, .96f, .76f, Mathf.Clamp01((.75f - number.age) / .25f));
+                var color = number.text.color;
+                color.a = Mathf.Clamp01((.75f - number.age) / .25f);
+                number.text.color = color;
             }
         }
         void ClearDamageNumbers()

@@ -20,6 +20,7 @@ namespace DoodleIdle.Tests
         Rigidbody2D[] IsolateSummonTest()
         {
             game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.autoPlay = false;
+            game.enemyDashEnabled = false;
             game.moveSpeed = 0;
             PlayerBody().position = Vector2.zero;
             PlayerBody().linearVelocity = Vector2.zero;

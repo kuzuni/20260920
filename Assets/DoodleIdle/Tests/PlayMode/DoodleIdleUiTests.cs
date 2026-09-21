@@ -415,6 +415,7 @@ namespace DoodleIdle.Tests
         void UiCapture(string state, Vector2Int size, bool bottom = false)
         {
             game.Ui.Toast(""); UiNode("Power change toast").GetComponent<Text>().text="";
+            UiNode("Power change toast").GetComponentInParent<DoodleToastMotion>().Hide();
             string file = "ui-" + size.x + "x" + size.y + "-" + state + ".png";
             var rewardCards = new List<RectInt>();
             var rewardRays = new List<RectInt>();

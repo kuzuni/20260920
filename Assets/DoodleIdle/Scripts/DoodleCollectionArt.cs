@@ -11,10 +11,13 @@ namespace DoodleIdle
         [Serializable] sealed class AnimationLayout { public FrameRegion[] frames; }
         [Serializable] sealed class FrameRegion { public float x, y, width, height, bodyOffsetY; }
         static readonly Dictionary<string, AnimationLayout> layouts = new Dictionary<string, AnimationLayout>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCache() { cache.Clear(); layouts.Clear(); }
         public static Sprite Get(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
-            if (cache.TryGetValue(key, out var value)) return value;
+            if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
+            cache.Remove(key);
             if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
                 value = Cell("RelicAttackArtifacts", relic, 3, 1);
             else if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))
@@ -32,7 +35,8 @@ namespace DoodleIdle
         public static Sprite CompanionFrame(int index, int frame)
         {
             string key = "CompanionMon_" + index + "_" + frame;
-            if (cache.TryGetValue(key, out var value)) return value;
+            if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
+            cache.Remove(key);
             string resource = index == 12 ? "DoodleIdle/CompanionHoneyBee" : "DoodleIdle/CompanionMons" + grades[index / 4];
             var texture = Resources.Load<Texture2D>(resource);
             if (!texture) throw new InvalidOperationException("Missing companion animation: " + index);

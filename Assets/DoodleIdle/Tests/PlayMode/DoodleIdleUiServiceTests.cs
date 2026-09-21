@@ -43,7 +43,10 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("Attendance day 7"), Is.Not.Null);
             int wallet = ui.Diamonds;
             long gold = ui.Gold;
-            UiClick("오늘 보상 받기");
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "오늘 보상 받기"), Is.False);
+            Assert.That(UiNode("Attendance day 2").GetComponent<Button>().interactable, Is.False);
+            Assert.That(UiNode("Attendance day 1").GetComponent<Button>().interactable, Is.True);
+            UiClick("Attendance day 1");
             Assert.That(ui.Diamonds, Is.EqualTo(wallet + ServiceTestTuning.attendance[0]));
             Assert.That(ui.Gold, Is.EqualTo(gold));
             AssertSingleDiamondReward();
