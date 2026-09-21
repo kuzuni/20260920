@@ -243,7 +243,8 @@ namespace DoodleIdle
                         + shot.curveNormal * (Mathf.Sin(shot.age * Mathf.PI * 8) * .2f * shot.curveSide);
                     for (int e = enemies.Count - 1; e >= 0; e--) {
                         var enemy = enemies[e];
-                        if (shot.waveVictims.Contains(enemy) || SegmentDistance(enemy.Position, old, next) > .84f) continue;
+                        float contactRadius = .14f * shot.size + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
+                        if (shot.waveVictims.Contains(enemy) || SegmentDistance(enemy.Position, old, next) > contactRadius) continue;
                         shot.waveVictims.Add(enemy); ArrowHits++;
                         SkillDamage(enemy, 44, shot.waveDirection);
                     }
