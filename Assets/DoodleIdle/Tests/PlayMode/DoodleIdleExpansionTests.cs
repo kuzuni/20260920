@@ -98,6 +98,7 @@ namespace DoodleIdle.Tests
         public IEnumerator ExpansionGroundUsesContinuousOpaqueWorldPatternAcrossFormerSeams()
         {
             game.TogglePause();var floor=NamedArt("Generated dirt floor").Single();
+            Object.Destroy(CaptureFrame("terrain-live-portrait.png",720,1520));
             Assert.That(floor.sharedMaterial.shader.name,Is.EqualTo("DoodleIdle/Terrain"));
             Assert.That(floor.sharedMaterial.GetFloat("_TileSize"),Is.EqualTo(3));
             Assert.That(floor.bounds.size.x,Is.GreaterThan(80));Assert.That(floor.bounds.size.y,Is.GreaterThan(80));

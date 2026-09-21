@@ -7,8 +7,8 @@ Shader "DoodleIdle/Terrain"
         _UvRect ("Theme bounds", Vector) = (0,0,1,1)
         _TileSize ("Pattern size in world units", Float) = 3
         _GroundColor ("Opaque ground", Color) = (0.7,0.7,0.5,1)
-        _PatternStrength ("Ground detail contrast", Range(0,1)) = 0.16
-        _PatternSaturation ("Ground detail saturation", Range(0,1)) = 0.4
+        _PatternStrength ("Ground detail contrast", Range(0,1)) = 0.55
+        _PatternSaturation ("Ground detail saturation", Range(0,1)) = 0.85
     }
     SubShader
     {

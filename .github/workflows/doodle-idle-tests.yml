@@ -6,6 +6,14 @@ on:
   pull_request:
     paths: ['Assets/**', 'Packages/**', 'ProjectSettings/**', '.github/workflows/doodle-idle-tests.yml']
   workflow_dispatch:
+    inputs:
+      validation:
+        description: Validation scope
+        type: choice
+        default: full
+        options:
+          - full
+          - terrain
 
 permissions:
   contents: read
@@ -57,7 +65,7 @@ jobs:
         with:
           unityVersion: 6000.3.8f1
           testMode: PlayMode
-          customParameters: -testFilter DoodleIdle.Tests
+          customParameters: -testFilter ${{ inputs.validation == 'terrain' && 'DoodleIdle.Tests.DoodleIdlePlayModeTests.ExpansionGroundUsesContinuousOpaqueWorldPatternAcrossFormerSeams' || 'DoodleIdle.Tests' }}
           coverageOptions: assemblyFilters:+DoodleIdle.Runtime;generateAdditionalMetrics
           artifactsPath: artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
