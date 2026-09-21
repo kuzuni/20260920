@@ -10,7 +10,7 @@ namespace DoodleIdle
         sealed class VariantShot
         {
             public SpriteRenderer art; public Vector2 direction,start,end; public float age,speed,life,damage,radius,spin;
-            public bool arc; public readonly HashSet<Actor> victims=new HashSet<Actor>();
+            public bool arc,rolling,afterimage; public float size,trail; public readonly HashSet<Actor> victims=new HashSet<Actor>();
         }
         readonly Dictionary<string,float> variantClocks=new Dictionary<string,float>();
         readonly List<VariantVolley> variantVolleys=new List<VariantVolley>();
@@ -30,7 +30,10 @@ namespace DoodleIdle
             if(player==null || enemies.Count==0 || VariantInterval(ability)<=0)return;
             var origin=player.Position;var target=Closest(origin);var direction=(target.Position-origin).normalized;
             if(ability=="Eggplant") {
-                for(int i=-1;i<=1;i++) VariantProjectile("Eggplant",origin,Rotate(direction,i*30),4.6f,6,3.2f,42,1.3f,180);
+                for(int i=-1;i<=1;i++) {
+                    var shot=VariantProjectile("Eggplant",origin,Rotate(direction,i*30),4.6f,6,3.2f,42,1.3f);
+                    shot.rolling=true;UpdateRollingVegetable(shot.art,shot.direction,0,shot.size);
+                }
             }
             else if(ability=="IceSnakes") {
                 for(int i=-1;i<=1;i++)SpawnSnake(SummonSkill.TetherSnake,Rotate(direction,i*50),true);
@@ -42,9 +45,15 @@ namespace DoodleIdle
             else if(ability=="BlueMolotov") {
                 for(int i=0;i<2;i++)ThrowMolotov(origin,NearbyTarget(origin,i).Position,true);
             }
-            else if(ability=="RedCloud")clouds.Add(new Cloud { red=true,art=Visual("Red storm cloud",DoodleVariantArt.Get("RedCloud"),origin+Vector2.up*2,Vector2.one*2.6f,650),direction=direction });
+            else if(ability=="RedCloud")clouds.Add(new Cloud { red=true,art=Visual("Red storm cloud",DoodleVariantArt.Get("RedCloud"),origin+Vector2.up*2,Vector2.one*2.6f,650),target=target });
+            else if(ability=="Shuriken") {
+                for(int i=0;i<8;i++) {
+                    var shot=VariantProjectile("Shuriken",origin,Rotate(direction,i*45),1.2f,SoundWaveSpeed,SoundWaveLifetime,30,.7f,720);
+                    shot.afterimage=true;
+                }
+            }
             else {
-                var volley=new VariantVolley { requiresEquipment=castingEquippedSkill,ability=ability,direction=direction,remaining=ability=="Durian"?2:ability=="PurpleFireArrows"?8:ability=="BrickVolley"?6:5 };
+                var volley=new VariantVolley { requiresEquipment=castingEquippedSkill,ability=ability,direction=direction,remaining=ability=="Durian"?3:ability=="PurpleFireArrows"?8:6 };
                 FireVariantVolley(volley);if(volley.remaining>0)variantVolleys.Add(volley);
             }
         }
@@ -56,19 +65,20 @@ namespace DoodleIdle
                 if(volley.ability=="Durian" || volley.ability=="PurpleFireArrows") {
                     Launch(volley.ability=="Durian"?ProjectileKind.Ball:ProjectileKind.Arrow,target,player.Position,volley.index);
                     var shot=extraShots[extraShots.Count-1];shot.size=2;shot.purple=volley.ability=="PurpleFireArrows";
+                    if(shot.purple) { shot.curveSide=volley.index%2==0?1:-1;StartHomingCurve(shot,player.Position); }
                     SetSpriteArt(shot.art,DoodleVariantArt.Get(shot.purple?"PurpleFireArrow":"Durian"));shot.art.transform.localScale*=2;
                     shot.art.name=volley.ability+" projectile";VariantProjectilesLaunched++;
                 } else if(volley.ability=="BrickVolley") {
                     var shot=VariantProjectile("Brick",player.Position,volley.direction,1.29f,0,.8f,30,.65f,360);
                     shot.arc=true;shot.end=target.Position;
-                } else VariantProjectile("Shuriken",player.Position,volley.direction,1.2f,SoundWaveSpeed,SoundWaveLifetime,30,.7f,720);
+                }
             }
             volley.index++;volley.remaining--;volley.clock=volley.ability=="Durian"?.2f:volley.ability=="PurpleFireArrows"?.1f:.14f;
         }
         VariantShot VariantProjectile(string art,Vector2 origin,Vector2 direction,float size,float speed,float life,float damage,float radius,float spin=0)
         {
             var sprite=WorldIcon(art);
-            var shot=new VariantShot { start=origin,direction=direction,speed=speed,life=life,damage=damage,radius=radius,spin=spin,
+            var shot=new VariantShot { start=origin,direction=direction,speed=speed,life=life,damage=damage,radius=radius,spin=spin,size=size,
                 art=Visual(art+" variant projectile",sprite,origin,Vector2.one*size,515) };
             shot.art.transform.rotation=Aim(direction);variantShots.Add(shot);VariantProjectilesLaunched++;return shot;
         }
@@ -84,7 +94,16 @@ namespace DoodleIdle
                 var shot=variantShots[i];shot.age+=dt;Vector2 old=shot.art.transform.position;
                 float t=Mathf.Clamp01(shot.age/shot.life);
                 Vector2 next=shot.arc?Vector2.Lerp(shot.start,shot.end,t)+Vector2.up*(10*t*(1-t)):old+shot.direction*(shot.speed*dt);
-                shot.art.transform.position=next;shot.art.transform.Rotate(0,0,shot.spin*dt);
+                shot.art.transform.position=next;
+                if(shot.rolling)UpdateRollingVegetable(shot.art,shot.direction,shot.age,shot.size);
+                else shot.art.transform.Rotate(0,0,shot.spin*dt);
+                if(shot.afterimage) {
+                    shot.trail-=dt;
+                    if(shot.trail<=0) {
+                        Echo("Shuriken afterimage",shot.art.sprite,old,shot.art.transform.localScale,shot.art.transform.rotation,.22f,.32f,490);
+                        shot.trail=.05f;
+                    }
+                }
                 if(!shot.arc || t>=1)for(int e=enemies.Count-1;e>=0;e--) {
                     var enemy=enemies[e];float distance=shot.arc?Vector2.Distance(enemy.Position,shot.end):SegmentDistance(enemy.Position,old,next);
                     if(distance>shot.radius+.56f || !shot.victims.Add(enemy))continue;

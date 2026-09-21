@@ -35,6 +35,102 @@ namespace DoodleIdle.Tests
         SpriteRenderer[] NamedArt(string name) => game.GetComponentsInChildren<SpriteRenderer>().Where(r => r.name == name).ToArray();
 
         [UnityTest]
+        public IEnumerator CloudsPursueMovingEnemiesAtTheirNewSpeeds()
+        {
+            var bodies=IsolateSummonTest();
+            foreach(var body in bodies)Place(body,new Vector2(20,20));
+            Place(bodies[0],new Vector2(6,0));
+            game.CastSummonSkill(DoodleIdleGame.SummonSkill.StormCloud);game.CastVariant("RedCloud");
+            var normal=NamedArt("Drifting storm cloud").Single();var red=NamedArt("Red storm cloud").Single();
+            Vector3 origin=normal.transform.position;
+            yield return PhysicsTicks(20);
+            Assert.That(Vector3.Distance(normal.transform.position,origin),Is.EqualTo(2.2f*.4f).Within(.03f));
+            Assert.That(Vector3.Distance(red.transform.position,origin),Is.EqualTo(3f*.4f).Within(.03f));
+            Vector3 previous=normal.transform.position;
+            Place(bodies[0],new Vector2(-6,4));
+            yield return PhysicsTicks(20);
+            Assert.That(normal.transform.position.x,Is.LessThan(previous.x));
+            Assert.That(normal.transform.position.y,Is.GreaterThan(previous.y),"Clouds steer toward a moving enemy instead of keeping the cast direction.");
+            Object.Destroy(CaptureFrame("revised-seeking-clouds.png",1440,900,false));
+            game.TogglePause();previous=normal.transform.position;
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(normal.transform.position,Is.EqualTo(previous));
+        }
+
+        [UnityTest]
+        public IEnumerator FireCurvesTowardThreeTargetsAndStillHitsOncePerFlame()
+        {
+            var bodies=IsolateSummonTest();
+            foreach(var body in bodies)Place(body,new Vector2(20,20));
+            Place(bodies[0],new Vector2(8,0));Place(bodies[1],new Vector2(10,3));Place(bodies[2],new Vector2(10,-3));
+            game.CastExtraSkill(DoodleIdleGame.ExtraSkill.Fire);
+            var flames=NamedArt("Fire skill projectile");Assert.That(flames.Length,Is.EqualTo(3));
+            yield return PhysicsTicks(10);
+            Assert.That(flames[0].transform.position.x,Is.GreaterThan(0).And.LessThan(8));
+            Assert.That(flames[0].transform.position.y,Is.GreaterThan(.6f),"A stationary target straight ahead must produce a visible curved path.");
+            Camera.main.transform.position=new Vector3(3,0,-10);Camera.main.orthographicSize=6;
+            Object.Destroy(CaptureFrame("revised-curved-fire.png",1440,900,false));
+            Place(bodies[0],new Vector2(8,2));
+            yield return PhysicsTicks(70);
+            Assert.That(game.FireHits,Is.EqualTo(3));
+            Assert.That(NamedArt("Fire skill projectile"),Is.Empty);
+        }
+
+        [UnityTest]
+        public IEnumerator PurpleFireArrowsWeaveWhileHomingAndKeepTheirFlameTrail()
+        {
+            var bodies=IsolateSummonTest();
+            foreach(var body in bodies)Place(body,new Vector2(20,20));
+            Place(bodies[0],new Vector2(10,0));
+            game.CastVariant("PurpleFireArrows");
+            var first=NamedArt("PurpleFireArrows projectile").Single();
+            float previousY=first.transform.position.y,lastSign=0;int reversals=0;
+            for(int i=0;i<25;i++) {
+                yield return new WaitForFixedUpdate();
+                float delta=first.transform.position.y-previousY;previousY=first.transform.position.y;
+                if(Mathf.Abs(delta)<.015f)continue;
+                float sign=Mathf.Sign(delta);if(lastSign!=0 && sign!=lastSign)reversals++;lastSign=sign;
+            }
+            Assert.That(reversals,Is.GreaterThanOrEqualTo(2),"The first arrow must visibly weave rather than follow one simple arc.");
+            Assert.That(first.transform.localScale.x,Is.EqualTo(2.1f).Within(.001f));
+            Assert.That(Particles("Purple Arrow Fire Trail Particle System").particleCount,Is.GreaterThan(0));
+            Camera.main.transform.position=new Vector3(4,0,-10);Camera.main.orthographicSize=5;
+            Object.Destroy(CaptureFrame("revised-weaving-purple-fire.png",1440,900,false));
+            Place(bodies[0],new Vector2(10,2));
+            yield return PhysicsTicks(50);
+            Assert.That(game.ArrowsLaunched,Is.EqualTo(8));Assert.That(game.ArrowHits,Is.GreaterThan(0));
+        }
+
+        [UnityTest]
+        public IEnumerator EggplantRollsLikeCucumberDurianFiresThreeAndShurikenSpreadsRadially()
+        {
+            var bodies=IsolateSummonTest();
+            foreach(var body in bodies)Place(body,new Vector2(20,20));
+            Place(bodies[0],new Vector2(8,0));
+            Assert.That(game.Ui.Items("Skill").Single(x=>x.id=="eggplant").name,Is.EqualTo("가지의 분노"));
+            game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cucumber);game.CastVariant("Eggplant");
+            var cucumber=NamedArt("Cucumber moving skill").Single();
+            var eggplants=NamedArt("Eggplant variant projectile");Assert.That(eggplants.Length,Is.EqualTo(3));
+            var center=eggplants.Single(p=>Mathf.Abs(Mathf.DeltaAngle(p.transform.eulerAngles.z,90))<.01f);
+            var times=new List<float>();game.SkillProjectileLaunched+=(skill,time,id)=>{if(skill==DoodleIdleGame.ExtraSkill.BouncyBall)times.Add(time);};
+            game.CastVariant("Durian");game.CastVariant("Shuriken");
+            Assert.That(NamedArt("Shuriken variant projectile").Length,Is.EqualTo(8),"All radial shots launch together.");
+            yield return PhysicsTicks(10);
+            Assert.That(Vector3.Distance(center.transform.position,cucumber.transform.position),Is.LessThan(.001f));
+            Assert.That(Quaternion.Angle(center.transform.rotation,cucumber.transform.rotation),Is.LessThan(.01f));
+            Assert.That(Vector3.Distance(center.transform.localScale,cucumber.transform.localScale),Is.LessThan(.001f));
+            var angles=NamedArt("Shuriken variant projectile").Select(p=>Mathf.Repeat(Mathf.Atan2(p.transform.position.y,p.transform.position.x)*Mathf.Rad2Deg,360)).OrderBy(a=>a).ToArray();
+            for(int i=0;i<8;i++)Assert.That(Mathf.Repeat(angles[(i+1)%8]-angles[i],360),Is.EqualTo(45).Within(.02f));
+            Assert.That(NamedArt("Shuriken afterimage").Length,Is.GreaterThan(8));
+            Object.Destroy(CaptureFrame("revised-rolling-eggplant-radial-shuriken.png",1440,900,false));
+            yield return PhysicsTicks(12);
+            Assert.That(times.Count,Is.EqualTo(3));
+            Assert.That(times[1]-times[0],Is.EqualTo(.2f).Within(.025f));Assert.That(times[2]-times[1],Is.EqualTo(.2f).Within(.025f));
+            game.ResetGame();yield return null;
+            Assert.That(NamedArt("Shuriken afterimage"),Is.Empty);
+        }
+
+        [UnityTest]
         public IEnumerator ShotgunFiresTwentyPelletsAndCucumberPiercesWithoutTurning()
         {
             var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(3, 0));
@@ -42,7 +138,10 @@ namespace DoodleIdle.Tests
             Assert.That(game.ShotgunPellets, Is.EqualTo(20));
             Assert.That(NamedArt("Shotgun moving skill").Length, Is.EqualTo(20));
             Assert.That(NamedArt("Shotgun moving skill").Select(r => r.transform.eulerAngles.z).Distinct().Count(), Is.EqualTo(20));
-            yield return PhysicsTicks(45);
+            Assert.That(NamedArt("Shotgun moving skill").All(r=>Mathf.Abs(r.transform.localScale.x-.44f)<.001f),Is.True);
+            yield return PhysicsTicks(5);
+            Object.Destroy(CaptureFrame("revised-shotgun-pellets.png",1440,900,false));
+            yield return PhysicsTicks(40);
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.Shotgun), Is.GreaterThan(0));
             game.ResetGame(); yield return null;
             bodies = IsolateSummonTest();

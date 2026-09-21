@@ -35,6 +35,8 @@ namespace DoodleIdle
             public SpriteRenderer art;
             public Actor target, previous;
             public Vector2 start, end;
+            public Vector2 curveControl, curveNormal;
+            public float curveAge, curveDuration, curveSide;
             public float age, duration, trail;
             public int hits;
             public float size=1; public bool purple;
@@ -181,12 +183,24 @@ namespace DoodleIdle
             int artIndex = kind == ProjectileKind.Missile ? 4 : (int)kind;
             float size = kind == ProjectileKind.Arrow ? 1.05f : kind == ProjectileKind.Ball ? .86f : kind == ProjectileKind.Fire ? 1.35f : .86f;
             var art = Visual(kind + " skill projectile", skillArt[artIndex], origin, Vector2.one * size, 510);
-            extraShots.Add(new ExtraShot { kind = kind, target = target, start = origin, end = target.Position, art = art, duration = .7f + index % 3 * .08f });
+            var shot=new ExtraShot { kind = kind, target = target, start = origin, end = target.Position, art = art, duration = .7f + index % 3 * .08f };
+            if(kind==ProjectileKind.Fire) { shot.curveSide=index%2==0?1:-1;StartHomingCurve(shot,origin); }
+            extraShots.Add(shot);
             ExtraSkill skill = ExtraSkill.BouncyBall;
             if (kind == ProjectileKind.Arrow) { ArrowsLaunched++; skill = ExtraSkill.Arrows; }
             if (kind == ProjectileKind.Fire) { FireballsLaunched++; skill = ExtraSkill.Fire; }
             if (kind == ProjectileKind.Missile) { MissilesLaunched++; skill = ExtraSkill.Drone; }
             SkillProjectileLaunched?.Invoke(skill, Time.fixedTime, target.root.GetInstanceID());
+        }
+
+        static void StartHomingCurve(ExtraShot shot,Vector2 origin)
+        {
+            Vector2 delta=shot.target.Position-origin;
+            Vector2 normal=new Vector2(-delta.y,delta.x).normalized;
+            shot.curveNormal=normal;
+            shot.start=origin;
+            shot.curveControl=origin+delta*.5f+normal*(Mathf.Clamp(delta.magnitude*.35f,.8f,2.8f)*shot.curveSide);
+            shot.curveAge=0;shot.curveDuration=Mathf.Max(shot.purple?.45f:.3f,delta.magnitude/(shot.purple?12:10));
         }
 
         void TickExtraSkills(float dt)
@@ -214,7 +228,11 @@ namespace DoodleIdle
                 var shot = extraShots[i]; shot.age += dt; shot.trail -= dt;
                 Vector2 old = shot.art.transform.position;
                 bool finished = false;
-                if (!Alive(shot.target)) shot.target = ClosestExcept(old, shot.previous);
+                if (!Alive(shot.target)) {
+                    shot.target = ClosestExcept(old, shot.previous);
+                    // Rebase a new arc at the current position when its previous target dies.
+                    if((shot.kind==ProjectileKind.Fire || shot.purple) && Alive(shot.target))StartHomingCurve(shot,old);
+                }
                 if (Alive(shot.target)) shot.end = shot.target.Position;
                 Vector2 next;
                 if (shot.kind == ProjectileKind.Missile)
@@ -231,12 +249,19 @@ namespace DoodleIdle
                 {
                     float speed = shot.kind == ProjectileKind.Ball ? 15 : shot.kind == ProjectileKind.Fire ? 10 : 18;
                     next = Alive(shot.target) ? Vector2.MoveTowards(old, shot.end, speed * dt) : old;
+                    if((shot.kind==ProjectileKind.Fire || shot.purple) && Alive(shot.target)) {
+                        shot.curveAge+=dt;
+                        float t=Mathf.Clamp01(shot.curveAge/shot.curveDuration),u=1-t;
+                        next=u*u*shot.start+2*u*t*shot.curveControl+t*t*shot.end;
+                        // Two lateral waves taper to zero at both ends, preserving the target impact.
+                        if(shot.purple)next+=shot.curveNormal*(Mathf.Sin(t*Mathf.PI*4)*Mathf.Sin(t*Mathf.PI)*.65f*shot.curveSide);
+                    }
                     // Only enemy circles participate. Floor, walls, player and drone never bounce a ball.
                     Actor collision = null; float closest = float.MaxValue;
                     foreach (var enemy in enemies)
                     {
                         if (enemy == shot.previous) continue;
-                        if (shot.kind == ProjectileKind.Fire && enemy != shot.target) continue;
+                        if ((shot.kind == ProjectileKind.Fire || shot.purple) && enemy != shot.target) continue;
                         if (SegmentDistance(enemy.Position, old, next) > (.56f + (shot.kind == ProjectileKind.Ball ? .31f : .14f)*shot.size)) continue;
                         float d = (enemy.Position - old).sqrMagnitude;
                         if (d < closest) { collision = enemy; closest = d; }

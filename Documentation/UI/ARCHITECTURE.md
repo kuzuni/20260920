@@ -58,6 +58,13 @@ Main integrates real combat kills into wallet/mission and reads real cooldowns. 
 - Sound ellipse depth is .55 of its width across travel; the collision sweep rotates with the same axes.
 - Latest actor anatomy and exact built-in image-generation prompts are in `Documentation/two-frame-actors-and-loadouts.md`. The older head-only and arms-only drafts are superseded by the user's mushroom/sprout/pea walking references.
 
+## 2026-09-22 skill motion tuning
+
+- Cloud skills follow a living target at 2.2 world units/second (normal) or 3 (red), keeping a 2-unit overhead offset and acquiring another enemy when their target dies. Animation, lightning and lifetime remain active.
+- Fire's three projectiles use quadratic homing curves. Purple fire arrows use the same curve with two tapered lateral waves, preserving eight sequential shots, doubled artwork and particle trails. Retargeting starts a new curve at the projectile's current position; each projectile still hits once.
+- Shotgun pellet artwork is doubled from .22 to .44. Eggplant (`eggplant`, now named `가지의 분노`) uses the same directional rolling animation as cucumber, retaining three straight piercing paths. Durian fires three shots .2 seconds apart. Shuriken emits eight simultaneous directions spaced 45 degrees apart with short fading afterimages. Ice snake head/body artwork is doubled on spawn and every animation update.
+- Catalog IDs, ownership and loadout rules remain unchanged. Current wording is in `skill-companion-catalog.md`; later REQUEST entries override the earlier two-shot durian and sequential shuriken specifications.
+
 ## Muted terrain verification
 
 - Upright grass correction: runtime commit `4a77f63`, [terrain Actions run 35613992689](https://github.com/kuzuni/20260920/actions/runs/35613992689), 1/1 test passed. The render check covers all ten themes and compares grass tiles one repeat apart horizontally/vertically and at negative coordinates (mean RGB error below 0.001), preventing the former alternating mirror regression. Inspected the grass close-up, repeated field, gameplay portrait, and ruin boundaries. Grass roots stay below their blades. Artifacts: `C:/Users/user/.codex/artifacts/progression-themes/run35613992689`. No local Unity execution.

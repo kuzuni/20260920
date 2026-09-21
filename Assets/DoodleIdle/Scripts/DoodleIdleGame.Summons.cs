@@ -16,6 +16,7 @@ namespace DoodleIdle
         public float dragonInterval = 11, redWaveInterval = 9;
         public float molotovInterval = 8, soundWaveInterval = 6;
         public const float RedWaveShotGap = .48f;
+        public const float CloudMoveSpeed = 2.2f, RedCloudMoveSpeed = 3f;
         public int ShotgunPellets { get; private set; }
         public int CannonShots { get; private set; }
         public int CannonExplosions { get; private set; }
@@ -65,7 +66,7 @@ namespace DoodleIdle
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
         }
         sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
-        sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; public bool red; }
+        sealed class Cloud { public SpriteRenderer art; public Actor target; public float age, clock; public bool red; }
         sealed class Stain { public SpriteRenderer art; public float age; }
         sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = RedWaveShotGap; }
 
@@ -204,7 +205,7 @@ namespace DoodleIdle
                     float angle = Mathf.Atan2(direction.y, direction.x);
                     for (int i = 0; i < 20; i++)
                     {
-                        AddMoving(kind, summonArt["ShotPellet"], origin, Direction(angle + Mathf.Lerp(-.61f, .61f, i / 19f)), .22f, 18, .75f, 15, .66f);
+                        AddMoving(kind, summonArt["ShotPellet"], origin, Direction(angle + Mathf.Lerp(-.61f, .61f, i / 19f)), .44f, 18, .75f, 15, .66f);
                         ShotgunPellets++;
                     }
                     break;
@@ -226,7 +227,7 @@ namespace DoodleIdle
                     SpawnSnake(kind, direction);
                     break;
                 case SummonSkill.StormCloud:
-                    clouds.Add(new Cloud { art = Visual("Drifting storm cloud", summonArt["StormCloud"], origin + Vector2.up * 2, Vector2.one * 2.6f, 650), direction = direction });
+                    clouds.Add(new Cloud { art = Visual("Drifting storm cloud", summonArt["StormCloud"], origin + Vector2.up * 2, Vector2.one * 2.6f, 650), target = target });
                     break;
                 case SummonSkill.FireRing:
                     for (int i = 0; i < 24; i++) AddMoving(kind, skillArt[2], origin, Direction(i * Mathf.PI * 2 / 24), .82f, 4.5f, 1.8f, 19, .78f);
@@ -266,7 +267,13 @@ namespace DoodleIdle
             var shot = new MovingSkill { kind = kind, start = origin, direction = direction, speed = speed, lifetime = lifetime, damage = damage, radius = radius,
                 art = Visual(kind + " moving skill", art, origin, Vector2.one * size, 505) };
             shot.art.transform.rotation = Aim(direction);
+            if(kind==SummonSkill.Cucumber)UpdateRollingVegetable(shot.art,direction,0,size);
             movingSkills.Add(shot); return shot;
+        }
+        static void UpdateRollingVegetable(SpriteRenderer art,Vector2 direction,float age,float size)
+        {
+            art.transform.rotation=Aim(direction)*Quaternion.Euler(0,0,90+Mathf.Sin(age*15)*12);
+            art.transform.localScale=new Vector3(size,size*(.72f+.28f*Mathf.Abs(Mathf.Cos(age*10))),1);
         }
         void SpawnSnake(SummonSkill kind, Vector2 direction, bool ice=false)
         {
@@ -278,7 +285,7 @@ namespace DoodleIdle
                 bool tether = kind == SummonSkill.TetherSnake;
                 var art = summonArt[dragon ? (i == 0 ? "DragonHead" : "DragonSegment") : tether ? (i == 0 ? "PurpleSnakeHead" : "PurpleSnakeSegment") : (i == 0 ? "SnakeHead" : "SnakeSegment")];
                 if(ice)art=DoodleVariantArt.Get(i==0?"IceSnakeHead":"IceSnakeSegment");
-                var part = Visual((ice?"IceSnakes":kind.ToString()) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f), (tether ? -500 : 445) - i);
+                var part = Visual((ice?"IceSnakes":kind.ToString()) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f)*(ice?2:1), (tether ? -500 : 445) - i);
                 part.enabled = false; snake.parts.Add(part);
             }
             if (dragon) snake.wings = Visual("Animated dragon wings", summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f, 450);
@@ -352,7 +359,9 @@ namespace DoodleIdle
             {
                 var cloud = clouds[i]; cloud.age += dt; cloud.clock -= dt;
                 SetSpriteArt(cloud.art, cloud.red?DoodleVariantArt.Get((int)(cloud.age*4)%2==0?"RedCloud":"RedCloudB"):summonArt[(int)(cloud.age * 4) % 2 == 0 ? "StormCloud" : "StormCloudB"]);
-                cloud.art.transform.position += (Vector3)(cloud.direction * ((cloud.red?1.05f:.65f) * dt));
+                Vector2 position=cloud.art.transform.position;
+                if(!Alive(cloud.target))cloud.target=Closest(position-Vector2.up*2);
+                if(Alive(cloud.target))cloud.art.transform.position=Vector2.MoveTowards(position,cloud.target.Position+Vector2.up*2,(cloud.red?RedCloudMoveSpeed:CloudMoveSpeed)*dt);
                 if (cloud.age >= 8) { Destroy(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
                 if (cloud.clock > 0) continue;
                 cloud.clock = .7f;
@@ -418,8 +427,7 @@ namespace DoodleIdle
                 shot.art.transform.position = next;
                 if (shot.kind == SummonSkill.Cucumber)
                 {
-                    shot.art.transform.rotation = Aim(shot.direction) * Quaternion.Euler(0, 0, 90 + Mathf.Sin(shot.age * 15) * 12);
-                    shot.art.transform.localScale = new Vector3(4.6f, 4.6f * (.72f + .28f * Mathf.Abs(Mathf.Cos(shot.age * 10))), 1);
+                    UpdateRollingVegetable(shot.art,shot.direction,shot.age,4.6f);
                 }
                 if (shot.kind == SummonSkill.RedWave) SetSpriteArt(shot.art, summonArt[((int)(shot.age * 6) % 2 == 0) ? "RedSlashA" : "RedSlashB"]);
                 if (shot.kind == SummonSkill.Sand) shot.art.transform.localScale = Vector3.one * (1.2f + shot.age * 1.2f);
@@ -497,7 +505,7 @@ namespace DoodleIdle
                         var mouthTarget = InRange(position, 5);
                         part.transform.rotation = Aim(mouthTarget == null ? snake.direction : (mouthTarget.Position - position).normalized);
                     }
-                    float size = (dragon ? .7f : .47f) * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
+                    float size = (dragon ? .7f : .47f) * (snake.ice?2:1) * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
                     part.transform.localScale = Vector3.one * size;
                     if (tether) part.color = new Color(1, 1, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
                     if (!visible) continue;
