@@ -82,7 +82,7 @@ namespace DoodleIdle
             }
             for(int i=variantVolleys.Count-1;i>=0;i--) {
                 var volley=variantVolleys[i];volley.clock-=dt;
-                if(volley.clock<=0){FireVariantVolley(volley);if(volley.remaining<=0)variantVolleys.RemoveAt(i);}
+                if(volley.clock<=.0001f){FireVariantVolley(volley);if(volley.remaining<=0)variantVolleys.RemoveAt(i);}
             }
             for(int i=variantShots.Count-1;i>=0;i--) {
                 var shot=variantShots[i];shot.age+=dt;Vector2 old=shot.art.transform.position;

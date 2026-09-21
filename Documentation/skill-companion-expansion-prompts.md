@@ -14,3 +14,8 @@ One transparent production sprite atlas, exactly 3 equal columns x 2 equal rows.
 
 ## Companion atlas cleanup final prompt
 Edit this sprite atlas only to REMOVE ALL colored halos, glow, haze, shadow or colored background outside the five creatures. Everything outside their thick solid black outlines must have fully transparent alpha=0. Maintain EXACTLY the five characters, their poses, colors, sizes, 3 columns x2 rows locations, and last cell empty. Do not add anything. Crisp simple flat 2D game sprites with no glow or shadow, no background. True transparent alpha output.
+
+## Ice snake bead replacement
+Selected Assets/DoodleIdle/Resources/DoodleIdle/IceSnakeBead.png (exec-a80fc5ff-7f20-4b24-a529-66802ffbff2f.png). Built-in generation, Characters.png style reference. Replaces the atlas body shape so repeating segments are round and have no face.
+
+Final prompt: Create a single isolated 2D game sprite: ONE simple round pale icy-blue snake BODY SEGMENT, a nearly circular soft pebble shape. No head, NO EYES, no face, NO MOUTH, no limbs, no tail, no curved whole snake. It is one bead in a segmented ice snake. Match the provided player's very simple thick slightly wobbly black hand-drawn outline and flat pastel fill. Pale ice blue main fill, one small white shine and a narrow cream underside. Centered with generous transparent padding, true transparent alpha background. No glow, no shadow, no text, no environment. This is a plain round snake-body bead to repeat along a moving snake.

@@ -168,6 +168,7 @@ namespace DoodleIdle
             // One opaque surface avoids gaps, tight sprite meshes and camera-dependent tile edges.
             var floor = Visual("Generated dirt floor", groundSprite, Vector2.zero, (arenaHalfSize + Vector2.one * 40) * 2, -1000);
             groundMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodleTerrain"));
+            groundMaterial.mainTexture = texture;
             groundMaterial.SetTexture("_AtlasTex", Resources.Load<Texture2D>("DoodleIdle/Themes/Grounds"));
             groundMaterial.SetFloat("_TileSize", 3f);
             floor.sharedMaterial = groundMaterial;

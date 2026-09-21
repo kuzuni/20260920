@@ -107,13 +107,15 @@ namespace DoodleIdle
                 for (int e = enemies.Count - 1; e >= 0; e--)
                 {
                     var enemy = enemies[e];
-                    // Transform the swept ellipse into circular coordinates; the hit shape follows the art.
+                    // Expand BOTH ellipse axes by the enemy's world-space radius before normalizing.
+                    // Scaling the enemy radius by the oval's aspect would incorrectly miss its outer edge.
                     Vector2 normal=new Vector2(-pulse.direction.y,pulse.direction.x);
-                    Vector2 Relative(Vector2 p) { var d=p-previousCenter;return new Vector2(Vector2.Dot(d,pulse.direction),Vector2.Dot(d,normal)/.55f); }
+                    Vector2 Relative(Vector2 p) { var d=p-previousCenter;return new Vector2(Vector2.Dot(d,pulse.direction)/(pulse.radius+.56f),Vector2.Dot(d,normal)/(pulse.radius*.55f+.56f)); }
                     Vector2 point=Relative(enemy.Position),end=Relative(pulse.center);
                     float outerDistance = SegmentDistance(point, Vector2.zero, end);
-                    float innerDistance = Mathf.Max(point.magnitude,(point-end).magnitude);
-                    if (outerDistance > pulse.radius + .56f || innerDistance < previousRadius * .77f - .56f || !pulse.victims.Add(enemy)) continue;
+                    float innerX=previousRadius*.77f-.56f,innerY=previousRadius*.77f*.55f-.56f;
+                    bool InsideHole(Vector2 center) { var d=enemy.Position-center;return innerX>0 && innerY>0 && Mathf.Pow(Vector2.Dot(d,pulse.direction)/innerX,2)+Mathf.Pow(Vector2.Dot(d,normal)/innerY,2)<1; }
+                    if (outerDistance > 1 || (InsideHole(previousCenter)&&InsideHole(pulse.center)) || !pulse.victims.Add(enemy)) continue;
                     Impact(SummonSkill.SoundWave, enemy, 24, pulse.direction);
                 }
                 if (pulse.age >= SoundWaveLifetime) { Destroy(pulse.art.gameObject); soundWaves.RemoveAt(i); }

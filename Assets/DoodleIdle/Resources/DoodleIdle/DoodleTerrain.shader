@@ -2,6 +2,7 @@ Shader "DoodleIdle/Terrain"
 {
     Properties
     {
+        [PerRendererData] _MainTex ("Sprite geometry texture", 2D) = "white" {}
         _AtlasTex ("Theme atlas", 2D) = "white" {}
         _UvRect ("Theme bounds", Vector) = (0,0,1,1)
         _TileSize ("Pattern size in world units", Float) = 3

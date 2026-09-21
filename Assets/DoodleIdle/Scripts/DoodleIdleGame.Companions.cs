@@ -6,7 +6,7 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         public bool companionsEnabled=true;
-        sealed class CompanionActor { public UiItem item; public SpriteRenderer art; public float clock,attackAge; public Vector2 attackStart,attackEnd; }
+        sealed class CompanionActor { public UiItem item; public SpriteRenderer art; public float clock,attackAge,shotClock,swing,aim; public int pending,shotIndex; public Vector2 attackStart,attackEnd; }
         readonly Dictionary<string,CompanionActor> companions=new Dictionary<string,CompanionActor>();
         readonly Dictionary<string,Sprite> companionSprites=new Dictionary<string,Sprite>();
         public int ActiveCompanions => companions.Count;
@@ -45,21 +45,34 @@ namespace DoodleIdle
                 companion.art.transform.position=Vector2.Lerp(old,home,1-Mathf.Exp(-dt*14));
                 if(Mathf.Abs(home.x-old.x)>.01f)companion.art.flipX=home.x<old.x;
                 companion.art.sortingOrder=Order(companion.art.transform.position)+2;
+                if(role=="Guardian") {
+                    companion.swing=Mathf.Max(0,companion.swing-dt);float progress=1-companion.swing/.34f;
+                    float sweep=progress<.65f?Mathf.Lerp(-70,85,progress/.65f):Mathf.Lerp(85,0,(progress-.65f)/.35f);
+                    companion.art.transform.rotation=Quaternion.Euler(0,0,companion.aim+sweep);companion.art.flipX=false;
+                }
                 if(role=="Drone")SetSpriteArt(companion.art,(int)(Elapsed*8)%2==0?skillArt[3]:droneFrameB);
                 Vector2 origin=companion.art.transform.position;
+                if(role=="Drone" && companion.pending>0) {
+                    companion.shotClock-=dt;
+                    if(companion.shotClock<=.0001f) {
+                        Launch(ProjectileKind.Missile,NearbyTarget(origin,companion.shotIndex++),origin,companion.shotIndex);
+                        companion.pending--;companion.shotClock+=.06f;
+                    }
+                }
                 var target=InRange(origin,role=="Guardian"||role=="Claw"||role=="Sting"?5:10);
                 if(target==null || companion.clock>0)continue;
                 CompanionAttacks++;var direction=(target.Position-origin).normalized;
                 companion.art.flipX=direction.x<0;
-                companion.clock=role=="OrbitGun"?.18f:role=="Guardian"?.7f:1.8f;
+                companion.clock=role=="OrbitGun"?.09f:role=="Guardian"?guardianInterval:role=="Drone"?droneInterval:1.8f;
                 if(role=="Drone") {
-                    for(int shot=0;shot<3;shot++)Launch(ProjectileKind.Missile,NearbyTarget(origin,shot),origin,shot);
+                    // Preserve the original twenty-shot salvo, emitted from the moving companion.
+                    companion.pending=20;companion.shotIndex=0;companion.shotClock=0;
                 }
                 else if(role=="Guardian" || role=="Claw" || role=="Sting") {
                     if(role=="Sting"){companion.attackAge=.5f;companion.attackStart=origin;companion.attackEnd=target.Position;}
                     summonCasts[(int)SummonSkill.GuardianSword]++;
                     AddMoving(SummonSkill.GuardianSword,slash,origin,direction,1.4f,12,.5f,23,1);
-                    companion.art.transform.rotation=Aim(direction)*Quaternion.Euler(0,0,-35);
+                    if(role=="Guardian"){companion.swing=.34f;companion.aim=Mathf.Atan2(direction.y,direction.x)*Mathf.Rad2Deg;companion.art.flipX=false;}
                 }
                 else if(role=="OrbitGun") {
                     summonCasts[(int)SummonSkill.OrbitGun]++;
