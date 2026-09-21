@@ -24,6 +24,8 @@ namespace DoodleIdle
                 value = skill >= 24 ? Cell("SkillThumbsExpansion", skill - 24, 3, 2) : Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
             else if (key.StartsWith("CompanionMon_", StringComparison.Ordinal) && int.TryParse(key.Substring(13), out int companion))
                 return CompanionFrame(companion, 0);
+            else if (key.StartsWith("CompanionImpact_", StringComparison.Ordinal) && int.TryParse(key.Substring(16), out int impact))
+                value = Cell("CompanionImpacts", impact, 4, 4);
             else if (key.StartsWith("CompanionShot_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int shot))
             {
                 int special = shot == 2 ? 0 : shot == 3 ? 1 : shot == 10 ? 2 : shot == 18 ? 3 : shot == 19 ? 4 : -1;
@@ -53,6 +55,10 @@ namespace DoodleIdle
             value.name = key; cache[key] = value; return value;
         }
         public static int CompanionIndex(string key) => int.Parse(key.Substring(13));
+        static readonly int[] impactCells = { -1, -1, -1, -1, 0, -1, -1, -1, 1, 2, 3, -1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+        static readonly string[] impactNames = { "잎 파열", "물보라", "전기 스파크", "낙뢰 섬광", "꿀 튐", "금속 스파크", "서리 파편", "마법 파열", "가시 파열", "달빛 섬광", "화염 폭발", "명중 섬광", "성운 소용돌이", "태양 불꽃", "얼음 파열", "붉은 화염" };
+        public static Sprite CompanionImpact(int index) => impactCells[index] < 0 ? null : Get("CompanionImpact_" + impactCells[index]);
+        public static string CompanionImpactName(int index) => impactCells[index] < 0 ? "폭발 없음 유지" : impactNames[impactCells[index]];
         static Sprite Cell(string resource, int cell, int columns, int rows)
         {
             var texture = Resources.Load<Texture2D>("DoodleIdle/" + resource);

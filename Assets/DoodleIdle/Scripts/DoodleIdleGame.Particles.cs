@@ -28,7 +28,9 @@ namespace DoodleIdle
             SetFlamePalette(meteorTrailParticles, new Color(1, .18f, .06f));
             meteorExplosionParticles = MakeParticles("Meteor Explosion Particle System", summonArt["Explosion"], 655, 256, false);
             golemSlamParticles = MakeParticles("Golem Ground Slam Dust Particle System", summonArt["SandPuff"], 515, 512, false);
-            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,golemSlamParticles };
+            var all = new List<ParticleSystem> { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,golemSlamParticles };
+            BuildCompanionImpactParticles(all);
+            particleSystems = all.ToArray();
         }
 
         void SetFlamePalette(ParticleSystem system,Color color)
@@ -84,7 +86,7 @@ namespace DoodleIdle
             return system;
         }
 
-        // Emissions share four reusable systems; hundreds of deaths never create hundreds of emitters.
+        // Emissions share reusable systems; hundreds of impacts never create hundreds of emitters.
         // Private deterministic noise avoids consuming the combat/spawn Random stream for cosmetics.
         float ParticleRandom(float min, float max)
         {

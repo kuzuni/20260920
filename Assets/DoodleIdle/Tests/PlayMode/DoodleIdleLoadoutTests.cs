@@ -123,13 +123,45 @@ namespace DoodleIdle.Tests
         void ExportCompanionProjectileSheets()
         {
             var items = game.Ui.Items("Companion");
+            var previews = new Texture2D[24];
+            var camera = Camera.main; camera.transform.position = new Vector3(0,0,-10); camera.orthographicSize = 1.5f;
+            camera.backgroundColor = new Color(.96f,.96f,.92f);
+            var emit = typeof(DoodleIdleGame).GetMethod("EmitCompanionImpact", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            for (int i = 0; i < items.Count; i++) {
+                var art = DoodleCollectionArt.CompanionImpact(i);
+                Assert.That(art != null, Is.EqualTo(items[i].explosionRadius > 0), items[i].id);
+                if (!art) continue;
+                Assert.That(art.texture, Is.Not.SameAs(UiKit.Art(items[i].projectile).texture), "Impact fragments must not reuse the projectile texture.");
+                var particles = Particles("Companion impact: " + i);
+                particles.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                particles.GetComponent<ParticleSystemRenderer>().enabled = true;
+                emit.Invoke(game,new object[] { i, Vector2.zero, items[i].explosionRadius });
+                int expected = i == 19 ? 5 : 10 + i / 4;
+                Assert.That(particles.particleCount, Is.EqualTo(expected), items[i].id);
+                var emitted = new ParticleSystem.Particle[expected]; particles.GetParticles(emitted);
+                Assert.That(emitted.All(p => p.startSize < .43f && p.velocity.sqrMagnitude > .1f), Is.True, "Each particle is a small independently moving fragment.");
+                particles.Simulate(.04f,false,false,false);
+                Object.Destroy(CaptureFrame("companion-impact-" + i + "-early.png",256,256,false));
+                particles.Simulate(.07f,false,false,false);
+                previews[i] = CaptureFrame("companion-impact-" + i + "-spread.png",256,256,false);
+                particles.GetParticles(emitted);
+                Assert.That(emitted.Take(particles.particleCount).Any(p => p.position.magnitude > .12f), Is.True);
+                particles.Simulate(.14f,false,false,false);
+                Object.Destroy(CaptureFrame("companion-impact-" + i + "-late.png",256,256,false));
+                particles.Simulate(1,false,false,false);
+                Assert.That(particles.particleCount, Is.Zero, "All impact fragments expire.");
+                emit.Invoke(game,new object[] { i, Vector2.zero, items[i].explosionRadius });
+                typeof(DoodleIdleGame).GetMethod("ClearParticles", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(game,null);
+                Assert.That(particles.particleCount, Is.Zero, "Game reset clears impact fragments too.");
+                particles.GetComponent<ParticleSystemRenderer>().enabled = false;
+            }
             for (int page = 0; page < 3; page++) {
                 var poster = UiKit.Rect(UiRoot, "Companion projectile reference"); UiKit.Stretch(poster);
                 poster.gameObject.AddComponent<Image>().color = new Color(.96f, .96f, .92f);
                 void PlaceRect(RectTransform rect, Vector2 low, Vector2 high) {
                     rect.anchorMin = low; rect.anchorMax = high; rect.offsetMin = rect.offsetMax = Vector2.zero;
                 }
-                var heading = UiKit.Text(poster, "동료 탄환 · 기존 폭발 연출(제거 전)  " + (page + 1) + "/3", 44, TextAnchor.MiddleCenter);
+                var heading = UiKit.Text(poster, "동료 명중 효과 · 이전 / 입자 1개 / 변경 후  " + (page + 1) + "/3", 40, TextAnchor.MiddleCenter);
                 PlaceRect(heading.rectTransform, new Vector2(.02f, .91f), new Vector2(.98f, .99f));
                 for (int n = 0; n < 8; n++) {
                     var item = items[page * 8 + n];
@@ -138,33 +170,44 @@ namespace DoodleIdle.Tests
                     PlaceRect(cell, new Vector2(left, bottom), new Vector2(left + .235f, bottom + .41f));
                     var title = UiKit.Text(cell, item.name + " · " + UiKit.GradeName(item.rarity), 38, TextAnchor.MiddleCenter);
                     PlaceRect(title.rectTransform, new Vector2(0, .84f), Vector2.one);
-                    var projectile = UiKit.Icon(cell, item.projectile, 145).rectTransform;
-                    projectile.anchorMin = projectile.anchorMax = new Vector2(.26f, .53f); projectile.anchoredPosition = Vector2.zero;
-                    var label = UiKit.Text(cell, "탄환", 32, TextAnchor.MiddleCenter);
-                    PlaceRect(label.rectTransform, new Vector2(0, .24f), new Vector2(.49f, .35f));
-                    var oldLabel = UiKit.Text(cell, item.explosionRadius > 0 ? "기존 퍼짐(삭제)" : "효과 없음", 30, TextAnchor.MiddleCenter);
-                    PlaceRect(oldLabel.rectTransform, new Vector2(.5f, .24f), new Vector2(1, .35f));
+                    var oldLabel = UiKit.Text(cell, "이전", 28, TextAnchor.MiddleCenter);
+                    PlaceRect(oldLabel.rectTransform, new Vector2(0, .24f), new Vector2(.32f, .35f));
+                    var singleLabel = UiKit.Text(cell, "입자 1개", 28, TextAnchor.MiddleCenter);
+                    PlaceRect(singleLabel.rectTransform, new Vector2(.34f, .24f), new Vector2(.66f, .35f));
+                    var newLabel = UiKit.Text(cell, "변경 후", 28, TextAnchor.MiddleCenter);
+                    PlaceRect(newLabel.rectTransform, new Vector2(.68f, .24f), new Vector2(1, .35f));
                     if (item.explosionRadius > 0) {
                         var oldSprite = UiKit.Art(item.projectile);
                         if (item.icon == "CompanionMon_12")
                             oldSprite = (Sprite)typeof(DoodleCollectionArt).GetMethod("Cell", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
                                 .Invoke(null, new object[] { "CompanionAttacksB", 4, 4, 2 });
                         for (int k = 0; k < 8; k++) {
-                            var fragment = UiKit.Icon(cell, item.projectile, 52); fragment.sprite = oldSprite;
+                            var fragment = UiKit.Icon(cell, item.projectile, 28); fragment.sprite = oldSprite;
                             fragment.color = new Color(1, 1, 1, .7f);
-                            fragment.rectTransform.anchorMin = fragment.rectTransform.anchorMax = new Vector2(.75f, .53f);
+                            fragment.rectTransform.anchorMin = fragment.rectTransform.anchorMax = new Vector2(.16f, .53f);
                             float angle = k * Mathf.PI / 4;
-                            fragment.rectTransform.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 72;
+                            fragment.rectTransform.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 43;
                             fragment.transform.localRotation = Quaternion.Euler(0, 0, k * 45);
                         }
+                        var one = UiKit.Icon(cell,item.projectile,90); one.sprite = DoodleCollectionArt.CompanionImpact(page * 8 + n);
+                        one.rectTransform.anchorMin = one.rectTransform.anchorMax = new Vector2(.5f,.53f); one.rectTransform.anchoredPosition = Vector2.zero;
+                        var view = UiKit.Rect(cell,"Actual ParticleSystem render");
+                        PlaceRect(view,new Vector2(.67f,.36f),new Vector2(1,.74f));
+                        var fitted = UiKit.Rect(view,"Square preview");
+                        var raw = fitted.gameObject.AddComponent<RawImage>(); raw.texture = previews[page * 8 + n]; raw.raycastTarget = false;
+                        var aspect = fitted.gameObject.AddComponent<AspectRatioFitter>(); aspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent; aspect.aspectRatio = 1;
+                    } else {
+                        var unchanged = UiKit.Text(cell,"폭발 없음 · 유지",30,TextAnchor.MiddleCenter);
+                        PlaceRect(unchanged.rectTransform,new Vector2(0,.42f),new Vector2(1,.66f));
                     }
                     string motion = item.trajectory == "Arc" ? "포물선" : item.trajectory == "Lightning" ? "번개 타격" : "직선";
-                    var pattern = UiKit.Text(cell, motion + " · " + item.volleyCount + "발" + (item.volleyCount > 1 ? item.volleyGap > 0 ? " 순차" : " 동시" : ""), 30, TextAnchor.MiddleCenter);
+                    var pattern = UiKit.Text(cell, DoodleCollectionArt.CompanionImpactName(page * 8 + n) + "\n" + motion + " · " + item.volleyCount + "발" + (item.volleyCount > 1 ? item.volleyGap > 0 ? " 순차" : " 동시" : ""), 26, TextAnchor.MiddleCenter);
                     PlaceRect(pattern.rectTransform, new Vector2(0, .02f), new Vector2(1, .17f));
                 }
-                Object.Destroy(CaptureFrame("companion-projectiles-and-former-bursts-" + (page + 1) + ".png", 1440, 1000));
+                Object.Destroy(CaptureFrame("companion-impact-before-after-" + (page + 1) + ".png", 1800, 1200));
                 poster.gameObject.SetActive(false); Object.Destroy(poster.gameObject);
             }
+            foreach (var preview in previews) if (preview) Object.Destroy(preview);
         }
 
         [UnityTest]

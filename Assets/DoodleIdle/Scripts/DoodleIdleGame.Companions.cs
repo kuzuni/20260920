@@ -14,7 +14,7 @@ namespace DoodleIdle
         }
         sealed class CompanionShot
         {
-            public SpriteRenderer art; public string owner; public Vector2 start, end, direction;
+            public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
             public float age, duration, speed, damage, explosionRadius; public bool arc;
         }
         readonly Dictionary<string, CompanionActor> companions = new Dictionary<string, CompanionActor>();
@@ -105,14 +105,14 @@ namespace DoodleIdle
                 Echo("Companion cloud lightning", sprite, target.Position + Vector2.up * 1.35f,
                     new Vector2(2.7f, .7f), Aim(Vector2.down), .22f, 1, 570);
                 CompanionDamage(target, damage, Vector2.down);
-                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage, target);
+                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage, target, DoodleCollectionArt.CompanionIndex(item.icon));
             }
             else
             {
                 bool arc = item.trajectory == "Arc";
                 var art = Visual("Companion shot: " + item.id, sprite, origin, Vector2.one * (item.rarity >= 4 ? .7f : .5f), 515);
                 art.transform.rotation = Aim(direction);
-                companionShots.Add(new CompanionShot { owner = item.id, art = art, start = origin,
+                companionShots.Add(new CompanionShot { impactIndex = DoodleCollectionArt.CompanionIndex(item.icon), art = art, start = origin,
                     end = target.Position, direction = direction, arc = arc, duration = arc ? .7f + shotIndex * .025f : 2,
                     speed = item.projectileSpeed, damage = damage, explosionRadius = item.explosionRadius });
             }
@@ -138,14 +138,15 @@ namespace DoodleIdle
                 if (victim != null || landed)
                 {
                     if (victim != null) CompanionDamage(victim, shot.damage, shot.direction);
-                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage, victim);
+                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage, victim, shot.impactIndex);
                 }
                 if (victim != null || landed || shot.age >= shot.duration) { Destroy(shot.art.gameObject); companionShots.RemoveAt(i); }
             }
         }
-        void CompanionExplosion(Vector2 position, float radius, float damage, Actor directVictim)
+        void CompanionExplosion(Vector2 position, float radius, float damage, Actor directVictim, int impactIndex)
         {
             CompanionExplosions++;
+            EmitCompanionImpact(impactIndex, position, radius);
             for (int i = enemies.Count - 1; i >= 0; i--)
             {
                 var enemy = enemies[i];
