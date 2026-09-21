@@ -2,7 +2,7 @@
 
 ## Entry and local state
 
-Open the existing SampleScene or DoodleIdle scene normally. Both contain DoodleIdleGame. Its BuildHud automatically installs DoodleUi on the same GameObject and requires no Inspector wiring. All work is in the original C:/Users/user/Documents/GitHub/20260920 workspace on codex/final-game-ui. Current implementation and CI/visual-review status are recorded in PROGRESS.md.
+Open the existing SampleScene or DoodleIdle scene normally. Both contain DoodleIdleGame. Its BuildHud automatically installs DoodleUi on the same GameObject and requires no Inspector wiring. The completed work is merged into main and reflected in the original C:/Users/user/Documents/GitHub/20260920 workspace. All seven fully included work branches were removed locally and remotely. Current implementation and CI/visual-review status are recorded in PROGRESS.md.
 
 Only the DoodleUi.* PlayerPrefs keys belong to this feature. Gold, diamonds, collection ownership/levels/loadouts, draw experience/daily free usage, attendance, roulette, quests, buffs, settings, camera mode, skins, relic tickets, main missions and stage progress are saved locally. The test fixture snapshots/restores only those keys. Tunable catalog/stat/relic data is in UI/Collections.json, skins in UI/Skins.json, service and stage data in UI/ServicesTuning.json, and draw/shop prices in UiCommerce.json under Resources/DoodleIdle.
 
