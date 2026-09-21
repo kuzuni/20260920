@@ -42,6 +42,8 @@ namespace DoodleIdle.Tests
             yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
             game.summonSkillsEnabled = false;
+            // Individual mechanic tests isolate companion attacks; integration tests enable them explicitly.
+            game.companionsEnabled = false;
         }
 
         [UnityTearDown]
@@ -321,6 +323,8 @@ namespace DoodleIdle.Tests
         [Timeout(180000)]
         public IEnumerator AutomaticCombatCastsEverySkillAndRefills()
         {
+            game.companionsEnabled=true;
+            foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
             game.summonSkillsEnabled = true;
             Time.timeScale = 8;
             // At 8x speed one rendered frame can cross the five-second boundary.
@@ -359,7 +363,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
-            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(5));
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(7));
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());

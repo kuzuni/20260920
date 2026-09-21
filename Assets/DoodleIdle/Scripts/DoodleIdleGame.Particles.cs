@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles;
+        ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles, purpleFireParticles,blueFireParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -19,7 +19,18 @@ namespace DoodleIdle
             sandParticles = MakeParticles("Sand Spray Particle System", summonArt["SandPuff"], 510, 1024, false);
             groundFireParticles = MakeParticles("Molotov Ground Fire Particle System", summonArt["GroundFlame"], 530, 2048, false);
             var fireSpin = groundFireParticles.rotationOverLifetime; fireSpin.enabled = false;
-            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles };
+            purpleFireParticles=MakeParticles("Purple Arrow Fire Trail Particle System",summonArt["GroundFlame"],525,1024,false);
+            blueFireParticles=MakeParticles("Blue Molotov Fire Particle System",summonArt["GroundFlame"],531,2048,false);
+            SetFlamePalette(purpleFireParticles,new Color(.7f,.3f,1));
+            SetFlamePalette(blueFireParticles,new Color(.2f,.65f,1));
+            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles };
+        }
+
+        void SetFlamePalette(ParticleSystem system,Color color)
+        {
+            var material=system.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+            material.SetFloat("_Recolor",1);material.SetColor("_Palette",color);
+            var spin=system.rotationOverLifetime;spin.enabled=false;
         }
 
         ParticleSystem MakeParticles(string label, Sprite art, int order, int capacity, bool coins)

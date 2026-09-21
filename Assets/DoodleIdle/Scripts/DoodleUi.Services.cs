@@ -551,22 +551,22 @@ namespace DoodleIdle
         {
             UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 17, TextAnchor.MiddleCenter, 26);
             var ranks = LocalRanking();
-            var podium = UiKit.Row(body, "Top three podium", 190);
+            var podium = UiKit.Row(body, "Top three podium", 206);
             foreach (int position in new[] { 1, 0, 2 })
             {
                 var rank = ranks[position];
-                var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,190);
+                var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,206);
                 float stepHeight=position==0?84:position==1?57:42;
-                var step=UiKit.Rect(card,"Podium pedestal");
-                var pedestal=step.gameObject.AddComponent<Image>();pedestal.sprite=UiKit.Art(position==0?"PodiumGold":position==1?"PodiumSilver":"PodiumBronze");pedestal.raycastTarget=false;
+                var step=UiKit.Box(card,"Podium pedestal",position==0?UiKit.Yellow:position==1?new Color(.84f,.85f,.87f):new Color(.87f,.70f,.53f));
+                step.GetComponent<Image>().raycastTarget=false;
                 step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
-                var number=UiKit.Text(step,(position+1).ToString(),39,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,stepHeight*.23f);
-                float contactY=stepHeight*.79f,portraitSize=position==0?78:70;
-                var shadow=UiKit.Rect(card,"Podium contact shadow");shadow.anchorMin=shadow.anchorMax=new Vector2(.47f,0);shadow.anchoredPosition=new Vector2(0,contactY+1);shadow.sizeDelta=new Vector2(portraitSize*.62f,7);
+                var number=UiKit.Text(step,(position+1).ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,0);
+                float contactY=stepHeight-2,portraitSize=position==0?78:70;
+                var shadow=UiKit.Rect(card,"Podium contact shadow");shadow.anchorMin=shadow.anchorMax=new Vector2(.5f,0);shadow.anchoredPosition=new Vector2(0,contactY+1);shadow.sizeDelta=new Vector2(portraitSize*.62f,7);
                 var shade=shadow.gameObject.AddComponent<Image>();shade.sprite=UiKit.Circle;shade.color=new Color(0,0,0,.18f);shade.raycastTarget=false;
                 var portrait=UiKit.Icon(card,rank.art,portraitSize);var image=portrait.rectTransform;
                 var source=portrait.sprite.rect.size;var drawn=source*(portraitSize/Mathf.Max(source.x,source.y));
-                image.sizeDelta=drawn;image.anchorMin=image.anchorMax=new Vector2(.47f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,contactY);
+                image.sizeDelta=drawn;image.anchorMin=image.anchorMax=new Vector2(.5f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,contactY);
                 var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,contactY+drawn.y+5);
             }
             int selfIndex = ranks.FindIndex(r => r.self);

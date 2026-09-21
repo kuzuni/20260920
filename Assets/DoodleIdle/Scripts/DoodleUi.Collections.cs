@@ -383,6 +383,7 @@ namespace DoodleIdle
                 if (window)
                 {
                     window.maxWidth = 360; window.maxHeight = 550; window.centerFromTop = .645f;
+                    window.detailScale = 1.8f; window.centerFromTop = .5f;
                     window.headerHeight = 64; window.titleSize = 33; window.Reflow(safe);
                 }
                 body.GetComponent<VerticalLayoutGroup>().spacing = 5;
@@ -418,7 +419,7 @@ namespace DoodleIdle
                 {
                     // Read the active combat component, never present catalog mock values
                     // as real cooldowns. Orbit skills use their shared public cycle constant.
-                    float interval = -1;
+                    float interval = DoodleIdleGame.VariantInterval(item.ability);
                     if (game)
                     {
                         switch (item.ability)
@@ -430,6 +431,9 @@ namespace DoodleIdle
                             case "Fire": interval = game.fireInterval; break;
                             case "Drone": interval = game.droneInterval; break;
                             case "Worm": interval = game.wormInterval; break;
+                            case "TetherSnake":interval=game.tetherInterval;break;
+                            case "WaveSnakes":interval=game.snakeInterval;break;
+                            case "FireRing":interval=game.ringInterval;break;
                             case "Cloud": case "Lightning": interval = game.cloudInterval; break;
                             case "Dragon": interval = game.dragonInterval; break;
                             case "Cannon": interval = game.cannonInterval; break;

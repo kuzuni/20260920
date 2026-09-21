@@ -137,6 +137,8 @@ namespace DoodleIdle
         public static Sprite Art(string key)
         {
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
+            var variant=DoodleVariantArt.Get(key=="BouncyBall"?"BeachBall":key);
+            if(variant){art[key]=variant;return variant;}
             string[] progression={"StatAttack","StatHealth","StatRegen","StatCrit2","StatCrit4","RelicStrength","RelicLife","RelicLuck","RelicRegen","RelicCritical","PodiumGold","PodiumSilver","PodiumBronze"};
             int progressionIndex=Array.IndexOf(progression,key);
             if(key=="StatCrit2" || key=="StatCrit4"){var critical=Cell("UI/CriticalIcons",key=="StatCrit2"?0:1,2,1);art[key]=critical;return critical;}

@@ -38,7 +38,7 @@ namespace DoodleIdle.Tests
                 }
                 int[] draws=new int[7];
                 for(int ticket=0;ticket<10000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
-                CollectionAssert.AreEqual(new[]{1000,1000,2400,2500,2000,1000,100},draws,"All lottery intervals must match the displayed level 30 probabilities.");
+                CollectionAssert.AreEqual(category=="Skill"||category=="Companion"?new[]{1000,1000,2400,2500,2000,1100,0}:new[]{1000,1000,2400,2500,2000,1000,100},draws,"All lottery intervals must match the displayed level 30 probabilities, including the six-grade catalogs.");
                 states[category].level=1;
                 for(int ticket=0;ticket<10000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
                 states[category].level=29;states[category].experience=999;

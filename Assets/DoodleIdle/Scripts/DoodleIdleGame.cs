@@ -163,19 +163,15 @@ namespace DoodleIdle
 
         void BuildGround()
         {
-            var texture = Resources.Load<Texture2D>("DoodleIdle/Dirt");
-            groundSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, texture.width / 13f);
-            int columns = Mathf.CeilToInt((arenaHalfSize.x + 18) / 13);
-            int rows = Mathf.CeilToInt((arenaHalfSize.y + 18) / 13);
-            for (int y = -rows; y <= rows; y++)
-                for (int x = -columns; x <= columns; x++)
-                {
-                    var tile = Visual("Generated dirt floor", groundSprite, new Vector2(x * 13, y * 13), Vector2.one, -1000);
-                    // Mirroring adjacent tiles makes matching edges exact, even for an imperfect AI tile.
-                    groundTiles.Add(tile);
-                    tile.flipX = (Mathf.Abs(x) % 2) == 1;
-                    tile.flipY = (Mathf.Abs(y) % 2) == 1;
-                }
+            var texture = Texture2D.whiteTexture;
+            groundSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, texture.width, 0, SpriteMeshType.FullRect);
+            // One opaque surface avoids gaps, tight sprite meshes and camera-dependent tile edges.
+            var floor = Visual("Generated dirt floor", groundSprite, Vector2.zero, (arenaHalfSize + Vector2.one * 40) * 2, -1000);
+            groundMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodleTerrain"));
+            groundMaterial.SetTexture("_AtlasTex", Resources.Load<Texture2D>("DoodleIdle/Themes/Grounds"));
+            groundMaterial.SetFloat("_TileSize", 3f);
+            floor.sharedMaterial = groundMaterial;
+            groundTiles.Add(floor);
         }
 
         void BuildArena()
@@ -371,6 +367,8 @@ namespace DoodleIdle
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
             if (basicSkillsEnabled && stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
             OrbitBananas(dt);
+            TickCompanions(dt);
+            TickVariants(dt);
             TickExtraSkills(dt);
             TickSummons(dt);
             TickParticles(dt);
@@ -431,7 +429,7 @@ namespace DoodleIdle
             nearest.Sort((a, b) => (a.Position - origin).sqrMagnitude.CompareTo((b.Position - origin).sqrMagnitude));
             for (int i = 0; i < Mathf.Min(3, nearest.Count); i++)
             {
-                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * 1.29f, 550);
+                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * .645f, 550);
                 sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
                 shots.Add(new Shot { visual = sprite.transform, start = origin, end = nearest[i].Position, target = nearest[i], duration = .65f + i * .06f, stone = true });
                 StonesLaunched++;
@@ -653,6 +651,7 @@ namespace DoodleIdle
         public void CancelUiPointer() { ReleaseJoystick(); manualInput = Vector2.zero; }
         public float UiCooldown(string ability)
         {
+            if(VariantInterval(ability)>0)return variantClocks.TryGetValue(ability,out var clock)?Mathf.Clamp01(clock/VariantInterval(ability)):0;
             switch(ability)
             {
                 case "Banana": return Mathf.Clamp01((OrbitSkillCycle - bananaCycleAge) / OrbitSkillCycle);
@@ -662,6 +661,9 @@ namespace DoodleIdle
                 case "Fire": return Mathf.Clamp01(fireClock / fireInterval);
                 case "Drone": return Mathf.Clamp01(droneClock / droneInterval);
                 case "Worm": return Mathf.Clamp01(wormClock / wormInterval);
+                case "TetherSnake":return Mathf.Clamp01(summonClocks[5]/SummonInterval(5));
+                case "WaveSnakes":return Mathf.Clamp01(summonClocks[0]/SummonInterval(0));
+                case "FireRing":return Mathf.Clamp01(summonClocks[7]/SummonInterval(7));
                 case "Cloud": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
                 case "Lightning": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
                 case "Dragon": return Mathf.Clamp01(summonClocks[9] / SummonInterval(9));
@@ -739,6 +741,7 @@ namespace DoodleIdle
             if (disc) { Destroy(disc.texture); Destroy(disc); }
             if (slash) { Destroy(slash.texture); Destroy(slash); }
             if (groundSprite) Destroy(groundSprite);
+            DisposeCompanionArt();
             DisposeSkillArt();
             DisposeSummonArt();
             DisposeActorAnimations();

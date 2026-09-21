@@ -334,6 +334,7 @@ namespace DoodleIdle
     {
         public bool full,bottomNavigation;
         public float maxWidth=570,maxHeight=880,centerFromTop=.5f,headerHeight=80;
+        public float detailScale=1;
         public int titleSize=48;
         public RectTransform content,inner,footer,viewport,rail,closeButton;
         public Text titleText;
@@ -349,8 +350,16 @@ namespace DoodleIdle
             }
             else {
                 float height=safe.rect.height;
-                panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,maxHeight);
-                panel.anchoredPosition=new Vector2(0,Mathf.Clamp(height*(.5f-centerFromTop),-height*.5f+180+maxHeight*.5f,height*.5f-108-maxHeight*.5f));
+                float scale=detailScale>1?Mathf.Min(detailScale,(safe.rect.width-32)/width,(height-48)/maxHeight):1;
+                panel.anchorMin=panel.anchorMax=(safe.anchorMin+safe.anchorMax)*.5f;panel.pivot=Vector2.one*.5f;panel.sizeDelta=new Vector2(width,maxHeight)*scale;
+                float bottom=detailScale>1?24:180,top=detailScale>1?24:108;
+                panel.anchoredPosition=new Vector2(0,Mathf.Clamp(height*(.5f-centerFromTop),-height*.5f+bottom+maxHeight*scale*.5f,height*.5f-top-maxHeight*scale*.5f));
+                if(detailScale>1) {
+                    // Scale the entire reference layout together; popup motion owns the outer transform.
+                    inner.anchorMin=inner.anchorMax=inner.pivot=Vector2.one*.5f;
+                    inner.anchoredPosition=Vector2.zero;inner.sizeDelta=new Vector2(width,maxHeight);
+                    inner.localScale=Vector3.one*scale;
+                }
             }
             float heading=full?82:headerHeight;
             if(titleText) { titleText.resizeTextMaxSize=full?42:titleSize;titleText.rectTransform.offsetMin=new Vector2(50,-heading+4);titleText.rectTransform.offsetMax=new Vector2(-50,-8); }

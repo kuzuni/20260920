@@ -59,12 +59,13 @@ namespace DoodleIdle
             public Vector2 origin, direction, head;
             public Actor target;
             public float age, flameClock;
+            public bool ice;
             public readonly List<SpriteRenderer> parts = new List<SpriteRenderer>();
             public SpriteRenderer wings;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
         }
         sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
-        sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; }
+        sealed class Cloud { public SpriteRenderer art; public Vector2 direction; public float age, clock; public bool red; }
         sealed class Stain { public SpriteRenderer art; public float age; }
         sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = RedWaveShotGap; }
 
@@ -112,6 +113,7 @@ namespace DoodleIdle
             RedWavesLaunched = 0;
             guardianSwing = guardianAim = 0;
             guardian = Visual("Following guardian sword", summonArt["GuardianSword"], player.Position + new Vector2(1.3f, .8f), Vector2.one * 1.45f, 445).transform;
+            guardian.GetComponent<SpriteRenderer>().enabled=false;
         }
         float SummonInterval(int i)
         {
@@ -177,6 +179,7 @@ namespace DoodleIdle
                 target = InRange(guardian.position, 5);
                 if (target == null) return;
                 origin = guardian.position; direction = (target.Position - origin).normalized;
+                guardian.GetComponent<SpriteRenderer>().enabled=true;
                 guardianAim = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
                 guardianSwing = .34f;
                 guardian.rotation = Quaternion.Euler(0, 0, guardianAim - 70);
@@ -265,16 +268,17 @@ namespace DoodleIdle
             shot.art.transform.rotation = Aim(direction);
             movingSkills.Add(shot); return shot;
         }
-        void SpawnSnake(SummonSkill kind, Vector2 direction)
+        void SpawnSnake(SummonSkill kind, Vector2 direction, bool ice=false)
         {
             bool dragon = kind == SummonSkill.Dragon;
-            var snake = new Snake { kind = kind, direction = direction, origin = player.Position, head = player.Position, flameClock = .35f };
+            var snake = new Snake { ice=ice,kind = kind, direction = direction, origin = player.Position, head = player.Position, flameClock = .35f };
             int count = kind == SummonSkill.TetherSnake ? 32 : dragon ? 14 : 11;
             for (int i = 0; i < count; i++)
             {
                 bool tether = kind == SummonSkill.TetherSnake;
                 var art = summonArt[dragon ? (i == 0 ? "DragonHead" : "DragonSegment") : tether ? (i == 0 ? "PurpleSnakeHead" : "PurpleSnakeSegment") : (i == 0 ? "SnakeHead" : "SnakeSegment")];
-                var part = Visual(kind + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f), (tether ? -500 : 445) - i);
+                if(ice)art=DoodleVariantArt.Get(i==0?"IceSnakeHead":"IceSnakeSegment");
+                var part = Visual((ice?"IceSnakes":kind.ToString()) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f), (tether ? -500 : 445) - i);
                 part.enabled = false; snake.parts.Add(part);
             }
             if (dragon) snake.wings = Visual("Animated dragon wings", summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f, 450);
@@ -297,7 +301,7 @@ namespace DoodleIdle
             {
                 for (int i = 0; i < summonClocks.Length; i++)
                 {
-                    if (i == (int)SummonSkill.GuardianSword && !guardianEnabled) continue;
+                    if (i == (int)SummonSkill.GuardianSword || i == (int)SummonSkill.OrbitGun) continue;
                     summonClocks[i] -= dt;
                     if (summonClocks[i] > 0) continue;
                     if (i == (int)SummonSkill.GuardianSword && InRange(guardian.position, 5) == null) continue;
@@ -358,8 +362,8 @@ namespace DoodleIdle
             for (int i = clouds.Count - 1; i >= 0; i--)
             {
                 var cloud = clouds[i]; cloud.age += dt; cloud.clock -= dt;
-                SetSpriteArt(cloud.art, summonArt[(int)(cloud.age * 4) % 2 == 0 ? "StormCloud" : "StormCloudB"]);
-                cloud.art.transform.position += (Vector3)(cloud.direction * (.65f * dt));
+                SetSpriteArt(cloud.art, cloud.red?DoodleVariantArt.Get((int)(cloud.age*4)%2==0?"RedCloud":"RedCloudB"):summonArt[(int)(cloud.age * 4) % 2 == 0 ? "StormCloud" : "StormCloudB"]);
+                cloud.art.transform.position += (Vector3)(cloud.direction * ((cloud.red?1.05f:.65f) * dt));
                 if (cloud.age >= 8) { Destroy(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
                 if (cloud.clock > 0) continue;
                 cloud.clock = .7f;
@@ -371,8 +375,8 @@ namespace DoodleIdle
                 {
                     if (!Alive(target) || Vector2.Distance(origin, target.Position) > 5.5f) continue;
                     Vector2 delta = target.Position - origin;
-                    Echo("Lightning afterimage", summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, .85f), Aim(delta), .4f, .35f, 570);
-                    Echo("Lightning strike", summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, 1.1f), Aim(delta), .12f, 1, 580);
+                    Echo("Lightning afterimage", cloud.red?DoodleVariantArt.Get("RedLightning"):summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, .85f), Aim(delta), .4f, .35f, 570);
+                    Echo("Lightning strike", cloud.red?DoodleVariantArt.Get("RedLightning"):summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, 1.1f), Aim(delta), .12f, 1, 580);
                     Impact(SummonSkill.StormCloud, target, 23, delta.normalized); LightningStrikes++;
                 }
             }
@@ -465,13 +469,14 @@ namespace DoodleIdle
                         {
                             if (Vector2.Distance(enemy.Position, player.Position) > 7) continue;
                             float d = Vector2.Distance(enemy.Position, snake.head);
+                            if(snake.ice && snake.age<1)d+=Mathf.Max(0,1-Vector2.Dot((enemy.Position-player.Position).normalized,snake.direction))*12;
                             if (d < distance) { distance = d; nextTarget = enemy; }
                         }
                         snake.target = nextTarget;
                         if (previous != null && nextTarget != null && previous != nextTarget) TetherRetargets++;
                     }
                     Vector2 destination = Alive(snake.target) ? snake.target.Position : player.Position + facing;
-                    snake.head = Vector2.MoveTowards(snake.head, destination, dt * 9);
+                    snake.head = snake.ice && snake.age<.35f?snake.head+snake.direction*dt*9:Vector2.MoveTowards(snake.head, destination, dt * 9);
                 }
                 int active = tether ? Mathf.Min(snake.parts.Count, 2 + Mathf.FloorToInt(snake.age / .035f)) : snake.parts.Count;
                 for (int p = 0; p < snake.parts.Count; p++)

@@ -19,6 +19,7 @@ namespace DoodleIdle
         readonly Dictionary<int, Sprite[][]> themeFrames = new Dictionary<int, Sprite[][]>();
         readonly Dictionary<int, Sprite> themeGrounds = new Dictionary<int, Sprite>();
         readonly List<SpriteRenderer> groundTiles = new List<SpriteRenderer>();
+        Material groundMaterial;
         int activeTheme = -1;
         public static int ThemeIndexForStage(int stage) => (Math.Max(1, stage) - 1) / 100 % ThemeNames.Length;
         public int CurrentThemeIndex => ThemeIndexForStage(Ui ? Ui.MainStage + 1 : 1);
@@ -74,16 +75,18 @@ namespace DoodleIdle
             activeTheme = index;
             var frames = LoadThemeFrames(index);
             for (int kind = 0; kind < 3; kind++) enemyWalkFrames[kind] = frames[kind];
-            foreach (var tile in groundTiles)
-            {
-                var ground = ThemeGround(index); SetSpriteArt(tile, ground);
-                tile.transform.localScale = new Vector3(1, ground.rect.width / ground.rect.height, 1);
-            }
+            var ground = ThemeGround(index);
+            var r = ground.rect; var t = ground.texture;
+            groundMaterial.SetVector("_UvRect", new Vector4(r.x/t.width,r.y/t.height,r.width/t.width,r.height/t.height));
+            // Fill any transparency in generated source art with its own base color.
+            var baseColor=t.GetPixel(Mathf.RoundToInt(r.center.x),Mathf.RoundToInt(r.center.y));baseColor.a=1;
+            groundMaterial.SetColor("_GroundColor",baseColor);
         }
         void DisposeThemes()
         {
             foreach (var ground in themeGrounds.Values) if (ground) Destroy(ground);
             themeGrounds.Clear(); themeFrames.Clear(); sourceFrameFacesLeft.Clear(); groundTiles.Clear();
+            if(groundMaterial)Destroy(groundMaterial);
         }
     }
 }

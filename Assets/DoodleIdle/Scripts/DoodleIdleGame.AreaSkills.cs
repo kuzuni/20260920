@@ -5,8 +5,8 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        sealed class Bottle { public SpriteRenderer art; public Vector2 start, end; public float age; }
-        sealed class FireZone { public Vector2 center; public float age, emitClock, hitClock; }
+        sealed class Bottle { public SpriteRenderer art; public Vector2 start, end; public float age; public bool blue; }
+        sealed class FireZone { public Vector2 center; public float age, emitClock, hitClock; public bool blue; }
         sealed class SoundPulse
         {
             public SpriteRenderer art;
@@ -25,10 +25,10 @@ namespace DoodleIdle
         public int ActiveFireZones => fireZones.Count;
         public const float FireZoneLifetime = 4, FireZoneRadius = 2.3f;
 
-        void ThrowMolotov(Vector2 origin, Vector2 target)
+        void ThrowMolotov(Vector2 origin, Vector2 target,bool blue=false)
         {
-            bottles.Add(new Bottle { start = origin, end = target,
-                art = Visual("Molotov airborne bottle", summonArt["Molotov"], origin, Vector2.one * 1.1f, 540) });
+            bottles.Add(new Bottle { blue=blue,start = origin, end = target,
+                art = Visual(blue?"Blue molotov airborne bottle":"Molotov airborne bottle", blue?DoodleVariantArt.Get("BlueMolotov"):summonArt["Molotov"], origin, Vector2.one * 1.1f, 540) });
         }
         void StartSoundVolley(Vector2 direction)
         {
@@ -43,12 +43,12 @@ namespace DoodleIdle
             SoundWavesLaunched++;
             SoundWaveLaunched?.Invoke(Time.fixedTime);
         }
-        void EmitGroundFire(Vector2 center, int count)
+        void EmitGroundFire(Vector2 center, int count,bool blue=false)
         {
             for (int i = 0; i < count; i++)
             {
                 Vector2 offset = Direction(ParticleRandom(0, Mathf.PI * 2)) * Mathf.Sqrt(ParticleRandom(0, 1)) * FireZoneRadius;
-                groundFireParticles.Emit(new ParticleSystem.EmitParams {
+                (blue?blueFireParticles:groundFireParticles).Emit(new ParticleSystem.EmitParams {
                     position = center + offset,
                     velocity = new Vector2(ParticleRandom(-.15f, .15f), ParticleRandom(.2f, .65f)),
                     startColor = Color.white, startSize = ParticleRandom(.5f, .9f),
@@ -73,8 +73,8 @@ namespace DoodleIdle
                 bottle.art.transform.rotation = Quaternion.Euler(0, 0, -t * 300);
                 if (t < 1) continue;
                 EmitCannonExplosion(bottle.end);
-                EmitGroundFire(bottle.end, 28);
-                fireZones.Add(new FireZone { center = bottle.end });
+                EmitGroundFire(bottle.end, 28,bottle.blue);
+                fireZones.Add(new FireZone { center = bottle.end,blue=bottle.blue });
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if (Vector2.Distance(enemies[e].Position, bottle.end) <= FireZoneRadius + .56f)
                         Impact(SummonSkill.Molotov, enemies[e], 18, Vector2.zero);
@@ -85,7 +85,7 @@ namespace DoodleIdle
                 var zone = fireZones[i]; zone.age += dt;
                 if (zone.age >= FireZoneLifetime) { fireZones.RemoveAt(i); continue; }
                 zone.emitClock -= dt; zone.hitClock -= dt;
-                if (zone.emitClock <= 0) { zone.emitClock += .09f; EmitGroundFire(zone.center, 12); }
+                if (zone.emitClock <= 0) { zone.emitClock += .09f; EmitGroundFire(zone.center, 12,zone.blue); }
                 if (zone.hitClock > 0) continue;
                 zone.hitClock += .35f;
                 for (int e = enemies.Count - 1; e >= 0; e--)
@@ -99,15 +99,20 @@ namespace DoodleIdle
                 pulse.age += dt; pulse.radius = .35f + pulse.age * .8f;
                 pulse.center += pulse.direction * (SoundWaveSpeed * dt);
                 pulse.art.transform.position = pulse.center;
+                pulse.art.transform.rotation=Aim(pulse.direction);
                 var spriteSize = pulse.art.sprite.bounds.size;
-                pulse.art.transform.localScale = new Vector3(pulse.radius * 2 / spriteSize.x, pulse.radius * 2 / spriteSize.y, 1);
+                pulse.art.transform.localScale = new Vector3(pulse.radius * 2 / spriteSize.x, pulse.radius * 1.1f / spriteSize.y, 1);
                 pulse.art.color = new Color(1, 1, 1, Mathf.Clamp01((SoundWaveLifetime - pulse.age) / .4f) * .8f);
                 // Sweep the moving ring between physics steps, excluding its empty inner region.
                 for (int e = enemies.Count - 1; e >= 0; e--)
                 {
                     var enemy = enemies[e];
-                    float outerDistance = SegmentDistance(enemy.Position, previousCenter, pulse.center);
-                    float innerDistance = Mathf.Max(Vector2.Distance(enemy.Position, previousCenter), Vector2.Distance(enemy.Position, pulse.center));
+                    // Transform the swept ellipse into circular coordinates; the hit shape follows the art.
+                    Vector2 normal=new Vector2(-pulse.direction.y,pulse.direction.x);
+                    Vector2 Relative(Vector2 p) { var d=p-previousCenter;return new Vector2(Vector2.Dot(d,pulse.direction),Vector2.Dot(d,normal)/.55f); }
+                    Vector2 point=Relative(enemy.Position),end=Relative(pulse.center);
+                    float outerDistance = SegmentDistance(point, Vector2.zero, end);
+                    float innerDistance = Mathf.Max(point.magnitude,(point-end).magnitude);
                     if (outerDistance > pulse.radius + .56f || innerDistance < previousRadius * .77f - .56f || !pulse.victims.Add(enemy)) continue;
                     Impact(SummonSkill.SoundWave, enemy, 24, pulse.direction);
                 }

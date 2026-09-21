@@ -136,6 +136,7 @@ namespace DoodleIdle
                 weights[grade]=value;sum+=value;
             }
             weights[0]+=10000-sum;
+            if(category=="Skill" || category=="Companion") { weights[5]+=weights[6];weights[6]=0; }
             return weights;
         }
 
@@ -199,13 +200,13 @@ namespace DoodleIdle
         void BuildSummonRow(RectTransform body, string category)
         {
             var state = summonStates[category];
-            var row = CommerceFramedRow(body, "Summon_" + category, category == "Relic" ? 224 : 176);
-            UiKit.Icon(row, category, 142);
+            var row = CommerceFramedRow(body, "Summon_" + category, category == "Relic" ? 336 : 264);
+            UiKit.Icon(row, category, 213);
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
-            var title = UiKit.Row(content, "SummonTitle", 40, 5);
+            var title = UiKit.Row(content, "SummonTitle", 68, 5);
             bool relic=category=="Relic";
-            UiKit.Text(title, (relic?"":"Lv. " + state.level + (state.level==MaxSummonLevel?" MAX":"")+" ") + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 40);
+            UiKit.Text(title, (relic?"":"Lv. " + state.level + (state.level==MaxSummonLevel?" MAX":"")+"\n") + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 68);
             var info = UiKit.Button(title, "i", () => ShowSummonProbabilities(category), UiKit.Blue, 36);
             var size = info.GetComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = 36;
@@ -233,8 +234,8 @@ namespace DoodleIdle
             var free = UiKit.Button(actions, "무료 " + commerceTuning.freeCount + "회\n뽑기", () => TrySummon(category, commerceTuning.freeCount, true), result ? UiKit.Blue : UiKit.Green, 68);
             CommerceButtonText(free, 24);
             free.interactable = CanFreeSummon(category);
-            PaidSummonButton(actions, category, 10, commerceTuning.tenCost, result ? UiKit.Yellow : UiKit.Blue);
-            PaidSummonButton(actions, category, 50, commerceTuning.fiftyCost, result ? UiKit.Green : UiKit.Yellow);
+            PaidSummonButton(actions, category, 10, commerceTuning.tenCost, UiKit.Yellow);
+            PaidSummonButton(actions, category, 50, commerceTuning.fiftyCost, UiKit.Yellow);
         }
 
         void PaidSummonButton(Transform parent, string category, int count, int cost, Color color)
@@ -407,7 +408,7 @@ namespace DoodleIdle
                 var explanation = UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
                 var gradeTitle = UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
                 var grades = UiKit.Grid(body, "GradeProbabilities", relic?1:4, 86);
-                for (int rarity = 0; rarity < (relic?1:7); rarity++)
+                for (int rarity = 0; rarity < (relic?1:category=="Skill"||category=="Companion"?6:7); rarity++)
                 {
                     int grade = rarity;
                     var card = UiKit.Box(grades, "Grade" + rarity, UiKit.Rarity(rarity), 86);
@@ -417,7 +418,7 @@ namespace DoodleIdle
                     rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
                     rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
                 }
-                UiKit.Text(body,relic?"모든 유물 동일 등급 · 각각 20%":"전설 Lv.5 · 신화 Lv.15 · 갓 Lv.25부터 등장\nLv.30: 갓 1% · 일반/고급 각각 10%",20,TextAnchor.MiddleCenter,relic?32:54);
+                UiKit.Text(body,relic?"모든 유물 동일 등급 · 각각 20%":category=="Skill"||category=="Companion"?"일반~신화 · 등급별 4종\n전설 Lv.5 · 신화 Lv.15부터 등장":"전설 Lv.5 · 신화 Lv.15 · 갓 Lv.25부터 등장\nLv.30: 갓 1% · 일반/고급 각각 10%",20,TextAnchor.MiddleCenter,relic?32:54);
                 var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
                 var all = Items(category);
                 for (int rarity = 0; rarity < GradeNames.Length; rarity++)

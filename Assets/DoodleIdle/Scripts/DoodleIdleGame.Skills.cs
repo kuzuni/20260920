@@ -37,11 +37,13 @@ namespace DoodleIdle
             public Vector2 start, end;
             public float age, duration, trail;
             public int hits;
+            public float size=1; public bool purple;
         }
         sealed class Worm
         {
             public Vector2 origin;
             public float age, angle;
+            public float size=1;
             public readonly List<Vector2> path = new List<Vector2>();
             public readonly List<SpriteRenderer> parts = new List<SpriteRenderer>();
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
@@ -74,6 +76,8 @@ namespace DoodleIdle
                 skillArt[i] = Sprite.Create(texture, new Rect(minX, minY, width, height), Vector2.one * .5f, Mathf.Max(width, height));
                 skillArt[i].name = names[i];
             }
+            Destroy(skillArt[1]);
+            skillArt[1]=DoodleVariantArt.Get("BeachBall");
             // Match both crops so rotor poses do not make the robot body pulse in size.
             var a = skillArt[3].texture;
             var b = ActorTexture("RobotDroneB");
@@ -85,9 +89,10 @@ namespace DoodleIdle
             droneFrameB = ActorSprite(b, union, "RobotDroneB");
         }
 
-        void DisposeSkillArt() { for (int i = 0; i < skillArt.Length; i++) if (i != 3 && skillArt[i]) Destroy(skillArt[i]); }
+        void DisposeSkillArt() { for (int i = 0; i < skillArt.Length; i++) if (i != 3 && i != 1 && skillArt[i]) Destroy(skillArt[i]); }
         void ClearExtraSkills()
         {
+            ClearCompanions();ClearVariants();
             ClearSummons();
             foreach (var shot in extraShots) if (shot.art) Destroy(shot.art.gameObject);
             extraShots.Clear();
@@ -104,6 +109,7 @@ namespace DoodleIdle
             arrowClock = 2; ballClock = 3; fireClock = 3.8f; droneClock = 1.7f; wormClock = 4;
             arrowShotClock = missileShotClock = 0;
             drone = Visual("Following missile drone", skillArt[3], player.Position + new Vector2(-1.4f, 1.2f), Vector2.one * 1.5f, 450).transform;
+            drone.GetComponent<SpriteRenderer>().enabled=false;
             ResetSummons();
         }
 
@@ -152,6 +158,7 @@ namespace DoodleIdle
                     for (int i = 0; i < LastFireTargetCount; i++) Launch(ProjectileKind.Fire, skillTargets[i], player.Position, i);
                     break;
                 case ExtraSkill.Drone:
+                    drone.GetComponent<SpriteRenderer>().enabled=true;
                     if (missilesPending == 0) { missilesPending = 20; missileIndex = 0; missileShotClock = 0; }
                     break;
                 case ExtraSkill.Worm:
@@ -189,7 +196,7 @@ namespace DoodleIdle
                 if (arrowClock <= 0) { CastExtraSkill(ExtraSkill.Arrows); arrowClock = arrowInterval; }
                 if (ballClock <= 0) { CastExtraSkill(ExtraSkill.BouncyBall); ballClock = ballInterval; }
                 if (fireClock <= 0) { CastExtraSkill(ExtraSkill.Fire); fireClock = fireInterval; }
-                if (droneClock <= 0) { CastExtraSkill(ExtraSkill.Drone); droneClock = droneInterval; }
+                // Missile drones now attack from equipped companion positions.
                 if (wormClock <= 0) { CastExtraSkill(ExtraSkill.Worm); wormClock = wormInterval; }
             }
             arrowShotClock -= dt; missileShotClock -= dt;
@@ -237,7 +244,7 @@ namespace DoodleIdle
                     {
                         if (enemy == shot.previous) continue;
                         if (shot.kind == ProjectileKind.Fire && enemy != shot.target) continue;
-                        if (SegmentDistance(enemy.Position, old, next) > (shot.kind == ProjectileKind.Ball ? .87f : .7f)) continue;
+                        if (SegmentDistance(enemy.Position, old, next) > (.56f + (shot.kind == ProjectileKind.Ball ? .31f : .14f)*shot.size)) continue;
                         float d = (enemy.Position - old).sqrMagnitude;
                         if (d < closest) { collision = enemy; closest = d; }
                     }
@@ -247,20 +254,21 @@ namespace DoodleIdle
                         {
                             shot.hits++; BallHits++;
                             BallEnemyHit?.Invoke(collision.root.GetInstanceID(), shot.hits);
-                            Damage(collision, 24, (next - old).normalized);
+                            Damage(collision, 24*shot.size, (next - old).normalized);
                             shot.previous = collision; shot.target = ClosestExcept(next, collision);
                             if (shot.hits == 7) { LastCompletedBallHits = shot.hits; BallsCompleted++; finished = true; }
                         }
                         else
                         {
                             if (shot.kind == ProjectileKind.Fire) FireHits++; else ArrowHits++;
-                            Damage(collision, shot.kind == ProjectileKind.Fire ? 38 : 22, (next - old).normalized);
+                            Damage(collision, (shot.kind == ProjectileKind.Fire ? 38 : 22)*shot.size, (next - old).normalized);
                             finished = true;
                         }
                     }
                     if (shot.kind != ProjectileKind.Ball && shot.age > 5) finished = true;
                 }
                 shot.art.transform.position = next;
+                if(shot.purple)EmitBurst(purpleFireParticles,old,Color.white,2,.2f,.4f,.15f,.2f,.4f);
                 if (shot.kind == ProjectileKind.Ball && shot.trail <= 0)
                 {
                     Echo("Bouncy ball afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, .25f, .3f, 480);
@@ -293,26 +301,26 @@ namespace DoodleIdle
                 for (int p = 0; p < worm.path.Count - 1 && segment < worm.parts.Count; p++)
                 {
                     float length = Vector2.Distance(worm.path[p], worm.path[p + 1]);
-                    while (segment < worm.parts.Count && segment * .29f <= travelled + length)
+                    while (segment < worm.parts.Count && segment * .29f * worm.size <= travelled + length)
                     {
                         var part = worm.parts[segment];
                         Vector2 old = part.transform.position;
-                        Vector2 pos = Vector2.Lerp(worm.path[p], worm.path[p + 1], (segment * .29f - travelled) / Mathf.Max(length, .0001f));
+                        Vector2 pos = Vector2.Lerp(worm.path[p], worm.path[p + 1], (segment * .29f * worm.size - travelled) / Mathf.Max(length, .0001f));
                         bool visible = worm.age >= segment * .065f;
                         if (!part.enabled) old = pos;
                         part.enabled = visible;
                         part.transform.position = pos;
-                        part.transform.localScale = Vector3.one * ((segment == 0 ? .62f : .49f) * (1 + Mathf.Sin(worm.age * 15 - segment * .7f) * .08f));
+                        part.transform.localScale = Vector3.one * ((segment == 0 ? .62f : .49f) * worm.size * (1 + Mathf.Sin(worm.age * 15 - segment * .7f) * .08f));
                         part.color = new Color(1, 1, 1, Mathf.Clamp01((6.5f - worm.age) * 2));
                         if (visible)
                         {
                             for (int e = enemies.Count - 1; e >= 0; e--)
                             {
                                 var enemy = enemies[e];
-                                if (SegmentDistance(enemy.Position, old, pos) > .79f) continue;
+                                if (SegmentDistance(enemy.Position, old, pos) > .56f+.23f*worm.size) continue;
                                 if (worm.nextHit.TryGetValue(enemy, out float until) && worm.age < until) continue;
                                 worm.nextHit[enemy] = worm.age + .4f; WormHits++;
-                                Damage(enemy, 15, (enemy.Position - worm.origin).normalized);
+                                Damage(enemy, 15*worm.size, (enemy.Position - worm.origin).normalized);
                             }
                         }
                         segment++;
