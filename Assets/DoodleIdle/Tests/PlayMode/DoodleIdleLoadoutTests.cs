@@ -145,6 +145,8 @@ namespace DoodleIdle.Tests
             Assert.That(ui.EquippedSkills.Single(), Is.SameAs(candidate));
             Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<DoodleUiPadlock>().Length, Is.EqualTo(7));
             Object.Destroy(CaptureFrame("skill-slots-stage-1.png", 720, 1520));
+            Object.Destroy(CaptureFrame("skill-slots-stage-1-landscape.png", 1440, 900));
+            Assert.That(UiNode("Locked skill slot 1").GetComponentInChildren<Text>().text, Is.EqualTo("50\n스테이지"), "Compact layouts must retain unlock requirements.");
             int[] stages = { 50, 100, 200, 350, 500, 800, 1200 };
             for (int i = 0; i < stages.Length; i++) {
                 ServiceSetSavedField(ServiceStateObject, "mainStage", stages[i] - 2);

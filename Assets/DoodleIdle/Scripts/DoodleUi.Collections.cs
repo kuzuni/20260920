@@ -780,6 +780,7 @@ namespace DoodleIdle
 
         void EquippedNumber(Transform card, int number)
         {
+            if (card.Find("Slot unlock padlock")) return;
             var label = card.GetChild(0).GetComponent<Text>();
             string originalText = label.text;
             rules.Add(shortMode => label.text = shortMode ? UiNumber.Format(number) : originalText);
