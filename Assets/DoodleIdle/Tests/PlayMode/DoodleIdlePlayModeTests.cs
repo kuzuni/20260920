@@ -301,10 +301,16 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator PauseFreezesPhysicsAndRestartRestoresPopulation()
+        public IEnumerator PauseFreezesPhysicsAndRestartRestoresRemainingWave()
         {
             yield return new WaitForSeconds(.3f);
             game.TogglePause();
+            // Restart preserves saved stage kills; exercise a partially cleared wave explicitly.
+            DefeatActualServiceEnemies(7);
+            yield return null;
+            int progress = game.Ui.MainStageKillProgress;
+            int remaining = 100 - progress;
+            Assert.That(progress, Is.GreaterThanOrEqualTo(7));
             float elapsed = game.Elapsed;
             var bodies = EnemyBodies();
             var positions = bodies.Select(b => b.position).ToArray();
@@ -313,7 +319,8 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++) Assert.That(bodies[i].position, Is.EqualTo(positions[i]));
             game.ResetGame();
             Assert.That(game.paused, Is.False);
-            Assert.That(game.EnemyCount, Is.EqualTo(100));
+            Assert.That(game.EnemyCount, Is.EqualTo(remaining));
+            Assert.That(game.Ui.MainStageKillProgress, Is.EqualTo(progress));
             Assert.That(game.Elapsed, Is.Zero);
             Assert.That(game.Kills, Is.Zero);
             yield return null;
