@@ -240,4 +240,14 @@ Precise transparent-background cleanup ONLY. This 1536x1024 three-column/two-row
 
 ## Atlas boundary verification
 
-The first remote render exposed small pieces of neighboring wings/cannons at nominal grid edges. Layout JSON now uses whole connected-character alpha bounds (including portions extending beyond a cell), paired at common dimensions/scale. PNG pixels are unchanged. Dedicated overview captures disable all world renderers before creating the test sprites so combat text/particles cannot overlap the contact sheets.
+The first remote render exposed small pieces of neighboring wings/cannons at nominal grid edges. Layout JSON now uses whole connected-character alpha bounds (including portions extending beyond a cell), paired at common dimensions/scale. PNG pixels are unchanged. Dedicated overview captures disable existing world renderers before creating the test sprites. The final overview still contains transient damage text at the top margin; this is a capture overlay, not part of the atlas art.
+
+## Final remote verification
+
+- Runtime/art commit: `52004e2267dd03dfa19d796fea22f19646396ac4`.
+- [GitHub Actions run 35601818946](https://github.com/kuzuni/20260920/actions/runs/35601818946): **77 passed, 0 failed, 0 skipped**. Unity PlayMode report completed 2026-09-21 13:05:11 UTC, duration 654.77 seconds. Unity was not executed locally.
+- Artifact: `doodle-idle-test-results`; downloaded to `C:/Users/user/.codex/artifacts/progression-themes/run35601818946`.
+- Inspected `screenshots/enemies-all-right-pose-0.png` and `enemies-all-right-pose-1.png`: 30 complete enemies, paired foot/wing poses, common scale, no neighboring atlas fragments.
+- Inspected `screenshots/companions-all-pose-0.png` and `companions-all-pose-1.png`: 24 complete companions with distinct designs and paired animation poses.
+- Inspected `screenshots/loadout-replace-Skill.png` and `loadout-replace-Companion.png`: replacement arrows appear above the existing equipped slots; player-free skill thumbnails and new companion icons render correctly.
+- Automated coverage includes equipment-only skill activation, cancellation of queued automatic casts on unequip, all 24 debug casts without ownership/equipment changes, slot replacement, paired sprite dimensions, companion attack behavior, and restarting the persisted remaining stage wave.
