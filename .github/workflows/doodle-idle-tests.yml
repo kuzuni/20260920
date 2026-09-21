@@ -14,6 +14,7 @@ on:
         options:
           - full
           - terrain
+          - companion-impacts
 
 permissions:
   contents: read
@@ -65,7 +66,7 @@ jobs:
         with:
           unityVersion: 6000.3.8f1
           testMode: PlayMode
-          customParameters: -testFilter ${{ inputs.validation == 'terrain' && 'DoodleIdle.Tests.DoodleIdlePlayModeTests.ExpansionGroundUsesContinuousOpaqueWorldPatternAcrossFormerSeams' || 'DoodleIdle.Tests' }}
+          customParameters: -testFilter ${{ inputs.validation == 'terrain' && 'DoodleIdle.Tests.DoodleIdlePlayModeTests.ExpansionGroundUsesContinuousOpaqueWorldPatternAcrossFormerSeams' || inputs.validation == 'companion-impacts' && 'DoodleIdle.Tests.DoodleIdlePlayModeTests.CompanionAndSkillArtHasDistinctCompleteFramesAndExportsBothPoses' || 'DoodleIdle.Tests' }}
           coverageOptions: assemblyFilters:+DoodleIdle.Runtime;generateAdditionalMetrics
           artifactsPath: artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
