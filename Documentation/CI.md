@@ -1,5 +1,12 @@
 # 화면 없이 검증하기
 
+## 2026-09-21 진행 규칙 개정
+
+- 현재 필드 웨이브는 100마리이며 살아 있는 적이 남아 있을 때 보충하지 않는다. 아래 200마리 설명은 최초 구현 검증 이력이다.
+- 돌파 모드는 일반 적 100마리 뒤 3배 크기 보스, 반복 사냥 모드는 같은 스테이지의 100마리 웨이브를 검사한다.
+- 장비 31개씩의 등급·합성 연결·100강 상한·갓 추가 강화, 스킬 100강과 현행 뽑기 단가 환불, x2 MAX 이후 x4 해금, 저장 이관을 검사한다.
+- 100스테이지마다 10개 테마의 적 3종과 이동 2프레임을 검사하고, 1001스테이지 순환을 확인한다. `revision-theme-0.png`~`revision-theme-9.png`, `revision-equipment-synthesis.png`, `revision-skills-eight-slots.png`를 출력한다.
+
 `.github/workflows/doodle-idle-tests.yml`은 GitHub의 Ubuntu 서버에서 Unity 6000.3.8f1 PlayMode 테스트를 실행합니다. 개인 컴퓨터의 Unity 화면, 마우스, 키보드는 사용하지 않습니다.
 
 ## 최초 설정
