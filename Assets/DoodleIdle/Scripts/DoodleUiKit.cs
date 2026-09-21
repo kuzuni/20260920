@@ -76,7 +76,7 @@ namespace DoodleIdle
         { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
         public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
         {
-            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row){row.spacing=-4;row.padding=new RectOffset();}
+            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row){row.spacing=0;row.padding=new RectOffset();}
             bool left=parent.childCount==0;
             var button=Button(parent,label,click,selected?Yellow:new Color(.85f,.85f,.85f),height);
             button.GetComponent<Outline>().enabled=false;
@@ -200,6 +200,7 @@ namespace DoodleIdle
     }
     // Full-height capsule ends and the reference's rounded, overlapping center joint.
     // No clipping mask: the ink outline must remain visible around the whole tab bar.
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleEquipmentTabShape : MaskableGraphic
     {
         public bool left;
