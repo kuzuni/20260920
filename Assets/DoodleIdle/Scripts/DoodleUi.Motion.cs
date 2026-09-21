@@ -13,7 +13,8 @@ namespace DoodleIdle
         CanvasGroup group;
         CanvasGroup Opacity {
             get {
-                if(!group)group=GetComponent<CanvasGroup>()??gameObject.AddComponent<CanvasGroup>();
+                if(!group)group=GetComponent<CanvasGroup>();
+                if(!group)group=gameObject.AddComponent<CanvasGroup>();
                 group.blocksRaycasts=group.interactable=false;return group;
             }
         }
