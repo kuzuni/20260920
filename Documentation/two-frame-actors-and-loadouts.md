@@ -202,6 +202,10 @@ References: []
 
 Precise edit to ONE foot only in transparent 3x2 sprite atlas. TOP CENTER mummy cat: its SCREEN-LEFT foot is currently a large forward oval. Make this left foot a SMALL tucked-back semicircle, roughly half the current area, partly behind the head's bottom contour. Keep TOP CENTER SCREEN-RIGHT foot large and forward. Thus TOP CENTER matches TOP LEFT stone's foot pose; BOTTOM CENTER keeps large left foot/small right foot unchanged. Do not add arms or loose bandage ribbon. Preserve all eyes/face/head/body/hat and remaining five sprites exactly. Transparent RGBA. Only redraw top-center character's left foot.
 
+### SwampCleanFinal
+
+Precise transparent-background cleanup ONLY. This 1536x1024 three-column/two-row complete monster atlas has a stray dark disconnected fragment at the VERY TOP EDGE near x=1023..1163,y=0..68 (above and left of the TOP RIGHT brown mud monster). Remove ONLY this stray background fragment to full transparency. Preserve ALL SIX complete characters pixel-for-pixel, including exact eyes, head shapes, walking foot poses, arms and grass/mushroom details, their scale and positions. The mud monster's actual tall grass starts at x about 1230,y65 and must remain intact. Do not remove actual character outlines or change any design. Maintain transparent RGBA image, same dimensions and layout; no new art, captions or scenery.
+
 ## Selected thumbnail and attack outputs
 
 - `SkillThumbsNormal.png` ← `exec-8c29b112-bf71-4f16-89ca-152de3ad210d.png`
@@ -220,7 +224,7 @@ Precise edit to ONE foot only in transparent 3x2 sprite atlas. TOP CENTER mummy 
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Meadow.png` <- `exec-eb7273f6-ad3e-40f2-8182-cdaac5f2f517.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Desert.png` <- `exec-e077001c-9a7a-4605-99f3-f2b3844dbfb6.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Forest.png` <- `exec-eff9aee8-cb30-4cbf-b694-45520e601cfd.png`
-- `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Swamp.png` <- `exec-9c347cc3-c150-4c83-963e-b93f29e627c5.png`
+- `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Swamp.png` <- `exec-727f7a62-cae3-4d2e-bbea-236987c1631d.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Volcano.png` <- `exec-eeaa53b9-217a-459d-909a-588460fd415d.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Coast.png` <- `exec-22ac4794-9fd8-43dd-a176-1764429404eb.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/Themes/Crystal.png` <- `exec-88abf050-7868-4ea7-9e48-ba7f616da005.png`
