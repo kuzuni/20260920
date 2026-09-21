@@ -57,3 +57,9 @@ Main integrates real combat kills into wallet/mission and reads real cooldowns. 
 - Full loadouts return to the existing equipped row for replacement; downward arrows identify selectable occupied slots. Empty cards/HUD slots use a plus icon.
 - Sound ellipse depth is .55 of its width across travel; the collision sweep rotates with the same axes.
 - Latest actor anatomy and exact built-in image-generation prompts are in `Documentation/two-frame-actors-and-loadouts.md`. The older head-only and arms-only drafts are superseded by the user's mushroom/sprout/pea walking references.
+
+## Muted terrain verification
+
+- Runtime commit `541cbcb`: [GitHub Actions 35604383505](https://github.com/kuzuni/20260920/actions/runs/35604383505) passed all 77 PlayMode tests (0 failures/skips), including opaque terrain coverage across all ten themes.
+- Inspected all ten `expansion-ground-0..9.png` renders and `02-fixed-portrait.png` from the run artifact. Ground detail remains visible but subdued, with characters and attacks retaining their original contrast. Captured terrain luminance standard deviation fell from 0.028–0.090 to 0.003–0.009 across themes. This measures the ground-only screenshots, not gameplay balance.
+- Local artifact directory: `C:/Users/user/.codex/artifacts/progression-themes/run35604383505`. No Unity execution or tests ran locally.
