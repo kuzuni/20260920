@@ -51,8 +51,9 @@ namespace DoodleIdle
             if (themeGrounds.TryGetValue(index, out var cached)) return cached;
             var texture = Resources.Load<Texture2D>("DoodleIdle/Themes/Grounds");
             float width = texture.width / 5f, height = texture.height / 2f;
-            var rect = new Rect(index % 5 * width, (1 - index / 5) * height, width, height);
-            var sprite = Sprite.Create(texture, rect, Vector2.one * .5f, width / 13f);
+            // Stay inside each atlas cell so bilinear sampling cannot pull in the neighboring theme.
+            var rect = new Rect(index % 5 * width + 2, (1 - index / 5) * height + 2, width - 4, height - 4);
+            var sprite = Sprite.Create(texture, rect, Vector2.one * .5f, rect.width / 13f);
             sprite.name = "Ground " + ThemeResources[index]; themeGrounds[index] = sprite; return sprite;
         }
         void ApplyStageTheme()
