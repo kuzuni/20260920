@@ -118,6 +118,10 @@ namespace DoodleIdle.Tests
             DefeatActualServiceEnemies(ui.MainStageKillGoal - 5);
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 1));
+            Assert.That(ui.MainBossPending, Is.True);
+            // This fixture pauses FixedUpdate; explicitly perform its pending boss transition.
+            typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
+            Assert.That(game.BossActive, Is.True);
             DefeatActualServiceEnemies(1); // boss
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 2), "Main progression resumes after the dungeon is cleared.");

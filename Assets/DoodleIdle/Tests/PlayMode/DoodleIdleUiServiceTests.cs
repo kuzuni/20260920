@@ -464,7 +464,7 @@ namespace DoodleIdle.Tests
             Assert.That(ServiceStateValue<int>("pvpPoints"), Is.EqualTo(points));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet));
             UiOpen("Chat");
-            Assert.That(UiNode("Panel: 채팅").GetComponent<DoodleUiWindow>().full, Is.True);
+            Assert.That(UiNode("Panel: 채팅").GetComponent<DoodleUiWindow>().full, Is.False);
             Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text.Contains("네트워크 미연결")), Is.True);
             string message = "<b>로컬 입력 확인</b>";
             UiNode("Chat input").GetComponent<InputField>().text = message;

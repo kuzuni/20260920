@@ -27,7 +27,9 @@ namespace DoodleIdle.Tests
         {
             var bodies = DurableSkillTargets(); Place(bodies[0], new Vector2(3, 0));
             game.basicSkillsEnabled = true;
-            yield return PhysicsTicks(18);
+            // Bootstrap may already have consumed the initial attack cooldown.
+            typeof(DoodleIdleGame).GetField("attackTimer", GrowthPrivate).SetValue(game, 0f);
+            yield return PhysicsTicks(1);
             Assert.That(NamedArt("Club slash wave").Length, Is.GreaterThan(0));
 #if UNITY_EDITOR
             var type = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleIdle.Editor.DoodleSkillTestWindow")).First(t => t != null);
@@ -134,7 +136,8 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(60);
             Assert.That(game.VariantProjectilesLaunched - before, Is.EqualTo(10));
             Assert.That(CastCatalogSkill("RedWave"), Is.True);
-            yield return PhysicsTicks(60); Assert.That(game.RedWavesLaunched, Is.EqualTo(5));
+            yield return PhysicsTicks(Mathf.CeilToInt(DoodleIdleGame.RedWaveShotGap * 4 / Time.fixedDeltaTime) + 2);
+            Assert.That(game.RedWavesLaunched, Is.EqualTo(5));
         }
 
         [UnityTest]
