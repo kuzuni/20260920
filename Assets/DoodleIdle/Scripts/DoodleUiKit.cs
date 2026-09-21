@@ -138,6 +138,7 @@ namespace DoodleIdle
         {
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
+            var expansion=DoodleExpansionArt.Get(key);if(expansion){art[key]=expansion;return expansion;}
             if(key=="AddSlot" || key=="ReplaceArrow")
             {
                 var tex=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color[64*64];
@@ -254,6 +255,7 @@ namespace DoodleIdle
     {
         public Text grade;
         public RectTransform art,gauge;
+        public bool hideQuantity;
         Vector2 previousSize;
         void OnRectTransformDimensionsChange()=>Reflow();
         void LateUpdate()=>Reflow();
@@ -263,7 +265,8 @@ namespace DoodleIdle
             var rect=(RectTransform)transform;var size=rect.rect.size;
             if(!grade||!art||!gauge||size.x<=0||size.y<=0||size==previousSize)return;
             previousSize=size;
-            float scale=Mathf.Clamp(size.x/100f,.6f,1.35f), top=24*scale,bottom=25*scale,pad=5*scale;
+            float scale=Mathf.Clamp(size.x/100f,.6f,1.35f), top=24*scale,bottom=hideQuantity?0:25*scale,pad=5*scale;
+            gauge.gameObject.SetActive(!hideQuantity);
             grade.rectTransform.anchorMin=new Vector2(0,1);grade.rectTransform.anchorMax=Vector2.one;
             grade.rectTransform.offsetMin=new Vector2(pad,-top);grade.rectTransform.offsetMax=new Vector2(-pad,-2*scale);
             grade.resizeTextMinSize=Mathf.RoundToInt(12*scale);grade.resizeTextMaxSize=Mathf.RoundToInt(20*scale);

@@ -22,6 +22,7 @@ namespace DoodleIdle
                 case "Eggplant":return 6; case "Durian":return 7; case "BrickVolley":return 5;
                 case "Shuriken":return 6;case "IceSnakes":return 9;case "PurpleFireArrows":return 5;
                 case "GiantWorm":return 8;case "BlueMolotov":return 8;case "RedCloud":return 10;
+                case "Dumbbell":return 6;
                 default:return 0;
             }
         }
@@ -53,7 +54,7 @@ namespace DoodleIdle
                 }
             }
             else {
-                var volley=new VariantVolley { requiresEquipment=castingEquippedSkill,ability=ability,direction=direction,remaining=ability=="Durian"?3:ability=="PurpleFireArrows"?8:6 };
+                var volley=new VariantVolley { requiresEquipment=castingEquippedSkill,ability=ability,direction=direction,remaining=ability=="Dumbbell"?10:ability=="Durian"?3:ability=="PurpleFireArrows"?8:6 };
                 FireVariantVolley(volley);if(volley.remaining>0)variantVolleys.Add(volley);
             }
         }
@@ -68,8 +69,9 @@ namespace DoodleIdle
                     if(shot.purple) { shot.curveSide=volley.index%2==0?1:-1;StartHomingCurve(shot,player.Position); }
                     SetSpriteArt(shot.art,DoodleVariantArt.Get(shot.purple?"PurpleFireArrow":"Durian"));shot.art.transform.localScale*=2;
                     shot.art.name=volley.ability+" projectile";VariantProjectilesLaunched++;
-                } else if(volley.ability=="BrickVolley") {
-                    var shot=VariantProjectile("Brick",player.Position,volley.direction,1.29f,0,.8f,30,.65f,360);
+                } else if(volley.ability=="BrickVolley" || volley.ability=="Dumbbell") {
+                    bool dumbbell=volley.ability=="Dumbbell";
+                    var shot=VariantProjectile(dumbbell?"SkillDumbbell":"Brick",player.Position,volley.direction,1.29f,0,.8f,dumbbell?40:30,dumbbell?1:.65f,360);
                     shot.arc=true;shot.end=target.Position;
                 }
             }
@@ -107,7 +109,7 @@ namespace DoodleIdle
                 if(!shot.arc || t>=1)for(int e=enemies.Count-1;e>=0;e--) {
                     var enemy=enemies[e];float distance=shot.arc?Vector2.Distance(enemy.Position,shot.end):SegmentDistance(enemy.Position,old,next);
                     if(distance>shot.radius+.56f || !shot.victims.Add(enemy))continue;
-                    Damage(enemy,shot.damage,shot.direction);
+                    SkillDamage(enemy,shot.damage,shot.direction);
                 }
                 if(shot.age>=shot.life){Destroy(shot.art.gameObject);variantShots.RemoveAt(i);}
             }

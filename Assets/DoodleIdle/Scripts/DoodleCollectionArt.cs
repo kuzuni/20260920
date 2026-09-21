@@ -15,8 +15,10 @@ namespace DoodleIdle
         {
             if (string.IsNullOrEmpty(key)) return null;
             if (cache.TryGetValue(key, out var value)) return value;
-            if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))
-                value = Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
+            if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
+                value = Cell("RelicAttackArtifacts", relic, 3, 1);
+            else if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))
+                value = skill >= 24 ? Cell("SkillThumbsExpansion", skill - 24, 3, 2) : Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
             else if (key.StartsWith("CompanionMon_", StringComparison.Ordinal) && int.TryParse(key.Substring(13), out int companion))
                 return CompanionFrame(companion, 0);
             else if (key.StartsWith("CompanionShot_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int shot))

@@ -13,7 +13,8 @@ namespace DoodleIdle
         {
             public int freeCount = 5;
             public int tenCost = 100;
-            public int fiftyCost = 450;
+            public int fiftyCost = 500;
+            public int relicUnitCost = 100, skillUnitCost = 200, companionUnitCost = 200;
             public int[] levelExperience = { 50, 100, 200, 400, 800, 1000 };
             public SummonRateTier[] rates = {
                 new SummonRateTier { level=1, basisPoints=new[]{6000,3000,900,100,0,0,0} },
@@ -121,9 +122,10 @@ namespace DoodleIdle
         public int SummonExperience(string category) { return summonStates[category].experience; }
         public bool CanFreeSummon(string category) { return summonStates[category].freeUsedDay != CommerceDay(); }
 
-        public int[] SummonWeights(string category)
+        public int[] SummonWeights(string category) => SummonWeights(category, SummonLevel(category));
+        public int[] SummonWeights(string category, int previewLevel)
         {
-            int level=SummonLevel(category);
+            int level=Mathf.Clamp(previewLevel, 1, MaxSummonLevel);
             if(category=="Relic")return new[]{10000,0,0,0,0,0,0};
             var anchors=commerceTuning.rates;var lower=anchors[0];var upper=anchors[anchors.Length-1];
             foreach(var tier in anchors){if(tier.level<=level)lower=tier;if(tier.level>=level){upper=tier;break;}}
@@ -140,9 +142,15 @@ namespace DoodleIdle
             return weights;
         }
 
-        // Use the current best paid per-draw price, including the 50-draw discount.
+        // Refunds use the same current unit price as skill summons; no bulk discount.
         // Fractional diamonds carry over between refunds and are persisted.
-        public decimal SkillRefundUnitPrice => Math.Min(commerceTuning.tenCost / 10m, commerceTuning.fiftyCost / 50m);
+        public decimal SkillRefundUnitPrice => Math.Max(1, commerceTuning.skillUnitCost);
+        public bool SkipSummonAnimations { get => PlayerPrefs.GetInt("DoodleUi.SkipSummonAnimations", 0) != 0; set { PlayerPrefs.SetInt("DoodleUi.SkipSummonAnimations", value ? 1 : 0); PlayerPrefs.Save(); } }
+        public int SummonCost(string category, int count)
+        {
+            long unit = category == "Relic" ? commerceTuning.relicUnitCost : category == "Skill" ? commerceTuning.skillUnitCost : category == "Companion" ? commerceTuning.companionUnitCost : Math.Max(1, commerceTuning.tenCost / 10);
+            return (int)Math.Min(int.MaxValue, Math.Max(1, unit) * count);
+        }
         decimal SkillRefundRemainder => decimal.TryParse(PlayerPrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
         int RefundableSkillCopies(UiItem item)
         {
@@ -212,7 +220,7 @@ namespace DoodleIdle
             size.minWidth = size.preferredWidth = 36;
             size.flexibleWidth = 0;
             int needed = CommerceExperienceNeeded(state);
-            if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 20%",22,TextAnchor.MiddleLeft,28);
+            if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 " + (100d / Items("Relic").Count).ToString("0.##") + "%",22,TextAnchor.MiddleLeft,28);
             else UiKit.Gauge(content, state.level==MaxSummonLevel?"MAX":UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), state.level==MaxSummonLevel?1:(float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
             BuildSummonButtons(content, category);
             if (category == "Relic")
@@ -234,8 +242,8 @@ namespace DoodleIdle
             var free = UiKit.Button(actions, "무료 " + commerceTuning.freeCount + "회\n뽑기", () => TrySummon(category, commerceTuning.freeCount, true), result ? UiKit.Blue : UiKit.Green, 68);
             CommerceButtonText(free, 24);
             free.interactable = CanFreeSummon(category);
-            PaidSummonButton(actions, category, 10, commerceTuning.tenCost, UiKit.Yellow);
-            PaidSummonButton(actions, category, 50, commerceTuning.fiftyCost, UiKit.Yellow);
+            PaidSummonButton(actions, category, 10, SummonCost(category, 10), UiKit.Yellow);
+            PaidSummonButton(actions, category, 50, SummonCost(category, 50), UiKit.Yellow);
         }
 
         void PaidSummonButton(Transform parent, string category, int count, int cost, Color color)
@@ -270,7 +278,7 @@ namespace DoodleIdle
             if (free && count != commerceTuning.freeCount) return false;
             if (!free && count != 10 && count != 50) return false;
             if (free && !CanFreeSummon(category)) { Toast("오늘 무료 뽑기를 모두 사용했어요."); return false; }
-            int cost = free ? 0 : count == 10 ? commerceTuning.tenCost : commerceTuning.fiftyCost;
+            int cost = free ? 0 : SummonCost(category, count);
             if (Diamonds < cost) { Toast("다이아가 부족해요."); return false; }
             var rewards = new List<UiItem>(count);
             for (int i = 0; i < count; i++)
@@ -318,6 +326,7 @@ namespace DoodleIdle
 
         void ShowSummonResults(string category, List<UiItem> rewards)
         {
+            bool animateWindow = fullscreenTitle != "뽑기 결과" && !SkipSummonAnimations;
             ShowFullscreen("뽑기 결과", body =>
             {
                 var subtitle = UiKit.Text(body, CommerceLabel(category) + " " + rewards.Count + "회 뽑기", 38, TextAnchor.MiddleCenter, 58);
@@ -328,6 +337,8 @@ namespace DoodleIdle
                     var item = rewards[i];
                     var slot = UiKit.Slot(grid, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, false,
                         () => ShowSummonItem(item), 150);
+                    slot.GetComponent<DoodleUiSlotLayout>().hideQuantity = true;
+                    slot.GetComponent<DoodleUiSlotLayout>().Invalidate();
                     slot.gameObject.name = "SummonResult_" + i + "_" + item.id;
                 }
                 var footer = UiKit.Footer(body, "Summon result footer", 228);
@@ -338,11 +349,19 @@ namespace DoodleIdle
                 bool relic=category=="Relic";
                 var level = UiKit.Text(summaryText, CommerceLabel(category) + (relic?" 뽑기":" 뽑기 Lv. "+state.level+(state.level==MaxSummonLevel?" MAX":"")), 36, TextAnchor.MiddleLeft, 46);
                 int needed = CommerceExperienceNeeded(state);
-                var experience = UiKit.Text(summaryText, relic?"모든 유물 동일 등급 · 각각 20%":state.level==MaxSummonLevel?"최대 뽑기 레벨 달성":"뽑기 경험치 " + UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), 29, TextAnchor.MiddleLeft, 34);
+                var experience = UiKit.Text(summaryText, relic?"모든 유물 동일 등급 · 각각 " + (100d / Items("Relic").Count).ToString("0.##") + "%":state.level==MaxSummonLevel?"최대 뽑기 레벨 달성":"아이템을 누르면 상세 보기", 29, TextAnchor.MiddleLeft, 34);
                 var gauge = UiKit.Gauge(footer, "", state.level==MaxSummonLevel?1:(float)state.experience / needed, 32);
-                gauge.gameObject.SetActive(!relic);
+                gauge.gameObject.SetActive(false);
                 BuildSummonButtons(footer, category, true);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
+                DoodleSummonReveal reveal = null; DoodleSummonCelebration celebration = null;
+                Button skip = null;
+                skip = UiKit.Button(confirmRow, "애니메이션 스킵: " + (SkipSummonAnimations ? "켜짐" : "꺼짐"), () => {
+                    SkipSummonAnimations = !SkipSummonAnimations;
+                    skip.GetComponentInChildren<Text>().text = "애니메이션 스킵: " + (SkipSummonAnimations ? "켜짐" : "꺼짐");
+                    if (SkipSummonAnimations) { if(reveal) reveal.Complete(); if(celebration) celebration.Finish(); }
+                }, UiKit.Paper, 58);
+                skip.name = "Summon animation skip";
                 var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window)
@@ -353,8 +372,10 @@ namespace DoodleIdle
                     if (paper) paper.color = new Color(1, .982f, .93f);
                     var decoration = UiKit.Rect(window.inner, "Summon celebration accents");
                     UiKit.Stretch(decoration);
-                    decoration.SetAsFirstSibling();
-                    decoration.gameObject.AddComponent<DoodleSummonCelebration>().raycastTarget = false;
+                    decoration.SetAsLastSibling();
+                    celebration = decoration.gameObject.AddComponent<DoodleSummonCelebration>();celebration.raycastTarget = false;
+                    if (SkipSummonAnimations) celebration.Finish();
+                    reveal = window.gameObject.AddComponent<DoodleSummonReveal>();reveal.Configure(grid, SkipSummonAnimations);
                     var banner = window.inner.Find("Golden result banner") as RectTransform;
                     if (banner)
                     {
@@ -371,12 +392,12 @@ namespace DoodleIdle
                     responsive.resultCount = rewards.Count; responsive.subtitle = subtitle; responsive.crest = crest.rectTransform;
                     responsive.summary = summary; responsive.summaryIcon = summaryIcon.rectTransform; responsive.level = level;
                     responsive.summaryText = summaryText; responsive.experience = experience;
-                    responsive.noSummonProgress=relic;
+                    responsive.noSummonProgress=true; responsive.skipButton=skip;
                     responsive.gauge = gauge; responsive.actions = footer.Find("SummonActions") as RectTransform;
                     responsive.confirm = confirm; responsive.confirmRow = confirmRow;
                     responsive.Reflow();
                 }
-            });
+            }, animateWindow);
         }
 
         void ShowSummonItem(UiItem item)
@@ -396,74 +417,47 @@ namespace DoodleIdle
         public void ShowSummonProbabilities(string category)
         {
             if (!summonStates.ContainsKey(category)) return;
+            ShowSummonProbabilityPage(category, SummonLevel(category));
+        }
+        public double PreviewItemProbability(UiItem item, int level)
+        {
+            var items = Items(item.category);
+            return item.category == "Relic" ? 100d / items.Count : SummonWeights(item.category, level)[item.rarity] / 100d / items.FindAll(x => x.rarity == item.rarity).Count;
+        }
+        void ShowSummonProbabilityPage(string category, int level)
+        {
+            bool relic = category == "Relic";
+            level = relic ? 0 : Mathf.Clamp(level, 1, MaxSummonLevel);
             ShowDetail("뽑기 확률", body =>
             {
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window) { window.maxWidth = 570; window.maxHeight = 1110; }
-                body.GetComponent<VerticalLayoutGroup>().spacing = 5;
-                var heading = UiKit.Box(body, "Summon probability heading", new Color(.96f, .96f, .94f), 62);
-                bool relic=category=="Relic";
-                var headingText = UiKit.Text(heading, (relic?"":"Lv. " + SummonLevel(category) + " ") + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
-                UiKit.Stretch(headingText.rectTransform, 5, 2, 5, 2);
-                var explanation = UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
-                var gradeTitle = UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
-                var grades = UiKit.Grid(body, "GradeProbabilities", relic?1:4, 86);
-                for (int rarity = 0; rarity < (relic?1:category=="Skill"||category=="Companion"?6:7); rarity++)
-                {
-                    int grade = rarity;
-                    var card = UiKit.Box(grades, "Grade" + rarity, UiKit.Rarity(rarity), 86);
-                    UiKit.Flexible(card);
-                    var label = UiKit.Text(card, commerceGrades[grade] + "\n" + GradeProbability(category, grade).ToString("0.####", CultureInfo.InvariantCulture) + "%", 29, TextAnchor.MiddleCenter, 86);
-                    var rect = label.rectTransform;
-                    rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
-                    rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
+                var heading = UiKit.Row(body, "Probability level pages", 62, 8);
+                System.Action<int> page = next => { CloseDetail(); ShowSummonProbabilityPage(category, next); };
+                if (!relic) {
+                    var previous = UiKit.Button(heading, "<", () => page(level - 1), UiKit.Paper, 62);
+                    previous.name = "Previous probability level"; previous.interactable = level > 1; FixedWidth(previous.transform, 54);
                 }
-                UiKit.Text(body,relic?"모든 유물 동일 등급 · 각각 20%":category=="Skill"||category=="Companion"?"일반~신화 · 등급별 4종\n전설 Lv.5 · 신화 Lv.15부터 등장":"전설 Lv.5 · 신화 Lv.15 · 갓 Lv.25부터 등장\nLv.30: 갓 1% · 일반/고급 각각 10%",20,TextAnchor.MiddleCenter,relic?32:54);
-                var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
-                var all = Items(category);
-                for (int rarity = 0; rarity < GradeNames.Length; rarity++)
-                {
-                    var group = all.FindAll(item => item.rarity == rarity);
-                    if (group.Count == 0) continue;
-                    int grade = rarity;
-                    var groupBody = UiKit.Column(body, "Probability grade group " + grade, 0, 0);
-                    var header = UiKit.Box(groupBody, "Probability grade header " + grade, UiKit.Rarity(grade), 44);
-                    var gradeText = UiKit.Text(header, commerceGrades[grade] + " · 합계 " + GradeProbability(category, grade).ToString("0.####", CultureInfo.InvariantCulture) + "%", 29, TextAnchor.MiddleCenter, 44);
-                    UiKit.Stretch(gradeText.rectTransform, 4, 0, 4, 0);
-                    foreach (var item in group)
-                    {
-                        var row = CommerceFramedRow(groupBody, "Probability_" + item.id, 64);
-                        row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(10, 10, 5, 5);
-                        UiKit.Icon(row, item.icon, 50);
-                        UiKit.Text(row, item.name, 28, TextAnchor.MiddleLeft, 48);
-                        var rate = UiKit.Text(row, CommerceExactRate(category, grade, group.Count), 26, TextAnchor.MiddleRight, 48);
-                        var rateSize = rate.GetComponent<LayoutElement>();
-                        rateSize.minWidth = rateSize.preferredWidth = 112; rateSize.flexibleWidth = 0;
-                    }
+                var title = UiKit.Text(heading, CommerceLabel(category) + (relic ? " 뽑기" : " 뽑기 Lv. " + level), 30, TextAnchor.MiddleCenter, 62);
+                title.name = "Probability level title"; UiKit.Flexible(title.transform);
+                if (!relic) {
+                    var next = UiKit.Button(heading, ">", () => page(level + 1), UiKit.Paper, 62);
+                    next.name = "Next probability level"; next.interactable = level < MaxSummonLevel; FixedWidth(next.transform, 54);
                 }
-                UiKit.Text(body, "등급 확률 합계 100% · 동일 등급 안에서 균등 추첨\n나눗셈 표기는 반올림하지 않은 정확한 확률입니다.", 19, TextAnchor.MiddleCenter, 60);
+                UiKit.Text(body, "아이템별 확률", 27, TextAnchor.MiddleLeft, 42);
+                foreach (var item in Items(category)) {
+                    var row = CommerceFramedRow(body, "Probability_" + item.id, 64);
+                    row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(10, 10, 5, 5);
+                    UiKit.Icon(row, item.icon, 50);
+                    UiKit.Text(row, item.name, 27, TextAnchor.MiddleLeft, 48);
+                    var rate = UiKit.Text(row, PreviewItemProbability(item, level).ToString("0.####", CultureInfo.InvariantCulture) + "%", 26, TextAnchor.MiddleRight, 48);
+                    rate.name = "Item probability rate";
+                    FixedWidth(rate.transform, 100);
+                }
+                UiKit.Text(body, relic ? "모든 유물 동일 확률" : level + " / " + MaxSummonLevel + " · 확률 미리보기", 20, TextAnchor.MiddleCenter, 40);
                 var footer = UiKit.Footer(body, "Probability confirmation footer", 64);
                 CommerceButtonText(UiKit.Button(footer, "확인", CloseDetail, UiKit.Yellow, 64), 34);
-                if (window)
-                {
-                    var responsive = window.inner.gameObject.AddComponent<DoodleCommerceLayout>();
-                    responsive.window = window;
-                    responsive.probabilityHeading = heading; responsive.probabilityHeadingText = headingText;
-                    responsive.probabilityExplanation = explanation; responsive.probabilityGradeTitle = gradeTitle;
-                    responsive.probabilityGrades = grades; responsive.probabilityItemTitle = itemTitle;
-                    responsive.Reflow();
-                }
             });
-        }
-
-        string CommerceExactRate(string category, int rarity, int itemCount)
-        {
-            if (itemCount <= 0) return "0%";
-            decimal grade = (decimal)GradeProbability(category, rarity);
-            decimal rate = grade / itemCount;
-            if (decimal.Round(rate, 4) * itemCount == grade)
-                return rate.ToString("0.####", CultureInfo.InvariantCulture) + "%";
-            return grade.ToString("0.####", CultureInfo.InvariantCulture) + "% ÷ " + itemCount;
         }
 
         void BuildCurrencyProducts(RectTransform body)
@@ -511,33 +505,26 @@ namespace DoodleIdle
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleSummonCelebration : MaskableGraphic
     {
+        float age;
+        public void Finish() { age = 3; SetVerticesDirty(); enabled = false; }
+        void Update() { age += Time.unscaledDeltaTime; SetVerticesDirty(); if (age >= 3) enabled = false; }
         protected override void OnPopulateMesh(VertexHelper vh)
         {
-            vh.Clear();
+            vh.Clear(); if (age >= 3) return;
             var r = rectTransform.rect;
-            Vector2 P(float x, float y) { return new Vector2(r.xMin + x * r.width, r.yMin + y * r.height); }
-            float tall = Mathf.Clamp01((r.height - 720) / 800);
-            if (tall < .12f) return;
             Color[] colors = { new Color(.52f,.85f,.40f), new Color(.99f,.83f,.32f), new Color(.40f,.77f,.98f), new Color(.96f,.54f,.72f) };
-            Vector2[] pieces = { P(.10f,.93f), P(.28f,.968f), P(.82f,.944f), P(.94f,.899f), P(.055f,.862f), P(.91f,.755f), P(.10f,.10f), P(.91f,.111f), P(.18f,.045f), P(.82f,.041f) };
-            for (int i = 0; i < pieces.Length; i++)
+            for (int i = 0; i < 44; i++)
             {
-                float angle = (i % 2 == 0 ? -34 : 37) * Mathf.Deg2Rad;
+                float t = Mathf.Max(0, age - i % 5 * .035f), side = i % 2 == 0 ? -1 : 1;
+                Vector2 origin = new Vector2(r.center.x + side * r.width * .43f, r.yMin + r.height * .55f);
+                Vector2 velocity = new Vector2(-side * (90 + i % 9 * 31), 190 + i % 7 * 48);
+                Vector2 center = origin + velocity * t + Vector2.down * (220 * t * t);
+                float angle = (i * 37 + t * (i % 2 == 0 ? 160 : -220)) * Mathf.Deg2Rad;
                 Vector2 axis = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                Vector2 cross = new Vector2(-axis.y, axis.x);
-                Vector2 a = axis * 7, b = cross * 13;
-                DoodleCommerceMesh.Polygon(vh, new[] { pieces[i]-a-b, pieces[i]+a-b, pieces[i]+a+b, pieces[i]-a+b }, colors[i%colors.Length], 3);
+                Vector2 a = axis * (4 + i % 3), b = new Vector2(-axis.y, axis.x) * 9;
+                Color tint = colors[i % colors.Length]; tint.a = Mathf.Clamp01(3 - age);
+                DoodleCommerceMesh.Polygon(vh, new[] { center-a-b,center+a-b,center+a+b,center-a+b }, tint, 1.5f);
             }
-            var yellow = new Color(1, .77f, .20f);
-            foreach (float y in new[] { .815f, .273f, .065f })
-            {
-                DoodleCommerceMesh.Stroke(vh, P(.045f,y), P(.075f,y-.006f), 5, yellow);
-                DoodleCommerceMesh.Stroke(vh, P(.92f,y), P(.946f,y+.014f), 5, yellow);
-            }
-            DoodleCommerceMesh.Stroke(vh, P(.335f,.94f), P(.353f,.923f), 5, UiKit.Ink);
-            DoodleCommerceMesh.Stroke(vh, P(.665f,.94f), P(.647f,.923f), 5, UiKit.Ink);
-            DoodleCommerceMesh.Stroke(vh, P(.315f,.908f), P(.339f,.903f), 5, UiKit.Ink);
-            DoodleCommerceMesh.Stroke(vh, P(.685f,.908f), P(.661f,.903f), 5, UiKit.Ink);
         }
     }
 
@@ -577,6 +564,7 @@ namespace DoodleIdle
         public Button confirm;
         public int resultCount;
         public bool noSummonProgress;
+        public Button skipButton;
         bool reflowing;
 
         void LateUpdate() { Reflow(); }
@@ -679,7 +667,8 @@ namespace DoodleIdle
                 }
                 UiKit.Height(confirmRow, confirmHeight); UiKit.Height(confirm.transform, confirmHeight);
                 var confirmSize = confirm.GetComponent<LayoutElement>();
-                confirmSize.minWidth = confirmSize.preferredWidth = Mathf.Lerp(window.footer.rect.width, Mathf.Min(440, window.footer.rect.width), tall);
+                confirmSize.minWidth = confirmSize.preferredWidth = window.footer.rect.width * .38f;
+                if(skipButton) { UiKit.Height(skipButton.transform, confirmHeight);SetTextSize(skipButton.GetComponentInChildren<Text>(), 22); }
                 confirmSize.flexibleWidth = 0;
                 SetTextSize(confirm.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(29, 43, tall)));
                 SetTextSize(subtitle, Mathf.RoundToInt(Mathf.Lerp(32, 40, tall)));

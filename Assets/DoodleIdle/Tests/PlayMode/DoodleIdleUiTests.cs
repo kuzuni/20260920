@@ -189,7 +189,7 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(10));
             UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
             Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 65));
-            Assert.That(ui.Diamonds, Is.EqualTo(wallet - 550));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet - 600));
             Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(50));
             Assert.That(UiNode("SummonResultCards").GetComponentsInChildren<Text>().Any(t => t.text.Contains("+1")), Is.False);
             ui.CloseFullscreen();

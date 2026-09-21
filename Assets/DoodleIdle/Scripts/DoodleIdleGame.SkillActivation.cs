@@ -39,6 +39,11 @@ namespace DoodleIdle
                 case "Dragon": return dragonInterval;
                 case "FireRing": return ringInterval;
                 case "WaveSnakes": return snakeInterval;
+                case "RedWave": return redWaveInterval;
+                case "Tornado": return 10;
+                case "DoubleClaw": return 5;
+                case "Golem": return 13;
+                case "Meteor": return 10;
                 default: return 0;
             }
         }
@@ -94,15 +99,25 @@ namespace DoodleIdle
                 case "TetherSnake": CastSummonSkill(SummonSkill.TetherSnake); break;
                 case "Cloud": CastSummonSkill(SummonSkill.StormCloud); break;
                 case "Lightning":
-                    var target = Closest(player.Position);
-                    Echo("Direct lightning strike", summonArt["Lightning"], target.Position + Vector2.up * 1.5f,
-                        new Vector2(3, 1.1f), Aim(Vector2.down), .25f, 1, 580);
-                    Impact(SummonSkill.StormCloud, target, 35, Vector2.down); LightningStrikes++;
+                    var targets = new List<Actor>(enemies);
+                    targets.Sort((a, b) => (a.Position - player.Position).sqrMagnitude.CompareTo((b.Position - player.Position).sqrMagnitude));
+                    for (int i = 0; i < Mathf.Min(3, targets.Count); i++)
+                    {
+                        var target = targets[i];
+                        Echo("Direct lightning strike", summonArt["Lightning"], target.Position + Vector2.up * 1.5f,
+                            new Vector2(3, 1.1f), Aim(Vector2.down), .25f, 1, 580);
+                        Impact(SummonSkill.StormCloud, target, 35, Vector2.down); LightningStrikes++;
+                    }
                     break;
                 case "Molotov": CastSummonSkill(SummonSkill.Molotov); break;
                 case "Dragon": CastSummonSkill(SummonSkill.Dragon); break;
                 case "FireRing": CastSummonSkill(SummonSkill.FireRing); break;
                 case "WaveSnakes": CastSummonSkill(SummonSkill.WaveSnakes); break;
+                case "RedWave": CastSummonSkill(SummonSkill.RedWave); break;
+                case "Tornado": CastPursuer(false); break;
+                case "Golem": CastPursuer(true); break;
+                case "DoubleClaw": CastDoubleClaw(); break;
+                case "Meteor": CastMeteor(); break;
                 default: CastVariant(ability); break;
             }
             skillActivationCounts[ability] = SkillActivationCount(ability) + 1;

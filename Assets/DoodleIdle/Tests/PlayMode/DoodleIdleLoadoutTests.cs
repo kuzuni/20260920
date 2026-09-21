@@ -55,7 +55,7 @@ namespace DoodleIdle.Tests
             var window = ScriptableObject.CreateInstance(editorType);
             editorType.GetMethod("RefreshSkills").Invoke(window, null);
             var rows = (System.Collections.IList)editorType.GetField("skills", GrowthPrivate).GetValue(window);
-            Assert.That(rows.Count, Is.EqualTo(24)); Object.DestroyImmediate(window);
+            Assert.That(rows.Count, Is.EqualTo(30)); Object.DestroyImmediate(window);
 #endif
         }
 
@@ -92,7 +92,7 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = game.Ui.Items(category);
-                Assert.That(items.Select(x => x.icon).Distinct().Count(), Is.EqualTo(24));
+                Assert.That(items.Select(x => x.icon).Distinct().Count(), Is.EqualTo(category == "Skill" ? 30 : 24));
                 foreach (var item in items) Assert.That(UiKit.Art(item.icon), Is.Not.Null, item.id);
             }
             Assert.That(game.Ui.Items("Companion").Select(x => x.projectile).Distinct().Count(), Is.EqualTo(24));

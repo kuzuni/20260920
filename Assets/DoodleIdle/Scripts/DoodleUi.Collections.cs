@@ -412,9 +412,10 @@ namespace DoodleIdle
                 var effectHeading = UiKit.Row(effects, "Equipment effect label", 26, 0);
                 effectHeading.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
                 CollectionLabelPill(effectHeading, "장착 효과", new Color(.79f, .95f, .69f), 106, 26, 22);
-                var description = UiKit.Box(effects, "Effects", UiKit.Paper, 42);
+                float descriptionHeight = Mathf.Max(42, Mathf.CeilToInt(item.description.Length / 17f) * 23);
+                var description = UiKit.Box(effects, "Effects", UiKit.Paper, descriptionHeight);
                 description.GetComponent<Outline>().enabled = false;
-                var descriptionText = UiKit.Text(description, item.description, 19, TextAnchor.MiddleLeft, 42);
+                var descriptionText = UiKit.Text(description, item.description, 19, TextAnchor.MiddleLeft, descriptionHeight);
                 UiKit.Stretch(descriptionText.rectTransform, 7, 3, 7, 3);
                 var owned = CollectionBox(body, "Ownership effect", new Color(.965f, .943f, .874f));
                 owned.GetComponent<Outline>().enabled = false;
@@ -426,46 +427,24 @@ namespace DoodleIdle
                 ownedValue.GetComponent<Outline>().enabled = false;
                 var ownedText = UiKit.Text(ownedValue, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "%", 22, TextAnchor.MiddleLeft, 26);
                 UiKit.Stretch(ownedText.rectTransform, 7, 1, 7, 1);
-                if (item.category == "Skill")
+                if (item.category == "Skill" || item.category == "Companion")
                 {
-                    // Read the active combat component, never present catalog mock values
-                    // as real cooldowns. Orbit skills use their shared public cycle constant.
-                    float interval = DoodleIdleGame.VariantInterval(item.ability);
-                    if (game)
-                    {
-                        switch (item.ability)
-                        {
-                            case "Banana": case "OrbitGun": interval = DoodleIdleGame.OrbitSkillCycle; break;
-                            case "Stone": interval = game.stoneInterval; break;
-                            case "Arrows": interval = game.arrowInterval; break;
-                            case "BouncyBall": interval = game.ballInterval; break;
-                            case "Fire": interval = game.fireInterval; break;
-                            case "Drone": interval = game.droneInterval; break;
-                            case "Worm": interval = game.wormInterval; break;
-                            case "TetherSnake":interval=game.tetherInterval;break;
-                            case "WaveSnakes":interval=game.snakeInterval;break;
-                            case "FireRing":interval=game.ringInterval;break;
-                            case "Cloud": case "Lightning": interval = game.cloudInterval; break;
-                            case "Dragon": interval = game.dragonInterval; break;
-                            case "Cannon": interval = game.cannonInterval; break;
-                            case "Guardian": interval = game.guardianInterval; break;
-                            case "Shotgun": interval = game.shotgunInterval; break;
-                            case "Molotov": interval = game.molotovInterval; break;
-                            case "Sound": interval = game.soundWaveInterval; break;
-                        }
-                    }
-                    var measures = UiKit.Row(body, "Skill measures", 54, 10);
-                    var potency = CollectionBox(measures, "Skill potency", UiKit.Paper);
-                    potency.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
-                    potency.GetComponent<Outline>().effectColor = new Color(.89f, .81f, .70f);
-                    UiKit.Text(potency, "위력  Lv. " + UiNumber.Format(item.level), 18, TextAnchor.MiddleLeft, 20);
-                    UiKit.Text(potency, UiNumber.Format(ItemEquipValue(item)), 23, TextAnchor.MiddleLeft, 24);
-                    var reuse = CollectionBox(measures, "Skill reuse", UiKit.Paper);
-                    reuse.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
-                    reuse.GetComponent<Outline>().effectColor = new Color(.89f, .81f, .70f);
-                    UiKit.Text(reuse, "재사용", 18, TextAnchor.MiddleLeft, 20);
-                    UiKit.Text(reuse, interval > 0 ? UiNumber.Format(interval, 2) + "초" : "자동", 23, TextAnchor.MiddleLeft, 24);
-                    UiKit.Text(body, "장착 시에만 자동 발동 · 공격력 +" + UiNumber.Format(ItemEquipValue(item) * .02f, 2) + "%", 15, TextAnchor.MiddleCenter, 20);
+                    float interval = ItemAttackInterval(item);
+                    var measures = UiKit.Row(body, "Skill measures", 60, 10);
+                    var hit = CollectionBox(measures, "Skill potency", UiKit.Paper);
+                    hit.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
+                    UiKit.Text(hit, "1타 피해 (일반)", 17, TextAnchor.MiddleLeft, 22);
+                    UiKit.Text(hit, UiNumber.Format(ItemHitDamage(item), 2), 23, TextAnchor.MiddleLeft, 26);
+                    var dps = CollectionBox(measures, "Expected DPS", UiKit.Paper);
+                    dps.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
+                    UiKit.Text(dps, "예상 총 DPS", 17, TextAnchor.MiddleLeft, 22);
+                    UiKit.Text(dps, UiNumber.Format(ItemExpectedDps(item), 2), 23, TextAnchor.MiddleLeft, 26);
+                    UiKit.Text(body, "1타 = 공격력의 " + UiNumber.Format(ItemHitPercent(item), 2) + "% · 재사용 " + UiNumber.Format(interval, 2) + "초", 16, TextAnchor.MiddleCenter, 24);
+                    if (item.ability == "Molotov" || item.ability == "BlueMolotov")
+                        UiKit.Text(body, "화상 1타 = 공격력의 " + UiNumber.Format(DoodleAttackPower.Percent(8), 2) + "%", 16, TextAnchor.MiddleCenter, 22);
+                    string basis = item.category == "Companion" ? item.volleyCount + "발 모두 명중 · 추가 폭발 대상 제외" : DoodleAttackPower.Skill(item.ability).basis;
+                    UiKit.Text(body, basis + "\n현재 공격력·유물·버프 반영 / DPS는 치명타 평균 반영\n전부 명중 가정 · 이동·대상 수에 따라 실제 피해 변동", 14, TextAnchor.MiddleCenter, 60);
+                    UiKit.Text(body, "장착 시에만 자동 공격 · 공격력 +" + UiNumber.Format(ItemEquipValue(item) * (item.category == "Skill" ? .02f : 1), 2) + "%", 15, TextAnchor.MiddleCenter, 22);
                 }
                 else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);
@@ -536,7 +515,8 @@ namespace DoodleIdle
             totals.GetComponent<Outline>().effectColor = new Color(.27f, .53f, .23f);
             string summary = "총 유물 효과   공격력 +" + UiNumber.Format(EffectBonus("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectBonus("health", "Relic")) + "%\n"
                 + "골드 +" + UiNumber.Format(EffectBonus("gold", "Relic")) + "% · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", "Relic")) + "% · 치명 피해 +" + UiNumber.Format(EffectBonus("critDamage", "Relic")) + "%";
-            UiKit.Text(totals, summary, 23, TextAnchor.MiddleCenter, 62);
+            summary += "\n기본 공격 +" + UiNumber.Format(EffectBonus("basicAttack", "Relic")) + "% · 스킬 +" + UiNumber.Format(EffectBonus("skillAttack", "Relic")) + "% · 동료 +" + UiNumber.Format(EffectBonus("companionAttack", "Relic")) + "%";
+            UiKit.Text(totals, summary, 21, TextAnchor.MiddleCenter, 88);
             foreach (var entry in Items("Relic"))
             {
                 var item = entry;
@@ -643,7 +623,7 @@ namespace DoodleIdle
 
         static string EffectName(string effect)
         {
-            switch (effect) { case "health": return "체력"; case "healthRegen": return "체력 회복"; case "critDamage": return "치명타 피해"; case "crit2Chance": return "2배 치명타 확률"; case "crit4Chance": return "4배 치명타 확률"; case "gold": return "골드 획득"; default: return "공격력"; }
+            switch (effect) { case "basicAttack": return "기본 공격력"; case "skillAttack": return "스킬 공격력"; case "companionAttack": return "동료 공격력"; case "health": return "체력"; case "healthRegen": return "체력 회복"; case "critDamage": return "치명타 피해"; case "crit2Chance": return "2배 치명타 확률"; case "crit4Chance": return "4배 치명타 확률"; case "gold": return "골드 획득"; default: return "공격력"; }
         }
         static string CategoryName(string category)
         {

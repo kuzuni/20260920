@@ -89,7 +89,7 @@ namespace DoodleIdle
             var direction = (target.Position - origin).normalized;
             if (spread) direction = Rotate(direction, (shotIndex - (item.volleyCount - 1) * .5f) * 10);
             companion.facingLeft = direction.x < 0; companion.art.flipX = companion.facingLeft;
-            float damage = (12 + item.rarity * 4) * (1 + Mathf.Max(0, item.level - 1) * .03f);
+            float damage = DoodleAttackPower.CompanionWeight(item);
             var sprite = WorldIcon(item.projectile);
             if (item.trajectory == "Lightning")
             {
@@ -112,7 +112,7 @@ namespace DoodleIdle
             CompanionShotLaunched?.Invoke(item.id, Time.fixedTime, item.trajectory == "Arc", item.explosionRadius);
         }
         void CompanionDamage(Actor enemy, float damage, Vector2 direction)
-        { if (Alive(enemy)) { CompanionHits++; Damage(enemy, damage, direction); } }
+        { if (Alive(enemy)) { CompanionHits++; DamageByCategory(enemy, damage, direction, "Companion"); } }
         void TickCompanionShots(float dt)
         {
             for (int i = companionShots.Count - 1; i >= 0; i--)

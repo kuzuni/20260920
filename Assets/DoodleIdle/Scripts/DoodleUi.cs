@@ -35,7 +35,7 @@ namespace DoodleIdle
         readonly List<Text> navLabels=new List<Text>();
         readonly string[] pages={"Stats","Equipment","Skills","Companions","Relics","Skins","Dungeons","Pvp","Shop"};
         readonly string[] titles={"스탯","장비","스킬","동료","유물","스킨","던전","PVP","상점"};
-        readonly string[] navArt={"Stats","ArmorMetal","Banana","Player","Relic","ClothArmor","Dungeon","Pvp","Shop"};
+        readonly string[] navArt={"Stats","ArmorMetal","SkillMeteor","CompanionMon_4","NavPottery","ClothArmor","Dungeon","NavColosseum","Shop"};
         int consumeThroughFrame,lastKills;
         bool releaseLatch,initialized;
         float toastUntil;
@@ -104,6 +104,8 @@ namespace DoodleIdle
         Text BuildBuff(Transform parent,string name,string art)
         {
             var host=UiKit.Rect(parent,name); FixedWidth(host,64); UiKit.Height(host,86);
+            var hit=host.gameObject.AddComponent<Image>();hit.color=Color.clear;
+            var button=host.gameObject.AddComponent<Button>();button.targetGraphic=hit;button.transition=Selectable.Transition.None;button.onClick.AddListener(()=>ShowPage("Buffs"));
             var circle=UiKit.Box(host,"Buff circle",UiKit.Paper); circle.GetComponent<Image>().sprite=UiKit.Circle; Anchor(circle,new Vector2(.5f,1),new Vector2(0,-30),new Vector2(60,60));
             var icon=UiKit.Icon(circle,art,44); UiKit.Stretch(icon.rectTransform,8,8,8,8);
             if(art=="Gold")goldBuffSurface=circle.GetComponent<Image>();else attackBuffSurface=circle.GetComponent<Image>();
@@ -194,12 +196,12 @@ namespace DoodleIdle
         void RenderPage()
         {
             ClearChildren(pageLayer);
-            nav.gameObject.SetActive(ActivePage!="Chat");
+            nav.gameObject.SetActive(true);
             for(int i=0;i<navIcons.Count;i++) { navIcons[i].sprite=UiKit.Art(ActivePage==pages[i]?"Close":navArt[i]);navLabels[i].text=ActivePage==pages[i]?"":titles[i]; }
             if(string.IsNullOrEmpty(ActivePage))return;
-            bool full=ActivePage=="Chat";
+            bool full=false;
             var dim=Dim(pageLayer,"Dim: "+ActivePage,()=>ClosePage(),full?1:.30f);
-            var body=Window(dim,Title(ActivePage),full,()=>ClosePage(),Array.IndexOf(pages,ActivePage)>=0); BuildPage(body); Relayout(true);
+            var body=Window(dim,Title(ActivePage),full,()=>ClosePage(),Array.IndexOf(pages,ActivePage)>=0 || ActivePage=="Chat"); BuildPage(body); Relayout(true);
         }
         static string Title(string id)
         {
@@ -263,12 +265,12 @@ namespace DoodleIdle
             StopRepeating();
             ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); var body=Window(dim,title,false,CloseDetail); build(body); Relayout(true);
         }
-        public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); DoodlePopupMotion.Close(last,root); RefreshHud(); }
-        public void ShowFullscreen(string title,Action<RectTransform> build)
+        public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); if(rewardCloseEffects.TryGetValue(last,out var effect)){rewardCloseEffects.Remove(last);effect();} DoodlePopupMotion.Close(last,root); RefreshHud(); }
+        public void ShowFullscreen(string title,Action<RectTransform> build,bool animate=true)
         {
             StopRepeating();
-            if(fullscreenBuilder!=null && overlayStack.Count>0) CloseDetail();
-            ConsumeGesture(); fullscreenBuilder=build; fullscreenTitle=title; var dim=Dim(overlayLayer,"Fullscreen: "+title,()=>{},1); overlayStack.Add(dim.gameObject); build(Window(dim,title,true,CloseFullscreen)); Relayout(true);
+            if(fullscreenBuilder!=null && overlayStack.Count>0) { var old=overlayStack[overlayStack.Count-1];overlayStack.RemoveAt(overlayStack.Count-1);old.SetActive(false);Destroy(old); }
+            ConsumeGesture(); fullscreenBuilder=build; fullscreenTitle=title; var dim=Dim(overlayLayer,"Fullscreen: "+title,()=>{},1); overlayStack.Add(dim.gameObject); bool previous=rebuildingPage; rebuildingPage=!animate;try{build(Window(dim,title,true,CloseFullscreen));}finally{rebuildingPage=previous;} Relayout(true);
         }
         public void CloseFullscreen() { CloseDetail(); fullscreenBuilder=null; fullscreenTitle=null; RefreshPage(); }
         public void ShowRewards(string title,List<UiReward> rewards)
@@ -279,15 +281,19 @@ namespace DoodleIdle
             var reflow=area.gameObject.AddComponent<DoodleUiRewardLayout>(); reflow.safe=safe;reflow.Reflow();
             var text=UiKit.Text(area,title,64,TextAnchor.MiddleCenter,86); text.color=Color.white; text.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
             var row=UiKit.Row(area,"Individual rewards",206,16);
+            System.Action onClose = null;
             foreach(var reward in rewards) {
                 var host=UiKit.Rect(row,"Reward "+reward.name); FixedWidth(host,Mathf.Min(158,630f/Mathf.Max(1,rewards.Count))); UiKit.Height(host,200);
                 var halo=UiKit.Rect(host,"Golden hand drawn rays"); UiKit.Stretch(halo,-24,-24,-24,-24); var rays=halo.gameObject.AddComponent<DoodleRewardRays>(); rays.color=new Color(1,.84f,.21f,.92f); rays.raycastTarget=false;
                 var card=UiKit.Box(host,"Reward frame",UiKit.Rarity(reward.rarity)); UiKit.Stretch(card,3,3,3,3); card.GetComponent<Image>().raycastTarget=false;
                 var icon=UiKit.Icon(card,reward.icon,100); UiKit.Stretch(icon.rectTransform,13,57,13,18);
+                string currency = reward.icon;
+                if (reward.amount > 0) onClose += () => FlyReward(icon, currency);
                 var count=UiKit.Text(card,UiNumber.Format(reward.amount),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
             }
             var hint=UiKit.Text(area,"화면을 터치하면 닫힙니다",28,TextAnchor.MiddleCenter,50); hint.color=Color.white;
             area.gameObject.AddComponent<DoodlePopupMotion>().Open();
+            if (onClose != null) rewardCloseEffects[dim.gameObject] = onClose;
         }
         public void Toast(string message) { if(!toast)return; toast.text=message; toastUntil=Time.unscaledTime+3.5f; toast.transform.SetAsLastSibling(); }
         public void Save() { PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
@@ -304,7 +310,7 @@ namespace DoodleIdle
         void OnApplicationPause(bool paused) { if(initialized&&paused)Save(); }
         void OnApplicationQuit() { if(initialized)Save(); }
         void ConsumeGesture() { consumeThroughFrame=Time.frameCount+2; releaseLatch=Pointer.current!=null&&Pointer.current.press.isPressed; game.CancelUiPointer(); }
-        void ClearOverlays() { foreach(var go in overlayStack) if(go){go.SetActive(false);Destroy(go);} overlayStack.Clear(); }
+        void ClearOverlays() { foreach(var go in overlayStack) if(go){rewardCloseEffects.Remove(go);go.SetActive(false);Destroy(go);} overlayStack.Clear(); }
         static void ClearChildren(Transform parent) { if(!parent)return; foreach(Transform child in parent) { child.gameObject.SetActive(false); Destroy(child.gameObject); } }
         void LateUpdate()
         {
@@ -321,7 +327,7 @@ namespace DoodleIdle
             if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
-            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageRemaining)+"/"+UiNumber.Format(MainStageKillGoal));
+            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }

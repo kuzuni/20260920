@@ -55,7 +55,7 @@ namespace DoodleIdle.Tests
             CollectionAssert.AreEquivalent(new[] { "RobotDroneA", "RobotDroneB" }, droneFrames);
             for (int i = 0; i < species.Length; i++)
                 CollectionAssert.AreEquivalent(new[] { "Meadow" + i + "A", "Meadow" + i + "B" }, seen[i + 1]);
-            Assert.That(game.EnemyCount, Is.EqualTo(100));
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
             game.TogglePause();
             var pausedFrames = arts.Select(a => a.sprite).ToArray();
             yield return new WaitForSecondsRealtime(.2f);

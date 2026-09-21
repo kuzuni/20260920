@@ -123,7 +123,7 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();
             var ui = game.Ui;
-            CollectionAssert.AreEqual(new[] { "attack", "health", "gold", "healthRegen", "critDamage" }, ui.Items("Relic").Select(x => x.effect).ToArray());
+            CollectionAssert.AreEqual(new[] { "attack", "health", "gold", "healthRegen", "critDamage", "basicAttack", "skillAttack", "companionAttack" }, ui.Items("Relic").Select(x => x.effect).ToArray());
             var relic = ui.Items("Relic")[0];
             foreach (int level in new[] { 1, 50, 999 })
             {

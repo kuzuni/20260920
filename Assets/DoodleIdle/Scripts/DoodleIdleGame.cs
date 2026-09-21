@@ -11,8 +11,8 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame : MonoBehaviour
     {
         [Header("Population")]
-        public int targetPopulation = 100;
-        public int refillBelow = 0;
+        public int targetPopulation = 200;
+        public int refillBelow = 100;
         public Vector2 arenaHalfSize = new Vector2(17, 20);
         public const float SlashSpeed = 11;
         [Header("Combat")]
@@ -24,6 +24,16 @@ namespace DoodleIdle
         public bool autoPlay = true;
         public bool basicSkillsEnabled = true;
         public bool paused;
+        public bool BasicAttackEnabled { get; private set; } = true;
+        public void SetBasicAttackEnabled(bool enabled)
+        {
+            BasicAttackEnabled = enabled;
+            if (enabled) return;
+            dashRemaining = swing = 0;
+            if (player != null) player.body.linearVelocity = Vector2.zero;
+            for (int i = shots.Count - 1; i >= 0; i--)
+                if (!shots[i].stone) { Destroy(shots[i].visual.gameObject); shots.RemoveAt(i); }
+        }
 
         public int EnemyCount => enemies.Count;
         public int Kills { get; private set; }
@@ -264,10 +274,12 @@ namespace DoodleIdle
         void Refill()
         {
             ApplyStageTheme();
-            // A wave is never topped up while any enemy is alive.
-            if (enemies.Count > 0) return;
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
             {
+                if (BossActive) return;
+                // A hundred credited kills starts the challenge, regardless of surviving field enemies.
+                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+                enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
                 boss.isBoss = true; boss.hp = boss.maxHp = EnemyMaxHealth * 20;
                 boss.root.name = "Stage boss";
@@ -276,7 +288,11 @@ namespace DoodleIdle
                 RefreshHealthBar(boss); enemies.Add(boss);
                 return;
             }
-            int needed = Ui ? Ui.ActiveDungeonIndex >= 0 ? 100 : Ui.MainStageRemaining : targetPopulation;
+            if (BossActive) return;
+            bool dungeon = Ui && Ui.ActiveDungeonIndex >= 0;
+            int population = dungeon ? 100 : targetPopulation;
+            if (enemies.Count > 0 && (dungeon || enemies.Count >= refillBelow)) return;
+            int needed = Mathf.Max(0, population - enemies.Count);
             for (int n = 0; n < needed; n++)
             {
                 Vector2 p = Vector2.zero;
@@ -338,7 +354,7 @@ namespace DoodleIdle
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
-            if (basicSkillsEnabled && !JoystickActive && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            if (basicSkillsEnabled && BasicAttackEnabled && !JoystickActive && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -366,17 +382,18 @@ namespace DoodleIdle
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
                 enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
             }
-            if (basicSkillsEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
+            if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
             TickEquippedSkills(dt);
             OrbitBananas(dt);
             TickCompanions(dt);
+            TickExpansionSkills(dt);
             TickVariants(dt);
             TickExtraSkills(dt);
             TickSummons(dt);
             TickParticles(dt);
             TickDamageNumbers(dt);
-            if (enemies.Count == 0) Refill();
+            if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
         }
 
         void LateUpdate()
@@ -427,16 +444,8 @@ namespace DoodleIdle
 
         void ThrowStones()
         {
-            nearest.Clear(); nearest.AddRange(enemies);
-            Vector2 origin = player.Position;
-            nearest.Sort((a, b) => (a.Position - origin).sqrMagnitude.CompareTo((b.Position - origin).sqrMagnitude));
-            for (int i = 0; i < Mathf.Min(3, nearest.Count); i++)
-            {
-                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * .645f, 550);
-                sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
-                shots.Add(new Shot { visual = sprite.transform, start = origin, end = nearest[i].Position, target = nearest[i], duration = .65f + i * .06f, stone = true });
-                StonesLaunched++;
-            }
+            LaunchStone(0);
+            stoneVolleys.Add(new StoneVolley { requiresEquipment = castingEquippedSkill });
         }
 
         void OrbitBananas(float dt)
@@ -469,7 +478,7 @@ namespace DoodleIdle
                     if (SegmentDistance(enemy.Position, previous, p) > 1.02f) continue;
                     if (bananaHitTimes.TryGetValue(enemy, out float last) && Elapsed - last < .35f) continue;
                     bananaHitTimes[enemy] = Elapsed; BananaHits++;
-                    Damage(enemy, 19, (enemy.Position - player.Position).normalized);
+                    SkillDamage(enemy, 19, (enemy.Position - player.Position).normalized);
                 }
             }
         }
@@ -487,7 +496,7 @@ namespace DoodleIdle
                     shot.visual.Rotate(0, 0, dt * 640);
                     if (t >= 1)
                     {
-                        if (shot.target != null && shot.target.root) Damage(shot.target, 42, (shot.end - shot.start).normalized);
+                        if (shot.target != null && shot.target.root) SkillDamage(shot.target, 42, (shot.end - shot.start).normalized);
                         Burst(shot.end, new Color(.57f, .53f, .46f), 5);
                     }
                 }
@@ -510,9 +519,15 @@ namespace DoodleIdle
         }
 
         void Damage(Actor enemy, float amount, Vector2 push)
+            => DamageByCategory(enemy, amount, push, "Basic");
+
+        void SkillDamage(Actor enemy, float weight, Vector2 push)
+            => DamageByCategory(enemy, weight, push, "Skill");
+
+        void DamageByCategory(Actor enemy, float weight, Vector2 push, string category)
         {
             if (enemy.hp <= 0) return;
-            amount *= (Ui ? Ui.UiDamageMultiplier : 1) * RollUiCriticalMultiplier();
+            float amount = (Ui ? Ui.AttackPercentDamage(DoodleAttackPower.Percent(weight), category) : weight) * RollUiCriticalMultiplier();
             enemy.hp -= amount; enemy.flash = .14f;
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);

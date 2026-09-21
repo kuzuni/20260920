@@ -49,8 +49,8 @@ namespace DoodleIdle.Tests
                 ui.CloseFullscreen();
             }
             var relics=ui.Items("Relic");Assert.That(relics.Select(x=>x.rarity).Distinct().Count(),Is.EqualTo(1));
-            foreach(var item in relics)Assert.That(ui.ItemProbability(item),Is.EqualTo(20));
-            CollectionAssert.AreEquivalent(relics,Enumerable.Range(0,5).Select(i=>ui.GrantItem("Relic",new RevisionRoll(i))).ToArray());
+            foreach(var item in relics)Assert.That(ui.ItemProbability(item),Is.EqualTo(12.5));
+            CollectionAssert.AreEquivalent(relics,Enumerable.Range(0,8).Select(i=>ui.GrantItem("Relic",new RevisionRoll(i))).ToArray());
             Assert.That(ui.TrySummon("Relic",50,false),Is.True);
             Assert.That(ui.SummonLevel("Relic"),Is.Zero);Assert.That(ui.SummonExperience("Relic"),Is.Zero);
             Assert.That(UiNode("Summon progress text").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("Lv.")||t.text.Contains("경험치")),Is.False);
@@ -240,14 +240,14 @@ namespace DoodleIdle.Tests
             Assert.That(ui.UpgradeItem(skill), Is.True);
             Assert.That(ui.UpgradeItem(skill), Is.False);
             var tuning = (DoodleUi.CommerceTuning)typeof(DoodleUi).GetField("commerceTuning", GrowthPrivate).GetValue(ui);
-            tuning.tenCost = 200; tuning.fiftyCost = 750;
+            tuning.skillUnitCost = 15;
             skill.count = 7; int diamonds = ui.Diamonds;
             Assert.That(ui.SkillRefundQuote(skill), Is.EqualTo(105));
             Assert.That(ui.RefundSkill(skill), Is.EqualTo(105));
             Assert.That(ui.Diamonds, Is.EqualTo(diamonds + 105));
             Assert.That(skill.count, Is.Zero);
             Assert.That(ui.RefundSkill(skill), Is.Zero);
-            tuning.tenCost = 400; tuning.fiftyCost = 1750;
+            tuning.skillUnitCost = 35;
             ui.AddItem(skill, 2);
             Assert.That(ui.SkillRefundQuote(skill), Is.EqualTo(70));
             Assert.That(ui.RefundSkill(skill), Is.EqualTo(70));
@@ -261,29 +261,40 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator RevisionFarmingRepeatsWithoutEarlyRefillAndBreakthroughRequiresBoss()
+        public IEnumerator RevisionPopulationRefillsBelow100AndBossStartsAfter100CreditedKills()
         {
             game.TogglePause(); var ui = game.Ui;
+            var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
             ui.ToggleBreakthroughMode();
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
             DefeatActualServiceEnemies(99);
-            Assert.That(game.EnemyCount, Is.EqualTo(1));
-            typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(1));
+            Assert.That(game.EnemyCount, Is.EqualTo(101));
+            refill.Invoke(game, null);
+            Assert.That(game.EnemyCount, Is.EqualTo(101));
             DefeatActualServiceEnemies(1);
             Assert.That(ui.MainStage, Is.Zero);
             Assert.That(ui.MainStageKillProgress, Is.Zero);
-            typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(100));
+            refill.Invoke(game, null);
+            Assert.That(game.EnemyCount, Is.EqualTo(100), "Exactly 100 does not replenish yet.");
+            DefeatActualServiceEnemies(1);
+            refill.Invoke(game, null);
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(1), "Population refill must not clear credited kills.");
             Assert.That(game.BossActive, Is.False);
             ui.ToggleBreakthroughMode();
-            DefeatActualServiceEnemies(100);
+            DefeatActualServiceEnemies(99);
+            Assert.That(game.EnemyCount, Is.EqualTo(101), "Boss eligibility occurs with surviving ordinary enemies.");
             Assert.That(ui.MainStage, Is.Zero);
-            typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game, null);
+            int kills = game.Kills;
+            refill.Invoke(game, null);
             Assert.That(game.BossActive, Is.True);
             Assert.That(game.EnemyCount, Is.EqualTo(1));
+            Assert.That(game.Kills, Is.EqualTo(kills), "Removing the field for a boss must not grant extra kill rewards.");
             DefeatActualServiceEnemies(1);
             Assert.That(ui.MainStage, Is.EqualTo(1));
-            Assert.That(ui.MainStageRemaining, Is.EqualTo(100));
+            Assert.That(ui.MainStageKillProgress, Is.Zero);
+            refill.Invoke(game, null);
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
             yield return null;
         }
 
@@ -308,7 +319,7 @@ namespace DoodleIdle.Tests
                 game.TogglePause();
                 Assert.That(game.CurrentThemeIndex, Is.EqualTo(theme));
                 game.Ui.RefreshHud();
-                Assert.That(game.EnemyCount, Is.EqualTo(100));
+                Assert.That(game.EnemyCount, Is.EqualTo(200));
                 var frames = (Sprite[][])typeof(DoodleIdleGame).GetField("enemyWalkFrames", GrowthPrivate).GetValue(game);
                 Assert.That(frames.Length, Is.EqualTo(3));
                 foreach (var pair in frames)

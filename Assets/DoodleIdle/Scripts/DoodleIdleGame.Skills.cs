@@ -95,7 +95,7 @@ namespace DoodleIdle
         void DisposeSkillArt() { for (int i = 0; i < skillArt.Length; i++) if (i != 3 && i != 1 && skillArt[i]) Destroy(skillArt[i]); }
         void ClearExtraSkills()
         {
-            ClearCompanions();ClearVariants();
+            ClearCompanions();ClearVariants();ClearExpansionSkills();
             ClearSummons();
             foreach (var shot in extraShots) if (shot.art) Destroy(shot.art.gameObject);
             extraShots.Clear();
@@ -241,7 +241,7 @@ namespace DoodleIdle
                     next = Vector2.Lerp(shot.start, shot.end, t) + Vector2.up * (4 * 3 * t * (1 - t));
                     if (t >= 1)
                     {
-                        if (Alive(shot.target)) { MissileHits++; Damage(shot.target, 18, (shot.end - shot.start).normalized); }
+                        if (Alive(shot.target)) { MissileHits++; SkillDamage(shot.target, 18, (shot.end - shot.start).normalized); }
                         Burst(next, new Color(1, .65f, .3f), 4); finished = true;
                     }
                 }
@@ -272,14 +272,14 @@ namespace DoodleIdle
                         {
                             shot.hits++; BallHits++;
                             BallEnemyHit?.Invoke(collision.root.GetInstanceID(), shot.hits);
-                            Damage(collision, 24*shot.size, (next - old).normalized);
+                            SkillDamage(collision, 24*shot.size, (next - old).normalized);
                             shot.previous = collision; shot.target = ClosestExcept(next, collision);
                             if (shot.hits == 7) { LastCompletedBallHits = shot.hits; BallsCompleted++; finished = true; }
                         }
                         else
                         {
                             if (shot.kind == ProjectileKind.Fire) FireHits++; else ArrowHits++;
-                            Damage(collision, (shot.kind == ProjectileKind.Fire ? 38 : 22)*shot.size, (next - old).normalized);
+                            SkillDamage(collision, (shot.kind == ProjectileKind.Fire ? 38 : 22)*shot.size, (next - old).normalized);
                             finished = true;
                         }
                     }
@@ -338,7 +338,7 @@ namespace DoodleIdle
                                 if (SegmentDistance(enemy.Position, old, pos) > .56f+.23f*worm.size) continue;
                                 if (worm.nextHit.TryGetValue(enemy, out float until) && worm.age < until) continue;
                                 worm.nextHit[enemy] = worm.age + .4f; WormHits++;
-                                Damage(enemy, 15*worm.size, (enemy.Position - worm.origin).normalized);
+                                SkillDamage(enemy, 15*worm.size, (enemy.Position - worm.origin).normalized);
                             }
                         }
                         segment++;

@@ -6,6 +6,7 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles, purpleFireParticles,blueFireParticles;
+        ParticleSystem meteorTrailParticles, meteorExplosionParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -23,7 +24,10 @@ namespace DoodleIdle
             blueFireParticles=MakeParticles("Blue Molotov Fire Particle System",summonArt["GroundFlame"],531,2048,false);
             SetFlamePalette(purpleFireParticles,new Color(.7f,.3f,1));
             SetFlamePalette(blueFireParticles,new Color(.2f,.65f,1));
-            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles };
+            meteorTrailParticles = MakeParticles("Meteor Fire Trail Particle System", summonArt["GroundFlame"], 640, 512, false);
+            SetFlamePalette(meteorTrailParticles, new Color(1, .18f, .06f));
+            meteorExplosionParticles = MakeParticles("Meteor Explosion Particle System", summonArt["Explosion"], 655, 256, false);
+            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles };
         }
 
         void SetFlamePalette(ParticleSystem system,Color color)
@@ -107,6 +111,17 @@ namespace DoodleIdle
             EmitBurst(explosionParticles, position, Color.white, 1, 3.2f, 3.2f, 0, .4f, .4f);
             EmitBurst(explosionParticles, position, new Color(1, .85f, .6f), 12, .45f, .95f, 4.5f, .4f, .65f);
             EmitBurst(dustParticles, position, new Color(.7f, .6f, .45f, .7f), 14, .5f, 1.1f, 3.8f, .6f, .95f);
+        }
+        void EmitMeteorFlame(Vector2 position, Vector2 travelDirection)
+        {
+            // The flame artwork points up. Its tip points back along the travel path;
+            // unlike the rock, these world-space particles never inherit its spin.
+            Vector2 tail = -travelDirection;
+            meteorTrailParticles.Emit(new ParticleSystem.EmitParams {
+                position = position, velocity = tail * .45f, startColor = Color.white,
+                startSize = ParticleRandom(1.25f, 1.75f), startLifetime = .42f,
+                rotation = -(Mathf.Atan2(tail.y, tail.x) * Mathf.Rad2Deg - 90), randomSeed = ++particleSeed
+            }, 1);
         }
         void EmitGold(Vector2 position)
         {

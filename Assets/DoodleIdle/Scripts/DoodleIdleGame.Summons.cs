@@ -68,7 +68,7 @@ namespace DoodleIdle
         sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
         sealed class Cloud { public SpriteRenderer art; public Actor target; public float age, clock; public bool red; }
         sealed class Stain { public SpriteRenderer art; public float age; }
-        sealed class RedVolley { public Vector2 direction; public int remaining = 4; public float clock = RedWaveShotGap; }
+        sealed class RedVolley { public bool requiresEquipment; public Vector2 direction; public int remaining = 4; public float clock = RedWaveShotGap; }
 
         void LoadSummonArt()
         {
@@ -148,7 +148,7 @@ namespace DoodleIdle
             if (!Alive(target)) return;
             summonHits[(int)skill]++;
             SummonImpact?.Invoke(skill, target.root.GetInstanceID());
-            Damage(target, amount, direction);
+            SkillDamage(target, amount, direction);
         }
 
         SpriteRenderer Echo(string label, Sprite art, Vector2 position, Vector2 scale, Quaternion rotation, float lifetime, float alpha, int order)
@@ -239,7 +239,7 @@ namespace DoodleIdle
                     break;
                 case SummonSkill.RedWave:
                     LaunchRedWave(direction);
-                    redVolleys.Add(new RedVolley { direction = direction });
+                    redVolleys.Add(new RedVolley { direction = direction, requiresEquipment = castingEquippedSkill });
                     break;
             }
         }
@@ -255,7 +255,9 @@ namespace DoodleIdle
         {
             for (int i = redVolleys.Count - 1; i >= 0; i--)
             {
-                var volley = redVolleys[i]; volley.clock -= dt;
+                var volley = redVolleys[i];
+                if (volley.requiresEquipment && !SkillEquipped("RedWave")) { redVolleys.RemoveAt(i); continue; }
+                volley.clock -= dt;
                 if (volley.clock > .0001f) continue;
                 LaunchRedWave(volley.direction);
                 volley.clock += RedWaveShotGap;

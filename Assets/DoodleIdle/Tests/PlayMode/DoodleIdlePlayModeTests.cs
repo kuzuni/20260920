@@ -61,6 +61,7 @@ namespace DoodleIdle.Tests
         Texture2D CaptureFrame(string filename, int width, int height, bool includeHud = true, System.Action beforeRender = null)
         {
             DoodlePopupMotion.CompleteAll(game.Ui.Canvas.transform);
+            foreach (var reveal in game.Ui.Canvas.GetComponentsInChildren<DoodleSummonReveal>()) reveal.Complete();
             var camera = Camera.main;
             var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
             var previousTarget = camera.targetTexture;
@@ -91,6 +92,7 @@ namespace DoodleIdle.Tests
             {
                 beforeRender?.Invoke();
                 DoodlePopupMotion.CompleteAll(game.Ui.Canvas.transform);
+            foreach (var reveal in game.Ui.Canvas.GetComponentsInChildren<DoodleSummonReveal>()) reveal.Complete();
                 // A synchronous render has no intervening LateUpdate. Rebuild the actual ScrollRects
                 // after capture navigation so their thumb positions match their visible content.
                 foreach (var scroll in canvas.GetComponentsInChildren<UnityEngine.UI.ScrollRect>())
@@ -169,18 +171,18 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator StartsWith100SolidSeparatedEnemiesAndFiveBananas()
+        public IEnumerator StartsWith200SolidSeparatedEnemiesAndFiveBananas()
         {
             // Inspect spawn placement before movement/solver contact tolerance can change it.
             game.ResetGame();
             game.TogglePause();
             yield return null; // Flush the previous population and banana visuals queued for Destroy.
-            Assert.That(game.EnemyCount, Is.EqualTo(100));
+            Assert.That(game.EnemyCount, Is.EqualTo(200));
             Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
-            Assert.That(bodies.Length, Is.EqualTo(100));
+            Assert.That(bodies.Length, Is.EqualTo(200));
             Assert.That(bodies.Any(b => b.position.y > 12) && bodies.Any(b => b.position.y < -12), Is.True);
-            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(100));
+            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(200));
             foreach (var body in bodies)
             {
                 Assert.That(body.bodyType, Is.EqualTo(RigidbodyType2D.Dynamic));
@@ -309,7 +311,7 @@ namespace DoodleIdle.Tests
             DefeatActualServiceEnemies(7);
             yield return null;
             int progress = game.Ui.MainStageKillProgress;
-            int remaining = 100 - progress;
+            int remaining = 200;
             Assert.That(progress, Is.GreaterThanOrEqualTo(7));
             float elapsed = game.Elapsed;
             var bodies = EnemyBodies();
@@ -350,12 +352,12 @@ namespace DoodleIdle.Tests
             Assert.That(game.DashCasts, Is.EqualTo(1));
             Assert.That(game.FirstDashTime, Is.InRange(4.98f, 5.05f), "Dash must first activate after five seconds of physics simulation.");
             float worstPenetration = 0;
-            while (game.Elapsed < 120)
+            while (game.Elapsed < 160)
             {
-                int nextGroup = Mathf.Min(2, (int)(game.Elapsed / 40));
+                int nextGroup = Mathf.Min(3, (int)(game.Elapsed / 40));
                 if (nextGroup != group) equipGroup(nextGroup);
                 yield return new WaitForFixedUpdate();
-                Assert.That(game.EnemyCount, Is.InRange(0, 100), "Waves deplete completely and the breakthrough boss spawns alone.");
+                Assert.That(game.EnemyCount, Is.InRange(0, 200), "The field replenishes below 100 and the breakthrough boss spawns alone.");
                 var bodies = EnemyBodies();
                 for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
                     worstPenetration = Mathf.Max(worstPenetration, 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position));
@@ -381,7 +383,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
-            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(7));
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(9));
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());

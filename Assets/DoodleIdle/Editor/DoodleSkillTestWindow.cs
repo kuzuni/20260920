@@ -14,7 +14,17 @@ namespace DoodleIdle.Editor
         [ShowInInspector, ReadOnly, LabelText("전투 대상")]
         DoodleIdleGame Game => Object.FindFirstObjectByType<DoodleIdleGame>();
 
-        [InfoBox("Play 모드에서 사용합니다. 각 버튼은 미획득·미장착 스킬도 한 번 발동합니다. 장착 상태, 재화, 일반 쿨타임은 변경하지 않습니다. 일시정지 중이거나 적이 없으면 버튼이 비활성화됩니다.")]
+        bool CanToggleAttack => EditorApplication.isPlaying && Game && Game.Ready;
+        [ShowInInspector, ReadOnly, LabelText("플레이어 기본 공격")]
+        string BasicAttackState => Game && !Game.BasicAttackEnabled ? "꺼짐" : "켜짐";
+        [Button("기본 공격 켜기 / 끄기", ButtonSizes.Large), EnableIf(nameof(CanToggleAttack))]
+        public void ToggleBasicAttack()
+        {
+            var game = Game;
+            if (game) game.SetBasicAttackEnabled(!game.BasicAttackEnabled);
+        }
+
+        [InfoBox("Play 모드에서 사용합니다. 기본 공격을 끄면 베기와 돌진이 멈추며 장착 스킬과 동료 공격은 계속됩니다. 각 버튼은 미획득·미장착 스킬도 한 번 발동합니다. 장착 상태, 재화, 일반 쿨타임은 변경하지 않습니다. 일시정지 중이거나 적이 없으면 버튼이 비활성화됩니다.")]
         [ShowInInspector, ListDrawerSettings(IsReadOnly = true, ShowIndexLabels = false, Expanded = true), LabelText("전체 스킬")]
         List<SkillRow> skills = new List<SkillRow>();
 
