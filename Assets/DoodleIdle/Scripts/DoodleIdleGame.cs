@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using DG.Tweening;
 
 namespace DoodleIdle
 {
     /// <summary>Self-contained, automatic 2D combat sandbox. All tuning is exposed in the Inspector.</summary>
-    public sealed class DoodleIdleGame : MonoBehaviour
+    public sealed partial class DoodleIdleGame : MonoBehaviour
     {
         [Header("Population")]
-        public int targetPopulation = 80;
+        public int targetPopulation = 200;
         public int refillBelow = 20;
-        public Vector2 arenaHalfSize = new Vector2(17, 11);
+        public Vector2 arenaHalfSize = new Vector2(17, 20);
+        public const float SlashSpeed = 11;
         [Header("Combat")]
         public float moveSpeed = 3.1f;
         public float attackInterval = .65f;
@@ -20,12 +22,14 @@ namespace DoodleIdle
         public float stoneInterval = 3.2f;
         public float bananaRadius = 1.9f;
         public bool autoPlay = true;
+        public bool basicSkillsEnabled = true;
         public bool paused;
 
         public int EnemyCount => enemies.Count;
         public int Kills { get; private set; }
         public int Refills { get; private set; }
         public int DashCasts { get; private set; }
+        public float FirstDashTime { get; private set; }
         public int StonesLaunched { get; private set; }
         public int BananaHits { get; private set; }
         public int SlashHits { get; private set; }
@@ -38,8 +42,11 @@ namespace DoodleIdle
             public GameObject root;
             public Rigidbody2D body;
             public SpriteRenderer art;
+            public SpriteRenderer healthBack, healthFill;
             public CircleCollider2D collider;
             public float hp = 68, flash, phase;
+            public float walkClock;
+            public bool isPlayer;
             public int kind;
             public Vector2 Position => body.position;
         }
@@ -59,10 +66,10 @@ namespace DoodleIdle
             public float remaining, lifetime;
             public SpriteRenderer sprite;
         }
-        readonly List<Actor> enemies = new List<Actor>(80);
+        readonly List<Actor> enemies = new List<Actor>(200);
         readonly List<Shot> shots = new List<Shot>();
         readonly List<Fleck> flecks = new List<Fleck>();
-        readonly List<Actor> nearest = new List<Actor>(80);
+        readonly List<Actor> nearest = new List<Actor>(200);
         readonly List<Vector2> obstacles = new List<Vector2>();
         readonly HashSet<Actor> dashVictims = new HashSet<Actor>();
         readonly Dictionary<Actor, float> bananaHitTimes = new Dictionary<Actor, float>();
@@ -74,26 +81,41 @@ namespace DoodleIdle
         Camera gameCamera;
         PhysicsMaterial2D frictionless;
         float attackTimer, dashTimer, stoneTimer, dashRemaining, orbitAngle, swing, trailTimer;
+        float combatStartFixedTime;
         Vector2 dashDirection, facing = Vector2.right, manualInput;
         Text populationText, killsText, timeText, waveText, modeText, pauseText;
         Image dashFill, stoneFill;
         Font uiFont;
         Material spriteMaterial;
+        readonly Dictionary<Texture, Material> textureMaterials = new Dictionary<Texture, Material>();
+        Transform hudRoot;
+        bool portraitHud;
 
         void Start()
         {
             Application.targetFrameRate = 60;
+            QualitySettings.vSyncCount = 0;
+            Application.runInBackground = true;
             sprites = LoadAtlas();
+            LoadSkillArt();
+            LoadSummonArt();
+            LoadActorAnimations();
             disc = MakeDisc();
             slash = MakeSlash();
-            spriteMaterial = new Material(Shader.Find("Sprites/Default"));
+            // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
+            // Use the pipeline's sprite shader so each renderer binds its own texture/color.
+            string shaderName = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null
+                ? "Universal Render Pipeline/2D/Sprite-Unlit-Default" : "Sprites/Default";
+            spriteMaterial = new Material(Shader.Find(shaderName));
             frictionless = new PhysicsMaterial2D("Doodle frictionless") { friction = 0, bounciness = 0 };
             world = new GameObject("Doodle world").transform;
             world.SetParent(transform);
+            BuildParticles();
             BuildCamera();
             BuildGround();
             BuildArena();
             BuildHud();
+            BuildCombatFeedback();
             ResetGame();
             Ready = true;
         }
@@ -114,7 +136,9 @@ namespace DoodleIdle
                         if (pixels[y * texture.width + x].a > 32)
                         { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y); }
                 if (minX > maxX) throw new InvalidOperationException("Empty generated sprite cell: " + i);
-                result[i] = Sprite.Create(texture, new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1), new Vector2(.5f, .5f), Mathf.Max(maxX - minX + 1, maxY - minY + 1));
+                Vector2 pivot = i == 4 ? new Vector2(.15f, .12f) : Vector2.one * .5f;
+                result[i] = Sprite.Create(texture, new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1), pivot, Mathf.Max(maxX - minX + 1, maxY - minY + 1));
+                if (i == 0) result[i].name = "PlayerWalkA";
             }
             return result;
         }
@@ -139,8 +163,10 @@ namespace DoodleIdle
         {
             var texture = Resources.Load<Texture2D>("DoodleIdle/Dirt");
             groundSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, texture.width / 13f);
-            for (int y = -2; y <= 2; y++)
-                for (int x = -3; x <= 3; x++)
+            int columns = Mathf.CeilToInt((arenaHalfSize.x + 18) / 13);
+            int rows = Mathf.CeilToInt((arenaHalfSize.y + 18) / 13);
+            for (int y = -rows; y <= rows; y++)
+                for (int x = -columns; x <= columns; x++)
                 {
                     var tile = Visual("Generated dirt floor", groundSprite, new Vector2(x * 13, y * 13), Vector2.one, -1000);
                     // Mirroring adjacent tiles makes matching edges exact, even for an imperfect AI tile.
@@ -176,6 +202,10 @@ namespace DoodleIdle
 
         public void ResetGame()
         {
+            ReleaseJoystick();
+            ClearParticles();
+            ClearDamageNumbers();
+            ClearExtraSkills();
             foreach (var a in enemies) { a.root.SetActive(false); Destroy(a.root); }
             enemies.Clear();
             foreach (var shot in shots) Destroy(shot.visual.gameObject);
@@ -187,6 +217,9 @@ namespace DoodleIdle
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
             Elapsed = orbitAngle = dashRemaining = 0;
+            bananaCycleAge = 0; BananasActive = true;
+            FirstDashTime = 0;
+            combatStartFixedTime = Time.fixedTime;
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
             paused = false;
             player = CreateActor(true, Vector2.zero, 0);
@@ -194,17 +227,18 @@ namespace DoodleIdle
             weapon.SetParent(player.root.transform, false);
             for (int i = 0; i < 5; i++)
             {
-                bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * .58f, 80).transform;
+                bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * 1.16f, 80).transform;
                 var trigger = bananas[i].gameObject.AddComponent<CircleCollider2D>();
                 trigger.radius = .4f; trigger.isTrigger = true;
             }
             Refill();
             Refills = 0;
+            ResetExtraSkills();
         }
 
         Actor CreateActor(bool isPlayer, Vector2 p, int kind)
         {
-            var root = new GameObject(isPlayer ? "Player - head and club" : "Horned enemy");
+            var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + EnemyArtNames[kind]);
             root.transform.SetParent(world);
             root.transform.position = p;
             var body = root.AddComponent<Rigidbody2D>();
@@ -217,12 +251,14 @@ namespace DoodleIdle
             var collider = root.AddComponent<CircleCollider2D>();
             collider.radius = isPlayer ? .61f : .56f;
             collider.sharedMaterial = frictionless;
-            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.36f), new Vector2(.95f, .28f), Order(p) - 2);
-            shadow.color = new Color(.23f, .19f, .15f, .15f);
+            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.58f), new Vector2(1.15f, .42f), -900);
+            shadow.color = new Color(.08f, .07f, .06f, .32f);
             shadow.transform.SetParent(root.transform, true);
-            var art = Visual("Generated head sprite", sprites[isPlayer ? 0 : kind + 1], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
+            var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
-            return new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind };
+            var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
+            if (!isPlayer) AddHealthBar(actor);
+            return actor;
         }
 
         void Refill()
@@ -250,24 +286,25 @@ namespace DoodleIdle
         {
             if (!Ready) return;
             var keyboard = Keyboard.current;
-            if (keyboard != null)
+            if (keyboard != null && (!Ui || !Ui.BlocksGameplay))
             {
                 if (keyboard.spaceKey.wasPressedThisFrame) TogglePause();
                 if (keyboard.rKey.wasPressedThisFrame) ResetGame();
                 if (keyboard.tabKey.wasPressedThisFrame) autoPlay = !autoPlay;
                 manualInput = new Vector2((keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1 : 0), (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1 : 0)).normalized;
             }
+            RefreshHudLayout();
+            UpdateJoystick();
             UpdateHud();
             if (paused) return;
             float dt = Time.deltaTime;
             Elapsed += dt;
             UpdateShots(dt);
             UpdateFlecks(dt);
+            UpdateExtraVisuals(dt);
             swing = Mathf.MoveTowards(swing, 0, dt * 5);
-            weapon.localPosition = new Vector3(facing.x < 0 ? -.58f : .58f, -.12f, 0);
-            weapon.localRotation = Quaternion.Euler(0, 0, (facing.x < 0 ? 80 : -10) + Mathf.Sin(swing * Mathf.PI) * -105);
-            weapon.GetComponent<SpriteRenderer>().sortingOrder = player.art.sortingOrder + 2;
             Animate(player);
+            UpdateHeldClub();
             foreach (var enemy in enemies) Animate(enemy);
         }
 
@@ -280,7 +317,7 @@ namespace DoodleIdle
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
-            if (dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            if (basicSkillsEnabled && !JoystickActive && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -299,12 +336,12 @@ namespace DoodleIdle
             }
             else
             {
-                Vector2 desired = autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
+                Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
                 // Steer around boulders; the real colliders remain authoritative.
                 foreach (var obstacle in obstacles)
                 {
                     Vector2 away = player.Position - obstacle;
-                    if (away.sqrMagnitude < 3.8f && Vector2.Dot(desired, away) < 0)
+                    if (!JoystickActive && away.sqrMagnitude < 3.8f && Vector2.Dot(desired, away) < 0)
                         desired += new Vector2(-away.y, away.x).normalized * moveSpeed + away.normalized * 2;
                 }
                 player.body.linearVelocity = desired;
@@ -315,18 +352,22 @@ namespace DoodleIdle
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
                 enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
             }
-            if (attackTimer <= 0 && delta.sqrMagnitude < 24)
-            { FireSlash(facing); attackTimer = attackInterval; }
-            if (stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
+            if (basicSkillsEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
+            { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
+            if (basicSkillsEnabled && stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
             OrbitBananas(dt);
+            TickExtraSkills(dt);
+            TickSummons(dt);
+            TickParticles(dt);
+            TickDamageNumbers(dt);
             if (enemies.Count < refillBelow) Refill();
         }
 
         void LateUpdate()
         {
             if (!Ready) return;
-            Vector3 desired = new Vector3(Mathf.Clamp(player.Position.x * .65f, -6.5f, 6.5f), Mathf.Clamp(player.Position.y * .65f, -3, 3), -10);
-            gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 4));
+            Vector3 desired = new Vector3(player.Position.x, player.Position.y, -10);
+            gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 9));
         }
 
         Actor Closest(Vector2 origin)
@@ -355,6 +396,7 @@ namespace DoodleIdle
             dashRemaining = Mathf.Min(Vector2.Distance(selected.Position, player.Position), 8) / 25f;
             dashTimer = dashInterval;
             dashVictims.Clear();
+            if (DashCasts == 0) FirstDashTime = Time.fixedTime - combatStartFixedTime;
             DashCasts++;
         }
 
@@ -374,7 +416,7 @@ namespace DoodleIdle
             nearest.Sort((a, b) => (a.Position - origin).sqrMagnitude.CompareTo((b.Position - origin).sqrMagnitude));
             for (int i = 0; i < Mathf.Min(3, nearest.Count); i++)
             {
-                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * .43f, 550);
+                var sprite = Visual("Parabolic stone", sprites[6], origin, Vector2.one * 1.29f, 550);
                 sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
                 shots.Add(new Shot { visual = sprite.transform, start = origin, end = nearest[i].Position, target = nearest[i], duration = .65f + i * .06f, stone = true });
                 StonesLaunched++;
@@ -383,20 +425,27 @@ namespace DoodleIdle
 
         void OrbitBananas(float dt)
         {
+            bananaCycleAge += dt;
+            if (bananaCycleAge >= OrbitSkillCycle) bananaCycleAge -= OrbitSkillCycle;
+            bool wasActive = BananasActive;
+            BananasActive = bananaCycleAge < OrbitSkillLifetime;
             orbitAngle += dt * 2.1f;
             for (int n = 0; n < bananas.Length; n++)
             {
                 float angle = orbitAngle + n * Mathf.PI * 2 / 5;
                 Vector2 p = player.Position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * bananaRadius;
                 Vector2 previous = bananas[n].position;
+                bananas[n].gameObject.SetActive(BananasActive);
                 bananas[n].position = p;
                 bananas[n].rotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg - 35);
                 bananas[n].GetComponent<SpriteRenderer>().sortingOrder = Order(p) + 5;
+                if (!BananasActive || !basicSkillsEnabled) continue;
+                if (!wasActive) previous = p;
                 for (int i = enemies.Count - 1; i >= 0; i--)
                 {
                     var enemy = enemies[i];
                     // A swept trigger avoids missing enemies during a dash. Shared cooldown prevents five instant hits.
-                    if (SegmentDistance(enemy.Position, previous, p) > .72f) continue;
+                    if (SegmentDistance(enemy.Position, previous, p) > 1.02f) continue;
                     if (bananaHitTimes.TryGetValue(enemy, out float last) && Elapsed - last < .35f) continue;
                     bananaHitTimes[enemy] = Elapsed; BananaHits++;
                     Damage(enemy, 19, (enemy.Position - player.Position).normalized);
@@ -424,7 +473,7 @@ namespace DoodleIdle
                 else
                 {
                     Vector2 old = shot.visual.position;
-                    Vector2 next = old + shot.direction * (dt * 11);
+                    Vector2 next = old + shot.direction * (dt * SlashSpeed);
                     shot.visual.position = next;
                     shot.visual.localScale = Vector3.one * (1.3f + t * .7f);
                     shot.visual.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1 - t);
@@ -442,11 +491,16 @@ namespace DoodleIdle
         void Damage(Actor enemy, float amount, Vector2 push)
         {
             if (enemy.hp <= 0) return;
+            amount *= (Ui ? Ui.UiDamageMultiplier : 1) * RollUiCriticalMultiplier();
             enemy.hp -= amount; enemy.flash = .14f;
+            RefreshHealthBar(enemy);
+            ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
             if (enemy.hp > 0) return;
             Kills++;
+            LeaveStain(enemy.Position);
+            EmitGold(enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.
@@ -456,29 +510,38 @@ namespace DoodleIdle
 
         void Animate(Actor actor)
         {
+            AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
-            actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : Color.white;
+            actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
-            actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = actor.art.sortingOrder - 2;
+            RefreshHealthBar(actor);
+            actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = -900;
+        }
+
+        void UpdateHeldClub()
+        {
+            float side = facing.x < 0 ? -1 : 1;
+            // Sprite pivot is inside the grip; the hand contact follows the head's bob and tilt.
+            weapon.position = player.art.transform.TransformPoint(new Vector3(.4f * side, -.18f, 0));
+            var art = weapon.GetComponent<SpriteRenderer>();
+            ApplyWeaponSkin(art);
+            art.flipX = side < 0;
+            weapon.localRotation = Quaternion.Euler(0, 0, side * (-10 - Mathf.Sin(swing * Mathf.PI) * 105));
+            art.sortingOrder = player.art.sortingOrder + 2;
         }
 
         void Trail()
         {
-            var sprite = Visual("Dash afterimage", sprites[0], player.Position, Vector2.one * 1.2f, Order(player.Position) - 3);
+            var sprite = Visual("Dash afterimage", player.art.sprite, player.Position, Vector2.one * 1.2f, Order(player.Position) - 3);
             sprite.color = new Color(1, 1, 1, .35f);
             flecks.Add(new Fleck { visual = sprite.transform, sprite = sprite, lifetime = .24f, remaining = .24f });
         }
 
         void Burst(Vector2 p, Color color, int count)
         {
-            for (int n = 0; n < count; n++)
-            {
-                var sprite = Visual("Hit dust", disc, p, Vector2.one * UnityEngine.Random.Range(.07f, .17f), 600);
-                sprite.color = color;
-                flecks.Add(new Fleck { visual = sprite.transform, sprite = sprite, velocity = UnityEngine.Random.insideUnitCircle * 3, remaining = .35f, lifetime = .35f });
-            }
+            EmitBurst(dustParticles, p, color, count, .28f, .68f, 2.8f, .35f, .55f);
         }
 
         void UpdateFlecks(float dt)
@@ -495,6 +558,7 @@ namespace DoodleIdle
         public void TogglePause()
         {
             paused = !paused;
+            if (paused) ReleaseJoystick();
             player.body.simulated = !paused;
             foreach (var enemy in enemies) enemy.body.simulated = !paused;
         }
@@ -512,8 +576,21 @@ namespace DoodleIdle
             go.transform.SetParent(world);
             go.transform.position = p; go.transform.localScale = new Vector3(scale.x, scale.y, 1);
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite; renderer.sortingOrder = order; renderer.sharedMaterial = spriteMaterial;
+            renderer.sortingOrder = order;
+            SetSpriteArt(renderer, sprite);
             return renderer;
+        }
+
+        void SetSpriteArt(SpriteRenderer renderer, Sprite sprite)
+        {
+            renderer.sprite = sprite;
+            // Explicit bindings keep atlas, floor and effect textures in separate material batches.
+            if (!textureMaterials.TryGetValue(sprite.texture, out var material))
+            {
+                material = new Material(spriteMaterial) { mainTexture = sprite.texture, name = "Doodle / " + sprite.texture.name };
+                textureMaterials.Add(sprite.texture, material);
+            }
+            renderer.sharedMaterial = material;
         }
 
         static Sprite MakeDisc()
@@ -540,33 +617,47 @@ namespace DoodleIdle
             return Sprite.Create(texture, new Rect(0, 0, 96, 96), Vector2.one * .5f, 96);
         }
 
+        public DoodleUi Ui { get; private set; }
         void BuildHud()
         {
             uiFont = Resources.Load<Font>("DoodleIdle/InterfaceFont");
-            if (!uiFont) uiFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var go = new GameObject("Prototype HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform);
-            var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1440, 900); scaler.matchWidthOrHeight = .5f;
+            hudRoot = go.transform;
+            var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 2000;
+            var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1520);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight; scaler.matchWidthOrHeight = 1;
             if (!FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>())
                 new GameObject("Event System", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule)).transform.SetParent(transform);
-            var top = Panel(go.transform, "Header", new Vector2(0, 1), new Vector2(1, 1), new Vector2(22, -100), new Vector2(-22, -20));
-            Label(top, "낙서 원정대", 28, new Vector2(22, 32), new Vector2(250, 40), TextAnchor.MiddleLeft);
-            Label(top, "머리 하나, 방망이 하나. 알아서 싸우는 중!", 13, new Vector2(24, 9), new Vector2(360, 26), TextAnchor.MiddleLeft);
-            populationText = Label(top, "", 22, new Vector2(-510, 24), new Vector2(180, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            killsText = Label(top, "", 22, new Vector2(-320, 24), new Vector2(170, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            timeText = Label(top, "", 22, new Vector2(-145, 24), new Vector2(135, 35), TextAnchor.MiddleCenter, new Vector2(1, 0));
-            var bottom = Panel(go.transform, "Skill dock", Vector2.zero, new Vector2(1, 0), new Vector2(22, 20), new Vector2(-22, 124));
-            SkillCard(bottom, "방망이 검기", "자동 평타", sprites[4], 18, false);
-            dashFill = SkillCard(bottom, "쌩! 대시", "5초마다 먼 적에게", sprites[0], 260, true);
-            SkillCard(bottom, "빙글 바나나", "5개가 계속 공전", sprites[5], 502, false);
-            stoneFill = SkillCard(bottom, "돌멩이 톡톡", "가까운 적 3명 · 포물선", sprites[6], 744, true);
-            pauseText = Button(bottom, "일시정지", new Vector2(-204, 54), new Vector2(180, 36), TogglePause);
-            Button(bottom, "다시 시작", new Vector2(-204, 12), new Vector2(180, 34), ResetGame);
-            modeText = Label(go.transform, "", 14, new Vector2(30, 135), new Vector2(800, 28), TextAnchor.MiddleLeft);
-            waveText = Label(go.transform, "", 14, new Vector2(-390, 135), new Vector2(360, 28), TextAnchor.MiddleRight, new Vector2(1, 0));
+            Ui = gameObject.AddComponent<DoodleUi>(); Ui.Initialize(this, hudRoot);
+            BuildJoystick();
         }
-
+        public void RefreshHudLayout() { if (Ui) Ui.Relayout(); }
+        public void CancelUiPointer() { ReleaseJoystick(); manualInput = Vector2.zero; }
+        public float UiCooldown(string ability)
+        {
+            switch(ability)
+            {
+                case "Banana": return Mathf.Clamp01((OrbitSkillCycle - bananaCycleAge) / OrbitSkillCycle);
+                case "Stone": return Mathf.Clamp01(stoneTimer / stoneInterval);
+                case "Arrows": return Mathf.Clamp01(arrowClock / arrowInterval);
+                case "BouncyBall": return Mathf.Clamp01(ballClock / ballInterval);
+                case "Fire": return Mathf.Clamp01(fireClock / fireInterval);
+                case "Drone": return Mathf.Clamp01(droneClock / droneInterval);
+                case "Worm": return Mathf.Clamp01(wormClock / wormInterval);
+                case "Cloud": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
+                case "Lightning": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
+                case "Dragon": return Mathf.Clamp01(summonClocks[9] / SummonInterval(9));
+                case "Cannon": return Mathf.Clamp01(summonClocks[3] / SummonInterval(3));
+                case "Guardian": return Mathf.Clamp01(summonClocks[2] / SummonInterval(2));
+                case "Shotgun": return Mathf.Clamp01(summonClocks[1] / SummonInterval(1));
+                case "Molotov": return Mathf.Clamp01(summonClocks[11] / SummonInterval(11));
+                case "Sound": return Mathf.Clamp01(summonClocks[12] / SummonInterval(12));
+                case "OrbitGun": return Mathf.Clamp01(summonClocks[13] / SummonInterval(13));
+                default: return Mathf.Clamp01(attackTimer / attackInterval);
+            }
+        }
         RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 min, Vector2 max)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Outline)); go.transform.SetParent(parent, false);
@@ -584,16 +675,16 @@ namespace DoodleIdle
             return text;
         }
 
-        Image SkillCard(Transform parent, string title, string subtitle, Sprite icon, float x, bool progress)
+        Image SkillCard(Transform parent, string title, string subtitle, Sprite icon, float x, bool progress, float y = 0)
         {
             var go = new GameObject(title + " icon", typeof(RectTransform), typeof(Image)); go.transform.SetParent(parent, false);
-            var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = Vector2.zero; rect.pivot = Vector2.zero; rect.anchoredPosition = new Vector2(x, 25); rect.sizeDelta = new Vector2(56, 56);
+            var rect = go.GetComponent<RectTransform>(); rect.anchorMin = rect.anchorMax = Vector2.zero; rect.pivot = Vector2.zero; rect.anchoredPosition = new Vector2(x, y + 25); rect.sizeDelta = new Vector2(56, 56);
             go.GetComponent<Image>().sprite = icon; go.GetComponent<Image>().preserveAspect = true;
-            Label(parent, title, 18, new Vector2(x + 66, 52), new Vector2(178, 30), TextAnchor.MiddleLeft);
-            Label(parent, subtitle, 12, new Vector2(x + 66, 31), new Vector2(178, 24), TextAnchor.MiddleLeft);
+            Label(parent, title, portraitHud ? 26 : 18, new Vector2(x + 66, y + 52), new Vector2(230, 32), TextAnchor.MiddleLeft);
+            Label(parent, subtitle, portraitHud ? 20 : 12, new Vector2(x + 66, y + 26), new Vector2(230, 27), TextAnchor.MiddleLeft);
             if (!progress) return null;
             var bar = new GameObject(title + " cooldown", typeof(RectTransform), typeof(Image)); bar.transform.SetParent(parent, false);
-            var r = bar.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero; r.anchoredPosition = new Vector2(x + 66, 21); r.sizeDelta = new Vector2(155, 5);
+            var r = bar.GetComponent<RectTransform>(); r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero; r.anchoredPosition = new Vector2(x + 66, y + 16); r.sizeDelta = new Vector2(155, 5);
             var image = bar.GetComponent<Image>(); image.color = new Color(.57f, .65f, .4f); return image;
         }
 
@@ -601,20 +692,10 @@ namespace DoodleIdle
         {
             var panel = Panel(parent, value, new Vector2(1, 0), new Vector2(1, 0), position, position + size);
             panel.gameObject.AddComponent<Button>().onClick.AddListener(action);
-            return Label(panel, value, 15, Vector2.zero, size, TextAnchor.MiddleCenter);
+            return Label(panel, value, portraitHud ? 25 : 15, Vector2.zero, size, TextAnchor.MiddleCenter);
         }
 
-        void UpdateHud()
-        {
-            populationText.text = "적  " + enemies.Count + " / " + targetPopulation;
-            killsText.text = "처치  " + Kills;
-            timeText.text = TimeSpan.FromSeconds(Elapsed).ToString(@"mm\:ss");
-            waveText.text = "20마리 미만이면 80마리까지 보충  ·  " + Refills + "회";
-            modeText.text = paused ? "잠깐 쉬는 중  ·  SPACE로 계속" : (autoPlay ? "● 자동 전투" : "● 직접 이동 · WASD / 방향키") + "    SPACE 일시정지    TAB 이동 모드    R 다시 시작";
-            pauseText.text = paused ? "계속하기" : "일시정지";
-            dashFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - dashTimer / dashInterval), 5);
-            stoneFill.rectTransform.sizeDelta = new Vector2(155 * Mathf.Clamp01(1 - stoneTimer / stoneInterval), 5);
-        }
+        void UpdateHud() { if (Ui) Ui.RefreshHud(); }
 
         // Used by server-side PlayMode tests after real physics frames.
         public string Diagnostics()
@@ -632,11 +713,20 @@ namespace DoodleIdle
 
         void OnDestroy()
         {
+            orbitGunRecoil?.Kill();
+            KillCannonTweens();
+            DisposeParticleMaterials();
             if (spriteMaterial) Destroy(spriteMaterial);
+            foreach (var material in textureMaterials.Values) if (material) Destroy(material);
+            textureMaterials.Clear();
             if (frictionless) Destroy(frictionless);
             if (disc) { Destroy(disc.texture); Destroy(disc); }
             if (slash) { Destroy(slash.texture); Destroy(slash); }
             if (groundSprite) Destroy(groundSprite);
+            DisposeSkillArt();
+            DisposeSummonArt();
+            DisposeActorAnimations();
+            DisposeWorldSkins();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }
     }

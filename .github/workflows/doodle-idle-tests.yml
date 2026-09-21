@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   playmode:
+    # Same-repository PR heads already run on push. Avoid duplicate Unity activation/renders.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Unity 6 collision and combat tests
     runs-on: ubuntu-latest
     timeout-minutes: 35
