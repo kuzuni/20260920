@@ -69,13 +69,15 @@ namespace DoodleIdle.Tests
             game.SoundWaveLaunched += time => launches.Add(time);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.SoundWave);
             var wave = NamedArt("Traveling sound wave").Single();
+            Assert.That(wave.bounds.size.x / wave.bounds.size.y, Is.EqualTo(.55f).Within(.01f), "The wavefront must already be broad across travel on its first frame.");
             var texture = wave.sprite.texture;
             Assert.That(texture.GetPixel(texture.width / 2, texture.height / 2).a, Is.LessThan(.05f), "The donut's center is transparent.");
             yield return PhysicsTicks(10);
             Assert.That(game.SoundWavesLaunched, Is.EqualTo(2), "Rings must be launched sequentially.");
             Assert.That(wave.transform.position.x, Is.EqualTo(1.4f).Within(.03f));
             Assert.That(wave.transform.position.y, Is.EqualTo(0).Within(.01f));
-            Assert.That(wave.bounds.size.x, Is.EqualTo(1.02f).Within(.03f));
+            Assert.That(wave.bounds.size.x, Is.EqualTo(1.02f * .55f).Within(.03f));
+            Assert.That(wave.bounds.size.y, Is.EqualTo(1.02f).Within(.03f));
             yield return PhysicsTicks(28);
             Assert.That(game.SoundWavesLaunched, Is.EqualTo(5));
             Assert.That(launches.Count, Is.EqualTo(5));
@@ -100,6 +102,7 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(4);
             var leftWave = NamedArt("Traveling sound wave").Single();
             Assert.That(leftWave.transform.position.x, Is.LessThan(-.5f));
+            Assert.That(leftWave.bounds.size.x / leftWave.bounds.size.y, Is.EqualTo(.55f).Within(.01f));
             game.TogglePause();
             var position = leftWave.transform.position; var scale = leftWave.transform.localScale;
             int pausedLaunches = game.SoundWavesLaunched;
@@ -114,6 +117,17 @@ namespace DoodleIdle.Tests
             IsolateSummonTest(); yield return PhysicsTicks(50);
             Assert.That(game.SoundWavesLaunched, Is.Zero, "Reset clears queued shots as well as visible rings.");
             Assert.That(NamedArt("Traveling sound wave").Length, Is.Zero);
+            // A vertical shot rotates the broad front with its direction instead of staying tall.
+            var verticalBodies = EnemyBodies();
+            for (int i = 0; i < verticalBodies.Length; i++) Place(verticalBodies[i], new Vector2(14 + i % 4, 15 + i / 4));
+            Place(PlayerBody(), Vector2.zero); Place(verticalBodies[0], new Vector2(0, 4));
+            game.CastSummonSkill(DoodleIdleGame.SummonSkill.SoundWave);
+            var upWave = NamedArt("Traveling sound wave").Single();
+            Assert.That(upWave.bounds.size.y / upWave.bounds.size.x, Is.EqualTo(.55f).Within(.01f));
+            yield return PhysicsTicks(10);
+            Assert.That(upWave.transform.position.y, Is.GreaterThan(1.3f));
+            Assert.That(upWave.bounds.size.y / upWave.bounds.size.x, Is.EqualTo(.55f).Within(.01f));
+            Object.Destroy(CaptureFrame("22-vertical-sound-front.png", 1440, 900, false));
         }
     }
 }

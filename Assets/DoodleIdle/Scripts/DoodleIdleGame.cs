@@ -210,7 +210,8 @@ namespace DoodleIdle
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
             Elapsed = orbitAngle = dashRemaining = 0;
-            bananaCycleAge = 0; BananasActive = true;
+            ResetSkillActivation();
+            bananaCycleAge = 0; BananasActive = SkillEquipped("Banana");
             FirstDashTime = 0;
             combatStartFixedTime = Time.fixedTime;
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
@@ -223,6 +224,7 @@ namespace DoodleIdle
                 bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * 1.16f, 80).transform;
                 var trigger = bananas[i].gameObject.AddComponent<CircleCollider2D>();
                 trigger.radius = .4f; trigger.isTrigger = true;
+                bananas[i].gameObject.SetActive(BananasActive);
             }
             Refill();
             Refills = 0;
@@ -366,7 +368,7 @@ namespace DoodleIdle
             }
             if (basicSkillsEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
-            if (basicSkillsEnabled && stoneTimer <= 0) { ThrowStones(); stoneTimer = stoneInterval; }
+            TickEquippedSkills(dt);
             OrbitBananas(dt);
             TickCompanions(dt);
             TickVariants(dt);
@@ -439,10 +441,15 @@ namespace DoodleIdle
 
         void OrbitBananas(float dt)
         {
-            bananaCycleAge += dt;
+            bool equipped = SkillEquipped("Banana");
+            bool debugActive = debugBananaRemaining > 0;
+            debugBananaRemaining = Mathf.Max(0, debugBananaRemaining - dt);
+            if (equipped) bananaCycleAge += dt; else bananaCycleAge = 0;
             if (bananaCycleAge >= OrbitSkillCycle) bananaCycleAge -= OrbitSkillCycle;
             bool wasActive = BananasActive;
-            BananasActive = bananaCycleAge < OrbitSkillLifetime;
+            BananasActive = debugActive || (equipped && bananaCycleAge < OrbitSkillLifetime);
+            if (equipped && !wasActive && BananasActive)
+                skillActivationCounts["Banana"] = SkillActivationCount("Banana") + 1;
             orbitAngle += dt * 2.1f;
             for (int n = 0; n < bananas.Length; n++)
             {
@@ -453,7 +460,7 @@ namespace DoodleIdle
                 bananas[n].position = p;
                 bananas[n].rotation = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg - 35);
                 bananas[n].GetComponent<SpriteRenderer>().sortingOrder = Order(p) + 5;
-                if (!BananasActive || !basicSkillsEnabled) continue;
+                if (!BananasActive || (!basicSkillsEnabled && !debugActive)) continue;
                 if (!wasActive) previous = p;
                 for (int i = enemies.Count - 1; i >= 0; i--)
                 {
@@ -652,31 +659,10 @@ namespace DoodleIdle
         public void CancelUiPointer() { ReleaseJoystick(); manualInput = Vector2.zero; }
         public float UiCooldown(string ability)
         {
-            if(VariantInterval(ability)>0)return variantClocks.TryGetValue(ability,out var clock)?Mathf.Clamp01(clock/VariantInterval(ability)):0;
-            switch(ability)
-            {
-                case "Banana": return Mathf.Clamp01((OrbitSkillCycle - bananaCycleAge) / OrbitSkillCycle);
-                case "Stone": return Mathf.Clamp01(stoneTimer / stoneInterval);
-                case "Arrows": return Mathf.Clamp01(arrowClock / arrowInterval);
-                case "BouncyBall": return Mathf.Clamp01(ballClock / ballInterval);
-                case "Fire": return Mathf.Clamp01(fireClock / fireInterval);
-                case "Drone": return Mathf.Clamp01(droneClock / droneInterval);
-                case "Worm": return Mathf.Clamp01(wormClock / wormInterval);
-                case "TetherSnake":return Mathf.Clamp01(summonClocks[5]/SummonInterval(5));
-                case "WaveSnakes":return Mathf.Clamp01(summonClocks[0]/SummonInterval(0));
-                case "FireRing":return Mathf.Clamp01(summonClocks[7]/SummonInterval(7));
-                case "Cloud": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
-                case "Lightning": return Mathf.Clamp01(summonClocks[6] / SummonInterval(6));
-                case "Dragon": return Mathf.Clamp01(summonClocks[9] / SummonInterval(9));
-                case "Cannon": return Mathf.Clamp01(summonClocks[3] / SummonInterval(3));
-                case "Guardian": return Mathf.Clamp01(summonClocks[2] / SummonInterval(2));
-                case "Shotgun": return Mathf.Clamp01(summonClocks[1] / SummonInterval(1));
-                case "Molotov": return Mathf.Clamp01(summonClocks[11] / SummonInterval(11));
-                case "Sound": return Mathf.Clamp01(summonClocks[12] / SummonInterval(12));
-                case "OrbitGun": return Mathf.Clamp01(summonClocks[13] / SummonInterval(13));
-                default: return Mathf.Clamp01(attackTimer / attackInterval);
-            }
+            if (ability == "Banana") return SkillEquipped(ability) ? Mathf.Clamp01((OrbitSkillCycle - bananaCycleAge) / OrbitSkillCycle) : 0;
+            return equippedSkillClocks.TryGetValue(ability, out var clock) ? Mathf.Clamp01(clock / Mathf.Max(.1f, SkillInterval(ability))) : 0;
         }
+
         RectTransform Panel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 min, Vector2 max)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Outline)); go.transform.SetParent(parent, false);

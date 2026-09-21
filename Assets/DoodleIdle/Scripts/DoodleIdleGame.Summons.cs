@@ -297,17 +297,6 @@ namespace DoodleIdle
                     : Mathf.Lerp(85, 0, Mathf.SmoothStep(0, 1, (progress - .65f) / .35f));
                 guardian.rotation = Quaternion.Euler(0, 0, guardianAim + angle);
             }
-            if (summonSkillsEnabled)
-            {
-                for (int i = 0; i < summonClocks.Length; i++)
-                {
-                    if (i == (int)SummonSkill.GuardianSword || i == (int)SummonSkill.OrbitGun) continue;
-                    summonClocks[i] -= dt;
-                    if (summonClocks[i] > 0) continue;
-                    if (i == (int)SummonSkill.GuardianSword && InRange(guardian.position, 5) == null) continue;
-                    CastSummonSkill((SummonSkill)i); summonClocks[i] = Mathf.Max(.1f, SummonInterval(i));
-                }
-            }
             TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickOrbitGun(dt); TickMovingSkills(dt); TickAreaSkills(dt);
             for (int i = stains.Count - 1; i >= 0; i--)
             {

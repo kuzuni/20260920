@@ -17,11 +17,12 @@ namespace DoodleIdle
         readonly List<Bottle> bottles = new List<Bottle>();
         readonly List<FireZone> fireZones = new List<FireZone>();
         readonly List<SoundPulse> soundWaves = new List<SoundPulse>();
-        sealed class SoundVolley { public Vector2 direction; public int remaining = 4; public float clock = SoundWaveShotGap; }
+        sealed class SoundVolley { public bool requiresEquipment; public Vector2 direction; public int remaining = 4; public float clock = SoundWaveShotGap; }
         readonly List<SoundVolley> soundVolleys = new List<SoundVolley>();
         public int SoundWavesLaunched { get; private set; }
         public event System.Action<float> SoundWaveLaunched;
         public const float SoundWaveShotGap = .18f, SoundWaveSpeed = 7, SoundWaveLifetime = 1.5f;
+        const float SoundWaveDepthRatio = .55f;
         public int ActiveFireZones => fireZones.Count;
         public const float FireZoneLifetime = 4, FireZoneRadius = 2.3f;
 
@@ -33,15 +34,26 @@ namespace DoodleIdle
         void StartSoundVolley(Vector2 direction)
         {
             LaunchSoundWave(direction);
-            soundVolleys.Add(new SoundVolley { direction = direction });
+            soundVolleys.Add(new SoundVolley { direction = direction, requiresEquipment = castingEquippedSkill });
         }
         void LaunchSoundWave(Vector2 direction)
         {
             Vector2 origin = player.Position;
-            soundWaves.Add(new SoundPulse { center = origin, direction = direction, radius = .35f,
-                art = Visual("Traveling sound wave", summonArt["SoundWave"], origin, Vector2.one * .7f, 480) });
+            var pulse = new SoundPulse { center = origin, direction = direction, radius = .35f,
+                art = Visual("Traveling sound wave", summonArt["SoundWave"], origin, Vector2.one * .7f, 480) };
+            UpdateSoundWaveShape(pulse);
+            soundWaves.Add(pulse);
             SoundWavesLaunched++;
             SoundWaveLaunched?.Invoke(Time.fixedTime);
+        }
+        static void UpdateSoundWaveShape(SoundPulse pulse)
+        {
+            // The broad wavefront faces travel: short along travel, wide across it.
+            pulse.art.transform.rotation = Aim(pulse.direction);
+            var spriteSize = pulse.art.sprite.bounds.size;
+            pulse.art.transform.localScale = new Vector3(
+                pulse.radius * 2 * SoundWaveDepthRatio / spriteSize.x,
+                pulse.radius * 2 / spriteSize.y, 1);
         }
         void EmitGroundFire(Vector2 center, int count,bool blue=false)
         {
@@ -60,7 +72,9 @@ namespace DoodleIdle
         {
             for (int i = soundVolleys.Count - 1; i >= 0; i--)
             {
-                var volley = soundVolleys[i]; volley.clock -= dt;
+                var volley = soundVolleys[i];
+                if (volley.requiresEquipment && !SkillEquipped("Sound")) { soundVolleys.RemoveAt(i); continue; }
+                volley.clock -= dt;
                 if (volley.clock > .0001f) continue;
                 LaunchSoundWave(volley.direction); volley.clock += SoundWaveShotGap;
                 if (--volley.remaining == 0) soundVolleys.RemoveAt(i);
@@ -99,9 +113,7 @@ namespace DoodleIdle
                 pulse.age += dt; pulse.radius = .35f + pulse.age * .8f;
                 pulse.center += pulse.direction * (SoundWaveSpeed * dt);
                 pulse.art.transform.position = pulse.center;
-                pulse.art.transform.rotation=Aim(pulse.direction);
-                var spriteSize = pulse.art.sprite.bounds.size;
-                pulse.art.transform.localScale = new Vector3(pulse.radius * 2 / spriteSize.x, pulse.radius * 1.1f / spriteSize.y, 1);
+                UpdateSoundWaveShape(pulse);
                 pulse.art.color = new Color(1, 1, 1, Mathf.Clamp01((SoundWaveLifetime - pulse.age) / .4f) * .8f);
                 // Sweep the moving ring between physics steps, excluding its empty inner region.
                 for (int e = enemies.Count - 1; e >= 0; e--)
@@ -110,10 +122,10 @@ namespace DoodleIdle
                     // Expand BOTH ellipse axes by the enemy's world-space radius before normalizing.
                     // Scaling the enemy radius by the oval's aspect would incorrectly miss its outer edge.
                     Vector2 normal=new Vector2(-pulse.direction.y,pulse.direction.x);
-                    Vector2 Relative(Vector2 p) { var d=p-previousCenter;return new Vector2(Vector2.Dot(d,pulse.direction)/(pulse.radius+.56f),Vector2.Dot(d,normal)/(pulse.radius*.55f+.56f)); }
+                    Vector2 Relative(Vector2 p) { var d=p-previousCenter;return new Vector2(Vector2.Dot(d,pulse.direction)/(pulse.radius*SoundWaveDepthRatio+.56f),Vector2.Dot(d,normal)/(pulse.radius+.56f)); }
                     Vector2 point=Relative(enemy.Position),end=Relative(pulse.center);
                     float outerDistance = SegmentDistance(point, Vector2.zero, end);
-                    float innerX=previousRadius*.77f-.56f,innerY=previousRadius*.77f*.55f-.56f;
+                    float innerX=previousRadius*.77f*SoundWaveDepthRatio-.56f,innerY=previousRadius*.77f-.56f;
                     bool InsideHole(Vector2 center) { var d=enemy.Position-center;return innerX>0 && innerY>0 && Mathf.Pow(Vector2.Dot(d,pulse.direction)/innerX,2)+Mathf.Pow(Vector2.Dot(d,normal)/innerY,2)<1; }
                     if (outerDistance > 1 || (InsideHole(previousCenter)&&InsideHole(pulse.center)) || !pulse.victims.Add(enemy)) continue;
                     Impact(SummonSkill.SoundWave, enemy, 24, pulse.direction);

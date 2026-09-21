@@ -75,7 +75,8 @@ namespace DoodleIdle.Tests
             var state=typeof(DoodleUi).GetField("services",GrowthPrivate).GetValue(game.Ui);
             var animate=typeof(DoodleIdleGame).GetMethod("AnimateActorFrames",GrowthPrivate);
             var enemyField=typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate);
-            string[] nativeLeft={"도토리","숲 부엉이","다람쥐","복어","소라게"};
+            string[] nativeLeft={"소라게"};
+            string[] atlasNames={"Meadow","Desert","Forest","Swamp","Volcano","Coast","Crystal","Twilight","Ruins","Glacier"};
             var camera=Camera.main;camera.orthographicSize=4.8f;camera.transform.position=new Vector3(0,0,-10);
             for(int theme=0;theme<10;theme++)
             {
@@ -96,8 +97,7 @@ namespace DoodleIdle.Tests
                         var actor=pair[column];var type=actor.GetType();
                         var body=(Rigidbody2D)type.GetField("body").GetValue(actor);
                         var art=(SpriteRenderer)type.GetField("art").GetValue(actor);
-                        string replacement = theme==1&&kind==1?"DesertFox":theme==3&&kind==0?"Moss":theme==4&&kind==2?"FireLizard":null;
-                        if(replacement!=null)Assert.That(art.sprite.texture.name,Is.EqualTo(replacement),"The requested new character must be used in the actual wave.");
+                        Assert.That(art.sprite.texture.name,Is.EqualTo(atlasNames[theme]),"Every species now uses its complete two-frame theme atlas.");
                         if(theme==3&&kind==0)Assert.That(body.name,Is.EqualTo("Enemy - 이끼"));
                         if(theme==4&&kind==2)Assert.That(body.name,Is.EqualTo("Enemy - 불도마뱀"));
                         bool sourceLeft=nativeLeft.Any(name=>body.name=="Enemy - "+name);
@@ -116,7 +116,7 @@ namespace DoodleIdle.Tests
                             var first=art.sprite;
                             animate.Invoke(game,new[]{actor,(object).2f});
                             Assert.That(art.sprite,Is.Not.SameAs(first));
-                            if(replacement!=null)Assert.That(art.sprite.texture,Is.SameAs(first.texture),"Both walking poses must use the replacement artwork.");
+                            Assert.That(art.sprite.texture,Is.SameAs(first.texture),"Both walking poses must use the replacement artwork.");
                             Assert.That(art.flipX,Is.EqualTo(side<0),"Pose B must retain facing.");
                             Assert.That(art.transform.localScale.x<0,Is.EqualTo(sourceLeft),"Pose B shares the normalized source direction.");
                             bool previous=art.flipX;

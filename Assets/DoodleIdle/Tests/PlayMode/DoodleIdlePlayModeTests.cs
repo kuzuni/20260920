@@ -321,11 +321,21 @@ namespace DoodleIdle.Tests
 
         [UnityTest]
         [Timeout(180000)]
-        public IEnumerator AutomaticCombatCastsEverySkillAndRefills()
+        public IEnumerator AutomaticCombatCastsEquippedLoadoutsAndRefills()
         {
             game.companionsEnabled=true;
             foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
             game.summonSkillsEnabled = true;
+            var skills = game.Ui.Items("Skill");
+            int group = -1;
+            System.Action<int> equipGroup = next => {
+                group = next;
+                for (int i = 0; i < skills.Count; i++) {
+                    skills[i].equipped = i / 8 == group;
+                    skills[i].discovered = true; skills[i].level = 1; skills[i].slot = i % 8;
+                }
+            };
+            equipGroup(0);
             Time.timeScale = 8;
             // At 8x speed one rendered frame can cross the five-second boundary.
             // Verify the actual cast timestamp instead of sampling Update's elapsed clock before it.
@@ -335,6 +345,8 @@ namespace DoodleIdle.Tests
             float worstPenetration = 0;
             while (game.Elapsed < 120)
             {
+                int nextGroup = Mathf.Min(2, (int)(game.Elapsed / 40));
+                if (nextGroup != group) equipGroup(nextGroup);
                 yield return new WaitForFixedUpdate();
                 Assert.That(game.EnemyCount, Is.InRange(0, 100), "Waves deplete completely and the breakthrough boss spawns alone.");
                 var bodies = EnemyBodies();
@@ -352,14 +364,13 @@ namespace DoodleIdle.Tests
             Assert.That(game.ArrowHits, Is.GreaterThan(0));
             Assert.That(game.BallsCompleted, Is.GreaterThan(0));
             Assert.That(game.FireHits, Is.GreaterThan(0));
-            Assert.That(game.MissileHits, Is.GreaterThan(0));
+            Assert.That(game.CompanionHits, Is.GreaterThan(0));
             Assert.That(game.WormHits, Is.GreaterThan(0));
             Assert.That(game.ActiveExtraProjectiles, Is.LessThan(100), "Expired projectiles must be cleaned up during extended combat.");
-            foreach (DoodleIdleGame.SummonSkill skill in System.Enum.GetValues(typeof(DoodleIdleGame.SummonSkill)))
-            {
-                Assert.That(game.SummonCasts(skill), Is.GreaterThan(0), skill + " must cast automatically.");
-                Assert.That(game.SummonHits(skill), Is.GreaterThan(0), skill + " must damage real enemies.");
-            }
+            foreach (var skill in skills)
+                Assert.That(game.SkillActivationCount(skill.ability), Is.GreaterThan(0), skill.id + " must cast while in its equipped loadout.");
+            Assert.That(game.MissilesLaunched, Is.Zero, "Legacy drone skill is not a catalog skill.");
+            Assert.That(game.SummonCasts(DoodleIdleGame.SummonSkill.Cucumber), Is.Zero);
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));

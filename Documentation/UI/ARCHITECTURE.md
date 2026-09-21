@@ -47,3 +47,13 @@ Main integrates real combat kills into wallet/mission and reads real cooldowns. 
 - DoodleIdleGame.Variants reuses projectile, snake, cloud, worm and Molotov mechanics for equipped higher-grade variants. DoodleIdleGame.Companions tracks the five equipped companions, uses visible world positions for attacks and removes actors on unequip. Original automatic drone/guardian/orbit casts moved to companions; explicit diagnostic casts remain available. Other established automatic combat continues.
 - Seven reusable ParticleSystems cover existing effects plus recolored purple arrow fire trails and blue Molotov ground flames. Fixed-step simulation shares gameplay pause/reset behavior.
 - Catalog IDs are stable across the skill-to-companion move so saved copies and enhancement levels survive. New catalog entries and artwork mapping are documented in Documentation/skill-companion-catalog.md and Documentation/skill-companion-expansion-prompts.md.
+
+## 2026-09-21 equipped skills and complete actor frames
+
+- `DoodleIdleGame.SkillActivation` owns automatic cooldowns for the 24 equipped catalog skills. Removed unconditional legacy skill loops. Explicit `DebugCastSkill(itemId)` bypasses equipment/ownership; queued automatic arrows, sound and variants stop launching after unequip.
+- `DoodleSkillTestWindow` is an Odin Editor window with 24 per-skill test buttons. It calls the runtime bypass and does not grant, equip or spend items.
+- `DoodleCollectionArt` loads distinct skill thumbnails, companion frames and projectiles. Companion frames use a common A/B crop and scale. No old skill or player artwork is used as the new companion character designs.
+- Companion patterns are catalog data: trajectory, volley count/gap, interval, speed and explosion radius. Actors follow the player, animate with two complete frames, fire their own art and disappear on unequip.
+- Full loadouts return to the existing equipped row for replacement; downward arrows identify selectable occupied slots. Empty cards/HUD slots use a plus icon.
+- Sound ellipse depth is .55 of its width across travel; the collision sweep rotates with the same axes.
+- Latest actor anatomy and exact built-in image-generation prompts are in `Documentation/two-frame-actors-and-loadouts.md`. The older head-only and arms-only drafts are superseded by the user's mushroom/sprout/pea walking references.

@@ -180,10 +180,10 @@ namespace DoodleIdle
         {
             StopRepeating();
             if(ActivePage==id){ClosePage();return;}
-            ConsumeGesture(); ClearOverlays();
+            ConsumeGesture(); ClearOverlays(); pendingEquip=null;
             ActivePage=id; RenderPage(); RefreshHud();
         }
-        public void ClosePage() { StopRepeating(); ConsumeGesture(); ClearOverlays(); if(pageLayer&&pageLayer.childCount>0)DoodlePopupMotion.Close(pageLayer.GetChild(0).gameObject,root); ActivePage=null; RenderPage(); }
+        public void ClosePage() { pendingEquip=null; StopRepeating(); ConsumeGesture(); ClearOverlays(); if(pageLayer&&pageLayer.childCount>0)DoodlePopupMotion.Close(pageLayer.GetChild(0).gameObject,root); ActivePage=null; RenderPage(); }
         public void RefreshPage()
         {
             var previous=pageLayer?pageLayer.GetComponentInChildren<ScrollRect>():null;
@@ -324,7 +324,7 @@ namespace DoodleIdle
             stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageRemaining)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
-            var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"Banana"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.15f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
+            var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));
         public float UiDamageMultiplier => CombatDamageMultiplier*AttackBuffMultiplier;

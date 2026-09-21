@@ -11,6 +11,7 @@ namespace DoodleIdle
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4";
         int statBatch = 1;
         bool collectionBulkRunning;
+        UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
@@ -225,24 +226,34 @@ namespace DoodleIdle
         void BuildLoadout(RectTransform body, string category, string label, int capacity, int columns)
         {
             var equipped = EquippedItems(category);
-            UiKit.Text(body, "장착 슬롯 " + UiNumber.Format(equipped.Count) + "/" + UiNumber.Format(capacity), 32, TextAnchor.MiddleLeft, 42);
+            bool replacing = pendingEquip != null && pendingEquip.category == category;
+            UiKit.Text(body, (replacing ? "교체할 장착 슬롯을 선택하세요" : "장착 슬롯 " + UiNumber.Format(equipped.Count) + "/" + UiNumber.Format(capacity)), 32, TextAnchor.MiddleLeft, 42);
             const float slotHeight = 100 * 4f / 3;
             var slots = UiKit.Grid(body, "Equipped " + category, columns, slotHeight);
             UiKit.PortraitGrid(slots);
+            if (replacing) slots.GetComponent<GridLayoutGroup>().padding.top = 30;
             for (int i = 0; i < capacity; i++)
             {
                 if (i < equipped.Count)
                 {
                     var item = equipped[i];
-                    var card = CollectionSlot(slots, item, () => ShowCollectionDetail(item), slotHeight);
+                    var card = CollectionSlot(slots, item, () => { if (replacing) ReplaceEquippedSlot(item); else ShowCollectionDetail(item); }, slotHeight);
+                    if (replacing)
+                    {
+                        var marker = UiKit.Rect(card.transform, "Replacement arrow");
+                        marker.anchorMin = marker.anchorMax = new Vector2(.5f, 1); marker.pivot = new Vector2(.5f, 0);
+                        marker.anchoredPosition = new Vector2(0, 3); marker.sizeDelta = new Vector2(28, 28);
+                        var image = marker.gameObject.AddComponent<Image>(); image.sprite = UiKit.Art("ReplaceArrow"); image.raycastTarget = false;
+                    }
                     card.GetComponentInChildren<Text>().text = category == "Skill" ? UiNumber.Format(i + 1) : UiNumber.Format(i + 1) + " " + GradeNames[item.rarity];
                 }
-                else UiKit.Slot(slots, "빈 슬롯", "", 0, 0, 0, false, false, () => Toast("보유 " + label + "을 선택해 장착하세요."), slotHeight);
+                else UiKit.Slot(slots, "빈 슬롯", "AddSlot", 0, 0, 0, false, false, () => Toast("보유 " + label + "을 선택해 장착하세요."), slotHeight);
             }
+            if (replacing) UiKit.Button(body, "교체 취소", () => { pendingEquip = null; RefreshPage(); }, UiKit.Paper, 34);
             OwnershipStrip(body, category);
             CollectionDivider(body);
             UiKit.Text(body, "보유 " + label, 32, TextAnchor.MiddleLeft, 44);
-            BuildInventory(body, Items(category), ShowCollectionDetail, 4);
+            BuildInventory(body, Items(category), item => { if (replacing) Toast("위의 장착 슬롯 중 교체할 슬롯을 선택하세요."); else ShowCollectionDetail(item); }, 4);
             CollectionActions(UiKit.Footer(body, category + " footer", 72), category);
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, category);
         }
@@ -454,7 +465,7 @@ namespace DoodleIdle
                     reuse.GetComponent<Outline>().effectColor = new Color(.89f, .81f, .70f);
                     UiKit.Text(reuse, "재사용", 18, TextAnchor.MiddleLeft, 20);
                     UiKit.Text(reuse, interval > 0 ? UiNumber.Format(interval, 2) + "초" : "자동", 23, TextAnchor.MiddleLeft, 24);
-                    UiKit.Text(body, "자동 전투 유지 · 장착 공격력 +" + UiNumber.Format(ItemEquipValue(item) * .02f, 2) + "%", 15, TextAnchor.MiddleCenter, 20);
+                    UiKit.Text(body, "장착 시에만 자동 발동 · 공격력 +" + UiNumber.Format(ItemEquipValue(item) * .02f, 2) + "%", 15, TextAnchor.MiddleCenter, 20);
                 }
                 else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);
@@ -492,22 +503,11 @@ namespace DoodleIdle
                 if (limit == 1) foreach (var previous in equipped) previous.equipped = false;
                 else if (equipped.Count >= limit)
                 {
-                    ShowDetail("교체할 " + CategoryName(item.category) + " 선택", body =>
-                    {
-                        UiKit.Text(body, "장착 슬롯이 가득 찼습니다.", 23, TextAnchor.MiddleCenter, 42);
-                        foreach (var current in equipped)
-                        {
-                            var previous = current;
-                            UiKit.Button(body, previous.name + " → " + item.name, () =>
-                            {
-                                long replacementBefore = Power;
-                                previous.equipped = false; item.equipped = true; item.slot = previous.slot;
-                                NormalizeEquipment(item.category);
-                                NotifyPowerChanged(replacementBefore, "장착 교체");
-                                Save(); CloseDetail(); if (detail) CloseDetail(); RefreshPage();
-                            }, UiKit.Green, 54);
-                        }
-                    });
+                    pendingEquip = item;
+                    if (detail) CloseDetail();
+                    RefreshPage();
+                    var scroll = pageLayer.GetComponentInChildren<ScrollRect>();
+                    if (scroll) scroll.verticalNormalizedPosition = 1;
                     return;
                 }
                 item.equipped = true; item.slot = limit == 1 ? 0 : equipped.Count;
@@ -515,6 +515,15 @@ namespace DoodleIdle
             NormalizeEquipment(item.category);
             NotifyPowerChanged(before, item.equipped ? "장착" : "장착 해제");
             Save(); if (detail) CloseDetail(); RefreshPage();
+        }
+
+        void ReplaceEquippedSlot(UiItem previous)
+        {
+            var item = pendingEquip;
+            if (item == null || item.category != previous.category || !previous.equipped || !item.discovered) return;
+            long before = Power;
+            previous.equipped = false; item.equipped = true; item.slot = previous.slot; pendingEquip = null;
+            NormalizeEquipment(item.category); NotifyPowerChanged(before, "장착 교체"); Save(); RefreshPage();
         }
 
         void BuildRelics(RectTransform body)

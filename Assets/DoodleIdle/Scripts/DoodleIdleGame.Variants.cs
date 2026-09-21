@@ -6,7 +6,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        sealed class VariantVolley { public string ability; public int remaining,index; public float clock; public Vector2 direction; }
+        sealed class VariantVolley { public string ability; public bool requiresEquipment; public int remaining,index; public float clock; public Vector2 direction; }
         sealed class VariantShot
         {
             public SpriteRenderer art; public Vector2 direction,start,end; public float age,speed,life,damage,radius,spin;
@@ -44,7 +44,7 @@ namespace DoodleIdle
             }
             else if(ability=="RedCloud")clouds.Add(new Cloud { red=true,art=Visual("Red storm cloud",DoodleVariantArt.Get("RedCloud"),origin+Vector2.up*2,Vector2.one*2.6f,650),direction=direction });
             else {
-                var volley=new VariantVolley { ability=ability,direction=direction,remaining=ability=="Durian"?2:ability=="PurpleFireArrows"?8:ability=="BrickVolley"?6:5 };
+                var volley=new VariantVolley { requiresEquipment=castingEquippedSkill,ability=ability,direction=direction,remaining=ability=="Durian"?2:ability=="PurpleFireArrows"?8:ability=="BrickVolley"?6:5 };
                 FireVariantVolley(volley);if(volley.remaining>0)variantVolleys.Add(volley);
             }
         }
@@ -74,14 +74,10 @@ namespace DoodleIdle
         }
         void TickVariants(float dt)
         {
-            if(extraSkillsEnabled && Ui)foreach(var item in Ui.EquippedSkills) {
-                float interval=VariantInterval(item.ability);if(interval<=0)continue;
-                variantClocks.TryGetValue(item.ability,out float clock);clock-=dt;
-                if(clock<=0){CastVariant(item.ability);clock=interval;}
-                variantClocks[item.ability]=clock;
-            }
             for(int i=variantVolleys.Count-1;i>=0;i--) {
-                var volley=variantVolleys[i];volley.clock-=dt;
+                var volley=variantVolleys[i];
+                if(volley.requiresEquipment && !SkillEquipped(volley.ability)){variantVolleys.RemoveAt(i);continue;}
+                volley.clock-=dt;
                 if(volley.clock<=.0001f){FireVariantVolley(volley);if(volley.remaining<=0)variantVolleys.RemoveAt(i);}
             }
             for(int i=variantShots.Count-1;i>=0;i--) {

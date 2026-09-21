@@ -79,10 +79,12 @@ namespace DoodleIdle.Tests
             var items=game.Ui.Items("Companion");string[] selected={"drone","sword","orbit","companion_frost","companion_bee"};
             foreach(var item in items){item.equipped=selected.Contains(item.id);if(item.equipped){item.discovered=true;item.level=1;item.slot=System.Array.IndexOf(selected,item.id);}}
             game.companionsEnabled=true;
-            yield return PhysicsTicks(75);
+            yield return PhysicsTicks(220); // Allow the new rarity-based volley intervals to repeat.
             Assert.That(game.ActiveCompanions,Is.EqualTo(5));Assert.That(game.CompanionAttacks,Is.GreaterThan(5));
-            Assert.That(game.MissilesLaunched,Is.GreaterThan(0));Assert.That(game.OrbitBulletsLaunched,Is.GreaterThan(0));
-            Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.GuardianSword),Is.GreaterThan(0));
+            Assert.That(game.CompanionShotsLaunched,Is.GreaterThan(5));
+            Assert.That(game.CompanionHits,Is.GreaterThan(0));
+            Assert.That(game.CompanionExplosions,Is.GreaterThan(0));
+            foreach(string id in selected) Assert.That(game.CompanionShotCount(id),Is.GreaterThan(0),id);
             Place(PlayerBody(),new Vector2(-3,-3));yield return PhysicsTicks(30);
             foreach(var renderer in game.GetComponentsInChildren<SpriteRenderer>().Where(s=>s.name.StartsWith("Companion: ")))
                 Assert.That(Vector2.Distance(renderer.transform.position,PlayerBody().position),Is.LessThan(3.1f));

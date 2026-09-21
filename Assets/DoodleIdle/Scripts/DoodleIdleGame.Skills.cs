@@ -57,6 +57,7 @@ namespace DoodleIdle
         Sprite droneFrameB;
         float arrowClock, ballClock, fireClock, droneClock, wormClock;
         float arrowShotClock, missileShotClock;
+        bool arrowsRequireEquipment;
         int arrowsPending, missilesPending, arrowIndex, missileIndex;
 
         void LoadSkillArt()
@@ -147,7 +148,7 @@ namespace DoodleIdle
             switch (skill)
             {
                 case ExtraSkill.Arrows:
-                    if (arrowsPending == 0) { arrowsPending = 10; arrowIndex = 0; arrowShotClock = 0; }
+                    if (arrowsPending == 0) { arrowsPending = 10; arrowIndex = 0; arrowShotClock = 0; arrowsRequireEquipment = castingEquippedSkill; }
                     break;
                 case ExtraSkill.BouncyBall:
                     Launch(ProjectileKind.Ball, Closest(player.Position), player.Position, 0);
@@ -190,15 +191,7 @@ namespace DoodleIdle
 
         void TickExtraSkills(float dt)
         {
-            if (extraSkillsEnabled)
-            {
-                arrowClock -= dt; ballClock -= dt; fireClock -= dt; droneClock -= dt; wormClock -= dt;
-                if (arrowClock <= 0) { CastExtraSkill(ExtraSkill.Arrows); arrowClock = arrowInterval; }
-                if (ballClock <= 0) { CastExtraSkill(ExtraSkill.BouncyBall); ballClock = ballInterval; }
-                if (fireClock <= 0) { CastExtraSkill(ExtraSkill.Fire); fireClock = fireInterval; }
-                // Missile drones now attack from equipped companion positions.
-                if (wormClock <= 0) { CastExtraSkill(ExtraSkill.Worm); wormClock = wormInterval; }
-            }
+            if (arrowsRequireEquipment && !SkillEquipped("Arrows")) arrowsPending = 0;
             arrowShotClock -= dt; missileShotClock -= dt;
             if (arrowsPending > 0 && arrowShotClock <= 0 && enemies.Count > 0)
             {

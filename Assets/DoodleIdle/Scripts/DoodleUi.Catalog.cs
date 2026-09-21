@@ -11,6 +11,9 @@ namespace DoodleIdle
         public int rarity, count, level, slot, tier;
         public bool equipped, discovered;
         public float ownedPercent, equipValue, cooldown;
+        public string projectile, trajectory;
+        public int volleyCount;
+        public float volleyGap, attackInterval, projectileSpeed, explosionRadius;
     }
 
     [Serializable]

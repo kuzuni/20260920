@@ -137,6 +137,18 @@ namespace DoodleIdle
         public static Sprite Art(string key)
         {
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
+            var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
+            if(key=="AddSlot" || key=="ReplaceArrow")
+            {
+                var tex=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color[64*64];
+                for(int y=0;y<64;y++)for(int x=0;x<64;x++)
+                {
+                    bool filled=key=="AddSlot" ? ((x>=27&&x<=36&&y>=10&&y<=53)||(y>=27&&y<=36&&x>=10&&x<=53))
+                        : y>=10&&y<=50&&Mathf.Abs(x-31.5f)<=(y-10)*.62f;
+                    pixels[y*64+x]=filled?Ink:Color.clear;
+                }
+                tex.SetPixels(pixels);tex.Apply();var icon=Sprite.Create(tex,new Rect(0,0,64,64),Vector2.one*.5f,64);icon.name=key;art[key]=icon;return icon;
+            }
             var variant=DoodleVariantArt.Get(key=="BouncyBall"?"BeachBall":key);
             if(variant){art[key]=variant;return variant;}
             string[] progression={"StatAttack","StatHealth","StatRegen","StatCrit2","StatCrit4","RelicStrength","RelicLife","RelicLuck","RelicRegen","RelicCritical","PodiumGold","PodiumSilver","PodiumBronze"};
