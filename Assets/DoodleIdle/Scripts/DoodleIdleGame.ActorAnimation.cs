@@ -55,10 +55,15 @@ namespace DoodleIdle
         void AnimateActorFrames(Actor actor, float dt)
         {
             bool moving = actor.body.simulated && actor.body.linearVelocity.sqrMagnitude > .0025f;
+            // Follow this actor's actual travel, not the player's facing or target position.
+            // Keep the last direction at rest or during vertical motion to avoid left/right flicker.
+            if (!actor.isPlayer && moving && Mathf.Abs(actor.body.linearVelocity.x) > .05f)
+                actor.art.flipX = actor.body.linearVelocity.x < 0;
             actor.walkClock = moving ? actor.walkClock + dt : 0;
             int frame = moving ? (int)(actor.walkClock * 6 + actor.phase) % 2 : 0;
             Sprite art = actor.isPlayer ? PlayerSkinFrame(frame == 0 ? sprites[0] : playerWalkB) : enemyWalkFrames[actor.kind][frame];
             if (actor.art.sprite != art) SetSpriteArt(actor.art, art);
+            if(!actor.isPlayer)NormalizeEnemyFrame(actor,art);
         }
         void DisposeActorAnimations()
         {

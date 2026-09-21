@@ -253,6 +253,11 @@ namespace DoodleIdle
             var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
             var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
+            if (!isPlayer)
+            {
+                NormalizeEnemyFrame(actor,art.sprite);
+                actor.art.flipX = player.Position.x < p.x;
+            }
             if (!isPlayer) AddHealthBar(actor);
             return actor;
         }

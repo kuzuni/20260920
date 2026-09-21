@@ -30,7 +30,7 @@ Screen builder signatures in partial files: `void BuildStats(RectTransform body)
 - colors `Ink,Paper,Blue,Green,Yellow,Red`, `Color Rarity(int)`; `Sprite Art(string)` loads/caches resources or generated vector sprites. No Unicode pictograph icons; use actual sprite/vector art.
 
 ## Cross-agent collection APIs
-Collections agent implements `List<UiItem> Items(string category)` (Armor,Club,Skill,Companion,Relic), `UiItem GrantItem(string category, System.Random rng)` using exact distribution `60/25/10/4/1` percent grades 0..4; uniform within grade. `void AddItem(UiItem item,int count)`; `float OwnedBonus`; `long Power`; `List<UiItem> EquippedSkills`; `InitCollections()`.
+Collections implements `List<UiItem> Items(string category)` (Armor,Club,Skill,Companion,Relic), `UiItem GrantItem(string category, System.Random rng)` using `SummonWeights(category)` from UiCommerce.json; uniform within grade. Non-relic levels 1..30 use seven grades; level 30 percentages are 10/10/24/25/20/10/1. Relics are one grade with uniform item probability and no summon progression. `void AddItem(UiItem item,int count)`; `float OwnedBonus`; `long Power`; `List<UiItem> EquippedSkills`; `InitCollections()`.
 UiItem public fields: `string id,name,icon,category; int rarity,count,level; bool equipped;`.
 Commerce uses these APIs and reports requirements. Main calls InitCollections in Awake. Arrays/catalog are tunable local data, not server truth.
 

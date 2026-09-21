@@ -15,6 +15,13 @@ namespace DoodleIdle
             public int tenCost = 100;
             public int fiftyCost = 450;
             public int[] levelExperience = { 50, 100, 200, 400, 800, 1000 };
+            public SummonRateTier[] rates = {
+                new SummonRateTier { level=1, basisPoints=new[]{6000,3000,900,100,0,0,0} },
+                new SummonRateTier { level=5, basisPoints=new[]{4500,3000,1800,600,100,0,0} },
+                new SummonRateTier { level=15, basisPoints=new[]{2000,2000,2500,2500,900,100,0} },
+                new SummonRateTier { level=25, basisPoints=new[]{1200,1200,2480,2400,2000,700,20} },
+                new SummonRateTier { level=30, basisPoints=new[]{1000,1000,2400,2500,2000,1000,100} }
+            };
             public CurrencyProduct[] products = {
                 new CurrencyProduct { amount = 100, priceWon = 1100 },
                 new CurrencyProduct { amount = 550, priceWon = 5500 },
@@ -26,6 +33,8 @@ namespace DoodleIdle
 
         [Serializable]
         public sealed class CurrencyProduct { public int amount, priceWon; }
+        [Serializable] public sealed class SummonRateTier { public int level; public int[] basisPoints; }
+        public const int MaxSummonLevel=30;
 
         [Serializable]
         public sealed class SummonState
@@ -58,6 +67,19 @@ namespace DoodleIdle
                 commerceTuning.levelExperience = new[] { 50, 100, 200, 400, 800, 1000 };
             for (int i = 0; i < commerceTuning.levelExperience.Length; i++)
                 commerceTuning.levelExperience[i] = Mathf.Max(1, commerceTuning.levelExperience[i]);
+            var rates=commerceTuning.rates;
+            if(rates==null||rates.Length<2||rates[0].level!=1||rates[rates.Length-1].level!=MaxSummonLevel)
+                throw new InvalidOperationException("Summon rate anchors must cover levels 1 through 30.");
+            int priorLevel=0;
+            foreach(var tier in rates)
+            {
+                if(tier.level<=priorLevel||tier.basisPoints==null||tier.basisPoints.Length!=7)
+                    throw new InvalidOperationException("Summon rate anchors must increase and contain seven grades.");
+                int total=0;foreach(int weight in tier.basisPoints){if(weight<0)throw new InvalidOperationException("Negative summon probability.");total+=weight;}
+                if(total!=10000||tier.basisPoints[0]<1000||tier.basisPoints[1]<1000)
+                    throw new InvalidOperationException("Summon rates must total 100% with at least 10% normal and advanced.");
+                priorLevel=tier.level;
+            }
             if (commerceTuning.products == null) commerceTuning.products = new CurrencyProduct[0];
             foreach (string category in commerceCategories)
             {
@@ -69,8 +91,8 @@ namespace DoodleIdle
                     catch (ArgumentException) { Debug.LogWarning("Reset invalid local summon progress: " + category); }
                 }
                 state.category = category;
-                state.level = Mathf.Clamp(state.level, 1, 100000);
-                state.experience = Mathf.Clamp(state.experience, 0, CommerceExperienceNeeded(state) - 1);
+                state.level = category=="Relic"?0:Mathf.Clamp(state.level, 1, MaxSummonLevel);
+                state.experience = category=="Relic" || state.level==MaxSummonLevel ? 0 : Mathf.Clamp(state.experience, 0, CommerceExperienceNeeded(state) - 1);
                 summonStates[category] = state;
             }
         }
@@ -85,6 +107,7 @@ namespace DoodleIdle
 
         int CommerceExperienceNeeded(SummonState state)
         {
+            if(state.category=="Relic")return 1;
             return commerceTuning.levelExperience[Mathf.Min(state.level - 1, commerceTuning.levelExperience.Length - 1)];
         }
 
@@ -94,9 +117,27 @@ namespace DoodleIdle
             return index >= 0 ? commerceLabels[index] : category;
         }
 
-        public int SummonLevel(string category) { return summonStates[category].level; }
+        public int SummonLevel(string category) { if(summonStates.Count==0)InitCommerce();return summonStates[category].level; }
         public int SummonExperience(string category) { return summonStates[category].experience; }
         public bool CanFreeSummon(string category) { return summonStates[category].freeUsedDay != CommerceDay(); }
+
+        public int[] SummonWeights(string category)
+        {
+            int level=SummonLevel(category);
+            if(category=="Relic")return new[]{10000,0,0,0,0,0,0};
+            var anchors=commerceTuning.rates;var lower=anchors[0];var upper=anchors[anchors.Length-1];
+            foreach(var tier in anchors){if(tier.level<=level)lower=tier;if(tier.level>=level){upper=tier;break;}}
+            double t=upper.level==lower.level?0:(level-lower.level)/(double)(upper.level-lower.level);
+            var weights=new int[7];int sum=0;
+            for(int grade=0;grade<7;grade++)
+            {
+                int value=(int)Math.Round(lower.basisPoints[grade]+(upper.basisPoints[grade]-lower.basisPoints[grade])*t);
+                if((grade==4&&level<5)||(grade==5&&level<15)||(grade==6&&level<25))value=0;
+                weights[grade]=value;sum+=value;
+            }
+            weights[0]+=10000-sum;
+            return weights;
+        }
 
         // Use the current best paid per-draw price, including the 50-draw discount.
         // Fractional diamonds carry over between refunds and are persisted.
@@ -163,13 +204,15 @@ namespace DoodleIdle
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
             var title = UiKit.Row(content, "SummonTitle", 40, 5);
-            UiKit.Text(title, "Lv. " + UiNumber.Format(state.level) + " " + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 40);
+            bool relic=category=="Relic";
+            UiKit.Text(title, (relic?"":"Lv. " + state.level + (state.level==MaxSummonLevel?" MAX":"")+" ") + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 40);
             var info = UiKit.Button(title, "i", () => ShowSummonProbabilities(category), UiKit.Blue, 36);
             var size = info.GetComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = 36;
             size.flexibleWidth = 0;
             int needed = CommerceExperienceNeeded(state);
-            UiKit.Gauge(content, UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), (float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
+            if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 20%",22,TextAnchor.MiddleLeft,28);
+            else UiKit.Gauge(content, state.level==MaxSummonLevel?"MAX":UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), state.level==MaxSummonLevel?1:(float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
             BuildSummonButtons(content, category);
             if (category == "Relic")
             {
@@ -259,12 +302,13 @@ namespace DoodleIdle
         {
             var state = summonStates[category];
             foreach (var item in rewards) AddItem(item, 1);
-            state.experience += rewards.Count;
-            while (state.experience >= CommerceExperienceNeeded(state))
+            if(category!="Relic" && state.level<MaxSummonLevel)state.experience += rewards.Count;
+            while (category!="Relic" && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
             {
                 state.experience -= CommerceExperienceNeeded(state);
                 state.level++;
             }
+            if(category=="Relic"||state.level==MaxSummonLevel)state.experience=0;
             RecordServiceProgress("summon", rewards.Count);
             Save();
             RefreshPage();
@@ -290,10 +334,12 @@ namespace DoodleIdle
                 var summary = UiKit.Row(footer, "Summon progress summary", 46, 10);
                 var summaryIcon = UiKit.Icon(summary, category, 46);
                 var summaryText = UiKit.Column(summary, "Summon progress text", 4, 0);
-                var level = UiKit.Text(summaryText, CommerceLabel(category) + " 뽑기 Lv. " + UiNumber.Format(state.level), 36, TextAnchor.MiddleLeft, 46);
+                bool relic=category=="Relic";
+                var level = UiKit.Text(summaryText, CommerceLabel(category) + (relic?" 뽑기":" 뽑기 Lv. "+state.level+(state.level==MaxSummonLevel?" MAX":"")), 36, TextAnchor.MiddleLeft, 46);
                 int needed = CommerceExperienceNeeded(state);
-                var experience = UiKit.Text(summaryText, "뽑기 경험치 " + UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), 29, TextAnchor.MiddleLeft, 34);
-                var gauge = UiKit.Gauge(footer, "", (float)state.experience / needed, 32);
+                var experience = UiKit.Text(summaryText, relic?"모든 유물 동일 등급 · 각각 20%":state.level==MaxSummonLevel?"최대 뽑기 레벨 달성":"뽑기 경험치 " + UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), 29, TextAnchor.MiddleLeft, 34);
+                var gauge = UiKit.Gauge(footer, "", state.level==MaxSummonLevel?1:(float)state.experience / needed, 32);
+                gauge.gameObject.SetActive(!relic);
                 BuildSummonButtons(footer, category, true);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
                 var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
@@ -324,6 +370,7 @@ namespace DoodleIdle
                     responsive.resultCount = rewards.Count; responsive.subtitle = subtitle; responsive.crest = crest.rectTransform;
                     responsive.summary = summary; responsive.summaryIcon = summaryIcon.rectTransform; responsive.level = level;
                     responsive.summaryText = summaryText; responsive.experience = experience;
+                    responsive.noSummonProgress=relic;
                     responsive.gauge = gauge; responsive.actions = footer.Find("SummonActions") as RectTransform;
                     responsive.confirm = confirm; responsive.confirmRow = confirmRow;
                     responsive.Reflow();
@@ -354,12 +401,13 @@ namespace DoodleIdle
                 if (window) { window.maxWidth = 570; window.maxHeight = 1110; }
                 body.GetComponent<VerticalLayoutGroup>().spacing = 5;
                 var heading = UiKit.Box(body, "Summon probability heading", new Color(.96f, .96f, .94f), 62);
-                var headingText = UiKit.Text(heading, "Lv. " + UiNumber.Format(summonStates[category].level) + " " + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
+                bool relic=category=="Relic";
+                var headingText = UiKit.Text(heading, (relic?"":"Lv. " + SummonLevel(category) + " ") + CommerceLabel(category) + " 뽑기", 35, TextAnchor.MiddleCenter, 58);
                 UiKit.Stretch(headingText.rectTransform, 5, 2, 5, 2);
                 var explanation = UiKit.Text(body, "1회 뽑기 기준 · 모든 회차 독립 추첨", 24, TextAnchor.MiddleCenter, 34);
                 var gradeTitle = UiKit.Text(body, "등급별 확률", 29, TextAnchor.MiddleLeft, 39);
-                var grades = UiKit.Row(body, "GradeProbabilities", 86, 5);
-                for (int rarity = 0; rarity < 5; rarity++)
+                var grades = UiKit.Grid(body, "GradeProbabilities", relic?1:4, 86);
+                for (int rarity = 0; rarity < (relic?1:7); rarity++)
                 {
                     int grade = rarity;
                     var card = UiKit.Box(grades, "Grade" + rarity, UiKit.Rarity(rarity), 86);
@@ -369,7 +417,7 @@ namespace DoodleIdle
                     rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
                     rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
                 }
-                if (category == "Armor" || category == "Club") UiKit.Text(body, "신화·갓 장비는 이전 장비 5개 합성으로 획득", 20, TextAnchor.MiddleCenter, 32);
+                UiKit.Text(body,relic?"모든 유물 동일 등급 · 각각 20%":"전설 Lv.5 · 신화 Lv.15 · 갓 Lv.25부터 등장\nLv.30: 갓 1% · 일반/고급 각각 10%",20,TextAnchor.MiddleCenter,relic?32:54);
                 var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
                 var all = Items(category);
                 for (int rarity = 0; rarity < GradeNames.Length; rarity++)
@@ -527,6 +575,7 @@ namespace DoodleIdle
         public Text subtitle, level, experience;
         public Button confirm;
         public int resultCount;
+        public bool noSummonProgress;
         bool reflowing;
 
         void LateUpdate() { Reflow(); }
@@ -550,7 +599,9 @@ namespace DoodleIdle
                     UiKit.Height(probabilityGradeTitle.transform, compact ? 28 : 39);
                     SetTextSize(probabilityGradeTitle, compact ? 24 : 29);
                     float gradeHeight = compact ? 62 : 86;
-                    UiKit.Height(probabilityGrades, gradeHeight);
+                    var gradeGrid=probabilityGrades.GetComponent<GridLayoutGroup>();
+                    gradeGrid.cellSize=new Vector2(gradeGrid.cellSize.x,gradeHeight);
+                    UiKit.Height(probabilityGrades,Mathf.CeilToInt(probabilityGrades.childCount/(float)gradeGrid.constraintCount)*(gradeHeight+gradeGrid.spacing.y)-gradeGrid.spacing.y);
                     foreach (RectTransform card in probabilityGrades)
                     {
                         UiKit.Height(card, gradeHeight);
@@ -577,10 +628,10 @@ namespace DoodleIdle
                 float header = Mathf.Lerp(Mathf.Max(82, window.headerHeight), 335, tall);
                 float footerGap = Mathf.Lerp(8, 26, tall);
                 float summaryHeight = Mathf.Lerp(52, 124, tall);
-                float gaugeHeight = Mathf.Lerp(32, 36, tall);
+                float gaugeHeight = noSummonProgress?0:Mathf.Lerp(32, 36, tall);
                 float actionHeight = Mathf.Lerp(68, 106, tall);
                 float confirmHeight = Mathf.Lerp(58, 88, tall);
-                float footerHeight = summaryHeight + gaugeHeight + actionHeight + confirmHeight + footerGap * 3;
+                float footerHeight = summaryHeight + gaugeHeight + actionHeight + confirmHeight + footerGap * (noSummonProgress?2:3);
                 float bottom = Mathf.Lerp(12, 100, tall);
                 window.footer.sizeDelta = new Vector2(window.footer.sizeDelta.x, footerHeight);
                 window.footer.anchoredPosition = new Vector2(0, bottom);

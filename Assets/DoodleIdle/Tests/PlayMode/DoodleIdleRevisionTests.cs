@@ -9,6 +9,144 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        sealed class RevisionRoll : System.Random
+        {
+            readonly int roll;
+            public RevisionRoll(int value){roll=value;}
+            public override int Next(int maxValue)=>roll%maxValue;
+        }
+        [UnityTest]
+        public IEnumerator RevisionSummonLevelsUnlockGradesAndRelicsStayUniformWithoutLevels()
+        {
+            game.TogglePause();var ui=game.Ui;ui.Diamonds=100000;
+            var states=(System.Collections.Generic.Dictionary<string,DoodleUi.SummonState>)typeof(DoodleUi).GetField("summonStates",GrowthPrivate).GetValue(ui);
+            foreach(string category in new[]{"Armor","Club","Skill","Companion"})
+            {
+                double previousLegend=0,previousMyth=0,previousGod=0;
+                for(int level=1;level<=30;level++)
+                {
+                    states[category].level=level;
+                    Assert.That(ui.Items(category).Sum(ui.ItemProbability),Is.EqualTo(100).Within(.000001));
+                    Assert.That(ui.GradeProbability(category,0),Is.GreaterThanOrEqualTo(10));
+                    Assert.That(ui.GradeProbability(category,1),Is.GreaterThanOrEqualTo(10));
+                    double legend=ui.GradeProbability(category,4),myth=ui.GradeProbability(category,5),god=ui.GradeProbability(category,6);
+                    Assert.That(legend,Is.GreaterThanOrEqualTo(previousLegend));Assert.That(myth,Is.GreaterThanOrEqualTo(previousMyth));Assert.That(god,Is.GreaterThanOrEqualTo(previousGod));
+                    if(level<5)Assert.That(legend,Is.Zero);
+                    if(level<15)Assert.That(myth,Is.Zero);
+                    if(level<25)Assert.That(god,Is.Zero);
+                    previousLegend=legend;previousMyth=myth;previousGod=god;
+                }
+                int[] draws=new int[7];
+                for(int ticket=0;ticket<10000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
+                CollectionAssert.AreEqual(new[]{1000,1000,2400,2500,2000,1000,100},draws,"All lottery intervals must match the displayed level 30 probabilities.");
+                states[category].level=1;
+                for(int ticket=0;ticket<10000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
+                states[category].level=29;states[category].experience=999;
+                Assert.That(ui.TrySummon(category,50,false),Is.True);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(30));Assert.That(ui.SummonExperience(category),Is.Zero);
+                Assert.That(ui.TrySummon(category,50,false),Is.True);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(30));Assert.That(ui.SummonExperience(category),Is.Zero);
+                ui.CloseFullscreen();
+            }
+            var relics=ui.Items("Relic");Assert.That(relics.Select(x=>x.rarity).Distinct().Count(),Is.EqualTo(1));
+            foreach(var item in relics)Assert.That(ui.ItemProbability(item),Is.EqualTo(20));
+            CollectionAssert.AreEquivalent(relics,Enumerable.Range(0,5).Select(i=>ui.GrantItem("Relic",new RevisionRoll(i))).ToArray());
+            Assert.That(ui.TrySummon("Relic",50,false),Is.True);
+            Assert.That(ui.SummonLevel("Relic"),Is.Zero);Assert.That(ui.SummonExperience("Relic"),Is.Zero);
+            Assert.That(UiNode("Summon progress text").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("Lv.")||t.text.Contains("경험치")),Is.False);
+            Object.Destroy(CaptureFrame("revision-relic-summon-no-level.png",720,1520));ui.CloseFullscreen();
+            UiOpen("Shop");
+            Assert.That(UiNode("Summon_Relic").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("Lv.")),Is.False);
+            Object.Destroy(CaptureFrame("revision-summon-level-30.png",720,1520));
+            ui.ShowSummonProbabilities("Armor");Object.Destroy(CaptureFrame("revision-summon-level-30-probabilities.png",720,1520));ui.CloseDetail();
+            ui.ShowSummonProbabilities("Relic");Object.Destroy(CaptureFrame("revision-relic-equal-probabilities.png",720,1520));ui.CloseDetail();
+            PlayerPrefs.SetString("DoodleUi.Commerce.Armor","{\"level\":999,\"experience\":1000}");
+            PlayerPrefs.SetString("DoodleUi.Commerce.Relic","{\"level\":10,\"experience\":100}");
+            typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(ui,null);
+            Assert.That(ui.SummonLevel("Armor"),Is.EqualTo(30));Assert.That(ui.SummonExperience("Armor"),Is.Zero);
+            Assert.That(ui.SummonLevel("Relic"),Is.Zero);Assert.That(ui.SummonExperience("Relic"),Is.Zero);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator RevisionEnemyFacingFollowsTravelForBothFramesInAllThemes()
+        {
+            game.TogglePause();game.basicSkillsEnabled=false;
+            var state=typeof(DoodleUi).GetField("services",GrowthPrivate).GetValue(game.Ui);
+            var animate=typeof(DoodleIdleGame).GetMethod("AnimateActorFrames",GrowthPrivate);
+            var enemyField=typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate);
+            string[] nativeLeft={"사막 여우","도토리","숲 부엉이","다람쥐","복어","소라게"};
+            var camera=Camera.main;camera.orthographicSize=4.8f;camera.transform.position=new Vector3(0,0,-10);
+            for(int theme=0;theme<10;theme++)
+            {
+                state.GetType().GetField("mainStage").SetValue(state,theme*100);
+                state.GetType().GetField("mainStageKillProgress").SetValue(state,0);
+                game.RequestCombatWaveReset();game.paused=false;
+                typeof(DoodleIdleGame).GetMethod("FixedUpdate",GrowthPrivate).Invoke(game,null);
+                game.TogglePause();
+                var actors=((IList)enemyField.GetValue(game)).Cast<object>().ToArray();
+                foreach(var renderer in game.GetComponentsInChildren<SpriteRenderer>())
+                    renderer.enabled=renderer.name=="Generated dirt floor";
+                for(int kind=0;kind<3;kind++)
+                {
+                    var pair=actors.Where(a=>(int)a.GetType().GetField("kind").GetValue(a)==kind).Take(2).ToArray();
+                    Assert.That(pair.Length,Is.EqualTo(2));
+                    for(int column=0;column<2;column++)
+                    {
+                        var actor=pair[column];var type=actor.GetType();
+                        var body=(Rigidbody2D)type.GetField("body").GetValue(actor);
+                        var art=(SpriteRenderer)type.GetField("art").GetValue(actor);
+                        bool sourceLeft=nativeLeft.Any(name=>body.name=="Enemy - "+name);
+                        Assert.That(art.flipX,Is.EqualTo(PlayerBody().position.x<body.position.x),"Spawn faces the player after source normalization.");
+                        Assert.That(art.transform.localScale.x<0,Is.EqualTo(sourceLeft),"Mixed source art is normalized to a right-facing baseline.");
+                        body.simulated=true;body.position=new Vector2(column==0?-2.4f:2.4f,2.5f-kind*2.5f);
+                        body.transform.position=body.position;art.enabled=true;
+                        type.GetField("phase").SetValue(actor,0f);
+                        foreach(int side in new[]{-1,1})
+                        {
+                            // The player stays in place: turning must follow velocity, not its location.
+                            body.linearVelocity=new Vector2(side,0);
+                            type.GetField("walkClock").SetValue(actor,0f);
+                            animate.Invoke(game,new[]{actor,(object)0f});
+                            Assert.That(art.flipX,Is.EqualTo(side<0),body.name);
+                            var first=art.sprite;
+                            animate.Invoke(game,new[]{actor,(object).2f});
+                            Assert.That(art.sprite,Is.Not.SameAs(first));
+                            Assert.That(art.flipX,Is.EqualTo(side<0),"Pose B must retain facing.");
+                            Assert.That(art.transform.localScale.x<0,Is.EqualTo(sourceLeft),"Pose B shares the normalized source direction.");
+                            bool previous=art.flipX;
+                            foreach(var velocity in new[]{Vector2.zero,Vector2.up,new Vector2(-side*.001f,1)})
+                            {
+                                body.linearVelocity=velocity;animate.Invoke(game,new[]{actor,(object).2f});
+                                Assert.That(art.flipX,Is.EqualTo(previous),"Standing and near-vertical movement retain facing.");
+                            }
+                            body.simulated=false;body.linearVelocity=new Vector2(-side,0);
+                            animate.Invoke(game,new[]{actor,(object).2f});
+                            Assert.That(art.flipX,Is.EqualTo(previous),"Paused actors cannot turn.");
+                            body.simulated=true;
+                        }
+                        body.linearVelocity=new Vector2(column==0?-1:1,0);
+                        type.GetField("walkClock").SetValue(actor,0f);
+                        animate.Invoke(game,new[]{actor,(object)0f});
+                    }
+                }
+                // Left column travels left; right column travels right, one row per species.
+                Object.Destroy(CaptureFrame("revision-facing-theme-"+theme+".png",1000,1000,false));
+            }
+            state.GetType().GetField("mainStageKillProgress").SetValue(state,100);
+            game.RequestCombatWaveReset();game.paused=false;
+            typeof(DoodleIdleGame).GetMethod("FixedUpdate",GrowthPrivate).Invoke(game,null);
+            game.TogglePause();
+            var boss=((IList)enemyField.GetValue(game))[0];var bossType=boss.GetType();
+            var bossBody=(Rigidbody2D)bossType.GetField("body").GetValue(boss);
+            var bossArt=(SpriteRenderer)bossType.GetField("art").GetValue(boss);
+            Assert.That(game.BossActive,Is.True);bossBody.simulated=true;
+            bossBody.linearVelocity=Vector2.left;animate.Invoke(game,new[]{boss,(object).1f});Assert.That(bossArt.flipX,Is.True);
+            bossBody.linearVelocity=Vector2.right;animate.Invoke(game,new[]{boss,(object).1f});Assert.That(bossArt.flipX,Is.False);
+            Assert.That(bossBody.transform.localScale,Is.EqualTo(Vector3.one*3));
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator RevisionEquipmentCapsSynthesisChainAndGodUpgrades()
         {

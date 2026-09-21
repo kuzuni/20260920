@@ -561,8 +561,13 @@ namespace DoodleIdle
                 var pedestal=step.gameObject.AddComponent<Image>();pedestal.sprite=UiKit.Art(position==0?"PodiumGold":position==1?"PodiumSilver":"PodiumBronze");pedestal.raycastTarget=false;
                 step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
                 var number=UiKit.Text(step,(position+1).ToString(),39,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,stepHeight*.23f);
-                var image=UiKit.Icon(card,rank.art,position==0?78:70).rectTransform;image.anchorMin=image.anchorMax=new Vector2(.5f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,stepHeight-2);
-                var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,stepHeight+(position==0?78:70));
+                float contactY=stepHeight*.79f,portraitSize=position==0?78:70;
+                var shadow=UiKit.Rect(card,"Podium contact shadow");shadow.anchorMin=shadow.anchorMax=new Vector2(.47f,0);shadow.anchoredPosition=new Vector2(0,contactY+1);shadow.sizeDelta=new Vector2(portraitSize*.62f,7);
+                var shade=shadow.gameObject.AddComponent<Image>();shade.sprite=UiKit.Circle;shade.color=new Color(0,0,0,.18f);shade.raycastTarget=false;
+                var portrait=UiKit.Icon(card,rank.art,portraitSize);var image=portrait.rectTransform;image.name="Podium character";
+                var source=portrait.sprite.rect.size;var drawn=source*(portraitSize/Mathf.Max(source.x,source.y));
+                image.sizeDelta=drawn;image.anchorMin=image.anchorMax=new Vector2(.47f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,contactY);
+                var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,contactY+drawn.y+5);
             }
             int selfIndex = ranks.FindIndex(r => r.self);
             var mine = ServiceCard(body, "My rank", UiKit.Yellow);

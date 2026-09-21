@@ -202,7 +202,7 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" })
             {
                 Assert.That(ui.Items(category).Sum(ui.ItemProbability), Is.EqualTo(100).Within(.000001));
-                for (int rarity = 0; rarity < 5; rarity++)
+                for (int rarity = 0; rarity < 7; rarity++)
                     Assert.That(ui.Items(category).Where(x => x.rarity == rarity).Sum(ui.ItemProbability), Is.EqualTo(ui.GradeProbability(category, rarity)).Within(.000001));
             }
             UiClick("재화", UiNode("ShopTabs"));

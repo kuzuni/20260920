@@ -2,12 +2,96 @@
   "freeCount": 5,
   "tenCost": 100,
   "fiftyCost": 450,
-  "levelExperience": [50, 100, 200, 400, 800, 1000],
+  "levelExperience": [
+    50,
+    100,
+    200,
+    400,
+    800,
+    1000
+  ],
   "products": [
-    {"amount": 100, "priceWon": 1100},
-    {"amount": 550, "priceWon": 5500},
-    {"amount": 1200, "priceWon": 11000},
-    {"amount": 3000, "priceWon": 27500},
-    {"amount": 6500, "priceWon": 55000}
+    {
+      "amount": 100,
+      "priceWon": 1100
+    },
+    {
+      "amount": 550,
+      "priceWon": 5500
+    },
+    {
+      "amount": 1200,
+      "priceWon": 11000
+    },
+    {
+      "amount": 3000,
+      "priceWon": 27500
+    },
+    {
+      "amount": 6500,
+      "priceWon": 55000
+    }
+  ],
+  "rates": [
+    {
+      "level": 1,
+      "basisPoints": [
+        6000,
+        3000,
+        900,
+        100,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 5,
+      "basisPoints": [
+        4500,
+        3000,
+        1800,
+        600,
+        100,
+        0,
+        0
+      ]
+    },
+    {
+      "level": 15,
+      "basisPoints": [
+        2000,
+        2000,
+        2500,
+        2500,
+        900,
+        100,
+        0
+      ]
+    },
+    {
+      "level": 25,
+      "basisPoints": [
+        1200,
+        1200,
+        2480,
+        2400,
+        2000,
+        700,
+        20
+      ]
+    },
+    {
+      "level": 30,
+      "basisPoints": [
+        1000,
+        1000,
+        2400,
+        2500,
+        2000,
+        1000,
+        100
+      ]
+    }
   ]
 }

@@ -76,21 +76,14 @@ namespace DoodleIdle
         { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
         public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
         {
-            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row)row.spacing=0;
-            // One shared rounded segment bar, as in the reference footer.
-            if (!parent.GetComponent<Image>())
-            {
-                var background=parent.gameObject.AddComponent<Image>();background.sprite=Frame;background.type=Image.Type.Sliced;background.color=Ink;
-                parent.gameObject.AddComponent<Mask>().showMaskGraphic=true;
-                if(row)row.padding=new RectOffset(3,3,3,3);
-            }
-            var button=Button(parent,label,click,selected?Yellow:new Color(.87f,.87f,.86f),height-6);
+            var row=parent.GetComponent<HorizontalLayoutGroup>();if(row){row.spacing=-4;row.padding=new RectOffset();}
+            bool left=parent.childCount==0;
+            var button=Button(parent,label,click,selected?Yellow:new Color(.85f,.85f,.85f),height);
             button.GetComponent<Outline>().enabled=false;
-            button.GetComponent<Image>().sprite=null;
-            if(parent.childCount>1)
-            {
-                var seam=Rect(button.transform,"Tab divider");seam.anchorMin=new Vector2(0,0);seam.anchorMax=new Vector2(0,1);seam.offsetMin=new Vector2(-2,0);seam.offsetMax=new Vector2(2,0);seam.gameObject.AddComponent<Image>().color=Ink;
-            }
+            button.GetComponent<Image>().enabled=false;
+            var surface=Rect(button.transform,"Rounded tab face");Stretch(surface);surface.SetAsFirstSibling();
+            var shape=surface.gameObject.AddComponent<DoodleEquipmentTabShape>();shape.left=left;
+            shape.color=selected?Yellow:new Color(.85f,.85f,.85f);button.targetGraphic=shape;
             button.GetComponentInChildren<Text>().resizeTextMaxSize=34;
             return button;
         }
@@ -203,6 +196,37 @@ namespace DoodleIdle
             for(int yy=y;yy<y+h;yy++) for(int xx=x;xx<x+w;xx++) if(pixels[yy*tex.width+xx].a>32) { left=Mathf.Min(left,xx); right=Mathf.Max(right,xx); bottom=Mathf.Min(bottom,yy); top=Mathf.Max(top,yy); }
             if(left>right) return null;
             return Sprite.Create(tex,new Rect(left,bottom,right-left+1,top-bottom+1),Vector2.one*.5f,100);
+        }
+    }
+    // Full-height capsule ends and the reference's rounded, overlapping center joint.
+    // No clipping mask: the ink outline must remain visible around the whole tab bar.
+    public sealed class DoodleEquipmentTabShape : MaskableGraphic
+    {
+        public bool left;
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();var r=rectTransform.rect;const float border=3.2f;
+            float outer=r.height*.46f,join=r.height*.18f;
+            // Continue the left fill under the rounded seam; otherwise its top/bottom corners leave white notches.
+            if(left)r.xMax+=join+4;
+            Draw(vh,r,left?outer:join,left?0:outer,UiKit.Ink,false);
+            var inner=new Rect(r.xMin+border,r.yMin+border,r.width-border*2,r.height-border*2);
+            Draw(vh,inner,Mathf.Max(0,(left?outer:join)-border),left?0:Mathf.Max(0,outer-border),color,true);
+        }
+        static void Draw(VertexHelper vh,Rect r,float leftRadius,float rightRadius,Color tint,bool shading)
+        {
+            var points=new List<Vector2>();
+            void Corner(float x,float y,float radius,float angle)
+            {
+                for(int i=0;i<=10;i++){float a=(angle+i*9)*Mathf.Deg2Rad;points.Add(new Vector2(x+Mathf.Cos(a)*radius,y+Mathf.Sin(a)*radius));}
+            }
+            Corner(r.xMax-rightRadius,r.yMax-rightRadius,rightRadius,0);
+            Corner(r.xMin+leftRadius,r.yMax-leftRadius,leftRadius,90);
+            Corner(r.xMin+leftRadius,r.yMin+leftRadius,leftRadius,180);
+            Corner(r.xMax-rightRadius,r.yMin+rightRadius,rightRadius,270);
+            int start=vh.currentVertCount;vh.AddVert(r.center,tint,Vector2.zero);
+            foreach(var p in points){var c=shading?Color.Lerp(tint,Color.white,.13f*Mathf.InverseLerp(r.yMin,r.yMax,p.y)):tint;vh.AddVert(p,c,Vector2.zero);}
+            for(int i=0;i<points.Count;i++)vh.AddTriangle(start,start+1+i,start+1+(i+1)%points.Count);
         }
     }
     public sealed class DoodleUiGrid : MonoBehaviour

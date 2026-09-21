@@ -210,7 +210,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.RelicTickets, Is.Zero);
             Assert.That(ui.Items("Relic").Sum(x => x.count), Is.EqualTo(relics + 1));
             Assert.That(new[] { "Armor", "Club", "Skill", "Companion" }.Sum(category => ui.Items(category).Sum(x => x.count)), Is.EqualTo(otherItems));
-            Assert.That(ui.SummonExperience("Relic"), Is.EqualTo(xp + 1));
+            Assert.That(ui.SummonExperience("Relic"), Is.Zero,"Relics have no summon level or experience.");
             Assert.That(ui.CanFreeSummon("Relic"), Is.EqualTo(freeAvailable), "A ticket must not consume the independent daily free draw.");
             Assert.That(ui.Diamonds, Is.EqualTo(diamonds));
             Assert.That(ui.Gold, Is.EqualTo(gold));

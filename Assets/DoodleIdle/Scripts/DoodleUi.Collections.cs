@@ -124,7 +124,8 @@ namespace DoodleIdle
                 UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
                 if (locked)
                 {
-                    var lockButton = UiKit.Button(row, "잠금", null, Color.gray, 94);
+                    var lockButton = UiKit.Button(row, "x2 치명타\nMAX 시 해금", null, Color.gray, 94);
+                    CollectionButtonText(lockButton,23);
                     CollectionWidth(lockButton.transform, 164); lockButton.interactable = false;
                     continue;
                 }
@@ -717,7 +718,7 @@ namespace DoodleIdle
             if (tabs && tabHeight > 0)
             {
                 Height(tabs, tabHeight);
-                foreach (var button in tabs.GetComponentsInChildren<Button>()) Height(button.transform, tabHeight - 6);
+                foreach (var button in tabs.GetComponentsInChildren<Button>()) Height(button.transform, tabHeight);
             }
             rules.Add(shortMode =>
             {

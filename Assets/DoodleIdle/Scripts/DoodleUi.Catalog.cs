@@ -26,7 +26,6 @@ namespace DoodleIdle
     {
         public float costGrowth = 1.08f;
         public int maxStatLevel = 10000, maxItemLevel = 1000, copiesPerUpgrade = 5;
-        public int[] gradeWeights = { 60, 25, 10, 4, 1 };
         public float relicStepPercent = 2;
         public UiStatDefinition[] stats;
         public UiItem[] items;
@@ -35,7 +34,6 @@ namespace DoodleIdle
     public sealed partial class DoodleUi
     {
         const string CollectionsSaveKey = "DoodleUi.Collections.v1";
-        public int[] GradeWeights => collectionTuning.gradeWeights;
         public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
         readonly List<UiItem> collectionItems = new List<UiItem>();
         readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
@@ -55,11 +53,6 @@ namespace DoodleIdle
             collectionTuning = JsonUtility.FromJson<UiCollectionTuning>(asset.text);
             if (collectionTuning == null || collectionTuning.items == null || collectionTuning.stats == null)
                 throw new InvalidOperationException("Invalid collection tuning data.");
-            if (collectionTuning.gradeWeights == null || collectionTuning.gradeWeights.Length != 5)
-                throw new InvalidOperationException("Exactly five grade probabilities are required.");
-            int gradeTotal = 0;
-            foreach (int weight in GradeWeights) { if (weight < 0) throw new InvalidOperationException("Grade weights cannot be negative."); gradeTotal += weight; }
-            if (gradeTotal != 100) throw new InvalidOperationException("Grade probabilities must sum to 100 percent.");
             collectionItems.AddRange(collectionTuning.items);
             foreach (var stat in collectionTuning.stats) statLevels[stat.id] = 0;
             // The original arena is already balanced for the starter profile. Capture the
@@ -127,8 +120,10 @@ namespace DoodleIdle
             if (rng == null) throw new ArgumentNullException(nameof(rng));
             var items = Items(category);
             if (items.Count == 0) throw new ArgumentException("Unknown collection category", nameof(category));
-            int roll = rng.Next(100), grade = 0;
-            while (grade < GradeWeights.Length - 1 && roll >= GradeWeights[grade]) { roll -= GradeWeights[grade]; grade++; }
+            if(category=="Relic")return items[rng.Next(items.Count)];
+            var weights=SummonWeights(category);
+            int roll = rng.Next(10000), grade = 0;
+            while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
             var choices = items.FindAll(x => x.rarity == grade);
             if (choices.Count == 0) throw new InvalidOperationException("Every draw category must contain every rarity.");
             return choices[rng.Next(choices.Count)];
@@ -137,7 +132,7 @@ namespace DoodleIdle
         public double GradeProbability(string category, int rarity)
         {
             InitCollections();
-            return rarity >= 0 && rarity < GradeWeights.Length && Items(category).Exists(x => x.rarity == rarity) ? GradeWeights[rarity] : 0;
+            return rarity >= 0 && rarity < 7 && Items(category).Exists(x => x.rarity == rarity) ? SummonWeights(category)[rarity]/100d : 0;
         }
 
         public double ItemProbability(UiItem item)

@@ -15,6 +15,7 @@ namespace DoodleIdle
             new[] { "수정 슬라임", "보석 박쥐", "수정 거북" }, new[] { "황혼 유령", "달빛 부엉이", "밤 나방" },
             new[] { "돌 수호자", "미라 고양이", "황금 풍뎅이" }, new[] { "얼음 슬라임", "눈 여우", "펭귄" }
         };
+        readonly Dictionary<Sprite,bool> sourceFrameFacesLeft=new Dictionary<Sprite,bool>();
         readonly Dictionary<int, Sprite[][]> themeFrames = new Dictionary<int, Sprite[][]>();
         readonly Dictionary<int, Sprite> themeGrounds = new Dictionary<int, Sprite>();
         readonly List<SpriteRenderer> groundTiles = new List<SpriteRenderer>();
@@ -24,7 +25,7 @@ namespace DoodleIdle
         public string CurrentThemeName => ThemeNames[CurrentThemeIndex];
 
         [Serializable] sealed class ThemeAtlasLayout { public SpriteRegion[] frames; }
-        [Serializable] sealed class SpriteRegion { public float x,y,width,height; }
+        [Serializable] sealed class SpriteRegion { public float x,y,width,height; public bool facesLeft; }
         Sprite[][] LoadThemeFrames(int index)
         {
             if (themeFrames.TryGetValue(index, out var cached)) return cached;
@@ -41,10 +42,19 @@ namespace DoodleIdle
                     var rect = new Rect(region.x,region.y,region.width,region.height);
                     var frame = Sprite.Create(texture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height));
                     frame.name = ThemeResources[index] + kind + (pose == 0 ? "A" : "B");
+                    sourceFrameFacesLeft[frame]=region.facesLeft;
                     actorAnimationSprites.Add(frame); frames[kind][pose] = frame;
                 }
             }
             themeFrames[index] = frames; return frames;
+        }
+        void NormalizeEnemyFrame(Actor actor,Sprite frame)
+        {
+            // Normalize EACH source pose to face right, retaining the original drawing/view angle.
+            // Runtime flipX now has one meaning for every species: true = walking left.
+            bool left=sourceFrameFacesLeft.TryGetValue(frame,out var value)&&value;
+            var scale=actor.art.transform.localScale;scale.x=Mathf.Abs(scale.x)*(left?-1:1);
+            actor.art.transform.localScale=scale;
         }
         Sprite ThemeGround(int index)
         {
@@ -72,7 +82,7 @@ namespace DoodleIdle
         void DisposeThemes()
         {
             foreach (var ground in themeGrounds.Values) if (ground) Destroy(ground);
-            themeGrounds.Clear(); themeFrames.Clear(); groundTiles.Clear();
+            themeGrounds.Clear(); themeFrames.Clear(); sourceFrameFacesLeft.Clear(); groundTiles.Clear();
         }
     }
 }
