@@ -10,8 +10,8 @@ namespace DoodleIdle
         static readonly string[] ThemeResources = { "Meadow", "Desert", "Forest", "Swamp", "Volcano", "Coast", "Crystal", "Twilight", "Ruins", "Glacier" };
         static readonly string[][] ThemeEnemies = {
             new[] { "새싹 슬라임", "들쥐", "분홍 버섯" }, new[] { "선인장", "사막 여우", "모래 풍뎅이" },
-            new[] { "도토리", "숲 부엉이", "다람쥐" }, new[] { "늪 개구리", "독버섯", "진흙 슬라임" },
-            new[] { "용암 슬라임", "불꽃 꼬마", "잿빛 박쥐" }, new[] { "산호 게", "복어", "소라게" },
+            new[] { "도토리", "숲 부엉이", "다람쥐" }, new[] { "이끼", "독버섯", "진흙 슬라임" },
+            new[] { "용암 슬라임", "불꽃 꼬마", "불도마뱀" }, new[] { "산호 게", "복어", "소라게" },
             new[] { "수정 슬라임", "보석 박쥐", "수정 거북" }, new[] { "황혼 유령", "달빛 부엉이", "밤 나방" },
             new[] { "돌 수호자", "미라 고양이", "황금 풍뎅이" }, new[] { "얼음 슬라임", "눈 여우", "펭귄" }
         };
@@ -25,7 +25,7 @@ namespace DoodleIdle
         public string CurrentThemeName => ThemeNames[CurrentThemeIndex];
 
         [Serializable] sealed class ThemeAtlasLayout { public SpriteRegion[] frames; }
-        [Serializable] sealed class SpriteRegion { public float x,y,width,height; public bool facesLeft; }
+        [Serializable] sealed class SpriteRegion { public float x,y,width,height; public bool facesLeft; public string resource; }
         Sprite[][] LoadThemeFrames(int index)
         {
             if (themeFrames.TryGetValue(index, out var cached)) return cached;
@@ -40,7 +40,8 @@ namespace DoodleIdle
                 {
                     var region = layout.frames[pose * 3 + kind];
                     var rect = new Rect(region.x,region.y,region.width,region.height);
-                    var frame = Sprite.Create(texture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height));
+                    var frameTexture = string.IsNullOrEmpty(region.resource) ? texture : Resources.Load<Texture2D>("DoodleIdle/Themes/" + region.resource);
+                    var frame = Sprite.Create(frameTexture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height));
                     frame.name = ThemeResources[index] + kind + (pose == 0 ? "A" : "B");
                     sourceFrameFacesLeft[frame]=region.facesLeft;
                     actorAnimationSprites.Add(frame); frames[kind][pose] = frame;
