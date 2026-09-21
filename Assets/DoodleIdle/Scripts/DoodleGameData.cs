@@ -20,7 +20,10 @@ namespace DoodleIdle
         {
             var previousScene = game ? game.gameObject.scene : default;
             // Stop old UI coroutines/autosaves before clearing data and loading the starter state.
-            if (game) game.gameObject.SetActive(false);
+            if (game) {
+                if (game.Ui) game.Ui.StopSavingForReset();
+                game.gameObject.SetActive(false);
+            }
             ResetSavedProgress();
             if (!previousScene.IsValid() || string.IsNullOrEmpty(previousScene.path)) return;
             // Replace only the game's scene; keep editor tools or other loaded scenes alive.

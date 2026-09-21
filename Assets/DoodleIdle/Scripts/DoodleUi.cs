@@ -37,7 +37,7 @@ namespace DoodleIdle
         readonly string[] titles={"스탯","장비","스킬","동료","유물","스킨","던전","PVP","상점"};
         readonly string[] navArt={"Stats","ArmorMetal","SkillMeteor","CompanionMon_4","NavPottery","ClothArmor","Dungeon","NavColosseum","Shop"};
         int consumeThroughFrame,lastKills;
-        bool releaseLatch,initialized;
+        bool releaseLatch,initialized,suppressSaving;
         float toastUntil;
         float nextWalletSave=15;
         Vector2 previousSize;
@@ -307,7 +307,8 @@ namespace DoodleIdle
             var motion=toast.GetComponentInParent<DoodleToastMotion>();
             if(string.IsNullOrEmpty(message))motion.Hide();else motion.Show(3.5f);
         }
-        public void Save() { PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
+        internal void StopSavingForReset() { suppressSaving=true; }
+        public void Save() { if(suppressSaving)return; PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
         public void NotifyPowerChanged(long before,string reason=null)
         {
             if(!powerToast)return;long after=Power,change=after-before;

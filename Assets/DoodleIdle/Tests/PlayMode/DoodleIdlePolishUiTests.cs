@@ -76,6 +76,8 @@ namespace DoodleIdle.Tests
 #else
                     DoodleGameData.ResetAndRestart(game);
 #endif
+                    game.Ui.Save(); // A late callback from the old scene must not resurrect its save.
+                    foreach (string key in DoodleGameData.SaveKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False, key);
                     float deadline = Time.realtimeSinceStartup + 15;
                     while (previousScene.isLoaded && Time.realtimeSinceStartup < deadline) yield return null;
                     Assert.That(previousScene.isLoaded, Is.False, "The reset button must replace the running scene.");
