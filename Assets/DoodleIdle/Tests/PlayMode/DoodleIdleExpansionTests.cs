@@ -103,7 +103,9 @@ namespace DoodleIdle.Tests
             Assert.That(floor.sharedMaterial.GetFloat("_TileSize"),Is.EqualTo(3));
             Assert.That(floor.bounds.size.x,Is.GreaterThan(80));Assert.That(floor.bounds.size.y,Is.GreaterThan(80));
             var state=typeof(DoodleUi).GetField("services",GrowthPrivate).GetValue(game.Ui);
-            foreach(var renderer in game.GetComponentsInChildren<SpriteRenderer>())if(renderer!=floor)renderer.enabled=false;
+            foreach(var renderer in game.GetComponentsInChildren<Renderer>())if(renderer!=floor)renderer.enabled=false;
+            foreach(var canvas in game.GetComponentsInChildren<Canvas>())
+                if(canvas.renderMode==RenderMode.WorldSpace)canvas.enabled=false;
             var camera=Camera.main;camera.backgroundColor=Color.magenta;camera.orthographicSize=6;
             for(int theme=0;theme<10;theme++) {
                 state.GetType().GetField("mainStage").SetValue(state,theme*100);
@@ -113,6 +115,24 @@ namespace DoodleIdle.Tests
                 Assert.That(capture.GetPixels32().Count(p=>p.r>245&&p.b>245&&p.g<10),Is.Zero,"No camera clear color may leak through the ground.");
                 Object.Destroy(capture);
             }
+            // Adjacent repeats must keep the same orientation, including negative world positions.
+            // The former triangle-wave sampler alternated upright/upside-down grass every tile.
+            state.GetType().GetField("mainStage").SetValue(state,0);
+            typeof(DoodleIdleGame).GetMethod("ApplyStageTheme",GrowthPrivate).Invoke(game,null);
+            camera.orthographicSize=1.5f;
+            camera.transform.position=new Vector3(13.5f,13.5f,-10);
+            var reference=CaptureFrame("terrain-upright-tile.png",256,256,false);
+            var referencePixels=reference.GetPixels32();
+            var centers=new[]{new Vector2(16.5f,13.5f),new Vector2(13.5f,16.5f),new Vector2(-1.5f,-1.5f)};
+            for(int i=0;i<centers.Length;i++) {
+                camera.transform.position=new Vector3(centers[i].x,centers[i].y,-10);
+                var repeated=CaptureFrame("terrain-upright-repeat-"+i+".png",256,256,false);
+                var pixels=repeated.GetPixels32();double error=0;
+                for(int p=0;p<pixels.Length;p++)error+=Mathf.Abs(pixels[p].r-referencePixels[p].r)+Mathf.Abs(pixels[p].g-referencePixels[p].g)+Mathf.Abs(pixels[p].b-referencePixels[p].b);
+                Assert.That(error/(pixels.Length*3*255),Is.LessThan(.001),"Neighboring grass tiles must repeat without flipping or rotating.");
+                Object.Destroy(repeated);
+            }
+            Object.Destroy(reference);
             yield return null;
         }
     }

@@ -41,11 +41,21 @@ Shader "DoodleIdle/Terrain"
                 output.world=world.xy;
                 return output;
             }
+            half4 GroundSample(float2 uv)
+            {
+                return SAMPLE_TEXTURE2D(_AtlasTex,sampler_AtlasTex,_UvRect.xy+uv*_UvRect.zw);
+            }
             half4 Frag(Varyings input) : SV_Target
             {
-                // A continuous triangle wave samples identical texels at every mirrored boundary.
-                float2 uv=1-abs(frac(input.world/(_TileSize*2))*2-1);
-                half4 texel=SAMPLE_TEXTURE2D(_AtlasTex,sampler_AtlasTex,_UvRect.xy+uv*_UvRect.zw);
+                // Repeat in the source orientation: grass roots must stay below the blades.
+                float2 uv=frac(input.world/_TileSize);
+                float2 shifted=frac(uv+0.5);
+                float2 interior=smoothstep(0.0,0.08,min(uv,1-uv));
+                // Cross-fade only near wrap edges into a translated copy of the same art.
+                // At the edge both sides sample the center; no mirroring, rotation or gaps.
+                half4 lower=lerp(GroundSample(shifted),GroundSample(float2(uv.x,shifted.y)),interior.x);
+                half4 upper=lerp(GroundSample(float2(shifted.x,uv.y)),GroundSample(uv),interior.x);
+                half4 texel=lerp(lower,upper,interior.y);
                 half luminance=dot(texel.rgb,half3(0.2126,0.7152,0.0722));
                 half3 detail=lerp(luminance.xxx,texel.rgb,_PatternSaturation);
                 // Keep inked motifs behind actors while retaining each theme's surface texture.
