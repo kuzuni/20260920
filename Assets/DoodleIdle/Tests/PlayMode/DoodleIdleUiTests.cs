@@ -50,7 +50,7 @@ namespace DoodleIdle.Tests
         static readonly string[] UiProfileKeys = {
             "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
-            "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic"
+            "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic", "DoodleUi.SkillRefundRemainder"
         };
 
         // Called by the shared fixture before loading the scene and after unloading it.

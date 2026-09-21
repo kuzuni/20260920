@@ -8,7 +8,7 @@ namespace DoodleIdle
     public sealed class UiItem
     {
         public string id, name, icon, category, effect, description, ability;
-        public int rarity, count, level, slot;
+        public int rarity, count, level, slot, tier;
         public bool equipped, discovered;
         public float ownedPercent, equipValue, cooldown;
     }
@@ -36,7 +36,7 @@ namespace DoodleIdle
     {
         const string CollectionsSaveKey = "DoodleUi.Collections.v1";
         public int[] GradeWeights => collectionTuning.gradeWeights;
-        public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설" };
+        public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
         readonly List<UiItem> collectionItems = new List<UiItem>();
         readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
         UiCollectionTuning collectionTuning;
@@ -80,7 +80,10 @@ namespace DoodleIdle
                             if (item == null) continue;
                             item.count = Math.Max(0, entry.count);
                             item.discovered = entry.discovered || item.count > 0 || entry.level > 0;
-                            item.level = item.discovered ? Mathf.Clamp(entry.level, 1, collectionTuning.maxItemLevel) : 0;
+                            item.level = item.discovered ? Mathf.Clamp(entry.level, 1, ItemMaxLevel(item)) : 0;
+                            // Return copies invested above the new cap to the inventory.
+                            if (entry.level > item.level && item.discovered)
+                                item.count = (int)Math.Min(int.MaxValue, item.count + UpgradeCopiesBetween(item.level, entry.level));
                             item.equipped = entry.equipped && item.discovered && item.category != "Relic";
                             item.slot = Math.Max(0, entry.slot);
                         }
@@ -184,7 +187,8 @@ namespace DoodleIdle
         public float HealthBonus => EffectBonus("health");
         public float GoldGainMultiplier => 1 + EffectBonus("gold") / 100;
         public float Critical2Chance => Mathf.Clamp(StatValue("crit2Chance") + EffectBonus("crit2Chance"), 0, 100);
-        public float Critical4Chance => Mathf.Clamp(StatValue("crit4Chance") + EffectBonus("crit4Chance"), 0, 100);
+        public bool Critical4Unlocked => StatLevel("crit2Chance") >= StatMaxLevel("crit2Chance");
+        public float Critical4Chance => Critical4Unlocked ? Mathf.Clamp(StatValue("crit4Chance") + EffectBonus("crit4Chance"), 0, 100) : 0;
         public float CriticalDamageBonus => Mathf.Max(0, EffectBonus("critDamage"));
         public float MaxHealth => Mathf.Max(1, (StatValue("health") + EquippedValue("Armor")) * (1 + HealthBonus / 100));
         public float HealthRegen => Mathf.Max(0, StatValue("healthRegen") * (1 + EffectBonus("healthRegen") / 100));
@@ -235,9 +239,43 @@ namespace DoodleIdle
             return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
         }
         public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
+        public static bool IsEquipment(UiItem item) => item != null && (item.category == "Armor" || item.category == "Club");
+        public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? (item.rarity == 6 ? int.MaxValue : 100) : item.category == "Skill" ? 100 : collectionTuning.maxItemLevel;
+        long UpgradeCopiesBetween(int from, int to)
+        {
+            // Sum floor((level - 1) / 10) without a loop over a potentially old high level.
+            long Sum(long n) { long q = n / 10, r = n % 10; return 5 * q * (q - 1) + q * r; }
+            return (long)(to - from) * collectionTuning.copiesPerUpgrade + Sum(to - 1L) - Sum(from - 1L);
+        }
+        public UiItem SynthesisTarget(UiItem item)
+        {
+            if (!IsEquipment(item) || item.rarity == 6 || !collectionItems.Contains(item)) return null;
+            int grade = item.tier == 5 ? item.rarity + 1 : item.rarity;
+            int tier = item.tier == 5 ? 1 : item.tier + 1;
+            return Items(item.category).Find(x => x.rarity == grade && x.tier == tier);
+        }
+        public int SynthesizeItem(UiItem item, bool all = false)
+        {
+            var next = SynthesisTarget(item);
+            if (next == null || !item.discovered || item.level < 100 || item.count < 5) return 0;
+            int amount = Math.Min(all ? item.count / 5 : 1, int.MaxValue - next.count);
+            if (amount <= 0) return 0;
+            long before = Power;
+            item.count -= amount * 5;
+            AddItem(next, amount);
+            NotifyPowerChanged(before, "장비 합성");
+            Save();
+            return amount;
+        }
+        public int SynthesizeAll(string category)
+        {
+            long total = 0;
+            foreach (var item in Items(category)) total += SynthesizeItem(item, true);
+            return (int)Math.Min(int.MaxValue, total);
+        }
         public bool UpgradeItem(UiItem item, bool notifyPower = true)
         {
-            if (item == null || !item.discovered || item.category == "Relic" || item.level >= collectionTuning.maxItemLevel || item.count < CopiesNeeded(item)) return false;
+            if (item == null || !collectionItems.Contains(item) || !item.discovered || item.category == "Relic" || item.level >= ItemMaxLevel(item) || item.count < CopiesNeeded(item)) return false;
             long before = notifyPower ? Power : 0;
             item.count -= CopiesNeeded(item);
             item.level++;

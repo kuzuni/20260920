@@ -112,14 +112,22 @@ namespace DoodleIdle
                 var frame = CollectionBox(body, "Stat " + stat.id, UiKit.Paper);
                 CollectionSoftBorder(frame);
                 var row = UiKit.Row(frame, stat.name, 104, 10);
-                UiKit.Icon(row, stat.id == "attack" ? "Pvp" : stat.icon, 86);
+                bool locked = stat.id == "crit4Chance" && !Critical4Unlocked;
+                var statArt = UiKit.Icon(row, stat.icon, 86);
+                if (locked) statArt.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name, 30, TextAnchor.MiddleLeft, 39);
                 float current = StatValue(stat.id);
                 float next = current + stat.increment * upgrades;
                 if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
-                UiKit.Text(text, StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
+                UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
+                if (locked)
+                {
+                    var lockButton = UiKit.Button(row, "잠금", null, Color.gray, 94);
+                    CollectionWidth(lockButton.transform, 164); lockButton.interactable = false;
+                    continue;
+                }
                 Func<bool> purchase = () =>
                 {
                     if (!UpgradeStat(stat.id, statBatch)) return false;
@@ -138,7 +146,7 @@ namespace DoodleIdle
             InitCollections();
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
             upgrades = 0;
-            if (stat == null) return 0;
+            if (stat == null || (id == "crit4Chance" && !Critical4Unlocked)) return 0;
             int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));
             int target = requested < 0 ? available : Math.Min(Math.Max(0, requested), available);
             long total = 0;
@@ -188,7 +196,9 @@ namespace DoodleIdle
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)
             {
-                var upgrade = UiKit.Button(actions, "강화", () => UpgradeSelected(selected, false), UiKit.Blue, 46);
+                bool synthesis = selected.rarity != 6 && selected.level >= 100;
+                var upgrade = UiKit.Button(actions, synthesis ? "합성" : "강화", () => { if (synthesis) SynthesizeFromUi(selected); else UpgradeSelected(selected, false); }, synthesis ? UiKit.Purple : UiKit.Blue, 46);
+                upgrade.interactable = synthesis ? selected.count >= 5 : selected.count >= CopiesNeeded(selected);
                 CollectionButtonText(upgrade, 28);
                 CollectionButtonText(UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46), 28);
             }
@@ -207,7 +217,7 @@ namespace DoodleIdle
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
-        void BuildSkills(RectTransform body) => BuildLoadout(body, "Skill", "스킬", 8, 4);
+        void BuildSkills(RectTransform body) => BuildLoadout(body, "Skill", "스킬", 8, 8);
         void BuildCompanions(RectTransform body) => BuildLoadout(body, "Companion", "동료", 5, 5);
 
         void BuildLoadout(RectTransform body, string category, string label, int capacity, int columns)
@@ -223,7 +233,7 @@ namespace DoodleIdle
                 {
                     var item = equipped[i];
                     var card = CollectionSlot(slots, item, () => ShowCollectionDetail(item), slotHeight);
-                    card.GetComponentInChildren<Text>().text = UiNumber.Format(i + 1) + " " + GradeNames[item.rarity];
+                    card.GetComponentInChildren<Text>().text = category == "Skill" ? UiNumber.Format(i + 1) : UiNumber.Format(i + 1) + " " + GradeNames[item.rarity];
                 }
                 else UiKit.Slot(slots, "빈 슬롯", "", 0, 0, 0, false, false, () => Toast("보유 " + label + "을 선택해 장착하세요."), slotHeight);
             }
@@ -255,7 +265,29 @@ namespace DoodleIdle
         }
 
         Button CollectionSlot(Transform parent, UiItem item, Action click, float height = 112)
-            => UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, !item.discovered, click, height);
+        {
+            var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, IsEquipment(item) && item.level >= 100 && item.rarity != 6 ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
+            if (IsEquipment(item))
+            {
+                card.GetComponentInChildren<Text>().text = GradeNames[item.rarity] + item.tier;
+                var level = UiKit.Text(card.transform, "+" + item.level, 20, TextAnchor.UpperRight, 24);
+                level.name = "Enhancement level";
+                var rect = level.rectTransform;
+                rect.anchorMin = new Vector2(.48f, 1); rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(0, -24); rect.offsetMax = new Vector2(-5, -2);
+                level.color = item.discovered ? UiKit.Ink : Color.white;
+                card.GetComponent<DoodleUiSlotLayout>().Invalidate();
+            }
+            return card;
+        }
+
+        void SynthesizeFromUi(UiItem item)
+        {
+            var target = SynthesisTarget(item);
+            int made = SynthesizeItem(item);
+            RefreshPage();
+            Toast(made > 0 ? target.name + " 1개 합성 완료" : "100강 장비의 남은 조각 5개가 필요합니다.");
+        }
 
         void BuildInventory(RectTransform parent, List<UiItem> items, Action<UiItem> click, int columns)
         {
@@ -308,6 +340,12 @@ namespace DoodleIdle
         void CollectionActions(RectTransform parent, string category)
         {
             var row = UiKit.Row(parent, "Collection actions", 68, 14);
+            if ((category == "Armor" || category == "Club") && Items(category).Exists(x => x.discovered && x.level >= 100 && x.rarity != 6))
+            {
+                var synthesis = UiKit.Button(row, "일괄 합성", () => { int made = SynthesizeAll(category); RefreshPage(); Toast(UiNumber.Format(made) + "개 합성했습니다."); }, UiKit.Purple, 68);
+                synthesis.interactable = !collectionBulkRunning;
+                CollectionButtonText(synthesis, 28);
+            }
             var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
             upgrade.interactable = !collectionBulkRunning;
             var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast("강한 " + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
@@ -417,7 +455,15 @@ namespace DoodleIdle
                 if (item.discovered)
                 {
                     var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
-                    var upgrade = UiKit.Button(buttons, "강화", () => UpgradeSelected(item, true), UiKit.Blue, 56);
+                    bool refund = item.category == "Skill" && item.level >= ItemMaxLevel(item);
+                    var upgrade = UiKit.Button(buttons, refund ? "환불\n" + UiNumber.Format(SkillRefundQuote(item)) + " 다이아" : "강화", () =>
+                    {
+                        if (!refund) { UpgradeSelected(item, true); return; }
+                        int paid = RefundSkill(item);
+                        CloseDetail(); RefreshPage(); ShowCollectionDetail(item);
+                        Toast(paid > 0 ? UiNumber.Format(paid) + " 다이아 환불 완료" : "환불 가능한 조각 또는 지갑 공간이 없습니다.");
+                    }, refund ? UiKit.Purple : UiKit.Blue, 56);
+                    upgrade.interactable = refund ? CanRefundSkill(item) : item.count >= CopiesNeeded(item);
                     CollectionButtonText(upgrade, 27);
                     CollectionButtonText(UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56), 27);
                 }
@@ -670,7 +716,7 @@ namespace DoodleIdle
             if (tabs && tabHeight > 0)
             {
                 Height(tabs, tabHeight);
-                foreach (var button in tabs.GetComponentsInChildren<Button>()) Height(button.transform, tabHeight);
+                foreach (var button in tabs.GetComponentsInChildren<Button>()) Height(button.transform, tabHeight - 6);
             }
             rules.Add(shortMode =>
             {

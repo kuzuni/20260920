@@ -17,7 +17,7 @@ namespace DoodleIdle.Tests
         public IEnumerator PlayerAndThreeEnemySpeciesAnimateTwoMovementFrames()
         {
             var bodies = IsolateSummonTest();
-            string[] species = { "Mushroom", "Bat", "Devil" };
+            string[] species = { "새싹 슬라임", "들쥐", "분홍 버섯" };
             var selected = species.Select(name => bodies.First(b => b.name == "Enemy - " + name)).ToArray();
             for (int i = 0; i < selected.Length; i++)
             {
@@ -54,8 +54,8 @@ namespace DoodleIdle.Tests
             CollectionAssert.AreEquivalent(new[] { "PlayerWalkA", "PlayerWalkB" }, seen[0]);
             CollectionAssert.AreEquivalent(new[] { "RobotDroneA", "RobotDroneB" }, droneFrames);
             for (int i = 0; i < species.Length; i++)
-                CollectionAssert.AreEquivalent(new[] { species[i] + "A", species[i] + "B" }, seen[i + 1]);
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+                CollectionAssert.AreEquivalent(new[] { "Meadow" + i + "A", "Meadow" + i + "B" }, seen[i + 1]);
+            Assert.That(game.EnemyCount, Is.EqualTo(100));
             game.TogglePause();
             var pausedFrames = arts.Select(a => a.sprite).ToArray();
             yield return new WaitForSecondsRealtime(.2f);

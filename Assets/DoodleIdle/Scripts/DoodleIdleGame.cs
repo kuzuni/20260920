@@ -11,8 +11,8 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame : MonoBehaviour
     {
         [Header("Population")]
-        public int targetPopulation = 200;
-        public int refillBelow = 20;
+        public int targetPopulation = 100;
+        public int refillBelow = 0;
         public Vector2 arenaHalfSize = new Vector2(17, 20);
         public const float SlashSpeed = 11;
         [Header("Combat")]
@@ -44,9 +44,9 @@ namespace DoodleIdle
             public SpriteRenderer art;
             public SpriteRenderer healthBack, healthFill;
             public CircleCollider2D collider;
-            public float hp = 68, flash, phase;
+            public float hp = 68, maxHp = 68, flash, phase;
             public float walkClock;
-            public bool isPlayer;
+            public bool isPlayer, isBoss;
             public int kind;
             public Vector2 Position => body.position;
         }
@@ -70,7 +70,6 @@ namespace DoodleIdle
         readonly List<Shot> shots = new List<Shot>();
         readonly List<Fleck> flecks = new List<Fleck>();
         readonly List<Actor> nearest = new List<Actor>(200);
-        readonly List<Vector2> obstacles = new List<Vector2>();
         readonly HashSet<Actor> dashVictims = new HashSet<Actor>();
         readonly Dictionary<Actor, float> bananaHitTimes = new Dictionary<Actor, float>();
         readonly Transform[] bananas = new Transform[5];
@@ -90,6 +89,9 @@ namespace DoodleIdle
         readonly Dictionary<Texture, Material> textureMaterials = new Dictionary<Texture, Material>();
         Transform hudRoot;
         bool portraitHud;
+        bool combatWaveResetRequested;
+        public bool BossActive => enemies.Exists(x => x.isBoss);
+        public void RequestCombatWaveReset() => combatWaveResetRequested = true;
 
         void Start()
         {
@@ -170,6 +172,7 @@ namespace DoodleIdle
                 {
                     var tile = Visual("Generated dirt floor", groundSprite, new Vector2(x * 13, y * 13), Vector2.one, -1000);
                     // Mirroring adjacent tiles makes matching edges exact, even for an imperfect AI tile.
+                    groundTiles.Add(tile);
                     tile.flipX = (Mathf.Abs(x) % 2) == 1;
                     tile.flipY = (Mathf.Abs(y) % 2) == 1;
                 }
@@ -181,15 +184,7 @@ namespace DoodleIdle
             Wall(new Vector2(arenaHalfSize.x + .5f, 0), new Vector2(1, arenaHalfSize.y * 2 + 2));
             Wall(new Vector2(0, -arenaHalfSize.y - .5f), new Vector2(arenaHalfSize.x * 2, 1));
             Wall(new Vector2(0, arenaHalfSize.y + .5f), new Vector2(arenaHalfSize.x * 2, 1));
-            Vector2[] rocks = { new Vector2(-12, 6), new Vector2(11, -6), new Vector2(9, 7), new Vector2(-10, -7), new Vector2(15, 2), new Vector2(-15, -1) };
-            foreach (var p in rocks)
-            {
-                obstacles.Add(p);
-                var rock = Visual("Doodle boulder / solid collider", sprites[7], p, Vector2.one * 1.55f, Order(p));
-                var collider = rock.gameObject.AddComponent<CircleCollider2D>();
-                collider.radius = .43f;
-                collider.sharedMaterial = frictionless;
-            }
+
         }
 
         void Wall(Vector2 position, Vector2 size)
@@ -202,6 +197,7 @@ namespace DoodleIdle
 
         public void ResetGame()
         {
+            combatWaveResetRequested = false;
             ReleaseJoystick();
             ClearParticles();
             ClearDamageNumbers();
@@ -238,7 +234,7 @@ namespace DoodleIdle
 
         Actor CreateActor(bool isPlayer, Vector2 p, int kind)
         {
-            var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + EnemyArtNames[kind]);
+            var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + ThemeEnemies[CurrentThemeIndex][kind]);
             root.transform.SetParent(world);
             root.transform.position = p;
             var body = root.AddComponent<Rigidbody2D>();
@@ -263,7 +259,20 @@ namespace DoodleIdle
 
         void Refill()
         {
-            int needed = targetPopulation - enemies.Count;
+            ApplyStageTheme();
+            // A wave is never topped up while any enemy is alive.
+            if (enemies.Count > 0) return;
+            if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
+            {
+                var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
+                boss.isBoss = true; boss.hp = boss.maxHp = EnemyMaxHealth * 20;
+                boss.root.name = "Stage boss";
+                boss.root.transform.localScale = Vector3.one * 3;
+                boss.body.mass = 9;
+                RefreshHealthBar(boss); enemies.Add(boss);
+                return;
+            }
+            int needed = Ui ? Ui.ActiveDungeonIndex >= 0 ? 100 : Ui.MainStageRemaining : targetPopulation;
             for (int n = 0; n < needed; n++)
             {
                 Vector2 p = Vector2.zero;
@@ -274,10 +283,11 @@ namespace DoodleIdle
                     if ((p - player.Position).sqrMagnitude < 10) continue;
                     found = true;
                     foreach (var enemy in enemies) if ((p - enemy.Position).sqrMagnitude < 1.6f) { found = false; break; }
-                    foreach (var obstacle in obstacles) if ((p - obstacle).sqrMagnitude < 2.6f) { found = false; break; }
                     if (found) break;
                 }
-                if (found) enemies.Add(CreateActor(false, p, UnityEngine.Random.Range(0, 3)));
+                // The wide arena normally finds a free position. Still create every
+                // member of the wave so the 100-kill objective cannot get stranded.
+                enemies.Add(CreateActor(false, p, UnityEngine.Random.Range(0, 3)));
             }
             Refills++;
         }
@@ -311,6 +321,13 @@ namespace DoodleIdle
         void FixedUpdate()
         {
             if (!Ready || paused) return;
+            if (combatWaveResetRequested)
+            {
+                combatWaveResetRequested = false;
+                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+                enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
+                Refill();
+            }
             float dt = Time.fixedDeltaTime;
             var target = Closest(player.Position);
             if (target == null) { Refill(); return; }
@@ -337,13 +354,6 @@ namespace DoodleIdle
             else
             {
                 Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
-                // Steer around boulders; the real colliders remain authoritative.
-                foreach (var obstacle in obstacles)
-                {
-                    Vector2 away = player.Position - obstacle;
-                    if (!JoystickActive && away.sqrMagnitude < 3.8f && Vector2.Dot(desired, away) < 0)
-                        desired += new Vector2(-away.y, away.x).normalized * moveSpeed + away.normalized * 2;
-                }
                 player.body.linearVelocity = desired;
             }
             foreach (var enemy in enemies)
@@ -360,7 +370,7 @@ namespace DoodleIdle
             TickSummons(dt);
             TickParticles(dt);
             TickDamageNumbers(dt);
-            if (enemies.Count < refillBelow) Refill();
+            if (enemies.Count == 0) Refill();
         }
 
         void LateUpdate()
@@ -499,6 +509,7 @@ namespace DoodleIdle
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
             if (enemy.hp > 0) return;
             Kills++;
+            if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);
             LeaveStain(enemy.Position);
             EmitGold(enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
@@ -726,6 +737,7 @@ namespace DoodleIdle
             DisposeSkillArt();
             DisposeSummonArt();
             DisposeActorAnimations();
+            DisposeThemes();
             DisposeWorldSkins();
             if (sprites != null) foreach (var sprite in sprites) if (sprite) Destroy(sprite);
         }

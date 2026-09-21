@@ -14,12 +14,13 @@ namespace DoodleIdle
         public static readonly Color Green = new Color(.71f,.89f,.54f);
         public static readonly Color Yellow = new Color(1f,.9f,.46f);
         public static readonly Color Red = new Color(1f,.32f,.31f);
+        public static readonly Color Purple = new Color(.77f,.58f,.94f);
         public static Font Font;
         static readonly Dictionary<string, Sprite> art = new Dictionary<string, Sprite>();
         static Sprite frame, circle;
-        static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설" };
-        public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f) }[Mathf.Clamp(grade,0,4)];
-        public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,4)];
+        static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
+        public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f), new Color(1,.63f,.65f), new Color(.65f,1,.94f) }[Mathf.Clamp(grade,0,6)];
+        public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,6)];
         public static RectTransform Rect(Transform parent,string name)
         {
             var r = new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>(); r.SetParent(parent,false); return r;
@@ -76,8 +77,20 @@ namespace DoodleIdle
         public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
         {
             var row=parent.GetComponent<HorizontalLayoutGroup>();if(row)row.spacing=0;
-            var button=Button(parent,label,click,selected?Yellow:new Color(.87f,.87f,.86f),height);
-            button.GetComponent<Outline>().effectDistance=new Vector2(2.5f,-2.5f);
+            // One shared rounded segment bar, as in the reference footer.
+            if (!parent.GetComponent<Image>())
+            {
+                var background=parent.gameObject.AddComponent<Image>();background.sprite=Frame;background.type=Image.Type.Sliced;background.color=Ink;
+                parent.gameObject.AddComponent<Mask>().showMaskGraphic=true;
+                if(row)row.padding=new RectOffset(3,3,3,3);
+            }
+            var button=Button(parent,label,click,selected?Yellow:new Color(.87f,.87f,.86f),height-6);
+            button.GetComponent<Outline>().enabled=false;
+            button.GetComponent<Image>().sprite=null;
+            if(parent.childCount>1)
+            {
+                var seam=Rect(button.transform,"Tab divider");seam.anchorMin=new Vector2(0,0);seam.anchorMax=new Vector2(0,1);seam.offsetMin=new Vector2(-2,0);seam.offsetMax=new Vector2(2,0);seam.gameObject.AddComponent<Image>().color=Ink;
+            }
             button.GetComponentInChildren<Text>().resizeTextMaxSize=34;
             return button;
         }
@@ -131,6 +144,18 @@ namespace DoodleIdle
         public static Sprite Art(string key)
         {
             if(string.IsNullOrEmpty(key)) key="Player"; if(art.TryGetValue(key,out var cached)) return cached;
+            string[] progression={"StatAttack","StatHealth","StatRegen","StatCrit2","StatCrit4","RelicStrength","RelicLife","RelicLuck","RelicRegen","RelicCritical","PodiumGold","PodiumSilver","PodiumBronze"};
+            int progressionIndex=Array.IndexOf(progression,key);
+            if(key=="StatCrit2" || key=="StatCrit4"){var critical=Cell("UI/CriticalIcons",key=="StatCrit2"?0:1,2,1);art[key]=critical;return critical;}
+            if(progressionIndex>=0)
+            {
+                // Explicit source gutters keep the hand-positioned atlas cells intact.
+                var texture=Resources.Load<Texture2D>("DoodleIdle/UI/ProgressionIcons");
+                int[] xs={0,370,640,920,1254},ys={0,400,700,1000,1254};
+                int col=progressionIndex%4,row=progressionIndex/4;
+                var bounds=new Rect(xs[col]*texture.width/1254f,(1254-ys[row+1])*texture.height/1254f,(xs[col+1]-xs[col])*texture.width/1254f,(ys[row+1]-ys[row])*texture.height/1254f);
+                var sprite=TrimmedCell(texture,bounds);art[key]=sprite;return sprite;
+            }
             string[] currency={"DiamondSingle","DiamondPile","DiamondBag","DiamondChest","DiamondRoyalChest"};
             int currencyIndex=Array.IndexOf(currency,key);if(currencyIndex>=0){var currencySprite=Cell("UI/CurrencyIcons",currencyIndex,3,2);art[key]=currencySprite;return currencySprite;}
             string[] atlas={"Diamond","Armor","ArmorMetal","Relic","Stats","Pvp","Dungeon","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings","Close","Key"};
@@ -164,6 +189,11 @@ namespace DoodleIdle
         {
             var tex=Resources.Load<Texture2D>("DoodleIdle/"+path); if(!tex) return null;
             int w=tex.width/cols,h=tex.height/rows,x=index%cols*w,y=(rows-1-index/cols)*h;
+            return TrimmedCell(tex,new Rect(x,y,w,h));
+        }
+        static Sprite TrimmedCell(Texture2D tex,Rect bounds)
+        {
+            int x=Mathf.RoundToInt(bounds.x),y=Mathf.RoundToInt(bounds.y),w=Mathf.RoundToInt(bounds.width),h=Mathf.RoundToInt(bounds.height);
             var pixels=tex.GetPixels32(); int left=x+w,right=x,bottom=y+h,top=y;
             for(int yy=y;yy<y+h;yy++) for(int xx=x;xx<x+w;xx++) if(pixels[yy*tex.width+xx].a>32) { left=Mathf.Min(left,xx); right=Mathf.Max(right,xx); bottom=Mathf.Min(bottom,yy); top=Mathf.Max(top,yy); }
             if(left>right) return null;
@@ -183,6 +213,7 @@ namespace DoodleIdle
         Vector2 previousSize;
         void OnRectTransformDimensionsChange()=>Reflow();
         void LateUpdate()=>Reflow();
+        public void Invalidate() { previousSize=Vector2.zero; Reflow(); }
         public void Reflow()
         {
             var rect=(RectTransform)transform;var size=rect.rect.size;
@@ -192,11 +223,18 @@ namespace DoodleIdle
             grade.rectTransform.anchorMin=new Vector2(0,1);grade.rectTransform.anchorMax=Vector2.one;
             grade.rectTransform.offsetMin=new Vector2(pad,-top);grade.rectTransform.offsetMax=new Vector2(-pad,-2*scale);
             grade.resizeTextMinSize=Mathf.RoundToInt(12*scale);grade.resizeTextMaxSize=Mathf.RoundToInt(20*scale);
+            var level=transform.Find("Enhancement level") as RectTransform;
+            if(level)
+            {
+                grade.rectTransform.anchorMax=new Vector2(.53f,1);
+                level.offsetMin=new Vector2(0,-top);level.offsetMax=new Vector2(-pad,-2*scale);
+                var label=level.GetComponent<Text>();label.resizeTextMinSize=9;label.resizeTextMaxSize=Mathf.RoundToInt(19*scale);
+            }
             UiKit.Stretch(art,8*scale,bottom+9*scale,8*scale,top+2*scale);
             gauge.anchorMin=Vector2.zero;gauge.anchorMax=new Vector2(1,0);gauge.offsetMin=new Vector2(pad,pad);gauge.offsetMax=new Vector2(-pad,pad+bottom);
             var amount=gauge.GetComponentInChildren<Text>();amount.resizeTextMinSize=Mathf.RoundToInt(12*scale);amount.resizeTextMaxSize=Mathf.RoundToInt(20*scale);
             var mark=transform.Find("Equipped check") as RectTransform;
-            if(mark) {mark.sizeDelta=Vector2.one*27;mark.localScale=Vector3.one*scale;mark.anchoredPosition=new Vector2(-13*scale,-14*scale);}
+            if(mark) {mark.sizeDelta=Vector2.one*27;mark.localScale=Vector3.one*scale;mark.anchoredPosition=new Vector2(-13*scale,level?-top-15*scale:-14*scale);}
             var locked=transform.Find("Locked padlock") as RectTransform;
             if(locked) {locked.sizeDelta=new Vector2(20,25);locked.localScale=Vector3.one*scale;locked.anchoredPosition=new Vector2(-16*scale,bottom+16*scale);}
         }

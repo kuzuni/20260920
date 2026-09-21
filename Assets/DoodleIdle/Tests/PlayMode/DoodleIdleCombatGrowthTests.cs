@@ -49,7 +49,8 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Critical4Chance, Is.EqualTo(100));
             ExpectHit(4); // Both guarantees must produce 4x, never 2x or 8x.
             GrowthLevels["crit2Chance"] = 0;
-            ExpectHit(4);
+            ExpectHit(1); // Four-times critical is locked until two-times is MAX.
+            GrowthLevels["crit2Chance"] = GuaranteedLevel("crit2Chance");
 
             var relic = ui.Items("Relic").Single(x => x.effect == "critDamage");
             relic.discovered = true;

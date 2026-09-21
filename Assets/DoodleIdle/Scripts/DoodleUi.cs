@@ -22,13 +22,12 @@ namespace DoodleIdle
         RectTransform root,safe,pageLayer,overlayLayer,nav,header,skillDock,shortcuts,mission;
         Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast;
         Text powerToast,cameraLabel,stageLabel;
-        Button missionClaim;
+        Button missionClaim, breakthroughButton;
         RectTransform cameraControl,stageInfo;
         public int CameraMode { get; private set; } = 1;
         float powerToastUntil;
         bool rebuildingPage;
-        RectTransform missionFill;
-        Image goldBuffDot,attackBuffDot;
+        Image goldBuffSurface,attackBuffSurface;
         readonly List<GameObject> overlayStack=new List<GameObject>();
         readonly List<Image> hudMasks=new List<Image>();
         readonly List<Image> hudIcons=new List<Image>();
@@ -79,15 +78,21 @@ namespace DoodleIdle
             string[] ids={"Attendance","Roulette","Buffs","Quests","Chat"},names={"출석","룰렛","버프","퀘스트","채팅"};
             for(int i=0;i<ids.Length;i++) { string id=ids[i]; IconButton(shortcuts,id,names[i],id,()=>ShowPage(id),96); }
             mission=UiKit.Box(safe,"Mission",UiKit.Paper,144); Anchor(mission,new Vector2(1,0),new Vector2(-160,396),new Vector2(300,144));
-            var m=UiKit.Row(mission,"Mission row",100,8); UiKit.Stretch(m,13,66,13,8); UiKit.Icon(m,"Quests",44); missionText=UiKit.Text(m,"",24,TextAnchor.MiddleLeft,96);
-            var missionGauge=UiKit.Gauge(mission,"",0,14); missionGauge.anchorMin=Vector2.zero;missionGauge.anchorMax=new Vector2(1,0);missionGauge.offsetMin=new Vector2(18,47);missionGauge.offsetMax=new Vector2(-18,61); missionFill=(RectTransform)missionGauge.Find("Fill");
-            missionClaim=UiKit.Button(mission,"500 다이아 받기",()=>ClaimMainMission(),UiKit.Yellow,34);missionClaim.name="Claim main mission";
-            var claimRect=(RectTransform)missionClaim.transform;claimRect.anchorMin=Vector2.zero;claimRect.anchorMax=new Vector2(1,0);claimRect.offsetMin=new Vector2(12,8);claimRect.offsetMax=new Vector2(-12,42);
-            missionClaim.GetComponentInChildren<Text>().resizeTextMaxSize=22;
+            var m=UiKit.Row(mission,"Mission row",100,8); UiKit.Stretch(m,13,50,13,8); UiKit.Icon(m,"Quests",44); missionText=UiKit.Text(m,"",24,TextAnchor.MiddleLeft,96);
+            missionClaim=UiKit.Button(mission,"",()=>ClaimMainMission(),UiKit.Yellow,34);missionClaim.name="Claim main mission";
+            var claimRect=(RectTransform)missionClaim.transform;claimRect.anchorMin=new Vector2(1f/6,0);claimRect.anchorMax=new Vector2(5f/6,0);claimRect.offsetMin=new Vector2(0,8);claimRect.offsetMax=new Vector2(0,42);
+            missionClaim.GetComponentInChildren<Text>().gameObject.SetActive(false);
+            var rewardRow=UiKit.Row(missionClaim.transform,"Mission reward",30,4);UiKit.Stretch(rewardRow,8,2,8,2);
+            UiKit.Text(rewardRow,"500",22,TextAnchor.MiddleRight,30);
+            UiKit.Icon(rewardRow,"Diamond",24);
+            UiKit.Text(rewardRow,"받기",22,TextAnchor.MiddleLeft,30);
             var cameraButton=UiKit.Button(safe,"카메라  1",CycleCameraMode,UiKit.Paper,40);cameraButton.name="Camera mode";
             cameraControl=(RectTransform)cameraButton.transform;cameraLabel=cameraButton.GetComponentInChildren<Text>();cameraLabel.resizeTextMaxSize=23;
-            stageInfo=UiKit.Rect(safe,"Stage progress");stageLabel=UiKit.Text(stageInfo,"",18,TextAnchor.MiddleLeft,38);UiKit.Stretch(stageLabel.rectTransform);
-            stageLabel.color=UiKit.Ink;stageLabel.gameObject.AddComponent<Outline>().effectColor=UiKit.Paper;
+            stageInfo=UiKit.Rect(safe,"Stage progress");stageLabel=UiKit.Text(stageInfo,"",28,TextAnchor.MiddleCenter,68);UiKit.Stretch(stageLabel.rectTransform,0,44,0,0);
+            stageLabel.supportRichText=false;stageLabel.color=UiKit.Ink;stageLabel.gameObject.AddComponent<Outline>().effectColor=UiKit.Paper;
+            breakthroughButton=UiKit.Button(stageInfo,"돌파 모드",ToggleBreakthroughMode,UiKit.Green,36);
+            var modeRect=(RectTransform)breakthroughButton.transform;modeRect.anchorMin=new Vector2(.12f,0);modeRect.anchorMax=new Vector2(.88f,0);modeRect.offsetMin=Vector2.zero;modeRect.offsetMax=new Vector2(0,36);
+            breakthroughButton.GetComponentInChildren<Text>().resizeTextMaxSize=23;
             skillDock=UiKit.Row(safe,"Eight equipped cooldowns",84,8); Anchor(skillDock,new Vector2(.5f,0),new Vector2(0,249),new Vector2(696,84));
             skillDock.gameObject.AddComponent<DoodleUiSquareRow>();
             for(int i=0;i<8;i++) {
@@ -101,8 +106,7 @@ namespace DoodleIdle
             var host=UiKit.Rect(parent,name); FixedWidth(host,64); UiKit.Height(host,86);
             var circle=UiKit.Box(host,"Buff circle",UiKit.Paper); circle.GetComponent<Image>().sprite=UiKit.Circle; Anchor(circle,new Vector2(.5f,1),new Vector2(0,-30),new Vector2(60,60));
             var icon=UiKit.Icon(circle,art,44); UiKit.Stretch(icon.rectTransform,8,8,8,8);
-            var dot=UiKit.Box(circle,"Active dot",UiKit.Green);dot.GetComponent<Image>().sprite=UiKit.Circle; Anchor(dot,Vector2.one,new Vector2(-3,-5),new Vector2(17,17));
-            if(art=="Gold")goldBuffDot=dot.GetComponent<Image>();else attackBuffDot=dot.GetComponent<Image>();
+            if(art=="Gold")goldBuffSurface=circle.GetComponent<Image>();else attackBuffSurface=circle.GetComponent<Image>();
             var timer=UiKit.Text(host,"",21,TextAnchor.MiddleCenter,26); UiKit.Stretch(timer.rectTransform,0,0,0,60); timer.gameObject.AddComponent<Outline>().effectColor=Color.white; return timer;
         }
         void BuildNavigation()
@@ -151,7 +155,7 @@ namespace DoodleIdle
             }
             mission.sizeDelta=new Vector2(tall?300:270,tall?184:152);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?408:278);missionText.resizeTextMaxSize=tall?24:19;UiKit.Height(missionText.transform,tall?96:68);
             Anchor(cameraControl,new Vector2(0,0),new Vector2(96,tall?329:208),new Vector2(164,tall?42:34));
-            Anchor(stageInfo,new Vector2(0,0),new Vector2(140,tall?378:246),new Vector2(250,42));
+            Anchor(stageInfo,new Vector2(.5f,1),new Vector2(0,-191),new Vector2(230,140));
             foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) if(!window.GetComponent<DoodlePopupMotion>() || !window.GetComponent<DoodlePopupMotion>().IsClosing) window.Reflow(safe);
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
             foreach(var squares in root.GetComponentsInChildren<DoodleUiSquareRow>()) squares.Reflow();
@@ -315,11 +319,11 @@ namespace DoodleIdle
         public void RefreshHud()
         {
             if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
-            buffGold.text=Duration(GoldBuffSeconds); buffAttack.text=Duration(AttackBuffSeconds); missionText.text=MainMissionText;
+            buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
-            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"메인 스테이지 "+UiNumber.Format(MainStage+1)+"\n"+UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal);
-            goldBuffDot.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffDot.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
-            if(missionFill) missionFill.anchorMax=new Vector2(MainMissionFraction,1);
+            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageRemaining)+"/"+UiNumber.Format(MainStageKillGoal));
+            breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
+            goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool found=i<skills.Count; hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"Banana"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.15f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));

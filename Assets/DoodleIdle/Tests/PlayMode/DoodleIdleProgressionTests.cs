@@ -80,7 +80,15 @@ namespace DoodleIdle.Tests
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage));
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(ui.MainStageKillGoal - 1));
-            DefeatActualServiceEnemies(6);
+            DefeatActualServiceEnemies(1);
+            yield return null;
+            Assert.That(ui.MainStage, Is.EqualTo(initialStage), "Clearing 100 ordinary enemies must still require a boss.");
+            Assert.That(ui.MainBossPending, Is.True);
+            typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
+            Assert.That(game.BossActive, Is.True);
+            Assert.That(game.EnemyCount, Is.EqualTo(1));
+            Assert.That(game.transform.Find("Doodle world/Stage boss").localScale, Is.EqualTo(Vector3.one * 3));
+            DefeatActualServiceEnemies(6); // boss, then five enemies from the next wave
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 1));
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(5), "Surplus real kills carry into the next main stage.");
@@ -108,6 +116,9 @@ namespace DoodleIdle.Tests
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(5));
             ui.CloseDetail();
             DefeatActualServiceEnemies(ui.MainStageKillGoal - 5);
+            yield return null;
+            Assert.That(ui.MainStage, Is.EqualTo(initialStage + 1));
+            DefeatActualServiceEnemies(1); // boss
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 2), "Main progression resumes after the dungeon is cleared.");
             Assert.That(ui.MainStageKillProgress, Is.Zero);

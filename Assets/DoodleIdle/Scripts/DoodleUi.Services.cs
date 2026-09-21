@@ -16,7 +16,7 @@ namespace DoodleIdle
             public int[] roulette = { 20, 50, 100, 30, 200, 50, 500, 100 };
             public int dailySpins = 5, dungeonAttempts = 3, pvpAttempts = 5;
             public int buffSeconds = 900, buffPrice = 20, dungeonKills = 30, dungeonGold = 30000;
-            public int mainStageKills = 30, diamondDungeonKills = 40, relicDungeonKills = 50;
+            public int mainStageKills = 100, diamondDungeonKills = 40, relicDungeonKills = 50;
             public int dungeonDiamonds = 500, dungeonRelicTickets = 1;
             public float goldBuff = .5f, attackBuff = .3f;
             public int[] dailyGoals = { 200, 1000, 3, 5 };
@@ -37,6 +37,7 @@ namespace DoodleIdle
             public float music = .6f, effects = .8f;
             public int activeDungeon = -1, dungeonProgress;
             public int mainStage, mainStageKillProgress, mainMissionIndex, relicTickets;
+            public bool breakthroughMode = true;
             public int[] dungeonStages = new int[3];
             public long mainKills, earnedGold;
         }
@@ -108,7 +109,7 @@ namespace DoodleIdle
             if (services.dungeonUsed == null || services.dungeonUsed.Length != 3) services.dungeonUsed = new int[3];
             if (services.dungeonStages == null || services.dungeonStages.Length != 3) services.dungeonStages = new int[3];
             services.mainStage = Math.Max(0, services.mainStage);
-            services.mainStageKillProgress = Math.Max(0, services.mainStageKillProgress);
+            services.mainStageKillProgress = Mathf.Clamp(services.mainStageKillProgress, 0, MainStageKillGoal);
             services.mainMissionIndex = Math.Max(0, services.mainMissionIndex);
             services.relicTickets = Math.Max(0, services.relicTickets);
             services.mainKills = Math.Max(0, services.mainKills);
@@ -173,7 +174,6 @@ namespace DoodleIdle
                     services.dungeonProgress += delta;
                     if (services.dungeonProgress >= DungeonKillGoal) CompleteDungeon();
                 }
-                else AdvanceMainStage(delta);
             }
             if (Time.unscaledTime < nextServiceTick) return;
             nextServiceTick = Time.unscaledTime + .25f;
@@ -499,9 +499,11 @@ namespace DoodleIdle
 
         public void EnterDungeon(int index)
         {
+            TickServices();
             ResetServicePeriods();
             if (index < 0 || index > 2 || services.activeDungeon >= 0 || services.dungeonUsed[index] >= serviceTuning.dungeonAttempts) return;
             services.dungeonUsed[index]++; services.activeDungeon = index; services.dungeonProgress = 0;
+            if (game) game.RequestCombatWaveReset();
             lastServiceKills = game ? game.Kills : 0; RecordServiceProgress("dungeon", 1); Save(); RefreshPage();
             Toast(DungeonNames[index] + " 도전 시작! 필드의 적을 처치하세요");
         }
@@ -511,6 +513,7 @@ namespace DoodleIdle
             int index = services.activeDungeon;
             services.dungeonStages[index] = (int)Math.Min(int.MaxValue, (long)services.dungeonStages[index] + 1);
             services.activeDungeon = -1; services.dungeonProgress = 0;
+            if (game) game.RequestCombatWaveReset();
             var rewards = new List<UiReward>();
             if (index == 0)
             {
@@ -552,9 +555,10 @@ namespace DoodleIdle
                 var rank = ranks[position];
                 var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,190);
                 float stepHeight=position==0?84:position==1?57:42;
-                var step=UiKit.Box(card,"Podium pedestal",position==0?UiKit.Yellow:position==1?new Color(.84f,.85f,.87f):new Color(.87f,.7f,.53f));
+                var step=UiKit.Rect(card,"Podium pedestal");
+                var pedestal=step.gameObject.AddComponent<Image>();pedestal.sprite=UiKit.Art(position==0?"PodiumGold":position==1?"PodiumSilver":"PodiumBronze");pedestal.raycastTarget=false;
                 step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
-                var number=UiKit.Text(step,(position+1).ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform);
+                var number=UiKit.Text(step,(position+1).ToString(),39,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,stepHeight*.23f);
                 var image=UiKit.Icon(card,rank.art,position==0?78:70).rectTransform;image.anchorMin=image.anchorMax=new Vector2(.5f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,stepHeight-2);
                 var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,stepHeight+(position==0?78:70));
             }

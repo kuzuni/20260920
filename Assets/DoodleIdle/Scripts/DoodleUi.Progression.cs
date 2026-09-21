@@ -10,7 +10,41 @@ namespace DoodleIdle
         // belong only to their active dungeon and cannot also advance the main stage.
         public int MainStage => services == null ? 0 : services.mainStage;
         public int MainStageKillProgress => services == null ? 0 : services.mainStageKillProgress;
-        public int MainStageKillGoal => Math.Max(1, serviceTuning.mainStageKills);
+        public int MainStageKillGoal => 100;
+        public int MainStageRemaining => Math.Max(0, MainStageKillGoal - MainStageKillProgress);
+        public bool BreakthroughMode => services == null || services.breakthroughMode;
+        public bool MainBossPending => MainStageKillProgress >= MainStageKillGoal && BreakthroughMode;
+        public void ToggleBreakthroughMode()
+        {
+            services.breakthroughMode = !services.breakthroughMode;
+            if (!services.breakthroughMode && MainStageKillProgress >= MainStageKillGoal)
+            {
+                services.mainStageKillProgress = 0;
+                if (game) game.RequestCombatWaveReset();
+            }
+            Save(); RefreshHud();
+        }
+        public void RecordMainCombatKill(bool boss)
+        {
+            if (services == null || ActiveDungeonIndex >= 0) return;
+            services.mainKills = SaturatingAdd(services.mainKills, 1);
+            if (boss)
+            {
+                if (MainBossPending)
+                    services.mainStage = (int)Math.Min(int.MaxValue, (long)services.mainStage + 1);
+                services.mainStageKillProgress = 0;
+                Save();
+            }
+            else
+            {
+                services.mainStageKillProgress = Math.Min(MainStageKillGoal, services.mainStageKillProgress + 1);
+                if (services.mainStageKillProgress == MainStageKillGoal)
+                {
+                    if (!BreakthroughMode) services.mainStageKillProgress = 0;
+                    Save();
+                }
+            }
+        }
         public int HighestDungeonStage => services == null ? 0 : Math.Max(services.dungeonStages[0], Math.Max(services.dungeonStages[1], services.dungeonStages[2]));
         public int GetDungeonStage(int index) => services == null || index < 0 || index >= 3 ? 0 : services.dungeonStages[index];
         public int RelicTickets => services == null ? 0 : services.relicTickets;
@@ -97,17 +131,6 @@ namespace DoodleIdle
         }
 
         int DungeonKillsFor(int index) => Math.Max(1, index == 1 ? serviceTuning.diamondDungeonKills : index == 2 ? serviceTuning.relicDungeonKills : serviceTuning.dungeonKills);
-
-        void AdvanceMainStage(int kills)
-        {
-            services.mainKills = SaturatingAdd(services.mainKills, kills);
-            long progress = (long)services.mainStageKillProgress + kills;
-            long completed = progress / MainStageKillGoal;
-            services.mainStageKillProgress = (int)(progress % MainStageKillGoal);
-            if (completed == 0) return;
-            services.mainStage = (int)Math.Min(int.MaxValue, services.mainStage + completed);
-            Save();
-        }
 
         static long SaturatingAdd(long current, int amount) => current > long.MaxValue - amount ? long.MaxValue : current + amount;
     }

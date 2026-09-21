@@ -35,7 +35,7 @@ namespace DoodleIdle
         void RefreshHealthBar(Actor actor)
         {
             if (!actor.healthFill) return;
-            float fraction = Mathf.Clamp01(actor.hp / EnemyMaxHealth);
+            float fraction = Mathf.Clamp01(actor.hp / actor.maxHp);
             actor.healthFill.transform.localScale = new Vector3(.9f * fraction, .08f / actor.healthFill.sprite.bounds.size.y, 1);
             actor.healthFill.transform.localPosition = new Vector3(-.45f * (1 - fraction), .78f, 0);
             actor.healthFill.color = Color.Lerp(new Color(1, .45f, .45f), Color.white, fraction);

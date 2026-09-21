@@ -98,6 +98,29 @@ namespace DoodleIdle
         public int SummonExperience(string category) { return summonStates[category].experience; }
         public bool CanFreeSummon(string category) { return summonStates[category].freeUsedDay != CommerceDay(); }
 
+        // Use the current best paid per-draw price, including the 50-draw discount.
+        // Fractional diamonds carry over between refunds and are persisted.
+        public decimal SkillRefundUnitPrice => Math.Min(commerceTuning.tenCost / 10m, commerceTuning.fiftyCost / 50m);
+        decimal SkillRefundRemainder => decimal.TryParse(PlayerPrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
+        int RefundableSkillCopies(UiItem item)
+        {
+            if (item == null || item.category != "Skill" || !item.discovered || item.level < 100 || item.count <= 0 || !Items("Skill").Contains(item)) return 0;
+            decimal room = Math.Max(0L, (long)int.MaxValue - Diamonds);
+            return (int)Math.Min(item.count, Math.Max(0, decimal.Floor((room - SkillRefundRemainder) / SkillRefundUnitPrice)));
+        }
+        public bool CanRefundSkill(UiItem item) => RefundableSkillCopies(item) > 0;
+        public int SkillRefundQuote(UiItem item) => (int)decimal.Floor(RefundableSkillCopies(item) * SkillRefundUnitPrice + SkillRefundRemainder);
+        public int RefundSkill(UiItem item)
+        {
+            int copies = RefundableSkillCopies(item);
+            if (copies == 0) return 0;
+            decimal amount = copies * SkillRefundUnitPrice + SkillRefundRemainder;
+            int paid = (int)decimal.Floor(amount);
+            item.count -= copies; Diamonds += paid;
+            PlayerPrefs.SetString("DoodleUi.SkillRefundRemainder", (amount - paid).ToString(CultureInfo.InvariantCulture));
+            Save(); return paid;
+        }
+
         void BuildShop(RectTransform body)
         {
             if (summonStates.Count == 0) InitCommerce();
@@ -346,6 +369,7 @@ namespace DoodleIdle
                     rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
                     rect.offsetMin = new Vector2(2, 2); rect.offsetMax = new Vector2(-2, -2);
                 }
+                if (category == "Armor" || category == "Club") UiKit.Text(body, "신화·갓 장비는 이전 장비 5개 합성으로 획득", 20, TextAnchor.MiddleCenter, 32);
                 var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
                 var all = Items(category);
                 for (int rarity = 0; rarity < 5; rarity++)
@@ -396,21 +420,21 @@ namespace DoodleIdle
         {
             UiKit.Text(body, "결제 서비스 미연결 · 구매할 수 없습니다", 19, TextAnchor.MiddleCenter, 30);
             string[] productArt = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
+            var grid = UiKit.Grid(body, "Currency product cards", 2, 360);
+            UiKit.PortraitGrid(grid);
             int productIndex = 0;
             foreach (var product in commerceTuning.products)
             {
                 if (product == null || product.amount <= 0 || product.priceWon <= 0) continue;
-                var row = CommerceFramedRow(body, "CurrencyProduct" + product.amount, 145);
-                row.GetComponent<Image>().color = new Color(1, .977f, .895f);
-                var art = UiKit.Column(row, "ProductArt", 0, 0);
-                UiKit.Flexible(art);
-                var artLayout = art.GetComponent<VerticalLayoutGroup>();
-                artLayout.childAlignment = TextAnchor.MiddleCenter;
-                UiKit.Icon(art, productArt[Mathf.Min(productIndex++, productArt.Length - 1)], 94);
-                UiKit.Text(art, UiNumber.Format(product.amount), 32, TextAnchor.MiddleCenter, 34);
-                var purchase = UiKit.Column(row, "ProductPrice", 7, 0);
-                UiKit.Flexible(purchase);
-                CommerceButtonText(UiKit.Button(purchase, "₩" + product.priceWon.ToString("N0"), () => Toast("결제 서비스가 연결되지 않아 구매할 수 없어요."), UiKit.Blue, 72), 35);
+                var card = UiKit.Box(grid, "CurrencyProduct" + product.amount, new Color(1, .977f, .895f));
+                var amount = UiKit.Text(card, UiNumber.Format(product.amount), 36, TextAnchor.MiddleCenter, 48).rectTransform;
+                amount.anchorMin = new Vector2(0, .81f); amount.anchorMax = new Vector2(1, .97f); amount.offsetMin = new Vector2(8, 0); amount.offsetMax = new Vector2(-8, 0);
+                var art = UiKit.Icon(card, productArt[Mathf.Min(productIndex++, productArt.Length - 1)], 150).rectTransform;
+                art.anchorMin = new Vector2(.1f, .24f); art.anchorMax = new Vector2(.9f, .79f); art.offsetMin = art.offsetMax = Vector2.zero;
+                var purchase = UiKit.Button(card, "₩" + product.priceWon.ToString("N0"), () => Toast("결제 서비스가 연결되지 않아 구매할 수 없어요."), UiKit.Blue, 64);
+                CommerceButtonText(purchase, 30);
+                var price = (RectTransform)purchase.transform;
+                price.anchorMin = new Vector2(.06f, .04f); price.anchorMax = new Vector2(.94f, .21f); price.offsetMin = price.offsetMax = Vector2.zero;
             }
         }
     }

@@ -356,13 +356,13 @@ namespace DoodleIdle.Tests
         void DefeatActualServiceEnemies(int count)
         {
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", ServicePrivate).GetValue(game);
-            if (actors.Count < count)
-            {
-                typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
-                game.TogglePause(); game.TogglePause(); // Include newly spawned bodies in the existing pause mechanism.
-            }
             var damage = typeof(DoodleIdleGame).GetMethod("Damage", ServicePrivate);
-            for (int i = 0; i < count; i++) damage.Invoke(game, new[] { actors[0], (object)1000000f, Vector2.zero });
+            for (int i = 0; i < count; i++)
+            {
+                if (actors.Count == 0) typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
+                damage.Invoke(game, new[] { actors[0], (object)1000000f, Vector2.zero });
+            }
+
         }
 
         [UnityTest]

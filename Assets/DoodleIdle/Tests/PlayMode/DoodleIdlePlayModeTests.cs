@@ -167,18 +167,18 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator StartsWith200SolidSeparatedEnemiesAndFiveBananas()
+        public IEnumerator StartsWith100SolidSeparatedEnemiesAndFiveBananas()
         {
             // Inspect spawn placement before movement/solver contact tolerance can change it.
             game.ResetGame();
             game.TogglePause();
             yield return null; // Flush the previous population and banana visuals queued for Destroy.
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.EnemyCount, Is.EqualTo(100));
             Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
-            Assert.That(bodies.Length, Is.EqualTo(200));
+            Assert.That(bodies.Length, Is.EqualTo(100));
             Assert.That(bodies.Any(b => b.position.y > 12) && bodies.Any(b => b.position.y < -12), Is.True);
-            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(200));
+            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(100));
             foreach (var body in bodies)
             {
                 Assert.That(body.bodyType, Is.EqualTo(RigidbodyType2D.Dynamic));
@@ -311,7 +311,7 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++) Assert.That(bodies[i].position, Is.EqualTo(positions[i]));
             game.ResetGame();
             Assert.That(game.paused, Is.False);
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.EnemyCount, Is.EqualTo(100));
             Assert.That(game.Elapsed, Is.Zero);
             Assert.That(game.Kills, Is.Zero);
             yield return null;
@@ -332,7 +332,7 @@ namespace DoodleIdle.Tests
             while (game.Elapsed < 120)
             {
                 yield return new WaitForFixedUpdate();
-                Assert.That(game.EnemyCount, Is.InRange(20, 200), "Population should refill immediately below 20.");
+                Assert.That(game.EnemyCount, Is.InRange(0, 100), "Waves deplete completely and the breakthrough boss spawns alone.");
                 var bodies = EnemyBodies();
                 for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
                     worstPenetration = Mathf.Max(worstPenetration, 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position));
@@ -341,7 +341,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.Refills, Is.GreaterThan(0));
             Assert.That(game.DashCasts, Is.GreaterThanOrEqualTo(23));
             Assert.That(game.StonesLaunched, Is.GreaterThan(30));
-            Assert.That(game.StonesLaunched % 3, Is.Zero, "Each stone cast should select three distinct targets.");
+            Assert.That(game.StonesLaunched, Is.GreaterThan(0), "Stone casts may have fewer than three living targets at the end of a wave.");
             Assert.That(game.BananaHits, Is.GreaterThan(0));
             Assert.That(game.SlashHits, Is.GreaterThan(0));
             Assert.That(game.DashHits, Is.GreaterThan(0));
