@@ -8,6 +8,9 @@ namespace DoodleIdle
     {
         static readonly string[] grades = { "Normal", "Advanced", "Rare", "Epic", "Legendary", "Mythic" };
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
+        [Serializable] sealed class AnimationLayout { public FrameRegion[] frames; }
+        [Serializable] sealed class FrameRegion { public float x, y, width, height; }
+        static readonly Dictionary<string, AnimationLayout> layouts = new Dictionary<string, AnimationLayout>();
         public static Sprite Get(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
@@ -28,15 +31,17 @@ namespace DoodleIdle
         {
             string key = "CompanionMon_" + index + "_" + frame;
             if (cache.TryGetValue(key, out var value)) return value;
-            var texture = Resources.Load<Texture2D>("DoodleIdle/CompanionMons" + grades[index / 4]);
+            string resource = "DoodleIdle/CompanionMons" + grades[index / 4];
+            var texture = Resources.Load<Texture2D>(resource);
             if (!texture) throw new InvalidOperationException("Missing companion animation: " + index);
-            float w = texture.width / 4f, h = texture.height / 2f; int col = index % 4;
-            var top = Trim(texture, new Rect(col * w, h, w, h)); top.position -= new Vector2(col * w, h);
-            var bottom = Trim(texture, new Rect(col * w, 0, w, h)); bottom.position -= new Vector2(col * w, 0);
-            var union = Rect.MinMaxRect(Mathf.Min(top.xMin, bottom.xMin), Mathf.Min(top.yMin, bottom.yMin),
-                Mathf.Max(top.xMax, bottom.xMax), Mathf.Max(top.yMax, bottom.yMax));
-            var region = union; region.position += new Vector2(col * w, frame == 0 ? h : 0);
-            value = Sprite.Create(texture, region, Vector2.one * .5f, Mathf.Max(union.width, union.height));
+            if (!layouts.TryGetValue(resource, out var layout)) {
+                layout = JsonUtility.FromJson<AnimationLayout>(Resources.Load<TextAsset>(resource + "Layout").text);
+                layouts[resource] = layout;
+            }
+            // Whole-character bounds exclude neighboring limbs crossing nominal grid boundaries.
+            var region = layout.frames[frame * 4 + index % 4];
+            value = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
+                Vector2.one * .5f, Mathf.Max(region.width, region.height));
             value.name = key; cache[key] = value; return value;
         }
         public static int CompanionIndex(string key) => int.Parse(key.Substring(13));

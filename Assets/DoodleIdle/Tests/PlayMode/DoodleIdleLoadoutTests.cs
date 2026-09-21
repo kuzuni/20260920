@@ -76,6 +76,7 @@ namespace DoodleIdle.Tests
                 UiClick("장착", UiNode("Detail actions"));
                 Assert.That(game.Ui.HasOverlay, Is.False, "Replacement must return to the original loadout.");
                 Assert.That(UiNode("Equipped " + category).GetComponentsInChildren<Transform>().Count(x => x.name == "Replacement arrow"), Is.EqualTo(capacity));
+                yield return new WaitForSecondsRealtime(2.5f); // Let the preceding equip toast finish.
                 Object.Destroy(CaptureFrame("loadout-replace-" + category + ".png", 720, 1520));
                 UiClick("Slot: " + items[1].name, UiNode("Equipped " + category));
                 Assert.That(items[1].equipped, Is.False); Assert.That(candidate.equipped, Is.True);
@@ -95,7 +96,7 @@ namespace DoodleIdle.Tests
                 foreach (var item in items) Assert.That(UiKit.Art(item.icon), Is.Not.Null, item.id);
             }
             Assert.That(game.Ui.Items("Companion").Select(x => x.projectile).Distinct().Count(), Is.EqualTo(24));
-            foreach (var renderer in game.GetComponentsInChildren<SpriteRenderer>()) renderer.enabled = false;
+            foreach (var renderer in game.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
             var display = new GameObject("Companion motion atlas");
             display.transform.SetParent(game.transform);
             var renderers = new SpriteRenderer[24];
@@ -122,7 +123,7 @@ namespace DoodleIdle.Tests
         public IEnumerator AllEnemyPairsExportAtEqualScaleFacingRight()
         {
             game.TogglePause();
-            foreach (var renderer in game.GetComponentsInChildren<SpriteRenderer>()) renderer.enabled = false;
+            foreach (var renderer in game.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
             var display = new GameObject("Enemy motion atlas"); display.transform.SetParent(game.transform);
             var renderers = new SpriteRenderer[30]; var pairs = new Sprite[30][];
             var loader = typeof(DoodleIdleGame).GetMethod("LoadThemeFrames", GrowthPrivate);

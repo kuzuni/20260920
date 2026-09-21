@@ -233,3 +233,7 @@ Precise edit to ONE foot only in transparent 3x2 sprite atlas. TOP CENTER mummy 
 - `Assets/DoodleIdle/Resources/DoodleIdle/CompanionMonsEpic.png` <- `exec-e1c5e4f7-d06c-4182-82b4-c69461a8c22d.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/CompanionMonsLegendary.png` <- `exec-f7e043ad-6227-4853-a829-d976beebfc3b.png`
 - `Assets/DoodleIdle/Resources/DoodleIdle/CompanionMonsMythic.png` <- `exec-a40e427a-3e5f-450b-b526-122cbbafb042.png`
+
+## Atlas boundary verification
+
+The first remote render exposed small pieces of neighboring wings/cannons at nominal grid edges. Layout JSON now uses whole connected-character alpha bounds (including portions extending beyond a cell), paired at common dimensions/scale. PNG pixels are unchanged. Dedicated overview captures disable all world renderers before creating the test sprites so combat text/particles cannot overlap the contact sheets.
