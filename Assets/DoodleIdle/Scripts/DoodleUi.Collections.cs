@@ -153,8 +153,9 @@ namespace DoodleIdle
             for (int i = 0; i < target; i++)
             {
                 double raw = stat.baseCost * Math.Pow(collectionTuning.costGrowth, StatLevel(id) + i);
-                if (double.IsInfinity(raw) || raw >= long.MaxValue - total) break;
-                long price = Math.Max(1, (long)Math.Ceiling(raw));
+                // Keep every configured level purchasable even after exponential costs exceed the wallet's range.
+                long price = double.IsInfinity(raw) || raw >= long.MaxValue ? long.MaxValue : Math.Max(1, (long)Math.Ceiling(raw));
+                if (price > long.MaxValue - total) break;
                 if (requested < 0 && price > Gold - total) break;
                 total += price;
                 upgrades++;

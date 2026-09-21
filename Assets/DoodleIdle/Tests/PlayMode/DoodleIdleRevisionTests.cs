@@ -44,6 +44,7 @@ namespace DoodleIdle.Tests
             UiOpen("Equipment");
             Assert.That(UiNode("Collection actions").GetChild(0).name, Is.EqualTo("일괄 합성"));
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(31));
+            Object.Destroy(CaptureFrame("revision-equipment-synthesis.png", 720, 1520));
             yield return null;
         }
 
@@ -83,8 +84,13 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Gold, Is.EqualTo(gold));
             UiOpen("Stats");
             Assert.That(UiNode("Stat crit4Chance").GetComponentsInChildren<Button>().Single().interactable, Is.False);
-            GrowthLevels["crit2Chance"] = 1000;
+            GrowthLevels["crit2Chance"] = 999;
+            ui.Gold = long.MaxValue;
+            Assert.That(ui.StatUpgradeQuote("crit2Chance", 100, out int upgrades), Is.EqualTo(long.MaxValue));
+            Assert.That(upgrades, Is.EqualTo(1));
+            Assert.That(ui.UpgradeStat("crit2Chance", 100), Is.True);
             Assert.That(ui.Critical4Unlocked, Is.True);
+            ui.Gold = gold;
             Assert.That(ui.UpgradeStat("crit4Chance", 1), Is.True);
             var skill = ui.Items("Skill")[0]; skill.discovered = true; skill.level = 99; skill.count = 100;
             Assert.That(ui.RefundSkill(skill), Is.Zero);
@@ -107,6 +113,7 @@ namespace DoodleIdle.Tests
             Assert.That(skill.count, Is.EqualTo(5), "A full wallet cannot destroy unpaid copies.");
             UiOpen("Skills");
             Assert.That(UiNode("Equipped Skill").GetComponent<GridLayoutGroup>().constraintCount, Is.EqualTo(8));
+            Object.Destroy(CaptureFrame("revision-skills-eight-slots.png", 720, 1520));
             yield return null;
         }
 
