@@ -66,14 +66,55 @@ namespace DoodleIdle.Tests
                 var editorType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleIdle.Editor.DoodleGameInfoWindow")).First(t => t != null);
                 Assert.That(editorType.GetMethod("ResetGameInformation"), Is.Not.Null);
 #endif
-                DoodleGameData.ResetSavedProgress();
-                foreach (string key in DoodleGameData.SaveKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False, key);
-                Assert.That(PlayerPrefs.GetString(sentinel), Is.EqualTo("keep"));
-                var fresh = GrowthProbe(probes);
-                Assert.That(fresh.StatLevel("attack"), Is.Zero);
-                Assert.That(fresh.Items("Skill").First().level, Is.LessThan(100));
-                Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds", 1250), Is.EqualTo(1250));
-                Assert.That(PlayerPrefs.GetString("DoodleUi.Gold", "125480"), Is.EqualTo("125480"));
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    var previousScene = testScene;
+#if UNITY_EDITOR
+                    var window = (UnityEditor.EditorWindow)ScriptableObject.CreateInstance(editorType);
+                    window.Show();
+                    try { editorType.GetMethod("ResetGameInformation").Invoke(window,null); }
+                    finally { window.Close(); }
+#else
+                    DoodleGameData.ResetAndRestart(game);
+#endif
+                    float deadline = Time.realtimeSinceStartup + 15;
+                    while (previousScene.isLoaded && Time.realtimeSinceStartup < deadline) yield return null;
+                    Assert.That(previousScene.isLoaded, Is.False, "The reset button must replace the running scene.");
+                    testScene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/DoodleIdle/DoodleIdle.unity");
+                    Assert.That(testScene.IsValid() && testScene.isLoaded, Is.True);
+                    game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
+                    while (!game.Ready && Time.realtimeSinceStartup < deadline) yield return null;
+                    Assert.That(game.Ready, Is.True);
+                    game.TogglePause();
+                    Assert.That(game.Ui.Gold, Is.Zero); Assert.That(game.Ui.Diamonds, Is.Zero);
+                    Assert.That(game.Ui.MainStage, Is.Zero);
+                    Assert.That(game.Ui.CombatDamageMultiplier, Is.EqualTo(1).Within(.00001f));
+                    foreach (var stat in GrowthTuning.stats) Assert.That(game.Ui.StatLevel(stat.id), Is.Zero, stat.id);
+                    foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" }) {
+                        Assert.That(game.Ui.Items(category).All(x => !x.discovered && !x.equipped && x.count == 0 && x.level == 0), Is.True, category);
+                        Assert.That(game.Ui.SummonLevel(category), Is.EqualTo(category == "Relic" ? 0 : 1));
+                    }
+                    Assert.That(game.Ui.EquippedSkills, Is.Empty); Assert.That(game.Ui.EquippedCompanions, Is.Empty);
+                    Assert.That(PlayerPrefs.GetString(sentinel), Is.EqualTo("keep"));
+                    Assert.That(PlayerPrefs.GetInt("DoodleUi.SkipSummonAnimations",0), Is.Zero);
+                    if (attempt == 0) {
+                        // Earned progress still restores normally; a second real reset clears it too.
+                        game.Ui.Gold = 321; game.Ui.Diamonds = 123;
+                        var earned = game.Ui.Items("Skill").First(); game.Ui.AddItem(earned,2); earned.equipped = true;
+                        game.Ui.Save();
+                        var restored = GrowthProbe(probes);
+                        Assert.That(restored.Items("Skill").First().count, Is.EqualTo(2));
+                        Assert.That(restored.EquippedSkills.Count, Is.EqualTo(1));
+                    }
+                }
+                game.Ui.Save();
+                Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds",-1), Is.Zero);
+                Assert.That(PlayerPrefs.GetString("DoodleUi.Gold","missing"), Is.EqualTo("0"));
+                var emptyRestored = GrowthProbe(probes);
+                Assert.That(emptyRestored.Items("Skill").All(x => !x.discovered && !x.equipped && x.count == 0 && x.level == 0), Is.True);
+                UiOpen("Skills");
+                Object.Destroy(CaptureFrame("game-info-reset-empty-skills.png",720,1520));
+                UiOpen("Companions");
+                Object.Destroy(CaptureFrame("game-info-reset-empty-companions.png",720,1520));
             }
             finally {
                 foreach (var probe in probes) Object.Destroy(probe);

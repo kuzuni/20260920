@@ -18,11 +18,21 @@ namespace DoodleIdle
         }
         public static void ResetAndRestart(DoodleIdleGame game)
         {
-            string scene = game ? game.gameObject.scene.path : null;
+            var previousScene = game ? game.gameObject.scene : default;
             // Stop old UI coroutines/autosaves before clearing data and loading the starter state.
             if (game) game.gameObject.SetActive(false);
             ResetSavedProgress();
-            if (!string.IsNullOrEmpty(scene)) SceneManager.LoadScene(scene);
+            if (!previousScene.IsValid() || string.IsNullOrEmpty(previousScene.path)) return;
+            // Replace only the game's scene; keep editor tools or other loaded scenes alive.
+            void Loaded(Scene scene, LoadSceneMode mode)
+            {
+                if (scene.path != previousScene.path || scene.handle == previousScene.handle) return;
+                SceneManager.sceneLoaded -= Loaded;
+                SceneManager.SetActiveScene(scene);
+                SceneManager.UnloadSceneAsync(previousScene);
+            }
+            SceneManager.sceneLoaded += Loaded;
+            SceneManager.LoadSceneAsync(previousScene.path, LoadSceneMode.Additive);
         }
     }
 }

@@ -41,6 +41,10 @@ namespace DoodleIdle.Tests
             game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
             yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
+            // Keep the established combat fixture's numeric damage baseline. Fresh-profile
+            // reset tests create a new scene and exercise the production baseline directly.
+            typeof(DoodleUi).GetField("starterDamageBaseline", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(game.Ui, game.Ui.CombatDamageMultiplier);
             game.summonSkillsEnabled = false;
             // Individual mechanic tests isolate companion attacks; integration tests enable them explicitly.
             game.companionsEnabled = false;

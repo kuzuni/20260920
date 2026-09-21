@@ -57,11 +57,13 @@ namespace DoodleIdle
             if (collectionTuning == null || collectionTuning.items == null || collectionTuning.stats == null)
                 throw new InvalidOperationException("Invalid collection tuning data.");
             collectionItems.AddRange(collectionTuning.items);
+            // Catalog entries describe items; only a saved profile or an actual grant owns them.
+            foreach (var item in collectionItems) {
+                item.count = item.level = item.slot = 0;
+                item.discovered = item.equipped = false;
+            }
             foreach (var stat in collectionTuning.stats) statLevels[stat.id] = 0;
-            // The original arena is already balanced for the starter profile. Capture the
-            // pristine catalog BEFORE restoring saves, so a new profile produces exactly
-            // 1x original damage/speed and only progression or loadout changes scale it.
-            // This baseline follows tuning data rather than silently rebasing saved upgrades.
+            // Use the empty new-game profile as the baseline before restoring earned upgrades.
             starterDamageBaseline = CollectionDamageMultiplier(false);
             string saved = PlayerPrefs.GetString(CollectionsSaveKey, "");
             if (!string.IsNullOrEmpty(saved))

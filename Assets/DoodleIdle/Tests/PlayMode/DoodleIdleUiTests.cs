@@ -67,6 +67,10 @@ namespace DoodleIdle.Tests
             uiSavedDiamonds = PlayerPrefs.GetInt("DoodleUi.Diamonds");
             PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
             uiHadCameraMode=PlayerPrefs.HasKey("DoodleUi.CameraMode");uiSavedCameraMode=PlayerPrefs.GetInt("DoodleUi.CameraMode");PlayerPrefs.DeleteKey("DoodleUi.CameraMode");
+            // Mechanic/UI fixtures explicitly own a progressed profile; production starts empty.
+            PlayerPrefs.SetString("DoodleUi.Gold", "125480");
+            PlayerPrefs.SetInt("DoodleUi.Diamonds", 1250);
+            PlayerPrefs.SetString("DoodleUi.Collections.v1", System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath,"DoodleIdle/Tests/PlayMode/ProgressedProfile.json")));
         }
 
         void EndUiTestProfile()

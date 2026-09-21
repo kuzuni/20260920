@@ -18,22 +18,23 @@ namespace DoodleIdle.Editor
         [ShowInInspector, ReadOnly, LabelText("스테이지")]
         int Stage => Ui ? Ui.MainStage + 1 : 1;
         [ShowInInspector, ReadOnly, LabelText("골드")]
-        string Gold => Ui ? UiNumber.Format(Ui.Gold) : PlayerPrefs.GetString("DoodleUi.Gold", "125480");
+        string Gold => Ui ? UiNumber.Format(Ui.Gold) : PlayerPrefs.GetString("DoodleUi.Gold", "0");
         [ShowInInspector, ReadOnly, LabelText("다이아")]
-        int Diamonds => Ui ? Ui.Diamonds : PlayerPrefs.GetInt("DoodleUi.Diamonds", 1250);
+        int Diamonds => Ui ? Ui.Diamonds : PlayerPrefs.GetInt("DoodleUi.Diamonds", 0);
         [ShowInInspector, ReadOnly, LabelText("플레이어 체력")]
         string Health => Game && Game.Ready ? UiNumber.Format(Game.PlayerHealth) + " / " + UiNumber.Format(Game.PlayerMaxHealth) : "-";
         [ShowInInspector, ReadOnly, LabelText("발견한 아이템")]
         int Discovered => Ui ? new[] { "Armor", "Club", "Skill", "Companion", "Relic" }.Sum(c => Ui.Items(c).Count(x => x.discovered)) : 0;
 
         bool CanReset => !EditorApplication.isPlayingOrWillChangePlaymode || (EditorApplication.isPlaying && Game && Game.Ready);
-        [InfoBox("초기화 버튼을 누르면 재화, 스탯, 장비·스킬·동료·유물, 뽑기, 스테이지, 출석·미션과 게임 설정을 처음 시작한 상태로 되돌립니다. 실행 중이면 게임을 바로 다시 시작합니다.")]
+        [InfoBox("초기화하면 골드·다이아 0, 장비·스킬·동료·유물 미보유, 장착 슬롯 비움, 스탯 성장 0, 스테이지 1로 돌아갑니다. 뽑기·출석·미션·게임 설정도 초기화하며 실행 중이면 바로 다시 시작합니다.")]
         [Button("게임 정보 초기화", ButtonSizes.Large), GUIColor(1f, .65f, .6f), EnableIf(nameof(CanReset))]
         public void ResetGameInformation()
         {
             if (!CanReset) return;
             if (EditorApplication.isPlaying) DoodleGameData.ResetAndRestart(Game);
             else DoodleGameData.ResetSavedProgress();
+            ShowNotification(new GUIContent("초기화 완료: 재화 0 · 보유 아이템 없음"));
             Repaint();
         }
         void OnInspectorUpdate() => Repaint();

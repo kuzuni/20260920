@@ -11,8 +11,8 @@ namespace DoodleIdle
     {
         DoodleIdleGame game;
         Font font;
-        public long Gold = 125480;
-        public int Diamonds = 1250;
+        public long Gold;
+        public int Diamonds;
         public string PlayerName = "먼지고양이";
         public string ActivePage { get; private set; }
         public bool HasOverlay => overlayStack.Count>0;
@@ -49,7 +49,7 @@ namespace DoodleIdle
         {
             if(initialized)return; initialized=true; game=owner; root=(RectTransform)canvasRoot; Canvas=root.GetComponent<Canvas>();
             font=Resources.Load<Font>("DoodleIdle/UI/DisplayFont"); UiKit.Font=font;
-            long.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","125480"),out Gold); Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",1250);
+            long.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","0"),out Gold); Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",0);
             InitCollections(); InitSkins(); InitCommerce(); InitServices();
             CameraMode=Mathf.Clamp(PlayerPrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
             safe=UiKit.Rect(root,"Safe area"); UiKit.Stretch(safe);
