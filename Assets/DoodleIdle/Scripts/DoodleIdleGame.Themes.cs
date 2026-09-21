@@ -8,6 +8,14 @@ namespace DoodleIdle
     {
         public static readonly string[] ThemeNames = { "초원", "사막", "숲", "늪", "화산", "해변", "수정 동굴", "황혼", "고대 유적", "빙하" };
         static readonly string[] ThemeResources = { "Meadow", "Desert", "Forest", "Swamp", "Volcano", "Coast", "Crystal", "Twilight", "Ruins", "Glacier" };
+        // Muted theme colors keep the floor quieter than the outlined characters and attacks.
+        static readonly Color[] ThemeGroundColors = {
+            new Color(.78f,.81f,.71f), new Color(.89f,.83f,.71f),
+            new Color(.70f,.77f,.68f), new Color(.75f,.77f,.68f),
+            new Color(.77f,.72f,.71f), new Color(.90f,.86f,.76f),
+            new Color(.78f,.77f,.85f), new Color(.70f,.71f,.82f),
+            new Color(.82f,.80f,.75f), new Color(.79f,.87f,.89f)
+        };
         static readonly string[][] ThemeEnemies = {
             new[] { "새싹 슬라임", "들쥐", "분홍 버섯" }, new[] { "선인장", "사막 여우", "모래 풍뎅이" },
             new[] { "도토리", "숲 부엉이", "다람쥐" }, new[] { "이끼", "독버섯", "진흙 슬라임" },
@@ -78,9 +86,7 @@ namespace DoodleIdle
             var ground = ThemeGround(index);
             var r = ground.rect; var t = ground.texture;
             groundMaterial.SetVector("_UvRect", new Vector4(r.x/t.width,r.y/t.height,r.width/t.width,r.height/t.height));
-            // Fill any transparency in generated source art with its own base color.
-            var baseColor=t.GetPixel(Mathf.RoundToInt(r.center.x),Mathf.RoundToInt(r.center.y));baseColor.a=1;
-            groundMaterial.SetColor("_GroundColor",baseColor);
+            groundMaterial.SetColor("_GroundColor",ThemeGroundColors[index]);
         }
         void DisposeThemes()
         {

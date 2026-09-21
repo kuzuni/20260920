@@ -7,6 +7,8 @@ Shader "DoodleIdle/Terrain"
         _UvRect ("Theme bounds", Vector) = (0,0,1,1)
         _TileSize ("Pattern size in world units", Float) = 3
         _GroundColor ("Opaque ground", Color) = (0.7,0.7,0.5,1)
+        _PatternStrength ("Ground detail contrast", Range(0,1)) = 0.16
+        _PatternSaturation ("Ground detail saturation", Range(0,1)) = 0.4
     }
     SubShader
     {
@@ -26,6 +28,8 @@ Shader "DoodleIdle/Terrain"
                 float4 _UvRect;
                 half4 _GroundColor;
                 float _TileSize;
+                half _PatternStrength;
+                half _PatternSaturation;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; };
             struct Varyings { float4 positionCS : SV_POSITION; float2 world : TEXCOORD0; };
@@ -42,7 +46,10 @@ Shader "DoodleIdle/Terrain"
                 // A continuous triangle wave samples identical texels at every mirrored boundary.
                 float2 uv=1-abs(frac(input.world/(_TileSize*2))*2-1);
                 half4 texel=SAMPLE_TEXTURE2D(_AtlasTex,sampler_AtlasTex,_UvRect.xy+uv*_UvRect.zw);
-                return half4(lerp(_GroundColor.rgb,texel.rgb,texel.a),1);
+                half luminance=dot(texel.rgb,half3(0.2126,0.7152,0.0722));
+                half3 detail=lerp(luminance.xxx,texel.rgb,_PatternSaturation);
+                // Keep inked motifs behind actors while retaining each theme's surface texture.
+                return half4(lerp(_GroundColor.rgb,detail,texel.a*_PatternStrength),1);
             }
             ENDHLSL
         }
