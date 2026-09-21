@@ -22,6 +22,7 @@ namespace DoodleIdle.Tests
                 {
                     var item = items[index]; var next = items[index + 1];
                     Assert.That(ui.SynthesisTarget(item), Is.SameAs(next));
+                    Assert.That(next.equipValue, Is.GreaterThan(item.equipValue));
                     item.discovered = true; item.level = 99; item.count = 20;
                     Assert.That(ui.SynthesizeItem(item), Is.Zero);
                     Assert.That(ui.UpgradeItem(item), Is.True);
@@ -43,6 +44,32 @@ namespace DoodleIdle.Tests
             UiOpen("Equipment");
             Assert.That(UiNode("Collection actions").GetChild(0).name, Is.EqualTo("일괄 합성"));
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(31));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator RevisionLegacyOverCapLevelsReturnCopiesOnlyOnce()
+        {
+            game.TogglePause();
+            string saved = PlayerPrefs.GetString("DoodleUi.Collections.v1", "");
+            var host = new GameObject("Migration fixture");
+            try
+            {
+                PlayerPrefs.SetString("DoodleUi.Collections.v1", "{\"version\":2,\"items\":[{\"id\":\"armor_0\",\"count\":7,\"level\":102,\"discovered\":true}],\"stats\":[]}");
+                var ui = host.AddComponent<DoodleUi>(); ui.InitCollections();
+                var item = ui.Items("Armor").First(x => x.id == "armor_0");
+                Assert.That(item.level, Is.EqualTo(100));
+                Assert.That(item.count, Is.EqualTo(36), "The old level 100 and 101 upgrades cost 14 and 15 copies.");
+                ui.SaveCollections();
+                var reload = new GameObject("Migration reload fixture");
+                try
+                {
+                    var restored = reload.AddComponent<DoodleUi>(); restored.InitCollections();
+                    Assert.That(restored.Items("Armor").First(x => x.id == "armor_0").count, Is.EqualTo(36));
+                }
+                finally { Object.DestroyImmediate(reload); }
+            }
+            finally { Object.DestroyImmediate(host); PlayerPrefs.SetString("DoodleUi.Collections.v1", saved); }
             yield return null;
         }
 

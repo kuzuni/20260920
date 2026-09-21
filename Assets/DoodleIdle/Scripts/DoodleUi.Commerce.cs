@@ -37,7 +37,7 @@ namespace DoodleIdle
 
         readonly string[] commerceCategories = { "Armor", "Club", "Skill", "Companion", "Relic" };
         readonly string[] commerceLabels = { "갑옷", "몽둥이", "스킬", "동료", "유물" };
-        readonly string[] commerceGrades = { "일반", "고급", "희귀", "영웅", "전설" };
+        readonly string[] commerceGrades = GradeNames;
         readonly Dictionary<string, SummonState> summonStates = new Dictionary<string, SummonState>();
         readonly System.Random commerceRandom = new System.Random();
         CommerceTuning commerceTuning = new CommerceTuning();
@@ -372,9 +372,10 @@ namespace DoodleIdle
                 if (category == "Armor" || category == "Club") UiKit.Text(body, "신화·갓 장비는 이전 장비 5개 합성으로 획득", 20, TextAnchor.MiddleCenter, 32);
                 var itemTitle = UiKit.Text(body, "아이템별 확률", 29, TextAnchor.MiddleLeft, 44);
                 var all = Items(category);
-                for (int rarity = 0; rarity < 5; rarity++)
+                for (int rarity = 0; rarity < GradeNames.Length; rarity++)
                 {
                     var group = all.FindAll(item => item.rarity == rarity);
+                    if (group.Count == 0) continue;
                     int grade = rarity;
                     var groupBody = UiKit.Column(body, "Probability grade group " + grade, 0, 0);
                     var header = UiKit.Box(groupBody, "Probability grade header " + grade, UiKit.Rarity(grade), 44);
