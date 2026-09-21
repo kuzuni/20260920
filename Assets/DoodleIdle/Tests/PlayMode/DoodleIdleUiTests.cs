@@ -630,7 +630,7 @@ namespace DoodleIdle.Tests
         {
             // Progress and randomly summoned items change between resolution passes.
             // Keep frames, icons and labels; omit data-dependent fill lengths and ownership decorations.
-            if (node.name == "Fill" || node.name == "Scroll thumb" || node.name == "Equipped check" || node.name == "Locked padlock") return;
+            if (node.name == "Fill" || node.name == "Scroll thumb" || node.name == "Equipped check" || node.name == "Equipped label" || node.name == "Locked padlock") return;
             geometry[path] = UiLocalBounds(origin, node);
             // These centered text/icon groups fit their current Lv/XP/price strings. The
             // values and font advance rounding can change across captures; their row bounds
