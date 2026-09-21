@@ -256,6 +256,7 @@ namespace DoodleIdle.Tests
             Assert.That(skill.count, Is.EqualTo(5), "A full wallet cannot destroy unpaid copies.");
             UiOpen("Skills");
             Assert.That(UiNode("Equipped Skill").GetComponent<GridLayoutGroup>().constraintCount, Is.EqualTo(8));
+            Assert.That(UiNode("Collection inventory").GetComponent<GridLayoutGroup>().constraintCount, Is.EqualTo(5));
             Object.Destroy(CaptureFrame("revision-skills-eight-slots.png", 720, 1520));
             yield return null;
         }

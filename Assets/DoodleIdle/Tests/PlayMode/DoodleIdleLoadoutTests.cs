@@ -117,6 +117,54 @@ namespace DoodleIdle.Tests
             }
             foreach (var renderer in renderers) Object.Destroy(renderer.sharedMaterial);
             Object.Destroy(display); yield return null;
+            ExportCompanionProjectileSheets();
+        }
+
+        void ExportCompanionProjectileSheets()
+        {
+            var items = game.Ui.Items("Companion");
+            for (int page = 0; page < 3; page++) {
+                var poster = UiKit.Rect(UiRoot, "Companion projectile reference"); UiKit.Stretch(poster);
+                poster.gameObject.AddComponent<Image>().color = new Color(.96f, .96f, .92f);
+                void PlaceRect(RectTransform rect, Vector2 low, Vector2 high) {
+                    rect.anchorMin = low; rect.anchorMax = high; rect.offsetMin = rect.offsetMax = Vector2.zero;
+                }
+                var heading = UiKit.Text(poster, "동료 탄환 · 기존 폭발 연출(제거 전)  " + (page + 1) + "/3", 44, TextAnchor.MiddleCenter);
+                PlaceRect(heading.rectTransform, new Vector2(.02f, .91f), new Vector2(.98f, .99f));
+                for (int n = 0; n < 8; n++) {
+                    var item = items[page * 8 + n];
+                    var cell = UiKit.Rect(poster, item.name);
+                    float left = .015f + n % 4 * .247f, bottom = .03f + (1 - n / 4) * .43f;
+                    PlaceRect(cell, new Vector2(left, bottom), new Vector2(left + .235f, bottom + .41f));
+                    var title = UiKit.Text(cell, item.name + " · " + UiKit.GradeName(item.rarity), 38, TextAnchor.MiddleCenter);
+                    PlaceRect(title.rectTransform, new Vector2(0, .84f), Vector2.one);
+                    var projectile = UiKit.Icon(cell, item.projectile, 145).rectTransform;
+                    projectile.anchorMin = projectile.anchorMax = new Vector2(.26f, .53f); projectile.anchoredPosition = Vector2.zero;
+                    var label = UiKit.Text(cell, "탄환", 32, TextAnchor.MiddleCenter);
+                    PlaceRect(label.rectTransform, new Vector2(0, .24f), new Vector2(.49f, .35f));
+                    var oldLabel = UiKit.Text(cell, item.explosionRadius > 0 ? "기존 퍼짐(삭제)" : "효과 없음", 30, TextAnchor.MiddleCenter);
+                    PlaceRect(oldLabel.rectTransform, new Vector2(.5f, .24f), new Vector2(1, .35f));
+                    if (item.explosionRadius > 0) {
+                        var oldSprite = UiKit.Art(item.projectile);
+                        if (item.icon == "CompanionMon_12")
+                            oldSprite = (Sprite)typeof(DoodleCollectionArt).GetMethod("Cell", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                                .Invoke(null, new object[] { "CompanionAttacksB", 4, 4, 2 });
+                        for (int k = 0; k < 8; k++) {
+                            var fragment = UiKit.Icon(cell, item.projectile, 52); fragment.sprite = oldSprite;
+                            fragment.color = new Color(1, 1, 1, .7f);
+                            fragment.rectTransform.anchorMin = fragment.rectTransform.anchorMax = new Vector2(.75f, .53f);
+                            float angle = k * Mathf.PI / 4;
+                            fragment.rectTransform.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 72;
+                            fragment.transform.localRotation = Quaternion.Euler(0, 0, k * 45);
+                        }
+                    }
+                    string motion = item.trajectory == "Arc" ? "포물선" : item.trajectory == "Lightning" ? "번개 타격" : "직선";
+                    var pattern = UiKit.Text(cell, motion + " · " + item.volleyCount + "발" + (item.volleyCount > 1 ? item.volleyGap > 0 ? " 순차" : " 동시" : ""), 30, TextAnchor.MiddleCenter);
+                    PlaceRect(pattern.rectTransform, new Vector2(0, .02f), new Vector2(1, .17f));
+                }
+                Object.Destroy(CaptureFrame("companion-projectiles-and-former-bursts-" + (page + 1) + ".png", 1440, 1000));
+                poster.gameObject.SetActive(false); Object.Destroy(poster.gameObject);
+            }
         }
 
         [UnityTest]

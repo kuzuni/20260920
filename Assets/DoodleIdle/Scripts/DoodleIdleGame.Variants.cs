@@ -66,7 +66,11 @@ namespace DoodleIdle
                 if(volley.ability=="Durian" || volley.ability=="PurpleFireArrows") {
                     Launch(volley.ability=="Durian"?ProjectileKind.Ball:ProjectileKind.Arrow,target,player.Position,volley.index);
                     var shot=extraShots[extraShots.Count-1];shot.size=2;shot.purple=volley.ability=="PurpleFireArrows";
-                    if(shot.purple) { shot.curveSide=volley.index%2==0?1:-1;StartHomingCurve(shot,player.Position); }
+                    if(shot.purple) {
+                        shot.curveSide=volley.index%2==0?1:-1;
+                        shot.waveDirection=volley.direction;
+                        shot.curveNormal=new Vector2(-volley.direction.y,volley.direction.x);
+                    }
                     SetSpriteArt(shot.art,DoodleVariantArt.Get(shot.purple?"PurpleFireArrow":"Durian"));shot.art.transform.localScale*=2;
                     shot.art.name=volley.ability+" projectile";VariantProjectilesLaunched++;
                 } else if(volley.ability=="BrickVolley" || volley.ability=="Dumbbell") {

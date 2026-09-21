@@ -77,28 +77,39 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator PurpleFireArrowsWeaveWhileHomingAndKeepTheirFlameTrail()
+        public IEnumerator PurpleFireArrowsPierceEveryTouchedEnemyWithoutHomingAndKeepWeakWaveTrail()
         {
-            var bodies=IsolateSummonTest();
-            foreach(var body in bodies)Place(body,new Vector2(20,20));
-            Place(bodies[0],new Vector2(10,0));
+            var bodies=DurableSkillTargets();
+            Place(bodies[0],new Vector2(3,0));
+            Place(bodies[1],new Vector2(6,0));
+            Place(bodies[2],new Vector2(9,0));
+            Place(bodies[3],new Vector2(6,3));
+            var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
+            float Hp(int index) => (float)actors[index].GetType().GetField("hp").GetValue(actors[index]);
+            float untouched=Hp(3);
             game.CastVariant("PurpleFireArrows");
             var first=NamedArt("PurpleFireArrows projectile").Single();
-            float previousY=first.transform.position.y,lastSign=0;int reversals=0;
+            float previousY=0,lastSign=0;int reversals=0;
             for(int i=0;i<25;i++) {
                 yield return new WaitForFixedUpdate();
-                float delta=first.transform.position.y-previousY;previousY=first.transform.position.y;
-                if(Mathf.Abs(delta)<.015f)continue;
+                float y=first.transform.position.y,delta=y-previousY;previousY=y;
+                Assert.That(Mathf.Abs(y),Is.LessThanOrEqualTo(.201f));
+                if(Mathf.Abs(delta)<.005f)continue;
                 float sign=Mathf.Sign(delta);if(lastSign!=0 && sign!=lastSign)reversals++;lastSign=sign;
             }
-            Assert.That(reversals,Is.GreaterThanOrEqualTo(2),"The first arrow must visibly weave rather than follow one simple arc.");
+            Assert.That(reversals,Is.GreaterThanOrEqualTo(2));
             Assert.That(first.transform.localScale.x,Is.EqualTo(2.1f).Within(.001f));
             Assert.That(Particles("Purple Arrow Fire Trail Particle System").particleCount,Is.GreaterThan(0));
             Camera.main.transform.position=new Vector3(4,0,-10);Camera.main.orthographicSize=5;
             Object.Destroy(CaptureFrame("revised-weaving-purple-fire.png",1440,900,false));
-            Place(bodies[0],new Vector2(10,2));
-            yield return PhysicsTicks(50);
-            Assert.That(game.ArrowsLaunched,Is.EqualTo(8));Assert.That(game.ArrowHits,Is.GreaterThan(0));
+            yield return PhysicsTicks(65);
+            Assert.That(first.transform.position.x,Is.GreaterThan(18),"The arrow continues past targets without steering back.");
+            Assert.That(game.ArrowsLaunched,Is.EqualTo(8));
+            Assert.That(game.ArrowHits,Is.EqualTo(24),"Each of eight arrows hits each of three enemies once.");
+            for(int i=0;i<3;i++)Assert.That(Hp(i),Is.LessThan(100000));
+            Assert.That(Hp(3),Is.EqualTo(untouched),"An off-path enemy is not a homing target.");
+            yield return PhysicsTicks(80);yield return null;
+            Assert.That(NamedArt("PurpleFireArrows projectile"),Is.Empty);
         }
 
         [UnityTest]

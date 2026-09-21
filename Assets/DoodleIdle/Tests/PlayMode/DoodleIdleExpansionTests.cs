@@ -89,6 +89,13 @@ namespace DoodleIdle.Tests
             Assert.That(game.CompanionHits,Is.GreaterThan(0));
             Assert.That(game.CompanionExplosions,Is.GreaterThan(0));
             foreach(string id in selected) Assert.That(game.CompanionShotCount(id),Is.GreaterThan(0),id);
+            var shadows = game.GetComponentsInChildren<SpriteRenderer>().Where(s => s.name.StartsWith("Companion shadow: ")).ToArray();
+            Assert.That(shadows.Length, Is.EqualTo(5));
+            Assert.That(shadows.All(s => s.sortingOrder == -900 && s.color.a > 0 && s.color.a < .5f), Is.True);
+            var shadowPositions = shadows.Select(s => s.transform.position).ToArray();
+            yield return PhysicsTicks(20);
+            for (int i = 0; i < shadows.Length; i++) Assert.That(Vector3.Distance(shadows[i].transform.position, shadowPositions[i]), Is.LessThan(.001f), "Stationary companions keep a fixed ground shadow through both poses.");
+            Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Any(s => s.name.StartsWith("Companion explosion: ")), Is.False);
             Place(PlayerBody(),new Vector2(-3,-3));yield return PhysicsTicks(30);
             foreach(var renderer in game.GetComponentsInChildren<SpriteRenderer>().Where(s=>s.name.StartsWith("Companion: ")))
                 Assert.That(Vector2.Distance(renderer.transform.position,PlayerBody().position),Is.LessThan(3.1f));
@@ -96,6 +103,7 @@ namespace DoodleIdle.Tests
             foreach(var item in items)item.equipped=false;
             int attacks=game.CompanionAttacks;yield return PhysicsTicks(30);
             Assert.That(game.ActiveCompanions,Is.Zero);Assert.That(game.CompanionAttacks,Is.EqualTo(attacks));
+            Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Any(s => s.name.StartsWith("Companion shadow: ")), Is.False);
         }
 
         [UnityTest]

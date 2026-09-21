@@ -40,6 +40,8 @@ namespace DoodleIdle
             public float age, duration, trail;
             public int hits;
             public float size=1; public bool purple;
+            public Vector2 waveDirection;
+            public readonly HashSet<Actor> waveVictims = new HashSet<Actor>();
         }
         sealed class Worm
         {
@@ -228,14 +230,30 @@ namespace DoodleIdle
                 var shot = extraShots[i]; shot.age += dt; shot.trail -= dt;
                 Vector2 old = shot.art.transform.position;
                 bool finished = false;
-                if (!Alive(shot.target)) {
+                if (!shot.purple && !Alive(shot.target)) {
                     shot.target = ClosestExcept(old, shot.previous);
                     // Rebase a new arc at the current position when its previous target dies.
                     if((shot.kind==ProjectileKind.Fire || shot.purple) && Alive(shot.target))StartHomingCurve(shot,old);
                 }
-                if (Alive(shot.target)) shot.end = shot.target.Position;
+                if (!shot.purple && Alive(shot.target)) shot.end = shot.target.Position;
                 Vector2 next;
-                if (shot.kind == ProjectileKind.Missile)
+                if (shot.purple)
+                {
+                    next = shot.start + shot.waveDirection * (12 * shot.age)
+                        + shot.curveNormal * (Mathf.Sin(shot.age * Mathf.PI * 8) * .2f * shot.curveSide);
+                    for (int e = enemies.Count - 1; e >= 0; e--) {
+                        var enemy = enemies[e];
+                        if (shot.waveVictims.Contains(enemy) || SegmentDistance(enemy.Position, old, next) > .84f) continue;
+                        shot.waveVictims.Add(enemy); ArrowHits++;
+                        SkillDamage(enemy, 44, shot.waveDirection);
+                    }
+                    finished = shot.age >= 2.5f;
+                    if (shot.trail <= 0) {
+                        Echo("Purple arrow afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, .22f, .3f, 480);
+                        shot.trail = .05f;
+                    }
+                }
+                else if (shot.kind == ProjectileKind.Missile)
                 {
                     float t = Mathf.Clamp01(shot.age / shot.duration);
                     next = Vector2.Lerp(shot.start, shot.end, t) + Vector2.up * (4 * 3 * t * (1 - t));
@@ -249,12 +267,10 @@ namespace DoodleIdle
                 {
                     float speed = shot.kind == ProjectileKind.Ball ? 15 : shot.kind == ProjectileKind.Fire ? 10 : 18;
                     next = Alive(shot.target) ? Vector2.MoveTowards(old, shot.end, speed * dt) : old;
-                    if((shot.kind==ProjectileKind.Fire || shot.purple) && Alive(shot.target)) {
+                    if(shot.kind==ProjectileKind.Fire && Alive(shot.target)) {
                         shot.curveAge+=dt;
                         float t=Mathf.Clamp01(shot.curveAge/shot.curveDuration),u=1-t;
                         next=u*u*shot.start+2*u*t*shot.curveControl+t*t*shot.end;
-                        // Two lateral waves taper to zero at both ends, preserving the target impact.
-                        if(shot.purple)next+=shot.curveNormal*(Mathf.Sin(t*Mathf.PI*4)*Mathf.Sin(t*Mathf.PI)*.65f*shot.curveSide);
                     }
                     // Only enemy circles participate. Floor, walls, player and drone never bounce a ball.
                     Actor collision = null; float closest = float.MaxValue;

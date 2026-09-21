@@ -7,15 +7,19 @@ namespace DoodleIdle
     {
         sealed class Pursuer
         {
-            public SpriteRenderer art;
+            public SpriteRenderer art, shadow;
             public Actor target;
             public float age, attackClock, punch;
-            public bool golem;
+            public bool golem, slamPending;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
         }
         sealed class ClawStrike { public Actor target; public Vector2 position; public float clock = .24f; }
         sealed class MeteorFall { public SpriteRenderer art; public Vector2 start, end; public float age, trail, echo; }
         sealed class StoneVolley { public int remaining = 2, index = 1; public float clock = .18f; public bool requiresEquipment; }
+        sealed class MeteorVolley { public int remaining = 2; public float clock = 1; public bool requiresEquipment; }
+        readonly List<MeteorVolley> meteorVolleys = new List<MeteorVolley>();
+        sealed class LightningFlash { public SpriteRenderer art; public float age; }
+        readonly List<LightningFlash> lightningFlashes = new List<LightningFlash>();
         readonly List<Pursuer> pursuers = new List<Pursuer>();
         readonly List<ClawStrike> clawStrikes = new List<ClawStrike>();
         readonly List<MeteorFall> meteors = new List<MeteorFall>();
@@ -24,6 +28,8 @@ namespace DoodleIdle
         public int ClawHits { get; private set; }
         public int GolemHits { get; private set; }
         public int MeteorsLanded { get; private set; }
+        public int MeteorsLaunched { get; private set; }
+        public event System.Action<float> MeteorProjectileLaunched;
         public int MeteorHits { get; private set; }
         public int GolemsSummoned { get; private set; }
 
@@ -34,7 +40,12 @@ namespace DoodleIdle
             {
                 Vector2 position = player.Position + (golem ? Direction(i * Mathf.PI * 2 / count) * 1.5f : Vector2.zero);
                 var art = Visual(golem ? "Summoned golem" : "Homing tornado", DoodleExpansionArt.Get(golem ? "SkillGolem" : "SkillTornado"), position, Vector2.one * (golem ? 1.6f : 2.5f), 510);
-                pursuers.Add(new Pursuer { art = art, target = NearbyTarget(position, i), golem = golem });
+                SpriteRenderer shadow = null;
+                if (!golem) {
+                    shadow = Visual("Tornado ground shadow", disc, position + Vector2.down * 1.1f, new Vector2(1.05f, .3f), -900);
+                    shadow.color = new Color(.08f, .07f, .06f, .32f);
+                }
+                pursuers.Add(new Pursuer { art = art, shadow = shadow, target = NearbyTarget(position, i), golem = golem });
                 if (golem) GolemsSummoned++;
             }
         }
@@ -56,13 +67,35 @@ namespace DoodleIdle
         }
         void CastMeteor()
         {
-            Vector2 end = Closest(player.Position).Position;
+            LaunchMeteor();
+            meteorVolleys.Add(new MeteorVolley { requiresEquipment = castingEquippedSkill });
+        }
+        void LaunchMeteor()
+        {
+            var target = Closest(player.Position);
+            if (!Alive(target)) return;
+            Vector2 end = target.Position;
             var start = end + new Vector2(4, 10);
             var art = Visual("Falling red meteor", DoodleExpansionArt.Get("SkillMeteorRock"), start, Vector2.one * 2.3f, 650);
             meteors.Add(new MeteorFall { art = art, start = start, end = end });
+            MeteorsLaunched++;
+            MeteorProjectileLaunched?.Invoke(Time.fixedTime);
         }
         void TickExpansionSkills(float dt)
         {
+            for (int i = meteorVolleys.Count - 1; i >= 0; i--) {
+                var volley = meteorVolleys[i];
+                if (volley.requiresEquipment && !SkillEquipped("Meteor")) { meteorVolleys.RemoveAt(i); continue; }
+                volley.clock -= dt;
+                if (volley.clock > .0001f) continue;
+                LaunchMeteor(); volley.clock += 1;
+                if (--volley.remaining == 0) meteorVolleys.RemoveAt(i);
+            }
+            for (int i = lightningFlashes.Count - 1; i >= 0; i--) {
+                var flash = lightningFlashes[i]; flash.age += dt;
+                if (flash.age >= .3f) { Destroy(flash.art.gameObject); lightningFlashes.RemoveAt(i); continue; }
+                SetSpriteArt(flash.art, DoodleExpansionArt.Get("SkillLightning", flash.age < .15f ? 0 : 1));
+            }
             for (int i = stoneVolleys.Count - 1; i >= 0; i--)
             {
                 var volley = stoneVolleys[i];
@@ -81,7 +114,9 @@ namespace DoodleIdle
             for (int i = pursuers.Count - 1; i >= 0; i--)
             {
                 var unit = pursuers[i]; unit.age += dt; unit.attackClock -= dt; unit.punch -= dt;
-                if (unit.age >= (unit.golem ? 10 : 7)) { Destroy(unit.art.gameObject); pursuers.RemoveAt(i); continue; }
+                if (unit.age >= (unit.golem ? 10 : 7)) {
+                    Destroy(unit.art.gameObject); if (unit.shadow) Destroy(unit.shadow.gameObject); pursuers.RemoveAt(i); continue;
+                }
                 Vector2 position = unit.art.transform.position;
                 if (!Alive(unit.target)) unit.target = Closest(position);
                 Vector2 direction = Alive(unit.target) ? unit.target.Position - position : Vector2.zero;
@@ -92,10 +127,17 @@ namespace DoodleIdle
                         position = Vector2.MoveTowards(position, unit.target.Position, dt * 4.5f);
                     if (Alive(unit.target) && direction.magnitude <= 1.3f && unit.attackClock <= 0)
                     {
-                        unit.punch = .22f; unit.attackClock = .65f;
-                        SkillDamage(unit.target, 32, direction.normalized); GolemHits++;
+                        unit.punch = .38f; unit.attackClock = .65f; unit.slamPending = true;
                     }
-                    SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillGolem", unit.punch > 0 ? 2 : (int)(unit.age * 7) % 2));
+                    if (unit.slamPending && unit.punch <= .18f) {
+                        unit.slamPending = false;
+                        EmitBurst(golemSlamParticles, position + direction.normalized * .65f + Vector2.down * .35f,
+                            new Color(.72f, .64f, .5f, .85f), 22, .25f, .6f, 4.2f, .25f, .5f);
+                        if (Alive(unit.target) && direction.magnitude <= 1.6f) {
+                            SkillDamage(unit.target, 32, direction.normalized); GolemHits++;
+                        }
+                    }
+                    SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillGolem", unit.punch > .18f ? 2 : unit.punch > 0 ? 3 : (int)(unit.age * 7) % 2));
                     unit.art.sortingOrder = Order(position) + 1;
                 }
                 else
@@ -112,6 +154,7 @@ namespace DoodleIdle
                     }
                 }
                 unit.art.transform.position = position;
+                if (unit.shadow) unit.shadow.transform.position = position + Vector2.down * 1.1f;
             }
             for (int i = meteors.Count - 1; i >= 0; i--)
             {
@@ -154,10 +197,21 @@ namespace DoodleIdle
         }
         void ClearExpansionSkills()
         {
-            foreach (var unit in pursuers) if (unit.art) Destroy(unit.art.gameObject);
+            foreach (var unit in pursuers) {
+                if (unit.art) Destroy(unit.art.gameObject);
+                if (unit.shadow) Destroy(unit.shadow.gameObject);
+            }
+            foreach (var flash in lightningFlashes) if (flash.art) Destroy(flash.art.gameObject);
+            lightningFlashes.Clear();
             foreach (var meteor in meteors) if (meteor.art) Destroy(meteor.art.gameObject);
-            pursuers.Clear(); meteors.Clear(); clawStrikes.Clear(); stoneVolleys.Clear();
-            TornadoHits = ClawHits = GolemHits = GolemsSummoned = MeteorsLanded = MeteorHits = 0;
+            pursuers.Clear(); meteors.Clear(); meteorVolleys.Clear(); clawStrikes.Clear(); stoneVolleys.Clear();
+            TornadoHits = ClawHits = GolemHits = GolemsSummoned = MeteorsLanded = MeteorsLaunched = MeteorHits = 0;
+        }
+        void ShowLightningStrike(Vector2 position)
+        {
+            lightningFlashes.Add(new LightningFlash {
+                art = Visual("Direct lightning strike", DoodleExpansionArt.Get("SkillLightning"), position + Vector2.up * 1.5f, Vector2.one * 3, 580)
+            });
         }
     }
 }

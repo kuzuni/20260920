@@ -9,7 +9,7 @@ namespace DoodleIdle
         static readonly string[] grades = { "Normal", "Advanced", "Rare", "Epic", "Legendary", "Mythic" };
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
         [Serializable] sealed class AnimationLayout { public FrameRegion[] frames; }
-        [Serializable] sealed class FrameRegion { public float x, y, width, height; }
+        [Serializable] sealed class FrameRegion { public float x, y, width, height, bodyOffsetY; }
         static readonly Dictionary<string, AnimationLayout> layouts = new Dictionary<string, AnimationLayout>();
         public static Sprite Get(string key)
         {
@@ -24,7 +24,7 @@ namespace DoodleIdle
             else if (key.StartsWith("CompanionShot_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int shot))
             {
                 int special = shot == 2 ? 0 : shot == 3 ? 1 : shot == 10 ? 2 : shot == 18 ? 3 : shot == 19 ? 4 : -1;
-                value = special >= 0 ? Cell("CompanionSpecialAttacks", special, 3, 2) : Cell("CompanionAttacks" + (char)('A' + shot / 8), shot % 8, 4, 2);
+                value = shot == 12 ? Cell("CompanionHoney", 0, 1, 1) : special >= 0 ? Cell("CompanionSpecialAttacks", special, 3, 2) : Cell("CompanionAttacks" + (char)('A' + shot / 8), shot % 8, 4, 2);
             }
             if (value) { value.name = key; cache[key] = value; }
             return value;
@@ -33,7 +33,7 @@ namespace DoodleIdle
         {
             string key = "CompanionMon_" + index + "_" + frame;
             if (cache.TryGetValue(key, out var value)) return value;
-            string resource = "DoodleIdle/CompanionMons" + grades[index / 4];
+            string resource = index == 12 ? "DoodleIdle/CompanionHoneyBee" : "DoodleIdle/CompanionMons" + grades[index / 4];
             var texture = Resources.Load<Texture2D>(resource);
             if (!texture) throw new InvalidOperationException("Missing companion animation: " + index);
             if (!layouts.TryGetValue(resource, out var layout)) {
@@ -41,9 +41,11 @@ namespace DoodleIdle
                 layouts[resource] = layout;
             }
             // Whole-character bounds exclude neighboring limbs crossing nominal grid boundaries.
-            var region = layout.frames[frame * 4 + index % 4];
+            var region = layout.frames[index == 12 ? frame : frame * 4 + index % 4];
+            // Keep the face/body at the same height while limbs and wings change pose.
+            // Atlas rows have different body baselines even though their crop sizes match.
             value = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
-                Vector2.one * .5f, Mathf.Max(region.width, region.height));
+                new Vector2(.5f, .5f + region.bodyOffsetY / region.height), Mathf.Max(region.width, region.height));
             value.name = key; cache[key] = value; return value;
         }
         public static int CompanionIndex(string key) => int.Parse(key.Substring(13));

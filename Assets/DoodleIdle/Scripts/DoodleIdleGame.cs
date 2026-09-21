@@ -227,6 +227,7 @@ namespace DoodleIdle
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
             paused = false;
             player = CreateActor(true, Vector2.zero, 0);
+            ResetPlayerContactDamage();
             weapon = Visual("Floating baseball club", sprites[4], Vector2.zero, Vector2.one * .94f, 20).transform;
             weapon.SetParent(player.root.transform, false);
             for (int i = 0; i < 5; i++)
@@ -382,6 +383,7 @@ namespace DoodleIdle
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
                 enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
             }
+            TickPlayerContactDamage(dt);
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
             TickEquippedSkills(dt);
@@ -550,6 +552,7 @@ namespace DoodleIdle
             AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
             actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
+            if (actor.isPlayer) actor.art.color = PlayerInvulnerabilityTint(actor.art.color);
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);

@@ -20,10 +20,10 @@ namespace DoodleIdle
             if (cache.TryGetValue(key, out var sprite)) return sprite;
             int index=Array.IndexOf(Skills,key), companion=Array.IndexOf(Companions,key);
             if(index<0 && companion<0)return null;
-            bool bead=key=="IceSnakeSegment";
-            var texture=Resources.Load<Texture2D>("DoodleIdle/"+(bead?"IceSnakeBead":index>=0?"SkillVariants":"CompanionVariants"));
+            bool bead=key=="IceSnakeSegment", eggplant=key=="Eggplant";
+            var texture=Resources.Load<Texture2D>("DoodleIdle/"+(eggplant?"SkillEggplantSlim":bead?"IceSnakeBead":index>=0?"SkillVariants":"CompanionVariants"));
             Rect region;
-            if(bead)region=new Rect(0,0,texture.width,texture.height);
+            if(bead || eggplant)region=new Rect(0,0,texture.width,texture.height);
             else if(index>=0) { region=regions[index]; region.y=texture.height-region.y-region.height; }
             else { float w=texture.width/3f,h=texture.height/2f; region=new Rect(companion%3*w,(1-companion/3)*h,w,h); }
             var pixels=texture.GetPixels32(); int x0=texture.width,y0=texture.height,x1=-1,y1=-1;

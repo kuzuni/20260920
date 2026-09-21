@@ -41,14 +41,14 @@ namespace DoodleIdle
                 case "Shuriken": return new Estimate(30, 8, "표창 8개 · 발당 적 1명");
                 case "GiantWorm": return new Estimate(30, 17, "적 1명에게 6.5초 접촉 · 약 17타");
                 case "IceSnakes": return new Estimate(8, 102, "얼음 뱀 3마리 · 각각 6초 접촉");
-                case "PurpleFireArrows": return new Estimate(44, 8, "보라 불화살 8발 모두 명중");
+                case "PurpleFireArrows": return new Estimate(44, 8, "관통 웨이브 8발 · 적 1명에게 모두 명중");
                 case "BlueMolotov": return new Estimate(18, 2, "2병 각각 적 1명 · 충돌 + 4초 화상") { totalWeight = (18 + 8 * 12) * 2 };
                 case "RedWave": return new Estimate(22, 5, "검기 5발 · 발당 적 1명");
                 case "Tornado": return new Estimate(18, 39, "적 1명에게 7초 접촉 · 약 39타");
                 case "DoubleClaw": return new Estimate(38, 10, "적 5명에게 2타씩");
                 case "Golem": return new Estimate(32, 80, "골렘 5마리 · 이동 없이 10초 공격");
                 case "Dumbbell": return new Estimate(40, 10, "덤벨 10개 · 발당 적 1명");
-                case "Meteor": return new Estimate(150, 1, "폭발 범위 내 적 1명 기준");
+                case "Meteor": return new Estimate(150, 3, "메테오 3개 · 폭발당 적 1명 기준");
                 default: return default;
             }
         }

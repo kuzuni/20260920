@@ -104,8 +104,7 @@ namespace DoodleIdle
                     for (int i = 0; i < Mathf.Min(3, targets.Count); i++)
                     {
                         var target = targets[i];
-                        Echo("Direct lightning strike", summonArt["Lightning"], target.Position + Vector2.up * 1.5f,
-                            new Vector2(3, 1.1f), Aim(Vector2.down), .25f, 1, 580);
+                        ShowLightningStrike(target.Position);
                         Impact(SummonSkill.StormCloud, target, 35, Vector2.down); LightningStrikes++;
                     }
                     break;

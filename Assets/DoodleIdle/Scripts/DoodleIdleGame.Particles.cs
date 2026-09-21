@@ -6,7 +6,7 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles, purpleFireParticles,blueFireParticles;
-        ParticleSystem meteorTrailParticles, meteorExplosionParticles;
+        ParticleSystem meteorTrailParticles, meteorExplosionParticles, golemSlamParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -27,7 +27,8 @@ namespace DoodleIdle
             meteorTrailParticles = MakeParticles("Meteor Fire Trail Particle System", summonArt["GroundFlame"], 640, 512, false);
             SetFlamePalette(meteorTrailParticles, new Color(1, .18f, .06f));
             meteorExplosionParticles = MakeParticles("Meteor Explosion Particle System", summonArt["Explosion"], 655, 256, false);
-            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles };
+            golemSlamParticles = MakeParticles("Golem Ground Slam Dust Particle System", summonArt["SandPuff"], 515, 512, false);
+            particleSystems = new[] { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,golemSlamParticles };
         }
 
         void SetFlamePalette(ParticleSystem system,Color color)

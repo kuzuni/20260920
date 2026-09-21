@@ -253,7 +253,7 @@ namespace DoodleIdle
             OwnershipStrip(body, category);
             CollectionDivider(body);
             UiKit.Text(body, "보유 " + label, 32, TextAnchor.MiddleLeft, 44);
-            BuildInventory(body, Items(category), item => { if (replacing) Toast("위의 장착 슬롯 중 교체할 슬롯을 선택하세요."); else ShowCollectionDetail(item); }, 4);
+            BuildInventory(body, Items(category), item => { if (replacing) Toast("위의 장착 슬롯 중 교체할 슬롯을 선택하세요."); else ShowCollectionDetail(item); }, category == "Skill" ? 5 : 4);
             CollectionActions(UiKit.Footer(body, category + " footer", 72), category);
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, category);
         }
@@ -692,7 +692,7 @@ namespace DoodleIdle
                 if (companion) CompactFooter(60, 56, 0);
             }
             var inventory = body.Find("Collection inventory viewport/Inventory clipping area/Collection inventory");
-            Columns(inventory.GetComponent<GridLayoutGroup>(), 6);
+            Columns(inventory.GetComponent<GridLayoutGroup>(), category == "Skill" ? 5 : 6);
             Reflow();
         }
 

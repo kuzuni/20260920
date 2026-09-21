@@ -48,7 +48,7 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.ItemExpectedDps(item), Is.GreaterThan(0), item.id);
             }
             var meteor = ui.Items("Skill").Single(x => x.ability == "Meteor");
-            Assert.That(ui.ItemExpectedDps(meteor), Is.EqualTo(ui.ItemHitDamage(meteor) * ui.ExpectedCriticalMultiplier / 10).Within(.001));
+            Assert.That(ui.ItemExpectedDps(meteor), Is.EqualTo(ui.ItemHitDamage(meteor) * 3 * ui.ExpectedCriticalMultiplier / 10).Within(.001));
             UiOpen("Skills"); typeof(DoodleUi).GetMethod("ShowCollectionDetail", GrowthPrivate).Invoke(ui, new object[] { meteor });
             Assert.That(UiNode("Expected DPS").GetComponentsInChildren<Text>().Any(x => x.text == "예상 총 DPS"), Is.True);
             Object.Destroy(CaptureFrame("latest-skill-damage-details.png", 720, 1520));

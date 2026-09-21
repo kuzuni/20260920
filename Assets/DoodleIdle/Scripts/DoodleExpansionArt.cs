@@ -12,15 +12,15 @@ namespace DoodleIdle
             int count;
             switch (key)
             {
-                case "SkillTornado": case "SkillDoubleClaw": count = 2; break;
-                case "SkillGolem": count = 3; break;
+                case "SkillTornado": case "SkillDoubleClaw": case "SkillLightning": count = 2; break;
+                case "SkillGolem": count = 4; break;
                 case "SkillDumbbell": case "SkillMeteorRock": case "SkillMeteor": case "SkillMeteorCrater":
                 case "NavPottery": case "NavColosseum": count = 1; break;
                 default: return null;
             }
             if (!frames.TryGetValue(key, out var sprites))
             {
-                var texture = Resources.Load<Texture2D>("DoodleIdle/" + key);
+                var texture = Resources.Load<Texture2D>("DoodleIdle/" + (key == "SkillGolem" ? "SkillGolemSlam" : key));
                 if (!texture) throw new InvalidOperationException("Missing expansion art: " + key);
                 int width = texture.width / count, height = texture.height;
                 var pixels = texture.GetPixels32();

@@ -71,6 +71,15 @@ namespace DoodleIdle.Tests
             Assert.That(game.LightningStrikes, Is.EqualTo(3));
             Assert.That(game.Ui.Items("Skill").First().ability, Is.EqualTo("Lightning"));
             Assert.That(game.Ui.Items("Skill").First().rarity, Is.Zero);
+            var flashes = NamedArt("Direct lightning strike");
+            Assert.That(flashes.Length, Is.EqualTo(3));
+            Assert.That(flashes.All(x => x.sprite.name == "SkillLightning_0"), Is.True);
+            Object.Destroy(CaptureFrame("lightning-strike-pose-0.png", 1000, 1000, false));
+            yield return PhysicsTicks(8);
+            Assert.That(flashes.All(x => x.sprite.name == "SkillLightning_1"), Is.True);
+            Object.Destroy(CaptureFrame("lightning-strike-pose-1.png", 1000, 1000, false));
+            yield return PhysicsTicks(9); yield return null;
+            Assert.That(NamedArt("Direct lightning strike"), Is.Empty);
             Assert.That(CastCatalogSkill("DoubleClaw"), Is.True);
             Assert.That(game.ClawHits, Is.EqualTo(5));
             Assert.That(NamedArt("Double claw strike 0").Length, Is.EqualTo(5));
@@ -94,22 +103,34 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(60);
             Assert.That(tornado.transform.position.y, Is.GreaterThan(2));
             Assert.That(game.TornadoHits, Is.GreaterThanOrEqualTo(3));
+            var tornadoShadow = NamedArt("Tornado ground shadow").Single();
+            Assert.That((Vector2)tornadoShadow.transform.position, Is.EqualTo((Vector2)tornado.transform.position + Vector2.down * 1.1f));
+            Assert.That(tornadoShadow.sortingOrder, Is.LessThan(tornado.sortingOrder));
             Object.Destroy(CaptureFrame("expansion-tornado.png", 1000, 1000, false));
             game.ResetGame(); yield return null; bodies = DurableSkillTargets();
+            Assert.That(NamedArt("Tornado ground shadow"), Is.Empty);
             for (int i = 0; i < 5; i++) Place(bodies[i], new Vector2(5 + i, 3));
             Assert.That(CastCatalogSkill("Golem"), Is.True);
             Assert.That(game.GolemsSummoned, Is.EqualTo(5));
             var golems = NamedArt("Summoned golem"); Assert.That(golems.Length, Is.EqualTo(5));
             Vector3 start = golems[0].transform.position;
             var poses = new System.Collections.Generic.HashSet<string>();
+            bool capturedSlam = false;
             for (int tick = 0; tick < 160; tick++) {
                 yield return PhysicsTicks(1);
                 foreach (var golem in golems) poses.Add(golem.sprite.name);
+                if (!capturedSlam && game.GolemHits > 0) {
+                    Assert.That(golems.Any(g => g.sprite.name == "SkillGolem_3"), Is.True);
+                    Assert.That(Particles("Golem Ground Slam Dust Particle System").particleCount, Is.GreaterThan(0));
+                    Object.Destroy(CaptureFrame("golem-downward-slam-dust.png", 1000, 1000, false));
+                    capturedSlam = true;
+                }
                 if (tick == 45) Object.Destroy(CaptureFrame("expansion-golems.png", 1000, 1000, false));
             }
             Assert.That(Vector3.Distance(start, golems[0].transform.position), Is.GreaterThan(1));
-            CollectionAssert.AreEquivalent(new[] { "SkillGolem_0", "SkillGolem_1", "SkillGolem_2" }, poses);
+            CollectionAssert.AreEquivalent(new[] { "SkillGolem_0", "SkillGolem_1", "SkillGolem_2", "SkillGolem_3" }, poses);
             Assert.That(game.GolemHits, Is.GreaterThan(5));
+            Assert.That(capturedSlam, Is.True);
             game.TogglePause(); int hits = game.GolemHits; Vector3 paused = golems[0].transform.position;
             yield return new WaitForSecondsRealtime(.15f);
             Assert.That(game.GolemHits, Is.EqualTo(hits)); Assert.That(golems[0].transform.position, Is.EqualTo(paused));
@@ -144,7 +165,10 @@ namespace DoodleIdle.Tests
         public IEnumerator MeteorRotatesWithDirectionalWorldFireThenExplodesAndLeavesCrater()
         {
             var bodies = DurableSkillTargets(); Place(bodies[0], new Vector2(2, 0)); Place(bodies[1], new Vector2(3, 0)); Place(bodies[2], new Vector2(8, 0));
+            var launches = new System.Collections.Generic.List<float>();
+            game.MeteorProjectileLaunched += launches.Add;
             Assert.That(CastCatalogSkill("Meteor"), Is.True);
+            Assert.That(game.MeteorsLaunched, Is.EqualTo(1));
             var rock = NamedArt("Falling red meteor").Single(); Vector3 start = rock.transform.position;
             Assert.That(rock.sprite.texture.name, Is.EqualTo("SkillMeteorRock"));
             yield return PhysicsTicks(12);
@@ -166,8 +190,22 @@ namespace DoodleIdle.Tests
             Assert.That(crater.sortingOrder, Is.LessThan(0));
             Assert.That(game.GetComponentsInChildren<ParticleSystem>().Single(x => x.name == "Meteor Explosion Particle System").particleCount, Is.GreaterThan(0));
             Object.Destroy(CaptureFrame("expansion-meteor-impact.png", 1000, 1000, false));
-            yield return PhysicsTicks(26);
+            yield return PhysicsTicks(6);
+
+            yield return PhysicsTicks(2);
+            Assert.That(game.MeteorsLaunched, Is.EqualTo(2));
+            yield return PhysicsTicks(18);
             Object.Destroy(CaptureFrame("expansion-meteor-crater.png", 1000, 1000, false));
+            yield return PhysicsTicks(30);
+
+            yield return PhysicsTicks(2);
+            Assert.That(game.MeteorsLaunched, Is.EqualTo(3));
+            yield return PhysicsTicks(45);
+            Assert.That(game.MeteorsLanded, Is.EqualTo(3));
+            Assert.That(launches.Count, Is.EqualTo(3));
+            Assert.That(launches[1] - launches[0], Is.EqualTo(1).Within(.021));
+            Assert.That(launches[2] - launches[1], Is.EqualTo(1).Within(.021));
+            Assert.That(game.MeteorsLaunched, Is.EqualTo(3));
         }
     }
 }
