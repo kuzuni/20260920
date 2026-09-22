@@ -61,7 +61,7 @@ namespace DoodleIdle.Tests
             GrowthLevels["crit4Chance"]=0;
             foreach(var category in new[]{"Armor","Club","Skill","Companion"}) {
                 var items=ui.Items(category);
-                foreach(var item in items.Where(x=>x.rarity<3)) { item.discovered=true;item.level=x.rarity==0?8:x.rarity==1?3:1; }
+                foreach(var item in items.Where(x=>x.rarity<3)) { item.discovered=true;item.level=item.rarity==0?8:item.rarity==1?3:1; }
                 var epic=items.First(x=>x.rarity==3);epic.discovered=true;epic.level=1;
                 if(category=="Armor"||category=="Club")epic.equipped=true;
             }
