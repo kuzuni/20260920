@@ -334,8 +334,6 @@ namespace DoodleIdle
             UpdateHud();
             if (paused) return;
             float dt = Time.deltaTime;
-            Elapsed += dt;
-            UpdateShots(dt);
             UpdateFlecks(dt);
             UpdateExtraVisuals(dt);
             swing = Mathf.MoveTowards(swing, 0, dt * 5);
@@ -355,6 +353,7 @@ namespace DoodleIdle
                 Refill();
             }
             float dt = Time.fixedDeltaTime;
+            Elapsed += dt;
             var target = Closest(player.Position);
             if (target == null) { Refill(); return; }
             Vector2 delta = target.Position - player.Position;
@@ -395,6 +394,9 @@ namespace DoodleIdle
             TickSummons(dt);
             TickParticles(dt);
             TickDamageNumbers(dt);
+            // Damage-bearing projectiles share the physics clock with actors and skills.
+            // A slow render frame must not extend a slash beyond its intended lifetime/range.
+            UpdateShots(dt);
             if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
         }
 
