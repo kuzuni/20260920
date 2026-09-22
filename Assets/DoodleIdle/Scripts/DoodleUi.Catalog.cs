@@ -45,7 +45,7 @@ namespace DoodleIdle
         float starterDamageBaseline = 1;
         readonly System.Random collectionRandom = new System.Random();
 
-        [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered, dungeonRelic; }
+        [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered; }
         [Serializable] sealed class StatSave { public string id; public int level; }
         [Serializable] sealed class CollectionSave { public int version; public List<ItemSave> items = new List<ItemSave>(); public List<StatSave> stats = new List<StatSave>(); }
 

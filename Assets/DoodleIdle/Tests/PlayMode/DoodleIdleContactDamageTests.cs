@@ -129,6 +129,20 @@ namespace DoodleIdle.Tests
             ServiceSetSavedField(ServiceStateObject, "mainStage", 998);
             yield return PhysicsTicks(1);
             Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True, "Returning below the threshold cancels an active dash.");
+            ServiceSetSavedField(ServiceStateObject,"activeDungeon",0);
+            ServiceSetSavedField(ServiceStateObject,"dungeonStages",new[]{19,0,0});
+            ServiceSetSavedField(ServiceStateObject,"mainStage",0);
+            int beforeCave=game.EnemyDashCasts;
+            for(int i=0;i<moving.Count;i++) {
+                Place(moving[i],starts[i]);
+                representatives[i].GetType().GetField("dashCooldown").SetValue(representatives[i],0f);
+            }
+            yield return PhysicsTicks(24);
+            Assert.That(game.EnemyDashCasts,Is.EqualTo(beforeCave+representatives.Length),"Cave stage 20 has main stage 1000 dash behavior.");
+            ServiceSetSavedField(ServiceStateObject,"dungeonStages",new[]{0,0,0});
+            ServiceSetSavedField(ServiceStateObject,"mainStage",1199);
+            yield return PhysicsTicks(1);
+            Assert.That(moving.All(b=>b.linearVelocity.magnitude<2),Is.True,"Cave stage 1 stays at stage 50 difficulty even for a veteran profile.");
         }
     }
 }

@@ -14,8 +14,8 @@ namespace DoodleIdle
 
         void TickEnemyMovement(float dt)
         {
-            // MainStage is zero-based; the HUD displays MainStage + 1.
-            bool canDash = enemyDashEnabled && Ui && Ui.MainStage >= EnemyDashStartStage - 1;
+            // A cave uses its equivalent main-stage difficulty, including dash unlocks.
+            bool canDash = enemyDashEnabled && Ui && Ui.CombatDifficultyStage >= EnemyDashStartStage;
             foreach (var enemy in enemies) {
                 Vector2 toPlayer = player.Position - enemy.Position;
                 if (!canDash) enemy.dashWindup = enemy.enemyDashRemaining = 0;

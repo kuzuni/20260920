@@ -44,7 +44,7 @@ namespace DoodleIdle
         bool CategoryCanUpgrade(string category) => Items(category).Exists(CanUpgradeItem);
         bool CategoryCanEquip(string category) => Items(category).Exists(CanImproveLoadout);
         bool ItemNeedsAttention(UiItem item) => CanUpgradeItem(item)||CanSynthesize(item)||CanImproveLoadout(item)||(item.category=="Skill"&&SkillRefundQuote(item)>0);
-        public bool CanClaimQuest(int tab,int index) => services!=null&&!QuestClaimed(tab,index)&&QuestCounters(tab)[QuestMetrics[tab][index]]>=QuestGoal(tab,index);
+        public bool CanClaimQuest(int tab,int index) => services!=null&&!QuestClaimed(tab,index)&&QuestCounters(tab)[QuestMetrics[tab][index]]>=QuestGoal(tab,index)&&serviceTuning.questRewards[index]>0&&(long)Diamonds+serviceTuning.questRewards[index]<=int.MaxValue;
         public bool QuestTabHasReward(int tab) { for(int i=0;i<4;i++)if(CanClaimQuest(tab,i))return true;return false; }
         public bool CanClaimAttendance => services!=null&&services.attendanceIndex<7&&services.attendanceDay!=services.day;
         public bool CanSpinRoulette => services!=null&&!rouletteSpinning&&services.spins<serviceTuning.dailySpins;
