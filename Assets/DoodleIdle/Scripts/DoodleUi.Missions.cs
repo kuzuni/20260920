@@ -42,8 +42,14 @@ namespace DoodleIdle
         {
             get {
                 int index=services==null?0:services.mainMissionIndex;
-                if(index<tutorialMissions.Length)return tutorialMissions[index];
-                long cycle=(index-tutorialMissions.Length)/11L+1;int kind=(index-tutorialMissions.Length)%11;
+                // Cave stage 1 has field-stage-50 difficulty. Introduce it after the
+                // stage-45 cycle so it cannot block the early ticket/gold supply.
+                const int earlyTutorials=20, dungeonTutorialIndex=earlyTutorials+9*11;
+                if(index<earlyTutorials)return tutorialMissions[index];
+                if(index==dungeonTutorialIndex)return tutorialMissions[20];
+                if(index==dungeonTutorialIndex+1)return tutorialMissions[21];
+                int repeating=index-earlyTutorials-(index>dungeonTutorialIndex+1?2:0);
+                long cycle=repeating/11L+1;int kind=repeating%11;
                 if(kind<4) {
                     string[] ids={"attack","health","healthRegen","crit2Chance"};string[] labels={"공격력","체력","체력 회복","x2 치명타 확률"};
                     long level=Math.Min(StatMaxLevel(ids[kind]),15+cycle*20);

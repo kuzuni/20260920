@@ -24,6 +24,7 @@ namespace DoodleIdle.Tests
             for(int i=0;i<5;i++)Assert.That(ui.GrantConfirmedCurrencyProduct(5,"verified-test-"+i),Is.True);
             Assert.That(ui.MileageCoupons,Is.EqualTo(10));
             Assert.That(ui.GrantConfirmedCurrencyProduct(5,"verified-test-0"),Is.False);
+            yield return new WaitForSecondsRealtime(1.5f);
             ui.ShowPage("Shop"); UiClick("마일리지");
             Object.Destroy(CaptureFrame("dayone-mileage-card.png",720,1560));
             int diamonds=ui.Diamonds;Assert.That(ui.ExchangeMileage(10),Is.True);ui.CloseDetail();
@@ -32,6 +33,7 @@ namespace DoodleIdle.Tests
             typeof(DoodleUi).GetMethod("InitCommerceExtras",ServicePrivate).Invoke(ui,null);
             Assert.That(ui.MileageCoupons,Is.Zero);Assert.That(ui.GrantConfirmedCurrencyProduct(5,"verified-test-0"),Is.False);
             Assert.That(UiKit.Art("MileageCoupon").texture,Is.Not.SameAs(UiKit.Art("TicketCompanion").texture));
+            yield return new WaitForSecondsRealtime(1.5f);
             UiOpen("Shop");UiClick("재화");Object.Destroy(CaptureFrame("dayone-diamond-shop.png",720,1560));
             UiNode("Currency product cards").GetComponentInParent<UnityEngine.UI.ScrollRect>().verticalNormalizedPosition=0;
             Object.Destroy(CaptureFrame("dayone-diamond-shop-bonus.png",720,1560));
@@ -53,6 +55,11 @@ namespace DoodleIdle.Tests
             Assert.That(ui.CareerProgress("equip:Companion"),Is.GreaterThanOrEqualTo(1));
             Assert.That(ui.MainStage,Is.EqualTo(1198));
             DayOneState("mainStage",0);ui.HandlePlayerDefeat();Assert.That(ui.MainStage,Is.Zero);
+            DayOneState("mainMissionIndex",20);Assert.That(ui.MainMissionGoal,Is.EqualTo(35));
+            DayOneState("mainMissionIndex",119);Assert.That(ui.MainMissionText,Does.Contain("골드 동굴"));
+            ui.RecordMissionAction("dungeon:0");Assert.That(ui.CanClaimMainMission,Is.True);
+            DayOneState("mainMissionIndex",120);Assert.That(ui.MainMissionText,Does.Contain("유물 동굴"));
+            DayOneState("mainMissionIndex",121);Assert.That(ui.MainMissionGoal,Is.EqualTo(215));
             yield return null;
         }
 
