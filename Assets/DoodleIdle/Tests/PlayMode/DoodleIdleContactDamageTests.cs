@@ -40,6 +40,7 @@ namespace DoodleIdle.Tests
             var appearance = typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate);
             art.color = Color.white; appearance.Invoke(game, null);
             Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player White Hit"));
+            Assert.That(art.sharedMaterial.GetFloat("_Opacity"), Is.EqualTo(.6f).Within(.001f));
             Object.Destroy(CaptureFrame("player-contact-invulnerability-white.png", 1000, 1000, false));
             Step(.2f);
             Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(whiteFlash), "The white phase remains stable for a quarter second.");

@@ -263,7 +263,7 @@ namespace DoodleIdle
                     price.offsetMin=new Vector2(3,2);price.offsetMax=new Vector2(-3,0);
                     UiKit.Icon(price,"DungeonRelicTicket",26);
                     var amount=UiKit.Text(price,count+"장",20,TextAnchor.MiddleCenter,26);
-                    var width=amount.GetComponent<LayoutElement>();width.minWidth=width.preferredWidth=32;width.flexibleWidth=0;
+                    var width=amount.GetComponent<LayoutElement>();width.minWidth=width.preferredWidth=44;width.flexibleWidth=0;
                 }
                 return;
             }

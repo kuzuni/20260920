@@ -69,6 +69,8 @@ namespace DoodleIdle
             if (PlayerWhiteFlashPhase) {
                 if (!playerHitMaterial) playerHitMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodlePlayerHit")) { name = "Doodle player white hit flash" };
                 playerHitMaterial.mainTexture = player.art.sprite.texture;
+                // SpriteRenderer alpha is not provided through vertex color in every URP batching path.
+                playerHitMaterial.SetFloat("_Opacity", player.art.color.a);
                 player.art.sharedMaterial = playerHitMaterial;
             }
             else if (playerHitMaterial && player.art.sharedMaterial == playerHitMaterial) SetSpriteArt(player.art, player.art.sprite);
