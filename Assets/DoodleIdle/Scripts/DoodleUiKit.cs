@@ -314,7 +314,9 @@ namespace DoodleIdle
             if(level)
             {
                 grade.rectTransform.anchorMax=new Vector2(.53f,1);
-                level.offsetMin=new Vector2(0,-top);level.offsetMax=new Vector2(-pad,-2*scale);
+                // Keep the enhancement number readable beside the shared corner notification.
+                float notificationInset=GetComponent<DoodleNotificationBadge>()?18:0;
+                level.offsetMin=new Vector2(0,-top);level.offsetMax=new Vector2(-pad-notificationInset,-2*scale);
                 var label=level.GetComponent<Text>();label.resizeTextMinSize=9;label.resizeTextMaxSize=Mathf.RoundToInt(19*scale);
             }
             UiKit.Stretch(art,8*scale,bottom+9*scale,8*scale,top+2*scale);

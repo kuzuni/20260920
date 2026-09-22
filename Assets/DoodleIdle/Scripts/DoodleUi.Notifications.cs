@@ -23,6 +23,7 @@ namespace DoodleIdle
                 badge.marker.color=new Color(1,.12f,.12f);badge.marker.raycastTarget=false;
             }
             badge.Refresh();
+            target.GetComponent<DoodleUiSlotLayout>()?.Invalidate();
         }
         public void Refresh() { if(marker){marker.enabled=available!=null&&available();if(marker.transform.GetSiblingIndex()!=transform.childCount-1)marker.transform.SetAsLastSibling();} }
         void LateUpdate() { if(Time.unscaledTime<next)return;next=Time.unscaledTime+.2f;Refresh(); }

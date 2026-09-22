@@ -18,6 +18,8 @@ namespace DoodleIdle.Tests
             Assert.That(dot.anchorMin,Is.EqualTo(Vector2.one));Assert.That(dot.anchorMax,Is.EqualTo(Vector2.one));
             Assert.That(dot.GetComponent<Image>().raycastTarget,Is.False);
             Assert.That(dot.GetComponent<LayoutElement>().ignoreLayout,Is.True);
+            var level=target.Find("Enhancement level") as RectTransform;
+            if(level)Assert.That(UiLocalBounds((RectTransform)target,level).xMax,Is.LessThan(UiLocalBounds((RectTransform)target,dot).xMin-1),"The notification must not cover the enhancement level.");
         }
 
         [UnityTest]
@@ -32,6 +34,7 @@ namespace DoodleIdle.Tests
             UiOpen("Attendance");AssertBadge(UiNode("Attendance day 1"),true);AssertBadge(UiNode("Attendance day 2"),false);
             UiClick("Attendance day 1");ui.CloseDetail();AssertBadge(UiNode("Attendance"),false);
             AssertBadge(UiNode("Attendance day 2"),false);
+            yield return new WaitForSecondsRealtime(1.4f);
             ui.RecordServiceProgress("kills",ServiceTestTuning.weeklyGoals[0]);UiOpen("Quests");
             foreach(string tab in new[]{"일일","반복","주간"}) {
                 AssertBadge(UiNode(tab),true);UiClick(tab);
@@ -40,6 +43,7 @@ namespace DoodleIdle.Tests
                 AssertBadge(UiNode("받기",UiNode("Quest "+index+" 0")),true);
                 Object.Destroy(CaptureFrame("notification-quest-"+index+".png",720,1520));
                 ui.ClaimQuests(-1);ui.CloseDetail();AssertBadge(UiNode(tab),false);AssertBadge(UiNode("일괄받기"),false);
+                yield return new WaitForSecondsRealtime(1.4f);
             }
             AssertBadge(UiNode("Quests"),false);
             UiOpen("Buffs");
@@ -141,8 +145,13 @@ namespace DoodleIdle.Tests
                     Assert.That(root.name,Does.Match(pattern));
                     Assert.That((float)type.GetField("maxHp").GetValue(actor),Is.EqualTo(68*ui.EnemyHealthMultiplier(50)).Within(.01f));
                 }
+                game.TogglePause();
+                typeof(DoodleIdleGame).GetMethod("ClearDamageNumbers",ServicePrivate).Invoke(game,null);
+                yield return new WaitForSecondsRealtime(2.6f);
                 Object.Destroy(CaptureFrame("dungeon-theme-"+dungeon+".png",720,1520));
-                game.TogglePause();DefeatActualServiceEnemies(ui.DungeonKillGoal);yield return null;ui.CloseDetail();game.TogglePause();
+                int coins=game.GoldCoinsEmitted;DefeatActualServiceEnemies(ui.DungeonKillGoal);
+                Assert.That(game.GoldCoinsEmitted,Is.EqualTo(coins),"Caves pay their clear reward instead of showing unpaid field coin drops.");
+                yield return null;ui.CloseDetail();game.TogglePause();
                 yield return new WaitForFixedUpdate();yield return null;
                 Assert.That(game.CurrentThemeIndex,Is.EqualTo(DoodleIdleGame.ThemeIndexForStage(ui.MainStage+1)));
             }

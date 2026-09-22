@@ -560,7 +560,7 @@ namespace DoodleIdle
             Kills++;
             if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);
             LeaveStain(enemy.Position);
-            EmitGold(enemy.Position);
+            if(!Ui || Ui.ActiveDungeonIndex<0)EmitGold(enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.
