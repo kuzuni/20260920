@@ -146,10 +146,11 @@ namespace DoodleIdle.Tests
             Assert.That(fill.sprite.name, Is.EqualTo("HealthBarFill"));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cannon);
             yield return PhysicsTicks(45);
-            Assert.That(fill.transform.localScale.x / .9f, Is.EqualTo(22f / 68).Within(.01f));
+            float hit=game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(46),"Skill")*game.Ui.SkillPowerMultiplier("Cannon");
+            Assert.That(fill.transform.localScale.x / .9f, Is.EqualTo((68-hit) / 68).Within(.01f));
             Assert.That(game.ActiveDamageNumbers, Is.GreaterThan(0));
             var text = game.GetComponentsInChildren<Text>().First(t => t.name == "Enemy damage number");
-            Assert.That(text.text, Is.EqualTo("46"));
+            Assert.That(text.text, Is.EqualTo(UiNumber.Format(System.Math.Ceiling(hit))));
             Assert.That(text.fontSize, Is.EqualTo(84));
             Assert.That(text.font, Is.SameAs(Resources.Load<Font>("DoodleIdle/InterfaceFont")));
             Assert.That(Particles("Cannon Explosion Particle System").particleCount, Is.GreaterThan(0));

@@ -402,7 +402,7 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets+(dungeon==2?ticketReward:0)));
                 Assert.That(ui.GetDungeonStage(dungeon),Is.EqualTo(attempt+1));
                 var icon=UiNode("Individual rewards").GetComponentsInChildren<Image>().Single(x=>x.name.StartsWith("Icon: "));
-                Assert.That(icon.sprite,Is.SameAs(UiKit.Art(dungeon==0?"Gold":"DungeonPottery")));
+                Assert.That(icon.sprite,Is.SameAs(UiKit.Art(dungeon==0?"Gold":"DungeonRelicTicket")));
                 ui.CloseDetail();
             }
             foreach(int dungeon in new[]{0,2}){ui.EnterDungeon(dungeon);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));}

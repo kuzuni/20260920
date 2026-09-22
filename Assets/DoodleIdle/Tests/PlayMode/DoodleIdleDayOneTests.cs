@@ -106,6 +106,44 @@ namespace DoodleIdle.Tests
             Debug.Log("DAYONE stage300 combatSeconds="+(Time.fixedTime-start)+" stage="+ui.MainStage+" contactHits="+(game.PlayerContactHits-hits));
             Assert.That(ui.MainStage,Is.GreaterThanOrEqualTo(300),"A balanced Lv1200/Epic1 profile must clear the stage and its real boss without defeat.");
             game.TogglePause();Object.Destroy(CaptureFrame("dayone-stage300-clear.png",720,1560));
+            // Earlier milestones have fewer slots and fewer drops. Use seeded real
+            // draws/upgrades rather than borrowing the complete day-one inventory.
+            foreach(int milestone in new[]{50,100,200}) {
+                SetEarnedMilestoneProfile(milestone);game.ResetGame();
+                start=Time.fixedTime;
+                while(ui.MainStage==milestone-1 && Time.fixedTime-start<300)yield return new WaitForFixedUpdate();
+                Debug.Log("DAYONE milestone="+milestone+" level="+ui.AttackStatLevel+" seconds="+(Time.fixedTime-start)+" reached="+ui.MainStage+" attack="+ui.CurrentAttackPower);
+                Assert.That(ui.MainStage,Is.GreaterThanOrEqualTo(milestone),"The seeded ticket/upgrade profile must clear milestone "+milestone+" without dying.");
+                game.TogglePause();
+            }
+        }
+
+        void SetEarnedMilestoneProfile(int stage)
+        {
+            var ui=game.Ui;
+            foreach(var item in GrowthTuning.items){item.equipped=item.discovered=false;item.count=item.level=item.slot=0;}
+            DayOneState("mainStage",stage-1);DayOneState("highestMainStage",stage-1);DayOneState("mainStageKillProgress",0);
+            foreach(string id in new[]{"attack","health","healthRegen","crit2Chance"})GrowthLevels[id]=ui.ProjectedStatLevel(stage);
+            var states=(System.Collections.Generic.Dictionary<string,DoodleUi.SummonState>)typeof(DoodleUi).GetField("summonStates",GrowthPrivate).GetValue(ui);
+            var commerce=(DoodleUi.CommerceTuning)typeof(DoodleUi).GetField("commerceTuning",GrowthPrivate).GetValue(ui);
+            var rng=new System.Random(20260923+stage);int cycles=(stage-1)/5;
+            foreach(string category in new[]{"Armor","Club","Skill","Companion","Relic"}) {
+                var state=states[category];state.level=category=="Relic"?0:1;state.experience=0;
+                int draws=35+cycles*(category=="Relic"?2:8);
+                for(int n=0;n<draws;n++) {
+                    ui.AddItem(ui.GrantItem(category,rng),1);
+                    if(category!="Relic") {
+                        state.experience++;
+                        int needed=commerce.levelExperience[Math.Min(state.level-1,commerce.levelExperience.Length-1)];
+                        if(state.experience>=needed){state.experience-=needed;state.level++;}
+                    }
+                }
+                foreach(var item in ui.Items(category)) {
+                    if(category=="Relic"){item.level+=item.count/2;item.count=0;}
+                    else while(ui.UpgradeItem(item,false)) { }
+                }
+                if(category!="Relic")ui.AutoEquip(category);
+            }
         }
 
         [UnityTest]

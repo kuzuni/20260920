@@ -39,7 +39,7 @@ namespace DoodleIdle.Tests
             var scroll=UiTopScroll();Assert.That(scroll.content.rect.height,Is.GreaterThan(scroll.viewport.rect.height));
             foreach(string category in new[]{"Armor","Club","Skill","Companion","Relic"}) {
                 var row=UiNode("Summon_"+category);
-                Assert.That(row.GetComponent<LayoutElement>().preferredHeight,Is.EqualTo(category=="Relic"?336:264));
+                Assert.That(row.GetComponent<LayoutElement>().preferredHeight,Is.EqualTo(330));
                 Assert.That(row.Find("Icon: "+category).GetComponent<LayoutElement>().preferredWidth,Is.EqualTo(213));
                 foreach(string button in new[]{"10회 뽑기","50회 뽑기"})Assert.That(row.GetComponentsInChildren<Button>().Single(b=>b.name==button).GetComponent<Image>().color,Is.EqualTo(UiKit.Yellow));
             }

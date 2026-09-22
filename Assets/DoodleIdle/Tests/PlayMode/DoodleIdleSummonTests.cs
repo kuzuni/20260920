@@ -248,6 +248,9 @@ namespace DoodleIdle.Tests
             Assert.That(NamedArt("WaveSnakes head").Select(r => r.transform.position).Distinct().Count(), Is.EqualTo(5));
             game.ResetGame(); yield return null;
             bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(2.5f, 0)); Place(bodies[1], new Vector2(4.1f, .5f));
+            // Keep the target's original nine-hit lifetime while testing motion;
+            // catalog damage coefficients have separate actual-hit coverage.
+            game.Ui.Items("Skill").Single(x=>x.ability=="TetherSnake").damageMultiplier=1;
             var impacts = new Dictionary<int, int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.TetherSnake) impacts[id] = impacts.TryGetValue(id, out int count) ? count + 1 : 1; };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.TetherSnake);

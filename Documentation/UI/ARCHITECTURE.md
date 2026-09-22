@@ -11,6 +11,14 @@ Only `Documentation/UI/FinalDesign/01..25 *.png` is the visual reference. Text r
 
 ## Shared code contract
 
+### 2026-09-23 first-day progression (supersedes older numeric rules below)
+
+- See `DAY_ONE_BALANCE.md` for the eight-hour target, stage income projection, combat coefficients, ticket missions and shop fulfillment limitations.
+- Non-relic summons have 35 levels with exact 0.001% rarity weights. Within each rarity, lower numbered entries are more common. Relic and dungeon-relic pools remain uniform and unlevelled.
+- Equipment equip values are percentages of attack/health stats. Skill and companion damage coefficients and levels feed both actual damage and UI estimates. Death demotes the current field stage while retaining highest-stage unlocks.
+- Mission action history persists independently of daily/weekly resets. Cave tutorials follow the stage-45 repeating mission cycle. Free diamonds and mileage use the separate `DoodleUi.CommerceExtras.v1` save, included in game reset.
+- Mileage art resolves to the separate smooth blue diamond card (`MileageCoupon.png`), never the unused sixth ticket atlas cell. Summon-row companion art is `CompanionMon_10`; its ticket depicts a winged cloud.
+
 ### 2026-09-23 hit and notification presentation
 
 - Player contact immunity keeps its one-second window and quarter-second phases. The flash phase uses `DoodlePlayerHit.shader` to replace RGB with white while preserving source alpha and applying explicit material `_Opacity=0.6`; the alternate phase restores the normal sprite material with 0.8 renderer alpha. A private player material avoids affecting other actors and is disposed with the game. The explicit opacity handles URP sprite batching paths that do not supply renderer alpha as vertex color.

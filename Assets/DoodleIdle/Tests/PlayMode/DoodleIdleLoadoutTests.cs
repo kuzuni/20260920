@@ -178,6 +178,7 @@ namespace DoodleIdle.Tests
                 Assert.That(restored.UnlockedSkillSlots, Is.EqualTo(8));
                 Assert.That(restored.EquippedSkills.Count, Is.EqualTo(8), "Saved progress must load before applying the skill slot cap.");
                 ServiceSetSavedField(ServiceStateObject, "mainStage", 0);
+                ServiceSetSavedField(ServiceStateObject, "highestMainStage", 0);
                 ui.Save(); // Simulate a legacy early-stage save with eight equipped skills.
                 var legacy = GrowthProbe(probes);
                 typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(legacy, null);

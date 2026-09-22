@@ -88,6 +88,9 @@ namespace DoodleIdle.Tests
         public IEnumerator EnemyDashPreparesChargesWithFacingTrailsThenReturnsToMovement()
         {
             var bodies = DurableSkillTargets(); game.enemyDashEnabled = true;
+            // Stage 1000 enables the dash; this movement fixture retains baseline
+            // contact damage so defeat does not replace its observed actors.
+            ServiceTestTuning.enemyDamageStageGrowth=0;
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var representatives = actors.Cast<object>().GroupBy(a => (int)a.GetType().GetField("kind").GetValue(a)).Select(g => g.First()).ToArray();
             var moving = new System.Collections.Generic.List<Rigidbody2D>();
