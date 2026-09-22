@@ -115,6 +115,8 @@ namespace DoodleIdle.Tests
             Assert.That(ui.DungeonRelicTickets,Is.Zero);Assert.That(dungeon.Sum(x=>x.count),Is.EqualTo(10));
             Assert.That(ui.Diamonds,Is.EqualTo(diamonds));Assert.That(normal.Sum(x=>x.count),Is.EqualTo(normalCount));
             Assert.That(ui.SummonExperience("DungeonRelic"),Is.Zero);
+            Assert.That(UiNode("DungeonRelicTicketSummon1").GetComponentsInChildren<Image>().Any(x=>x.sprite==UiKit.Art("DungeonRelicTicket")),Is.True);
+            Object.Destroy(CaptureFrame("dungeon-relic-ticket-result.png",720,1520));
             ui.CloseFullscreen();ReloadPersistedServices();Assert.That(ui.DungeonRelicTickets,Is.Zero);
             foreach(var item in dungeon){item.count=0;item.level=0;item.discovered=false;}
             float gold=ui.GoldGainMultiplier;var goldRelic=dungeon.Single(x=>x.effect=="gold");
@@ -126,6 +128,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.DungeonGoldReward(2),Is.GreaterThan(ui.DungeonGoldReward(1)));
             UiOpen("Shop");var row=UiNode("Summon_DungeonRelic");
             Assert.That(row.GetComponentsInChildren<Button>().Any(x=>x.name=="DungeonRelicTicketSummon1"),Is.True);
+            Assert.That(row.GetComponentsInChildren<Image>().Count(x=>x.sprite==UiKit.Art("DungeonRelicTicket")),Is.EqualTo(4));
             Assert.That(UiNode("Icon: DungeonRelic",row).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("DungeonPottery")));
             Assert.That(UiNode("Icon: Skill",UiNode("Summon_Skill")).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("SkillMeteor")));
             Assert.That(UiNode("Icon: Relic",UiNode("Summon_Relic")).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("NavPottery")));

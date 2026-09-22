@@ -229,7 +229,11 @@ namespace DoodleIdle
             int needed = CommerceExperienceNeeded(state);
             if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 " + (100d / Items(category).Count).ToString("0.##") + "%",22,TextAnchor.MiddleLeft,28);
             else UiKit.Gauge(content, state.level==MaxSummonLevel?"MAX":UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), state.level==MaxSummonLevel?1:(float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
-            if(category=="DungeonRelic")UiKit.Text(content,"전용 뽑기권 "+UiNumber.Format(DungeonRelicTickets)+"장",22,TextAnchor.MiddleLeft,28);
+            if(category=="DungeonRelic") {
+                var wallet=UiKit.Row(content,"Dungeon relic ticket balance",32,5);
+                UiKit.Icon(wallet,"DungeonRelicTicket",32);
+                UiKit.Text(wallet,"전용 뽑기권 "+UiNumber.Format(DungeonRelicTickets)+"장",22,TextAnchor.MiddleLeft,32);
+            }
             BuildSummonButtons(content, category);
             if (category == "Relic")
             {
@@ -249,8 +253,17 @@ namespace DoodleIdle
             var actions = UiKit.Row(parent, "SummonActions", 68, 5);
             if(category=="DungeonRelic") {
                 foreach(int count in new[]{1,10,50}) {
-                    var ticket=UiKit.Button(actions,count+"회 뽑기\n뽑기권 "+count+"장",()=>TrySummonDungeonRelicTickets(count),UiKit.Yellow,68);
+                    var ticket=UiKit.Button(actions,count+"회 뽑기",()=>TrySummonDungeonRelicTickets(count),UiKit.Yellow,68);
                     ticket.name="DungeonRelicTicketSummon"+count;CommerceButtonText(ticket,22);ticket.interactable=DungeonRelicTickets>=count;
+                    var label=ticket.GetComponentInChildren<Text>();
+                    label.rectTransform.anchorMin=new Vector2(0,.44f);label.rectTransform.anchorMax=Vector2.one;
+                    label.rectTransform.offsetMin=new Vector2(3,0);label.rectTransform.offsetMax=new Vector2(-3,-3);
+                    var price=UiKit.Row(ticket.transform,"Dungeon relic ticket cost",26,3);
+                    price.anchorMin=Vector2.zero;price.anchorMax=new Vector2(1,.44f);
+                    price.offsetMin=new Vector2(3,2);price.offsetMax=new Vector2(-3,0);
+                    UiKit.Icon(price,"DungeonRelicTicket",26);
+                    var amount=UiKit.Text(price,count+"장",20,TextAnchor.MiddleCenter,26);
+                    var width=amount.GetComponent<LayoutElement>();width.minWidth=width.preferredWidth=32;width.flexibleWidth=0;
                 }
                 return;
             }

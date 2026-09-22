@@ -540,7 +540,7 @@ namespace DoodleIdle
                 rewards.Add(new UiReward { name="",icon="Gold",amount=amount,rarity=0 });
             } else {
                 int amount=DungeonRelicReward(stage);GrantDungeonRelicTickets(amount);
-                rewards.Add(new UiReward { name="던전 유물 뽑기권",icon="DungeonPottery",amount=amount,rarity=0 });
+                rewards.Add(new UiReward { name="던전 유물 뽑기권",icon="DungeonRelicTicket",amount=amount,rarity=0 });
             }
             Save();if(ActivePage=="Dungeons")RefreshPage();
             ShowRewards("던전 클리어!\n"+DungeonNames[index]+" · "+stage+"단계",rewards);
