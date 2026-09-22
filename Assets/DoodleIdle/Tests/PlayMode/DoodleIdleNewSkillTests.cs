@@ -34,7 +34,7 @@ namespace DoodleIdle.Tests
             var relic = game.Ui.Items("Relic").Single(x => x.effect == "skillAttack");
             relic.discovered = true; relic.level = 10; GrowthLevels["attack"] += 10;
             foreach (bool critical in new[] { false, true }) {
-                GrowthLevels["crit2Chance"] = critical ? 1000 : 0;
+                GrowthLevels["crit2Chance"] = critical ? 4000 : 0;
                 foreach (string ability in abilities) {
                     var profile = DoodleAttackPower.SkillSplash(ability);
                     for (int i = 0; i < 3; i++) health.SetValue(actors[i], 100000f);
@@ -82,7 +82,7 @@ namespace DoodleIdle.Tests
             var hit = typeof(DoodleIdleGame).GetMethod("CompanionDamage", GrowthPrivate);
             var explode = typeof(DoodleIdleGame).GetMethod("CompanionExplosion", GrowthPrivate);
             int[] added = { 0,1,2,3,5,6,7,11 };
-            GrowthLevels["crit2Chance"] = 1000;
+            GrowthLevels["crit2Chance"] = 4000;
             var relic = game.Ui.Items("Relic").Single(x=>x.effect=="companionAttack"); relic.discovered=true; relic.level=10;
             foreach (var item in game.Ui.Items("Companion")) {
                 int index = DoodleCollectionArt.CompanionIndex(item.icon);

@@ -17,13 +17,13 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator UiMainMissionPaysFiveHundredOnceAndResumesTheSavedNextObjective()
+        public IEnumerator UiMainMissionPaysTicketsOnceAndResumesTheSavedNextObjective()
         {
             game.TogglePause();
             var ui = game.Ui;
             Assert.That(ui.AttackStatLevel, Is.Zero);
             Assert.That(ui.MainMissionNumber, Is.EqualTo(1));
-            Assert.That(ui.MainMissionText, Does.Contain("공격력 15단계"));
+            Assert.That(ui.MainMissionText, Does.Contain("공격력 Lv.15"));
             Assert.That(ui.CanClaimMainMission, Is.False);
             int initialDiamonds = ui.Diamonds;
             Assert.That(ui.ClaimMainMission(), Is.False);
@@ -47,23 +47,23 @@ namespace DoodleIdle.Tests
             UiOpen(null);
             Assert.That(ui.MainMissionFraction, Is.EqualTo(1));
             UiClick("Claim main mission");
-            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 500));
-            AssertSingleDiamondReward();
+            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 50));
+            Assert.That(ui.SummonTickets("Armor"),Is.EqualTo(20));
             Assert.That(ui.MainMissionNumber, Is.EqualTo(2));
             Assert.That(ui.ClaimMainMission(), Is.False, "The next, unfinished mission cannot duplicate the previous payout.");
-            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 500));
+            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 50));
             ReloadPersistedServices();
             Assert.That(ui.MainMissionNumber, Is.EqualTo(2));
             Assert.That(ServiceStateValue<int>("mainMissionIndex"), Is.EqualTo(1));
-            Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds"), Is.EqualTo(initialDiamonds + 500));
+            Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds"), Is.EqualTo(initialDiamonds + 50));
             Assert.That(ui.CanClaimMainMission, Is.False);
 
             ui.CloseDetail();
-            DefeatActualServiceEnemies(100);
+            Assert.That(ui.TrySummonTickets("Armor",10),Is.True); ui.CloseFullscreen();
             yield return null;
-            Assert.That(ui.CanClaimMainMission, Is.True, "The next field-kill mission must progress through real combat kills.");
+            Assert.That(ui.CanClaimMainMission, Is.True, "The summon mission uses real ticket draw history.");
             ui.RefreshHud(); UiClick("Claim main mission");
-            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 1000));
+            Assert.That(ui.Diamonds, Is.EqualTo(initialDiamonds + 100));
             Assert.That(ui.MainMissionNumber, Is.EqualTo(3));
             ReloadPersistedServices();
             Assert.That(ui.MainMissionNumber, Is.EqualTo(3));
@@ -154,12 +154,12 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator UiEveryDailyRepeatAndWeeklyQuestPaysExactlyFiveHundredDiamonds()
+        public IEnumerator UiEveryDailyRepeatAndWeeklyQuestPaysConfiguredSmallRewards()
         {
             game.TogglePause();
             var ui = game.Ui;
             var tuning = ServiceTestTuning;
-            Assert.That(tuning.questRewards, Is.All.EqualTo(500));
+            Assert.That(tuning.questRewards, Is.All.EqualTo(100));
             string[][] metrics = {
                 new[] { "kills", "gold", "dungeon", "roulette" },
                 new[] { "kills", "equipmentUpgrade", "skillUpgrade", "gold" },
@@ -176,7 +176,7 @@ namespace DoodleIdle.Tests
                     ui.RecordServiceProgress(metrics[tab][quest], goals[tab][quest]);
                     int before = ui.Diamonds;
                     UiClick("받기", UiNode("Quest " + tab + " " + quest));
-                    Assert.That(ui.Diamonds, Is.EqualTo(before + 500), tabs[tab] + " quest " + quest + " must pay exactly 500.");
+                    Assert.That(ui.Diamonds, Is.EqualTo(before + 100), tabs[tab] + " quest " + quest + " must pay exactly 100.");
                     AssertSingleDiamondReward();
                     ui.CloseDetail();
                 }

@@ -23,29 +23,29 @@ namespace DoodleIdle.Tests
             foreach(string category in new[]{"Armor","Club","Skill","Companion"})
             {
                 double previousLegend=0,previousMyth=0,previousGod=0;
-                for(int level=1;level<=30;level++)
+                for(int level=1;level<=35;level++)
                 {
                     states[category].level=level;
                     Assert.That(ui.Items(category).Sum(ui.ItemProbability),Is.EqualTo(100).Within(.000001));
                     Assert.That(ui.GradeProbability(category,0),Is.GreaterThanOrEqualTo(10));
-                    Assert.That(ui.GradeProbability(category,1),Is.GreaterThanOrEqualTo(10));
+                    Assert.That(ui.GradeProbability(category,1),Is.GreaterThanOrEqualTo(9));
                     double legend=ui.GradeProbability(category,4),myth=ui.GradeProbability(category,5),god=ui.GradeProbability(category,6);
-                    Assert.That(legend,Is.GreaterThanOrEqualTo(previousLegend));Assert.That(myth,Is.GreaterThanOrEqualTo(previousMyth));Assert.That(god,Is.GreaterThanOrEqualTo(previousGod));
-                    if(level<5)Assert.That(legend,Is.Zero);
+                    Assert.That(legend,Is.GreaterThanOrEqualTo(previousLegend));if(level<=30)Assert.That(myth,Is.GreaterThanOrEqualTo(previousMyth));Assert.That(god,Is.GreaterThanOrEqualTo(previousGod));
+                    if(level<6)Assert.That(legend,Is.Zero);
                     if(level<15)Assert.That(myth,Is.Zero);
                     if(level<25)Assert.That(god,Is.Zero);
                     previousLegend=legend;previousMyth=myth;previousGod=god;
                 }
                 int[] draws=new int[7];
-                for(int ticket=0;ticket<10000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
-                CollectionAssert.AreEqual(category=="Skill"||category=="Companion"?new[]{1000,1000,2400,2500,2000,1100,0}:new[]{1000,1000,2400,2500,2000,1000,100},draws,"All lottery intervals must match the displayed level 30 probabilities, including the six-grade catalogs.");
+                for(int ticket=0;ticket<100000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
+                CollectionAssert.AreEqual(category=="Skill"||category=="Companion"?new[]{20000,20000,20000,20000,18000,2000,0}:new[]{20000,20000,20000,20000,18000,1900,100},draws,"All lottery intervals must match the displayed level 35 probabilities, including the six-grade catalogs.");
                 states[category].level=1;
-                for(int ticket=0;ticket<10000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
-                states[category].level=29;states[category].experience=999;
+                for(int ticket=0;ticket<100000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
+                states[category].level=34;states[category].experience=9999;
                 Assert.That(ui.TrySummon(category,50,false),Is.True);
-                Assert.That(ui.SummonLevel(category),Is.EqualTo(30));Assert.That(ui.SummonExperience(category),Is.Zero);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(35));Assert.That(ui.SummonExperience(category),Is.Zero);
                 Assert.That(ui.TrySummon(category,50,false),Is.True);
-                Assert.That(ui.SummonLevel(category),Is.EqualTo(30));Assert.That(ui.SummonExperience(category),Is.Zero);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(35));Assert.That(ui.SummonExperience(category),Is.Zero);
                 ui.CloseFullscreen();
             }
             var relics=ui.Items("Relic");Assert.That(relics.Select(x=>x.rarity).Distinct().Count(),Is.EqualTo(1));
@@ -63,7 +63,7 @@ namespace DoodleIdle.Tests
             PlayerPrefs.SetString("DoodleUi.Commerce.Armor","{\"level\":999,\"experience\":1000}");
             PlayerPrefs.SetString("DoodleUi.Commerce.Relic","{\"level\":10,\"experience\":100}");
             typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(ui,null);
-            Assert.That(ui.SummonLevel("Armor"),Is.EqualTo(30));Assert.That(ui.SummonExperience("Armor"),Is.Zero);
+            Assert.That(ui.SummonLevel("Armor"),Is.EqualTo(35));Assert.That(ui.SummonExperience("Armor"),Is.Zero);
             Assert.That(ui.SummonLevel("Relic"),Is.Zero);Assert.That(ui.SummonExperience("Relic"),Is.Zero);
             yield return null;
         }

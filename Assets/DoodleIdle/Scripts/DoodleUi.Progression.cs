@@ -33,6 +33,7 @@ namespace DoodleIdle
                 int previousSkillSlots = UnlockedSkillSlots;
                 if (MainBossPending)
                     services.mainStage = (int)Math.Min(int.MaxValue, (long)services.mainStage + 1);
+                services.highestMainStage=Math.Max(services.highestMainStage,services.mainStage);
                 services.mainStageKillProgress = 0;
                 Save();
                 if (UnlockedSkillSlots != previousSkillSlots && ActivePage == "Skills") RefreshPage();
@@ -55,8 +56,27 @@ namespace DoodleIdle
         public static int DungeonDifficultyStage(int stage) => (int)Math.Min(int.MaxValue, Math.Max(1L, stage) * 50);
         public int CombatDifficultyStage => ActiveDungeonIndex < 0 ? (int)Math.Min(int.MaxValue, (long)MainStage+1) : DungeonDifficultyStage(DungeonChallengeStage(ActiveDungeonIndex));
         public int DungeonThemeIndex => ActiveDungeonIndex == 0 ? 8 : 6;
-        public float EnemyHealthMultiplier(int displayStage) => 1 + Math.Max(0L,(long)displayStage-1) * Mathf.Max(0,serviceTuning.enemyHealthStageGrowth);
-        public float EnemyDamageMultiplier(int displayStage) => 1 + Math.Max(0L,(long)displayStage-1) * Mathf.Max(0,serviceTuning.enemyDamageStageGrowth);
+        public int HighestMainStage => services==null?0:Math.Max(services.highestMainStage,services.mainStage);
+        public float EnemyHealthMultiplier(int displayStage)
+        {
+            if(serviceTuning.enemyHealthStageGrowth<=0)return 1;
+            double stage=Math.Max(0L,(long)displayStage-1);
+            return (float)Math.Min(1e30,(1+stage*serviceTuning.enemyHealthStageGrowth)*Math.Pow(serviceTuning.enemyPowerGrowth,Math.Min(20000,stage*4))*(1+stage*serviceTuning.enemyHealthBudget));
+        }
+        public float EnemyDamageMultiplier(int displayStage)
+        {
+            if(serviceTuning.enemyDamageStageGrowth<=0)return 1;
+            double stage=Math.Max(0L,(long)displayStage-1);
+            return (float)Math.Min(1e30,(1+stage*serviceTuning.enemyDamageStageGrowth)*Math.Pow(serviceTuning.enemyDamagePowerGrowth,Math.Min(20000,stage*4))*(1+stage*.04));
+        }
+        public void HandlePlayerDefeat()
+        {
+            if(services==null)return;
+            CreditPendingFieldGold();
+            if(ActiveDungeonIndex>=0){services.activeDungeon=-1;services.dungeonProgress=0;Toast("던전 도전에 실패했어요.");}
+            else {services.highestMainStage=Math.Max(HighestMainStage,MainStage);services.mainStage=Math.Max(0,MainStage-1);services.mainStageKillProgress=0;Toast("패배 · 스테이지 "+(MainStage+1)+"에서 다시 시작합니다.");}
+            if(game)game.RequestCombatWaveReset();Save();RefreshHud();
+        }
         // Field kills and cave rewards share every gold balance value and live bonus.
         public int GoldForMainKills(int displayStage, int count)
         {
@@ -84,73 +104,6 @@ namespace DoodleIdle
             if(services==null||amount<=0||DungeonRelicTickets<amount)return false;
             services.dungeonRelicTickets-=amount;Save();return true;
         }
-        public int MainMissionReward => 500;
-        public int MainMissionNumber => services == null ? 1 : (int)Math.Min(int.MaxValue, services.mainMissionIndex + 1L);
-        public bool CanClaimMainMission => services != null && MainMissionProgress >= MainMissionGoal;
-        public float MainMissionFraction => services == null ? 0 : Mathf.Clamp01((float)(MainMissionProgress / (double)Math.Max(1, MainMissionGoal)));
-
-        // The first mission preserves the existing attack-level-15 objective. The
-        // following four-objective cycle has increasing lifetime goals and no daily
-        // lockout: field kills, earned gold, attack upgrades, completed main stages.
-        int MainMissionKind => services == null || services.mainMissionIndex == 0 ? -1 : (services.mainMissionIndex - 1) % 4;
-        long MainMissionCycle => services == null || services.mainMissionIndex == 0 ? 0 : (services.mainMissionIndex - 1L) / 4 + 1;
-        long MainMissionGoal
-        {
-            get
-            {
-                switch (MainMissionKind)
-                {
-                    case 0: return MainMissionCycle * 100;
-                    case 1: return MainMissionCycle * 5000;
-                    case 2: return Math.Min(int.MaxValue, 15 + MainMissionCycle * 5);
-                    case 3: return Math.Min(int.MaxValue, MainMissionCycle * 5);
-                    default: return 15;
-                }
-            }
-        }
-        long MainMissionProgress
-        {
-            get
-            {
-                if (services == null) return 0;
-                switch (MainMissionKind)
-                {
-                    case 0: return services.mainKills;
-                    case 1: return services.earnedGold;
-                    case 3: return MainStage;
-                    default: return AttackStatLevel;
-                }
-            }
-        }
-        public string MainMissionText
-        {
-            get
-            {
-                string goal = UiNumber.Format(MainMissionGoal);
-                string objective;
-                switch (MainMissionKind)
-                {
-                    case 0: objective = "필드 적 " + goal + "마리 처치"; break;
-                    case 1: objective = "골드 " + goal + " 획득"; break;
-                    case 3: objective = "메인 " + goal + "단계 클리어"; break;
-                    default: objective = "공격력 " + goal + "단계 달성"; break;
-                }
-                return "미션 " + MainMissionNumber + ".\n" + objective + "\n(" + UiNumber.Format(Math.Min(MainMissionProgress, MainMissionGoal)) + "/" + goal + ")";
-            }
-        }
-
-        public bool ClaimMainMission()
-        {
-            if (!CanClaimMainMission || services.mainMissionIndex == int.MaxValue) return false;
-            // Advance the persisted mission before opening the reward view. Repeated
-            // clicks therefore cannot claim the same completed objective twice.
-            services.mainMissionIndex++;
-            Diamonds += MainMissionReward;
-            Save(); RefreshPage();
-            ShowRewards("미션 보상 획득!", new List<UiReward> { new UiReward { name = "", icon = "Diamond", amount = MainMissionReward, rarity = 0 } });
-            return true;
-        }
-
         public bool TrySpendRelicTickets(int amount)
         {
             if (services == null || amount <= 0 || services.relicTickets < amount) return false;

@@ -37,7 +37,7 @@ namespace DoodleIdle.Tests
             var general = ui.Items("Relic").Single(x => x.effect == "attack");
             before = Hit("Companion"); general.level += 10;
             Assert.That(Hit("Companion"), Is.GreaterThan(before));
-            GrowthLevels["crit2Chance"] = 1000;
+            GrowthLevels["crit2Chance"] = 4000;
             var critical = ui.Items("Relic").Single(x => x.effect == "critDamage"); critical.discovered = true; critical.level = 10;
             foreach (string category in new[] { "Basic", "Skill", "Companion" })
                 Assert.That(Hit(category), Is.EqualTo(ui.CurrentAttackPower * 2.4f).Within(.03f));
@@ -129,14 +129,14 @@ namespace DoodleIdle.Tests
                 Assert.That(UiNode("Previous probability level").GetComponent<Button>().interactable, Is.False);
                 var god = ui.Items("Armor").Single(x => x.rarity == 6);
                 Assert.That(ui.PreviewItemProbability(god, 1), Is.Zero);
-                for (int page = 2; page <= 30; page++) {
+                for (int page = 2; page <= 35; page++) {
                     UiClick("Next probability level");
                     Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentInChildren<DoodlePopupMotion>().transform.localScale,Is.EqualTo(Vector3.one));
                     yield return null;
                 }
-                Assert.That(UiNode("Probability level title").GetComponent<Text>().text, Does.Contain("30"));
+                Assert.That(UiNode("Probability level title").GetComponent<Text>().text, Does.Contain("35"));
                 Assert.That(UiNode("Next probability level").GetComponent<Button>().interactable, Is.False);
-                Assert.That(UiNode("Probability_grade_6").GetComponentsInChildren<Text>().Any(x => x.text == "1%"), Is.True);
+                Assert.That(UiNode("Probability_grade_6").GetComponentsInChildren<Text>().Any(x => x.text == "0.1%"), Is.True);
                 Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(x => x.text == "등급별 확률"), Is.True);
                 Assert.That(ui.SummonLevel("Armor"), Is.EqualTo(level)); Assert.That(ui.SummonExperience("Armor"), Is.EqualTo(experience));
                 Object.Destroy(CaptureFrame("latest-probability-level-30.png", 720, 1520));

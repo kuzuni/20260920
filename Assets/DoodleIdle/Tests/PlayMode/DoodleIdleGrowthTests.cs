@@ -61,7 +61,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.CombatDamageMultiplier, Is.EqualTo(1).Within(.00001), "Fresh-profile damage must preserve the original combat baseline.");
             foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance", "crit4Chance" })
             {
-                if (id == "crit4Chance") GrowthLevels["crit2Chance"] = 1000;
+                if (id == "crit4Chance") GrowthLevels["crit2Chance"] = 4000;
                 long before = ui.Power;
                 float stat = ui.StatValue(id), health = ui.MaxHealth, regen = ui.HealthRegen, damage = ui.CombatDamageMultiplier;
                 Assert.That(ui.UpgradeStat(id, 1), Is.True);
@@ -108,7 +108,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Critical2Chance, Is.EqualTo(100));
             Assert.That(ui.Critical4Chance, Is.EqualTo(100));
             Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(4).Within(.00001), "Four-times priority must not multiply a simultaneous two-times roll into eight-times damage.");
-            GrowthLevels["crit2Chance"] = 200; // 20%
+            GrowthLevels["crit2Chance"] = 800; // 20%
             GrowthLevels["crit4Chance"] = 600; // 30%
             Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(.8 + .2 * 2).Within(.00001));
             var criticalRelic = ui.Items("Relic").Single(x => x.effect == "critDamage");

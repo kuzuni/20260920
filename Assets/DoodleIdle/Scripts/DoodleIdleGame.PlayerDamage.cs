@@ -48,6 +48,7 @@ namespace DoodleIdle
                         player.body.position = Vector2.zero;
                         player.body.linearVelocity = Vector2.zero;
                         dashRemaining = 0;
+                        if(Ui)Ui.HandlePlayerDefeat();
                     }
                     break; // One shared immunity window, including contact with other enemies.
                 }

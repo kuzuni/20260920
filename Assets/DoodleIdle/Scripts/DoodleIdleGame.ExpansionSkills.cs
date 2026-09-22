@@ -150,7 +150,7 @@ namespace DoodleIdle
                         if ((enemy.Position - position).sqrMagnitude > 1.8f * 1.8f) continue;
                         if (unit.nextHit.TryGetValue(enemy, out float next) && next > unit.age) continue;
                         unit.nextHit[enemy] = unit.age + .18f;
-                        SkillDamage(enemy, 18, Vector2.zero); TornadoHits++;
+                        SkillDamage(enemy, 18, Vector2.zero, "Tornado"); TornadoHits++;
                     }
                 }
                 unit.art.transform.position = position;
@@ -182,7 +182,7 @@ namespace DoodleIdle
                 Echo("Meteor impact crater", DoodleExpansionArt.Get("SkillMeteorCrater"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, 7, .9f, -890);
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if ((enemies[e].Position - meteor.end).sqrMagnitude <= 3.2f * 3.2f)
-                    { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized); MeteorHits++; }
+                    { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized, "Meteor"); MeteorHits++; }
                 MeteorsLanded++; Destroy(meteor.art.gameObject); meteors.RemoveAt(i);
             }
         }

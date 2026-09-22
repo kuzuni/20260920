@@ -121,7 +121,7 @@ namespace DoodleIdle
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id), 30, TextAnchor.MiddleLeft, 39);
                 float current = StatValue(stat.id);
-                float next = current + stat.increment * upgrades;
+                float next = StatValueAfterUpgrades(stat.id,upgrades);
                 if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
                 UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
                 if (locked)
@@ -196,7 +196,7 @@ namespace DoodleIdle
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
             CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%");
-            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)));
+            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)) + "%");
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)
             {
@@ -396,6 +396,7 @@ namespace DoodleIdle
             owned.Sort((a, b) => { int score = ItemEquipValue(b).CompareTo(ItemEquipValue(a)); return score != 0 ? score : string.CompareOrdinal(a.id, b.id); });
             foreach (var item in Items(category)) item.equipped = false;
             for (int i = 0; i < Math.Min(EquipLimit(category), owned.Count); i++) { owned[i].equipped = true; owned[i].slot = i; }
+            if(owned.Count>0)RecordMissionAction("equip:"+category);
             NotifyPowerChanged(before, "자동 장착");
         }
 
@@ -520,6 +521,7 @@ namespace DoodleIdle
                     return;
                 }
                 item.equipped = true; item.slot = limit == 1 ? 0 : equipped.Count;
+                RecordMissionAction("equip:"+item.category);
             }
             NormalizeEquipment(item.category);
             NotifyPowerChanged(before, item.equipped ? "장착" : "장착 해제");
@@ -532,6 +534,7 @@ namespace DoodleIdle
             if (item == null || item.category != previous.category || !previous.equipped || !item.discovered) return;
             long before = Power;
             previous.equipped = false; item.equipped = true; item.slot = previous.slot; pendingEquip = null;
+            RecordMissionAction("equip:"+item.category);
             NormalizeEquipment(item.category); NotifyPowerChanged(before, "장착 교체"); Save(); RefreshPage();
         }
 
@@ -647,6 +650,7 @@ namespace DoodleIdle
             if (item == null || item.category != "Relic" || !item.discovered || item.count < 1 || item.level >= collectionTuning.maxItemLevel) return false;
             long before = notifyPower ? Power : 0;
             item.count--;
+            RecordMissionAction("relicAttempt");
             success = collectionRandom.NextDouble() < .5;
             if (success) { item.level++; RecordServiceProgress("relicUpgrade", 1); }
             if (notifyPower) NotifyPowerChanged(before, "유물 강화");

@@ -9,7 +9,7 @@ namespace DoodleIdle
         sealed class VariantVolley { public string ability; public bool requiresEquipment; public int remaining,index; public float clock; public Vector2 direction; }
         sealed class VariantShot
         {
-            public SpriteRenderer art; public Vector2 direction,start,end; public float age,speed,life,damage,radius,spin;
+            public string ability; public SpriteRenderer art; public Vector2 direction,start,end; public float age,speed,life,damage,radius,spin;
             public bool arc,rolling,afterimage; public float size,trail; public readonly HashSet<Actor> victims=new HashSet<Actor>();
         }
         readonly Dictionary<string,float> variantClocks=new Dictionary<string,float>();
@@ -84,7 +84,7 @@ namespace DoodleIdle
         VariantShot VariantProjectile(string art,Vector2 origin,Vector2 direction,float size,float speed,float life,float damage,float radius,float spin=0)
         {
             var sprite=WorldIcon(art);
-            var shot=new VariantShot { start=origin,direction=direction,speed=speed,life=life,damage=damage,radius=radius,spin=spin,size=size,
+            var shot=new VariantShot { ability=art=="Cucumber"?"Eggplant":art=="Brick"?"BrickVolley":art=="SkillDumbbell"?"Dumbbell":art, start=origin,direction=direction,speed=speed,life=life,damage=damage,radius=radius,spin=spin,size=size,
                 art=Visual(art+" variant projectile",sprite,origin,Vector2.one*size,515) };
             shot.art.transform.rotation=Aim(direction);variantShots.Add(shot);VariantProjectilesLaunched++;return shot;
         }
@@ -113,7 +113,7 @@ namespace DoodleIdle
                 if(!shot.arc || t>=1)for(int e=enemies.Count-1;e>=0;e--) {
                     var enemy=enemies[e];float distance=shot.arc?Vector2.Distance(enemy.Position,shot.end):SegmentDistance(enemy.Position,old,next);
                     if(distance>shot.radius+.56f || !shot.victims.Add(enemy))continue;
-                    SkillDamage(enemy,shot.damage,shot.direction);
+                    SkillDamage(enemy,shot.damage,shot.direction,shot.ability);
                 }
                 if(shot.age>=shot.life){Destroy(shot.art.gameObject);variantShots.RemoveAt(i);}
             }

@@ -48,7 +48,7 @@ namespace DoodleIdle.Tests
             finally { System.Globalization.CultureInfo.CurrentCulture = culture; }
         }
         static readonly string[] UiProfileKeys = {
-            "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
+            "DoodleUi.CommerceExtras.v1", "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
             "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic", "DoodleUi.Commerce.DungeonRelic", "DoodleUi.SkillRefundRemainder"
         };
@@ -290,10 +290,10 @@ namespace DoodleIdle.Tests
             scroll = UiTopScroll();
             yield return null;
             Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(7));
-            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("같은 등급의 아이템은 모두 같은 확률")), Is.True);
+            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("같은 등급 안에서는 낮은 번호")), Is.True);
             for(int grade=0;grade<7;grade++) {
                 var rate=UiNode("Probability_grade_"+grade).GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate");
-                Assert.That(rate.text,Is.EqualTo(game.Ui.GradeProbability("Armor",grade).ToString("0.##")+"%"));
+                Assert.That(rate.text,Is.EqualTo(game.Ui.GradeProbability("Armor",grade).ToString("0.###")+"%"));
             }
             if(scroll.content.rect.height>scroll.viewport.rect.height)scroll.verticalNormalizedPosition=0;
             Canvas.ForceUpdateCanvases();

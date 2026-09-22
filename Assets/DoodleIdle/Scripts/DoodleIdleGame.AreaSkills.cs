@@ -91,7 +91,7 @@ namespace DoodleIdle
                 fireZones.Add(new FireZone { center = bottle.end,blue=bottle.blue });
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if (Vector2.Distance(enemies[e].Position, bottle.end) <= FireZoneRadius + .56f)
-                        Impact(SummonSkill.Molotov, enemies[e], 18, Vector2.zero);
+                        Impact(SummonSkill.Molotov, enemies[e], 18, Vector2.zero, bottle.blue ? "BlueMolotov" : "Molotov");
                 Destroy(bottle.art.gameObject); bottles.RemoveAt(i);
             }
             for (int i = fireZones.Count - 1; i >= 0; i--)
@@ -104,7 +104,7 @@ namespace DoodleIdle
                 zone.hitClock += .35f;
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if (Vector2.Distance(enemies[e].Position, zone.center) <= FireZoneRadius + .56f)
-                        Impact(SummonSkill.Molotov, enemies[e], 8, Vector2.zero);
+                        Impact(SummonSkill.Molotov, enemies[e], 8, Vector2.zero, zone.blue ? "BlueMolotov" : "Molotov");
             }
             for (int i = soundWaves.Count - 1; i >= 0; i--)
             {

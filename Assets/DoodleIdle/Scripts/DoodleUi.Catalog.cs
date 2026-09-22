@@ -15,6 +15,7 @@ namespace DoodleIdle
         public int volleyCount;
         public float volleyGap, attackInterval, projectileSpeed, explosionRadius;
         public float splashDamageMultiplier = 1;
+        public float damageMultiplier = 1;
     }
 
     [Serializable]
@@ -22,6 +23,7 @@ namespace DoodleIdle
     {
         public string id, name, icon;
         public float initial, increment;
+        public float valueGrowth = 1;
         public int baseCost;
     }
 
@@ -89,7 +91,7 @@ namespace DoodleIdle
                     if (state != null && state.stats != null)
                     {
                         foreach (var entry in state.stats)
-                            if (statLevels.ContainsKey(entry.id)) statLevels[entry.id] = Mathf.Clamp(entry.level, 0, StatMaxLevel(entry.id));
+                            if (statLevels.ContainsKey(entry.id)) statLevels[entry.id] = (int)Math.Min(StatMaxLevel(entry.id),Math.Max(0L,(long)entry.level*(state.version<3&&entry.id=="crit2Chance"?4:1)));
                         if (state.version < 2)
                             foreach (var entry in state.stats)
                             {
@@ -107,7 +109,7 @@ namespace DoodleIdle
         public void SaveCollections()
         {
             if (collectionTuning == null) return;
-            var saved = new CollectionSave { version = 2 };
+            var saved = new CollectionSave { version = 3 };
             foreach (var item in collectionItems)
                 saved.items.Add(new ItemSave { id = item.id, count = item.count, level = item.level, slot = item.slot, equipped = item.equipped, discovered = item.discovered });
             foreach (var pair in statLevels) saved.stats.Add(new StatSave { id = pair.Key, level = pair.Value });
@@ -130,25 +132,30 @@ namespace DoodleIdle
             if (items.Count == 0) throw new ArgumentException("Unknown collection category", nameof(category));
             if(category=="Relic"||category=="DungeonRelic")return items[rng.Next(items.Count)];
             var weights=SummonWeights(category);
-            int roll = rng.Next(10000), grade = 0;
+            int roll = rng.Next(SummonWeightTotal), grade = 0;
             while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
             var choices = items.FindAll(x => x.rarity == grade);
             if (choices.Count == 0) throw new InvalidOperationException("Every draw category must contain every rarity.");
-            return choices[rng.Next(choices.Count)];
+            int itemRoll=rng.Next(100),choice=0;
+            var tierWeights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
+            while(choice<choices.Count-1&&itemRoll>=tierWeights[choice]){itemRoll-=tierWeights[choice];choice++;}
+            return choices[choice];
         }
 
         public double GradeProbability(string category, int rarity)
         {
             InitCollections();
-            return rarity >= 0 && rarity < 7 && Items(category).Exists(x => x.rarity == rarity) ? SummonWeights(category)[rarity]/100d : 0;
+            return rarity >= 0 && rarity < 7 && Items(category).Exists(x => x.rarity == rarity) ? SummonWeights(category)[rarity]/1000d : 0;
         }
 
         public double ItemProbability(UiItem item)
         {
             if (item == null) return 0;
             if(item.category=="Relic")return 100d/Items(item.dungeonRelic?"DungeonRelic":"Relic").Count;
-            int count = Items(item.category).FindAll(x => x.rarity == item.rarity).Count;
-            return count == 0 ? 0 : GradeProbability(item.category, item.rarity) / count;
+            var choices=Items(item.category).FindAll(x=>x.rarity==item.rarity);int index=choices.IndexOf(item);
+            if(index<0)return 0;
+            var weights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
+            return GradeProbability(item.category,item.rarity)*weights[index]/100;
         }
 
         public void AddItem(UiItem item, int count)
@@ -166,7 +173,7 @@ namespace DoodleIdle
         public int UnlockedSkillSlots {
             get {
                 int count = 1;
-                while (count < skillSlotStages.Length && MainStage >= skillSlotStages[count] - 1) count++;
+                while (count < skillSlotStages.Length && HighestMainStage >= skillSlotStages[count] - 1) count++;
                 return count;
             }
         }
@@ -205,11 +212,13 @@ namespace DoodleIdle
             foreach (var stat in collectionTuning.stats)
                 if (stat.id == id)
                 {
-                    float value = stat.initial + stat.increment * StatLevel(id);
+                    float value = StatValueAtLevel(stat,StatLevel(id));
                     return IsCriticalChance(id) ? Mathf.Clamp(value, 0, 100) : value;
                 }
             return 0;
         }
+        static float StatValueAtLevel(UiStatDefinition stat,int level) => (float)Math.Min(1e30,(stat.initial+stat.increment*(double)level)*Math.Pow(Math.Max(1,stat.valueGrowth),Math.Max(0,level)));
+        public float StatValueAfterUpgrades(string id,int count) { var stat=Array.Find(collectionTuning.stats,x=>x.id==id);return stat==null?0:Mathf.Min(IsCriticalChance(id)?100:1e30f,StatValueAtLevel(stat,(int)Math.Min(int.MaxValue,(long)StatLevel(id)+count))); }
         public float OwnedBonus => EffectBonus("attack");
         public float HealthBonus => EffectBonus("health");
         public float GoldGainMultiplier => 1 + EffectBonus("gold") / 100;
@@ -217,9 +226,9 @@ namespace DoodleIdle
         public bool Critical4Unlocked => StatLevel("crit2Chance") >= StatMaxLevel("crit2Chance");
         public float Critical4Chance => Critical4Unlocked ? Mathf.Clamp(StatValue("crit4Chance") + EffectBonus("crit4Chance"), 0, 100) : 0;
         public float CriticalDamageBonus => Mathf.Max(0, EffectBonus("critDamage"));
-        public float MaxHealth => Mathf.Max(1, (StatValue("health") + EquippedValue("Armor")) * (1 + HealthBonus / 100));
+        public float MaxHealth => Mathf.Max(1, (StatValue("health") * (1 + EquippedValue("Armor") / 100)) * (1 + HealthBonus / 100));
         public float HealthRegen => Mathf.Max(0, StatValue("healthRegen") * (1 + EffectBonus("healthRegen") / 100));
-        float CollectionDamageMultiplier(bool includeSkins) => ((StatValue("attack") + EquippedValue("Club")) / BaseStatValue("attack")) * (1 + (EffectBonus("attack", null, includeSkins) + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
+        float CollectionDamageMultiplier(bool includeSkins) => (StatValue("attack") * (1 + EquippedValue("Club") / 100) / BaseStatValue("attack")) * (1 + (EffectBonus("attack", null, includeSkins) + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
         public float CombatDamageMultiplier { get { InitCollections(); return CollectionDamageMultiplier(true) / Mathf.Max(.001f, starterDamageBaseline); } }
         public float CombatAttackSpeedMultiplier => 1;
         public double ExpectedCriticalMultiplier

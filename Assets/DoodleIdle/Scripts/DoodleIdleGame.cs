@@ -480,7 +480,7 @@ namespace DoodleIdle
                     if (SegmentDistance(enemy.Position, previous, p) > 1.02f) continue;
                     if (bananaHitTimes.TryGetValue(enemy, out float last) && Elapsed - last < .35f) continue;
                     bananaHitTimes[enemy] = Elapsed; BananaHits++;
-                    SkillDamage(enemy, 19, (enemy.Position - player.Position).normalized);
+                    SkillDamage(enemy, 19, (enemy.Position - player.Position).normalized, "Banana");
                 }
             }
         }
@@ -523,15 +523,15 @@ namespace DoodleIdle
         void Damage(Actor enemy, float amount, Vector2 push)
             => DamageByCategory(enemy, amount, push, "Basic");
 
-        void SkillDamage(Actor enemy, float weight, Vector2 push)
-            => DamageByCategory(enemy, weight, push, "Skill");
+        void SkillDamage(Actor enemy, float weight, Vector2 push, string ability = null)
+            => DamageByCategory(enemy, weight * (Ui && ability != null ? Ui.SkillPowerMultiplier(ability) : 1), push, "Skill");
 
         void SkillImpact(Actor target, float weight, Vector2 push, string ability)
         {
             if (!Alive(target)) return;
             Vector2 center = target.Position;
             var splash = DoodleAttackPower.SkillSplash(ability);
-            SkillDamage(target, weight, push);
+            SkillDamage(target, weight, push, ability);
             if (splash.radius <= 0) return;
             skillSplashCounts[ability] = SkillSplashCount(ability) + 1;
             if (splash.particleIndex < 0)
@@ -543,7 +543,7 @@ namespace DoodleIdle
                 var enemy = enemies[i];
                 float contact = enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                 if (enemy != target && Vector2.Distance(enemy.Position, center) <= splash.radius + contact)
-                    SkillDamage(enemy, weight * splash.fraction, (enemy.Position - center).normalized);
+                    SkillDamage(enemy, weight * splash.fraction, (enemy.Position - center).normalized, ability);
             }
         }
 

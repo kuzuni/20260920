@@ -292,20 +292,20 @@ namespace DoodleIdle.Tests
             string[] metrics = { "kills", "equipmentUpgrade", "skillUpgrade", "gold" };
             int[] metricIndices = { 0, 4, 5, 1 };
             foreach (string metric in metrics) { ui.RecordServiceProgress(metric, int.MaxValue); ui.RecordServiceProgress(metric, 1); }
-            ui.Diamonds = int.MaxValue - 1250;
+            ui.Diamonds = int.MaxValue - 250;
             UiOpen("Quests"); UiClick("반복", UiNode("Quest tabs")); UiClick("일괄받기");
-            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 250));
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 50));
             Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.EqualTo(int.MaxValue - tuning.repeatGoals[0] * 2));
             for (int i = 1; i < 4; i++) Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(int.MaxValue));
             ui.CloseDetail();
             typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
             int[] before = (int[])ServiceStateValue<int[]>("repeat").Clone();
             UiClick("일괄받기");
-            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 250));
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 50));
             Assert.That(ServiceStateValue<int[]>("repeat"), Is.EqualTo(before), "No full reward fits, so no pending cycle may be removed.");
             ui.Diamonds = 0;
             UiClick("일괄받기");
-            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue / 500 * 500));
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue / 100 * 100));
             long paid = 0;
             for (int i = 0; i < 4; i++)
             {

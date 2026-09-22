@@ -6,7 +6,7 @@ namespace DoodleIdle
     public static class DoodleGameData
     {
         public static readonly string[] SaveKeys = {
-            "DoodleUi.Gold", "DoodleUi.Diamonds", "DoodleUi.CameraMode", "DoodleUi.SkipSummonAnimations",
+            "DoodleUi.Gold", "DoodleUi.Diamonds", "DoodleUi.CameraMode", "DoodleUi.SkipSummonAnimations", "DoodleUi.CommerceExtras.v1",
             "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins", "DoodleUi.SkillRefundRemainder",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
             "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic", "DoodleUi.Commerce.DungeonRelic"

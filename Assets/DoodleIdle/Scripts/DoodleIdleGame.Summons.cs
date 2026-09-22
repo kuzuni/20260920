@@ -154,7 +154,7 @@ namespace DoodleIdle
             SummonImpact?.Invoke(skill, target.root.GetInstanceID());
             if (splashAbility != null) SkillImpact(target, amount, direction, splashAbility);
             else if (skill == SummonSkill.Shotgun) SkillImpact(target, amount, direction, "Shotgun");
-            else SkillDamage(target, amount, direction);
+            else SkillDamage(target, amount, direction, skill == SummonSkill.SoundWave ? "Sound" : skill == SummonSkill.Cucumber ? "Eggplant" : skill == SummonSkill.StormCloud ? "Cloud" : skill.ToString());
         }
 
         SpriteRenderer Echo(string label, Sprite art, Vector2 position, Vector2 scale, Quaternion rotation, float lifetime, float alpha, int order)
@@ -523,7 +523,7 @@ namespace DoodleIdle
                         if (SegmentDistance(enemy.Position, old, position) > (dragon ? .92f : .8f)) continue;
                         if (snake.nextHit.TryGetValue(enemy, out float until) && snake.age < until) continue;
                         snake.nextHit[enemy] = snake.age + (tether ? .18f : .35f);
-                        Impact(snake.kind, enemy, tether ? 8 : 13, (enemy.Position - player.Position).normalized);
+                        Impact(snake.kind, enemy, tether ? 8 : 13, (enemy.Position - player.Position).normalized, snake.ice ? "IceSnakes" : null);
                     }
                 }
                 if (dragon)

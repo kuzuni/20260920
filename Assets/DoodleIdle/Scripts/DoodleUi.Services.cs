@@ -21,6 +21,7 @@ namespace DoodleIdle
             public int goldDungeonEnemyCount = 500;
             public float goldPerEnemy = 10, goldStageGrowth = 0;
             public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .01f;
+            public float enemyPowerGrowth=1.0095f,enemyHealthBudget=.25f,enemyDamagePowerGrowth=1.007f;
             public float goldBuff = .5f, attackBuff = .3f;
             public int[] dailyGoals = { 200, 1000, 3, 5 };
             public int[] repeatGoals = { 500, 10, 5, 5000 };
@@ -43,6 +44,8 @@ namespace DoodleIdle
             public bool breakthroughMode = true;
             public int[] dungeonStages = new int[3];
             public long mainKills, earnedGold;
+            public int highestMainStage,missionVersion;
+            public List<CareerCounter> career=new List<CareerCounter>();
         }
 
         sealed class ServiceBinding
@@ -128,6 +131,7 @@ namespace DoodleIdle
             services.attendanceIndex = Mathf.Clamp(services.attendanceIndex, 0, 7);
             services.activeDungeon = Mathf.Clamp(services.activeDungeon, -1, 2);
             if (services.activeDungeon == 1) { services.activeDungeon = -1; services.dungeonProgress = 0; }
+            InitMissionHistory();
             ResetServicePeriods();
             lastServiceKills = game ? game.Kills : 0;
             Application.targetFrameRate = services.powerSaving ? 30 : 60;
@@ -205,6 +209,7 @@ namespace DoodleIdle
         public void RecordServiceProgress(string metric, int amount)
         {
             if (services == null || amount <= 0) return;
+            RecordMissionAction(metric,amount);
             if (metric == "gold") services.earnedGold = SaturatingAdd(services.earnedGold, amount);
             ResetServicePeriods();
             int index = Array.IndexOf(ServiceMetrics, metric);
@@ -276,6 +281,7 @@ namespace DoodleIdle
             if (services.attendanceDay == services.day || services.attendanceIndex >= 7) return;
             int amount = serviceTuning.attendance[services.attendanceIndex++];
             services.attendanceDay = services.day;
+            RecordMissionAction("attendance");
             GrantServiceDiamonds(amount, "출석 보상 획득!");
         }
 
@@ -380,7 +386,7 @@ namespace DoodleIdle
             if (Diamonds < serviceTuning.buffPrice) { Toast("다이아가 부족합니다"); return; }
             long expiry = now + TimeSpan.FromSeconds(serviceTuning.buffSeconds).Ticks;
             if (attack) services.attackExpiry = expiry; else services.goldExpiry = expiry;
-            Diamonds -= serviceTuning.buffPrice; Save(); RefreshPage();
+            RecordMissionAction("buff");Diamonds -= serviceTuning.buffPrice; Save(); RefreshPage();
         }
 
         void ServiceGauge(Transform parent, Func<int> current, Func<int> maximum, bool clock = false, bool separate = false)
@@ -481,6 +487,7 @@ namespace DoodleIdle
                 reward += paidCycles * perCycle;
             }
             if (reward == 0) { Toast(walletFull ? "다이아 보유 한도입니다 · 미수령 보상은 유지됩니다" : "받을 수 있는 보상이 없습니다"); return; }
+            RecordMissionAction("questClaim");
             GrantServiceDiamonds((int)reward, "퀘스트 보상 획득!");
             if (walletFull) Toast("보유 한도로 남은 보상은 다음에 받을 수 있습니다");
         }
@@ -531,6 +538,7 @@ namespace DoodleIdle
         {
             int index=services.activeDungeon, stage=DungeonChallengeStage(index);
             services.dungeonStages[index]=stage;
+            RecordMissionAction("dungeon:"+index);
             services.activeDungeon=-1;services.dungeonProgress=0;
             if(game)game.RequestCombatWaveReset();
             var rewards=new List<UiReward>();

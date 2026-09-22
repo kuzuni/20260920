@@ -249,7 +249,7 @@ namespace DoodleIdle
                         float contactRadius = .14f * shot.size + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                         if (shot.waveVictims.Contains(enemy) || SegmentDistance(enemy.Position, old, next) > contactRadius) continue;
                         shot.waveVictims.Add(enemy); ArrowHits++;
-                        SkillDamage(enemy, 44, shot.waveDirection);
+                        SkillDamage(enemy, 44, shot.waveDirection, "PurpleFireArrows");
                     }
                     finished = shot.age >= 2.5f;
                     if (shot.trail <= 0) {
@@ -369,7 +369,7 @@ namespace DoodleIdle
                                 if (SegmentDistance(enemy.Position, old, pos) > .56f+.23f*worm.size) continue;
                                 if (worm.nextHit.TryGetValue(enemy, out float until) && worm.age < until) continue;
                                 worm.nextHit[enemy] = worm.age + .4f; WormHits++;
-                                SkillDamage(enemy, 15*worm.size, (enemy.Position - worm.origin).normalized);
+                                SkillDamage(enemy, 15*worm.size, (enemy.Position - worm.origin).normalized, "GiantWorm");
                             }
                         }
                         segment++;

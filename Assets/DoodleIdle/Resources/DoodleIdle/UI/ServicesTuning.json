@@ -1,12 +1,12 @@
 {
   "attendance": [
-    100,
-    150,
-    200,
-    250,
-    300,
-    400,
-    700
+    500,
+    600,
+    700,
+    800,
+    1000,
+    1200,
+    1500
   ],
   "roulette": [
     20,
@@ -39,7 +39,7 @@
     500,
     10,
     5,
-    5000
+    100000
   ],
   "weeklyGoals": [
     5000,
@@ -48,14 +48,17 @@
     100
   ],
   "questRewards": [
-    500,
-    500,
-    500,
-    500
+    100,
+    100,
+    100,
+    100
   ],
   "goldDungeonEnemyCount": 500,
   "goldPerEnemy": 10,
-  "goldStageGrowth": 0,
+  "goldStageGrowth": 0.02,
   "enemyHealthStageGrowth": 0.02,
-  "enemyDamageStageGrowth": 0.01
+  "enemyDamageStageGrowth": 0.01,
+  "enemyPowerGrowth": 1.0095,
+  "enemyHealthBudget": 0.25,
+  "enemyDamagePowerGrowth": 1.007
 }

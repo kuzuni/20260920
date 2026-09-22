@@ -15,27 +15,58 @@ namespace DoodleIdle
             public int tenCost = 100;
             public int fiftyCost = 500;
             public int relicUnitCost = 100, skillUnitCost = 200, companionUnitCost = 200;
-            public int[] levelExperience = { 50, 100, 200, 400, 800, 1000 };
+            public int[] levelExperience = { 50, 100, 200, 400, 800, 1600, 3200, 6400, 10000 };
             public SummonRateTier[] rates = {
-                new SummonRateTier { level=1, basisPoints=new[]{6000,3000,900,100,0,0,0} },
-                new SummonRateTier { level=5, basisPoints=new[]{4500,3000,1800,600,100,0,0} },
-                new SummonRateTier { level=15, basisPoints=new[]{2000,2000,2500,2500,900,100,0} },
-                new SummonRateTier { level=25, basisPoints=new[]{1200,1200,2480,2400,2000,700,20} },
-                new SummonRateTier { level=30, basisPoints=new[]{1000,1000,2400,2500,2000,1000,100} }
+                new SummonRateTier { level=1, basisPoints=new[]{90000,9000,1000,0,0,0,0} },
+                new SummonRateTier { level=2, basisPoints=new[]{85557,12444,1444,555,0,0,0} },
+                new SummonRateTier { level=3, basisPoints=new[]{81111,15889,1889,1111,0,0,0} },
+                new SummonRateTier { level=4, basisPoints=new[]{76668,19333,2333,1666,0,0,0} },
+                new SummonRateTier { level=5, basisPoints=new[]{72222,22778,2778,2222,0,0,0} },
+                new SummonRateTier { level=6, basisPoints=new[]{67778,26222,3222,2777,1,0,0} },
+                new SummonRateTier { level=7, basisPoints=new[]{63332,29667,3667,3333,1,0,0} },
+                new SummonRateTier { level=8, basisPoints=new[]{58889,33111,4111,3888,1,0,0} },
+                new SummonRateTier { level=9, basisPoints=new[]{54443,36556,4556,4444,1,0,0} },
+                new SummonRateTier { level=10, basisPoints=new[]{50000,40000,5000,4999,1,0,0} },
+                new SummonRateTier { level=11, basisPoints=new[]{48000,39000,7500,5299,201,0,0} },
+                new SummonRateTier { level=12, basisPoints=new[]{46000,38000,10000,5599,401,0,0} },
+                new SummonRateTier { level=13, basisPoints=new[]{44001,37000,12500,5899,600,0,0} },
+                new SummonRateTier { level=14, basisPoints=new[]{42001,36000,15000,6199,800,0,0} },
+                new SummonRateTier { level=15, basisPoints=new[]{39999,35000,17500,6500,1000,1,0} },
+                new SummonRateTier { level=16, basisPoints=new[]{37999,34000,20000,6800,1200,1,0} },
+                new SummonRateTier { level=17, basisPoints=new[]{35999,33000,22500,7100,1400,1,0} },
+                new SummonRateTier { level=18, basisPoints=new[]{34000,32000,25000,7400,1599,1,0} },
+                new SummonRateTier { level=19, basisPoints=new[]{32000,31000,27500,7700,1799,1,0} },
+                new SummonRateTier { level=20, basisPoints=new[]{30000,30000,30000,8000,1999,1,0} },
+                new SummonRateTier { level=21, basisPoints=new[]{29000,29000,29000,9200,3599,201,0} },
+                new SummonRateTier { level=22, basisPoints=new[]{28000,28000,28000,10400,5199,401,0} },
+                new SummonRateTier { level=23, basisPoints=new[]{27001,27000,27000,11600,6799,600,0} },
+                new SummonRateTier { level=24, basisPoints=new[]{26001,26000,26000,12800,8399,800,0} },
+                new SummonRateTier { level=25, basisPoints=new[]{24999,25000,25000,14000,10000,1000,1} },
+                new SummonRateTier { level=26, basisPoints=new[]{23999,24000,24000,15200,11600,1200,1} },
+                new SummonRateTier { level=27, basisPoints=new[]{22999,23000,23000,16400,13200,1400,1} },
+                new SummonRateTier { level=28, basisPoints=new[]{22000,22000,22000,17600,14800,1599,1} },
+                new SummonRateTier { level=29, basisPoints=new[]{21000,21000,21000,18800,16400,1799,1} },
+                new SummonRateTier { level=30, basisPoints=new[]{20000,20000,20000,20000,18000,1999,1} },
+                new SummonRateTier { level=31, basisPoints=new[]{20000,20000,20000,20000,18000,1979,21} },
+                new SummonRateTier { level=32, basisPoints=new[]{20000,20000,20000,20000,18000,1959,41} },
+                new SummonRateTier { level=33, basisPoints=new[]{20000,20000,20000,20000,18000,1940,60} },
+                new SummonRateTier { level=34, basisPoints=new[]{20000,20000,20000,20000,18000,1920,80} },
+                new SummonRateTier { level=35, basisPoints=new[]{20000,20000,20000,20000,18000,1900,100} }
             };
             public CurrencyProduct[] products = {
-                new CurrencyProduct { amount = 100, priceWon = 1100 },
-                new CurrencyProduct { amount = 550, priceWon = 5500 },
-                new CurrencyProduct { amount = 1200, priceWon = 11000 },
-                new CurrencyProduct { amount = 3000, priceWon = 27500 },
-                new CurrencyProduct { amount = 6500, priceWon = 55000 }
+                new CurrencyProduct { amount=10000, priceWon=1100, mileageCoupons=0 },
+                new CurrencyProduct { amount=70000, priceWon=5500, mileageCoupons=0 },
+                new CurrencyProduct { amount=150000, priceWon=11000, mileageCoupons=0 },
+                new CurrencyProduct { amount=500000, priceWon=33000, mileageCoupons=0 },
+                new CurrencyProduct { amount=900000, priceWon=55000, mileageCoupons=1 },
+                new CurrencyProduct { amount=2000000, priceWon=110000, mileageCoupons=2 }
             };
         }
 
         [Serializable]
-        public sealed class CurrencyProduct { public int amount, priceWon; }
+        public sealed class CurrencyProduct { public int amount, priceWon, mileageCoupons; }
         [Serializable] public sealed class SummonRateTier { public int level; public int[] basisPoints; }
-        public const int MaxSummonLevel=30;
+        public const int MaxSummonLevel=35, SummonWeightTotal=100000;
 
         [Serializable]
         public sealed class SummonState
@@ -44,6 +75,8 @@ namespace DoodleIdle
             public int level = 1, experience;
             public string freeUsedDay = "";
             public int freeUsedCount;
+            public int tickets;
+            public long lifetimeDraws;
         }
 
         readonly string[] commerceCategories = { "Armor", "Club", "Skill", "Companion", "Relic", "DungeonRelic" };
@@ -56,6 +89,7 @@ namespace DoodleIdle
 
         void InitCommerce()
         {
+            InitCommerceExtras();
             var tuning = Resources.Load<TextAsset>("DoodleIdle/UiCommerce");
             if (tuning != null)
             {
@@ -66,20 +100,20 @@ namespace DoodleIdle
             commerceTuning.tenCost = Mathf.Max(1, commerceTuning.tenCost);
             commerceTuning.fiftyCost = Mathf.Max(1, commerceTuning.fiftyCost);
             if (commerceTuning.levelExperience == null || commerceTuning.levelExperience.Length == 0)
-                commerceTuning.levelExperience = new[] { 50, 100, 200, 400, 800, 1000 };
+                commerceTuning.levelExperience = new[] { 50, 100, 200, 400, 800, 1600, 3200, 6400, 10000 };
             for (int i = 0; i < commerceTuning.levelExperience.Length; i++)
                 commerceTuning.levelExperience[i] = Mathf.Max(1, commerceTuning.levelExperience[i]);
             var rates=commerceTuning.rates;
             if(rates==null||rates.Length<2||rates[0].level!=1||rates[rates.Length-1].level!=MaxSummonLevel)
-                throw new InvalidOperationException("Summon rate anchors must cover levels 1 through 30.");
+                throw new InvalidOperationException("Summon rate anchors must cover levels 1 through 35.");
             int priorLevel=0;
             foreach(var tier in rates)
             {
                 if(tier.level<=priorLevel||tier.basisPoints==null||tier.basisPoints.Length!=7)
                     throw new InvalidOperationException("Summon rate anchors must increase and contain seven grades.");
                 int total=0;foreach(int weight in tier.basisPoints){if(weight<0)throw new InvalidOperationException("Negative summon probability.");total+=weight;}
-                if(total!=10000||tier.basisPoints[0]<1000||tier.basisPoints[1]<1000)
-                    throw new InvalidOperationException("Summon rates must total 100% with at least 10% normal and advanced.");
+                if(total!=SummonWeightTotal)
+                    throw new InvalidOperationException("Summon rates must total 100% at 0.001% precision.");
                 priorLevel=tier.level;
             }
             if (commerceTuning.products == null) commerceTuning.products = new CurrencyProduct[0];
@@ -95,6 +129,12 @@ namespace DoodleIdle
                 if (!json.Contains("freeUsedCount") && state.freeUsedDay == CommerceDay()) state.freeUsedCount = 1;
                 state.freeUsedCount = Mathf.Clamp(state.freeUsedCount, 0, 3);
                 state.category = category;
+                state.tickets=Math.Max(0,state.tickets);state.lifetimeDraws=Math.Max(0,state.lifetimeDraws);
+                if(!json.Contains("lifetimeDraws")&&!IsRelicSummon(category)) {
+                    int[] oldThresholds={50,100,200,400,800,1000};
+                    for(int prior=1;prior<Math.Min(state.level,31);prior++)state.lifetimeDraws+=oldThresholds[Math.Min(prior-1,oldThresholds.Length-1)];
+                    state.lifetimeDraws+=Math.Max(0,state.experience);
+                }
                 state.level = IsRelicSummon(category)?0:Mathf.Clamp(state.level, 1, MaxSummonLevel);
                 state.experience = IsRelicSummon(category) || state.level==MaxSummonLevel ? 0 : Mathf.Clamp(state.experience, 0, CommerceExperienceNeeded(state) - 1);
                 summonStates[category] = state;
@@ -103,6 +143,7 @@ namespace DoodleIdle
 
         void SaveCommerce()
         {
+            PlayerPrefs.SetString(CommerceExtrasKey,JsonUtility.ToJson(commerceExtras));
             foreach (var state in summonStates.Values)
                 PlayerPrefs.SetString("DoodleUi.Commerce." + state.category, JsonUtility.ToJson(state));
         }
@@ -133,7 +174,7 @@ namespace DoodleIdle
         public int[] SummonWeights(string category, int previewLevel)
         {
             int level=Mathf.Clamp(previewLevel, 1, MaxSummonLevel);
-            if(IsRelicSummon(category))return new[]{10000,0,0,0,0,0,0};
+            if(IsRelicSummon(category))return new[]{SummonWeightTotal,0,0,0,0,0,0};
             var anchors=commerceTuning.rates;var lower=anchors[0];var upper=anchors[anchors.Length-1];
             foreach(var tier in anchors){if(tier.level<=level)lower=tier;if(tier.level>=level){upper=tier;break;}}
             double t=upper.level==lower.level?0:(level-lower.level)/(double)(upper.level-lower.level);
@@ -141,10 +182,9 @@ namespace DoodleIdle
             for(int grade=0;grade<7;grade++)
             {
                 int value=(int)Math.Round(lower.basisPoints[grade]+(upper.basisPoints[grade]-lower.basisPoints[grade])*t);
-                if((grade==4&&level<5)||(grade==5&&level<15)||(grade==6&&level<25))value=0;
                 weights[grade]=value;sum+=value;
             }
-            weights[0]+=10000-sum;
+            weights[0]+=SummonWeightTotal-sum;
             if(category=="Skill" || category=="Companion") { weights[5]+=weights[6];weights[6]=0; }
             return weights;
         }
@@ -186,6 +226,7 @@ namespace DoodleIdle
             var tabs = UiKit.Row(body, "ShopTabs", 64, 2);
             CommerceButtonText(UiKit.Button(tabs, "뽑기", () => { shopTab = 0; RefreshPage(); }, shopTab == 0 ? UiKit.Yellow : UiKit.Paper, 64), 35);
             CommerceButtonText(UiKit.Button(tabs, "재화", () => { shopTab = 1; RefreshPage(); }, shopTab == 1 ? UiKit.Blue : UiKit.Paper, 64), 35);
+            CommerceButtonText(UiKit.Button(tabs,"마일리지",()=>{shopTab=2;RefreshPage();},shopTab==2?UiKit.Purple:UiKit.Paper,64),32);
             if (window)
             {
                 tabs.SetParent(window.inner, false);
@@ -194,6 +235,7 @@ namespace DoodleIdle
                 responsive.Reflow();
             }
             if (shopTab == 1) { BuildCurrencyProducts(body); return; }
+            if(shopTab==2){BuildMileageShop(body);return;}
             foreach (string category in commerceCategories) BuildSummonRow(body, category);
             UiKit.Text(body, "무료 뽑기는 종류별 하루 3회 · 던전 유물은 전용 뽑기권 사용", 17, TextAnchor.MiddleCenter, 40);
         }
@@ -215,7 +257,7 @@ namespace DoodleIdle
         void BuildSummonRow(RectTransform body, string category)
         {
             var state = summonStates[category];
-            var row = CommerceFramedRow(body, "Summon_" + category, category == "Relic" ? 336 : 264);
+            var row = CommerceFramedRow(body, "Summon_" + category, category == "DungeonRelic" ? 264 : 330);
             UiKit.Icon(row, SummonIcon(category), 213).name="Icon: "+category;
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
@@ -235,17 +277,7 @@ namespace DoodleIdle
                 UiKit.Text(wallet,"전용 뽑기권 "+UiNumber.Format(DungeonRelicTickets)+"장",22,TextAnchor.MiddleLeft,32);
             }
             BuildSummonButtons(content, category);
-            if (category == "Relic")
-            {
-                var tickets = UiKit.Row(content, "Relic ticket actions", 48, 6);
-                UiKit.Text(tickets, "유물 뽑기권 " + UiNumber.Format(RelicTickets) + "장", 21, TextAnchor.MiddleLeft, 48);
-                var use = UiKit.Button(tickets, "1장 뽑기", () => TrySummonRelicTicket(), UiKit.Blue, 48);
-                use.name = "RelicTicketSummon";
-                var width = use.GetComponent<LayoutElement>();
-                width.minWidth = width.preferredWidth = 104; width.flexibleWidth = 0;
-                CommerceButtonText(use, 22);
-                use.interactable = RelicTickets > 0;
-            }
+            if(category!="DungeonRelic")BuildTicketActions(content,category);
         }
 
         void BuildSummonButtons(Transform parent, string category, bool result = false)
@@ -350,6 +382,8 @@ namespace DoodleIdle
         {
             var state = summonStates[category];
             foreach (var item in rewards) AddItem(item, 1);
+            state.lifetimeDraws=state.lifetimeDraws>long.MaxValue-rewards.Count?long.MaxValue:state.lifetimeDraws+rewards.Count;
+            RecordMissionAction("summon:"+category,rewards.Count);
             if(!IsRelicSummon(category) && state.level<MaxSummonLevel)state.experience += rewards.Count;
             while (!IsRelicSummon(category) && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
             {
@@ -470,7 +504,10 @@ namespace DoodleIdle
         public double PreviewItemProbability(UiItem item, int level)
         {
             var items = Items(item.dungeonRelic?"DungeonRelic":item.category);
-            return item.category == "Relic" ? 100d / items.Count : SummonWeights(item.category, level)[item.rarity] / 100d / items.FindAll(x => x.rarity == item.rarity).Count;
+            if(item.category=="Relic")return 100d/items.Count;
+            var choices=items.FindAll(x=>x.rarity==item.rarity);int index=choices.IndexOf(item);
+            var weights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
+            return index<0?0:SummonWeights(item.category,level)[item.rarity]/1000d*weights[index]/100;
         }
         void ShowSummonProbabilityPage(string category, int level, bool animate=true)
         {
@@ -503,11 +540,11 @@ namespace DoodleIdle
                     row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(10, 10, 5, 5);
                     var badge = UiKit.Box(row, "Grade color", UiKit.Rarity(grade), 40); FixedWidth(badge, 40);
                     UiKit.Text(row, relic ? "유물" : UiKit.GradeName(grade), 27, TextAnchor.MiddleLeft, 48);
-                    var rate = UiKit.Text(row, (relic ? 100d : weights[grade] / 100d).ToString("0.##", CultureInfo.InvariantCulture) + "%", 26, TextAnchor.MiddleRight, 48);
+                    var rate = UiKit.Text(row, (relic ? 100d : weights[grade] / 1000d).ToString("0.###", CultureInfo.InvariantCulture) + "%", 26, TextAnchor.MiddleRight, 48);
                     rate.name = "Grade probability rate";
                     FixedWidth(rate.transform, 100);
                 }
-                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : "같은 등급의 아이템은 모두 같은 확률로 등장합니다.", 20, TextAnchor.MiddleCenter, 60);
+                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : "같은 등급 안에서는 낮은 번호가 더 자주 등장합니다.\n"+(category=="Companion"?"1~4번 비중: 64 / 25 / 9 / 2":"1~5번 비중: 60 / 25 / 10 / 4 / 1"), 20, TextAnchor.MiddleCenter, 60);
                 UiKit.Text(body, relic ? "모든 유물 동일 확률" : level + " / " + MaxSummonLevel + " · 확률 미리보기", 20, TextAnchor.MiddleCenter, 40);
                 var footer = UiKit.Footer(body, "Probability confirmation footer", 64);
                 CommerceButtonText(UiKit.Button(footer, "확인", CloseDetail, UiKit.Yellow, 64), 34);
@@ -520,15 +557,21 @@ namespace DoodleIdle
             string[] productArt = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
             var grid = UiKit.Grid(body, "Currency product cards", 2, 360);
             UiKit.PortraitGrid(grid);
+            BuildFreeDiamondCard(grid);
             int productIndex = 0;
             foreach (var product in commerceTuning.products)
             {
                 if (product == null || product.amount <= 0 || product.priceWon <= 0) continue;
                 var card = UiKit.Box(grid, "CurrencyProduct" + product.amount, new Color(1, .977f, .895f));
-                var amount = UiKit.Text(card, UiNumber.Format(product.amount), 36, TextAnchor.MiddleCenter, 48).rectTransform;
+                var amount = UiKit.Text(card, product.amount.ToString("N0"), 36, TextAnchor.MiddleCenter, 48).rectTransform;
                 amount.anchorMin = new Vector2(0, .81f); amount.anchorMax = new Vector2(1, .97f); amount.offsetMin = new Vector2(8, 0); amount.offsetMax = new Vector2(-8, 0);
                 var art = UiKit.Icon(card, productArt[Mathf.Min(productIndex++, productArt.Length - 1)], 150).rectTransform;
                 art.anchorMin = new Vector2(.1f, .24f); art.anchorMax = new Vector2(.9f, .79f); art.offsetMin = art.offsetMax = Vector2.zero;
+                if(product.mileageCoupons>0) {
+                    art.anchorMin=new Vector2(.1f,.36f);
+                    var coupon=UiKit.Row(card,"Mileage bonus",36,4);coupon.anchorMin=new Vector2(.07f,.23f);coupon.anchorMax=new Vector2(.93f,.36f);coupon.offsetMin=coupon.offsetMax=Vector2.zero;
+                    UiKit.Icon(coupon,"MileageCoupon",32);UiKit.Text(coupon,"쿠폰 "+product.mileageCoupons+"개 추가",21,TextAnchor.MiddleCenter,32);
+                }
                 var purchase = UiKit.Button(card, "₩" + product.priceWon.ToString("N0"), () => Toast("결제 서비스가 연결되지 않아 구매할 수 없어요."), UiKit.Blue, 64);
                 CommerceButtonText(purchase, 30);
                 var price = (RectTransform)purchase.transform;

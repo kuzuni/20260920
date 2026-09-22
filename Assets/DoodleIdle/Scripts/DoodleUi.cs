@@ -20,7 +20,8 @@ namespace DoodleIdle
         public Canvas Canvas { get; private set; }
         public RectTransform SafeRoot => safe;
         RectTransform root,safe,pageLayer,overlayLayer,nav,header,skillDock,shortcuts,mission;
-        Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast;
+        Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast,missionDiamonds,missionTicketCount;
+        Image missionTicketIcon;
         Text powerToast,cameraLabel,stageLabel;
         Button missionClaim, breakthroughButton;
         RectTransform cameraControl,stageInfo;
@@ -81,8 +82,10 @@ namespace DoodleIdle
             var claimRect=(RectTransform)missionClaim.transform;claimRect.anchorMin=new Vector2(1f/6,0);claimRect.anchorMax=new Vector2(5f/6,0);claimRect.offsetMin=new Vector2(0,8);claimRect.offsetMax=new Vector2(0,42);
             missionClaim.GetComponentInChildren<Text>().gameObject.SetActive(false);
             var rewardRow=UiKit.Row(missionClaim.transform,"Mission reward",30,4);UiKit.Stretch(rewardRow,8,2,8,2);
-            UiKit.Text(rewardRow,"500",22,TextAnchor.MiddleRight,30);
+            missionDiamonds=UiKit.Text(rewardRow,"",20,TextAnchor.MiddleRight,30);
             UiKit.Icon(rewardRow,"Diamond",24);
+            missionTicketCount=UiKit.Text(rewardRow,"",18,TextAnchor.MiddleRight,30);
+            missionTicketIcon=UiKit.Icon(rewardRow,"TicketArmor",24);
             UiKit.Text(rewardRow,"받기",22,TextAnchor.MiddleLeft,30);
             var cameraButton=UiKit.Button(safe,"카메라  1",CycleCameraMode,UiKit.Paper,40);cameraButton.name="Camera mode";
             cameraControl=(RectTransform)cameraButton.transform;cameraLabel=cameraButton.GetComponentInChildren<Text>();cameraLabel.resizeTextMaxSize=23;
@@ -344,6 +347,9 @@ namespace DoodleIdle
             if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
+            missionDiamonds.text=MainMissionReward.ToString();
+            var reward=CurrentMainMission;missionTicketCount.gameObject.SetActive(reward.ticketCount>0);missionTicketIcon.gameObject.SetActive(reward.ticketCount>0);
+            if(reward.ticketCount>0){missionTicketCount.text="+"+reward.ticketCount;missionTicketIcon.sprite=UiKit.Art(TicketIcon(reward.ticket));}
             stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;

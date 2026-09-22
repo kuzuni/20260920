@@ -222,6 +222,8 @@ namespace DoodleIdle
                 var sprite=TrimmedCell(texture,bounds);art[key]=sprite;return sprite;
             }
             string[] currency={"DiamondSingle","DiamondPile","DiamondBag","DiamondChest","DiamondRoyalChest"};
+            string[] tickets={"TicketArmor","TicketClub","TicketSkill","TicketCompanion","TicketRelic"};
+            int ticketIndex=Array.IndexOf(tickets,key);if(ticketIndex>=0){var ticketSprite=Cell("UI/TicketIcons",ticketIndex,3,2);art[key]=ticketSprite;return ticketSprite;}
             int currencyIndex=Array.IndexOf(currency,key);if(currencyIndex>=0){var currencySprite=Cell("UI/CurrencyIcons",currencyIndex,3,2);art[key]=currencySprite;return currencySprite;}
             string[] atlas={"Diamond","Armor","ArmorMetal","Relic","Stats","Pvp","Dungeon","Shop","Attendance","Roulette","Buffs","Quests","Chat","Settings","Close","Key"};
             int index=Array.IndexOf(atlas,key); Sprite value=null;
