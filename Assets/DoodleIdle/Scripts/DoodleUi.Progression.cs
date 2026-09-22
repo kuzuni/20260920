@@ -50,6 +50,32 @@ namespace DoodleIdle
         public int HighestDungeonStage => services == null ? 0 : Math.Max(services.dungeonStages[0], Math.Max(services.dungeonStages[1], services.dungeonStages[2]));
         public int GetDungeonStage(int index) => services == null || index < 0 || index >= 3 ? 0 : services.dungeonStages[index];
         public int RelicTickets => services == null ? 0 : services.relicTickets;
+        public int DungeonRelicTickets => services == null ? 0 : services.dungeonRelicTickets;
+        public int DungeonChallengeStage(int index) => (int)Math.Min(int.MaxValue, (long)GetDungeonStage(index) + 1);
+        public static int DungeonDifficultyStage(int stage) => (int)Math.Min(int.MaxValue, Math.Max(1L, stage) * 50);
+        public int CombatDifficultyStage => ActiveDungeonIndex < 0 ? (int)Math.Min(int.MaxValue, (long)MainStage+1) : DungeonDifficultyStage(DungeonChallengeStage(ActiveDungeonIndex));
+        public int DungeonThemeIndex => ActiveDungeonIndex == 0 ? 8 : 6;
+        public float EnemyHealthMultiplier(int displayStage) => 1 + Math.Max(0L,(long)displayStage-1) * Mathf.Max(0,serviceTuning.enemyHealthStageGrowth);
+        public float EnemyDamageMultiplier(int displayStage) => 1 + Math.Max(0L,(long)displayStage-1) * Mathf.Max(0,serviceTuning.enemyDamageStageGrowth);
+        // Field kills and cave rewards share every gold balance value and live bonus.
+        public int GoldForMainKills(int displayStage, int count)
+        {
+            if(count<=0)return 0;
+            double unit=Math.Max(0,serviceTuning.goldPerEnemy)*(1+Math.Max(0L,(long)displayStage-1)*Math.Max(0,serviceTuning.goldStageGrowth));
+            return (int)Math.Min(int.MaxValue,Math.Max(0,Math.Round(unit*count*GoldGainMultiplier*GoldBuffMultiplier)));
+        }
+        public int DungeonGoldReward(int stage) => GoldForMainKills(DungeonDifficultyStage(stage),Math.Max(1,serviceTuning.goldDungeonEnemyCount));
+        public int DungeonRelicReward(int stage) => (int)Math.Min(int.MaxValue,Math.Max(1L,serviceTuning.dungeonRelicTickets)+Math.Max(0L,(long)stage-1));
+        public void GrantDungeonRelicTickets(int amount)
+        {
+            if(services==null||amount<=0)return;
+            services.dungeonRelicTickets=(int)Math.Min(int.MaxValue,(long)services.dungeonRelicTickets+amount);Save();
+        }
+        public bool TrySpendDungeonRelicTickets(int amount)
+        {
+            if(services==null||amount<=0||DungeonRelicTickets<amount)return false;
+            services.dungeonRelicTickets-=amount;Save();return true;
+        }
         public int MainMissionReward => 500;
         public int MainMissionNumber => services == null ? 1 : (int)Math.Min(int.MaxValue, services.mainMissionIndex + 1L);
         public bool CanClaimMainMission => services != null && MainMissionProgress >= MainMissionGoal;
@@ -132,7 +158,7 @@ namespace DoodleIdle
             Save();
         }
 
-        int DungeonKillsFor(int index) => Math.Max(1, index == 1 ? serviceTuning.diamondDungeonKills : index == 2 ? serviceTuning.relicDungeonKills : serviceTuning.dungeonKills);
+        int DungeonKillsFor(int index) => Math.Max(1, index == 2 ? serviceTuning.relicDungeonKills : serviceTuning.dungeonKills);
 
         static long SaturatingAdd(long current, int amount) => current > long.MaxValue - amount ? long.MaxValue : current + amount;
     }

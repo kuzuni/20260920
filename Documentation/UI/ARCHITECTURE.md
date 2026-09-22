@@ -93,3 +93,10 @@ Main integrates real combat kills into wallet/mission and reads real cooldowns. 
 - Probability UI shows grade totals and equal-within-grade notice. Paging replaces the old tree immediately with no entrance/exit motion. Popup entrance uses opaque scale only.
 - DoodleSlidingSelection uses unscaled DOTween and persists tab progress across content rebuilds. Result footer order: level, experience gauge including current/required text, skip toggle, draw buttons, confirm. Relics omit experience. Item cards still omit copy counts.
 - Free summon allowance is three five-item draws per category per UTC day. freeUsedCount persists alongside freeUsedDay; legacy used-day saves migrate to one consumed draw.
+
+## Notification and dungeon revision (2026-09-22)
+- DoodleNotificationBadge owns one non-raycast, layout-ignored top-right dot and refreshes its predicate every 0.2 unscaled seconds. Predicates query current claim/upgrade/synthesis/equip/entry state, not ownership alone.
+- Dungeon save index 1 is retired; indices 0/2 stay stable. Legacy completed records remain valid for previously-earned skin unlocks. Challenge UI uses completed+1. Active retired dungeon saves return to the field.
+- CombatDifficultyStage drives actual health/contact damage for both main and dungeon actors; ServicesTuning sets linear growth (health 2% and damage 1% per displayed stage beyond 1). Gold uses one shared GoldForMainKills function; goldStageGrowth defaults to 0, preserving existing field income.
+- Dungeon relic entries retain category Relic for the common passive/upgrade pipeline and add dungeonRelic=true. Items(Relic) is the normal pool; Items(DungeonRelic) is exclusive; AllRelics drives the combined inventory and bulk upgrades. Save IDs are distinct.
+- New dungeonRelicTickets live in ServiceState; normal relicTickets remain valid for older earned tickets. Only DungeonRelic ticket draws spend the new currency. The new commerce save key is included in complete reset.

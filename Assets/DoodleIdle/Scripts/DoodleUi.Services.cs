@@ -15,9 +15,12 @@ namespace DoodleIdle
             public int[] attendance = { 100, 150, 200, 250, 300, 400, 700 };
             public int[] roulette = { 20, 50, 100, 30, 200, 50, 500, 100 };
             public int dailySpins = 5, dungeonAttempts = 3, pvpAttempts = 5;
-            public int buffSeconds = 900, buffPrice = 20, dungeonKills = 30, dungeonGold = 30000;
-            public int mainStageKills = 100, diamondDungeonKills = 40, relicDungeonKills = 50;
-            public int dungeonDiamonds = 500, dungeonRelicTickets = 1;
+            public int buffSeconds = 900, buffPrice = 20, dungeonKills = 30;
+            public int mainStageKills = 100, relicDungeonKills = 50;
+            public int dungeonRelicTickets = 10;
+            public int goldDungeonEnemyCount = 500;
+            public float goldPerEnemy = 10, goldStageGrowth = 0;
+            public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .01f;
             public float goldBuff = .5f, attackBuff = .3f;
             public int[] dailyGoals = { 200, 1000, 3, 5 };
             public int[] repeatGoals = { 500, 10, 5, 5000 };
@@ -36,7 +39,7 @@ namespace DoodleIdle
             public bool powerSaving;
             public float music = .6f, effects = .8f;
             public int activeDungeon = -1, dungeonProgress;
-            public int mainStage, mainStageKillProgress, mainMissionIndex, relicTickets;
+            public int mainStage, mainStageKillProgress, mainMissionIndex, relicTickets, dungeonRelicTickets;
             public bool breakthroughMode = true;
             public int[] dungeonStages = new int[3];
             public long mainKills, earnedGold;
@@ -68,7 +71,8 @@ namespace DoodleIdle
         const string ServicesSaveKey = "DoodleUi.Services.v1";
         static readonly string[] ServiceMetrics = { "kills", "gold", "dungeon", "roulette", "equipmentUpgrade", "skillUpgrade", "pvp", "summon" };
         static readonly int[][] QuestMetrics = { new[] { 0, 1, 2, 3 }, new[] { 0, 4, 5, 1 }, new[] { 0, 2, 6, 7 } };
-        static readonly string[] DungeonNames = { "골드 동굴", "다이아 동굴", "유물 동굴" };
+        // Index 1 is a retired save slot; preserve indices of earned relic cave progress.
+        static readonly string[] DungeonNames = { "골드 동굴", "", "유물 동굴" };
         readonly System.Random serviceRandom = new System.Random();
         readonly List<ServiceBinding> serviceBindings = new List<ServiceBinding>();
         readonly List<LocalMessage> localMessages = new List<LocalMessage>();
@@ -86,7 +90,7 @@ namespace DoodleIdle
         public int ActiveDungeonIndex => services == null ? -1 : services.activeDungeon;
         public int DungeonProgress => services == null ? 0 : services.dungeonProgress;
         public int DungeonKillGoal => DungeonKillsFor(ActiveDungeonIndex);
-        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + "  " + UiNumber.Format(DungeonProgress) + "/" + UiNumber.Format(DungeonKillGoal);
+        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + " " + DungeonChallengeStage(ActiveDungeonIndex) + "단계\n" + UiNumber.Format(DungeonProgress) + "/" + UiNumber.Format(DungeonKillGoal);
         static int SecondsUntil(long ticks) => (int)Math.Max(0, Math.Min(int.MaxValue, Math.Ceiling((ticks - ServiceNow) / (double)TimeSpan.TicksPerSecond)));
         static string ServiceClock(int seconds) => (seconds / 60).ToString("00") + ":" + (seconds % 60).ToString("00");
 
@@ -97,7 +101,6 @@ namespace DoodleIdle
             serviceTuning.buffSeconds = Mathf.Max(1, serviceTuning.buffSeconds);
             serviceTuning.dungeonKills = Mathf.Max(1, serviceTuning.dungeonKills);
             serviceTuning.mainStageKills = Mathf.Max(1, serviceTuning.mainStageKills);
-            serviceTuning.diamondDungeonKills = Mathf.Max(1, serviceTuning.diamondDungeonKills);
             serviceTuning.relicDungeonKills = Mathf.Max(1, serviceTuning.relicDungeonKills);
             services = new ServiceState();
             string json = PlayerPrefs.GetString(ServicesSaveKey, "");
@@ -113,6 +116,7 @@ namespace DoodleIdle
             services.mainStageKillProgress = Mathf.Clamp(services.mainStageKillProgress, 0, MainStageKillGoal);
             services.mainMissionIndex = Math.Max(0, services.mainMissionIndex);
             services.relicTickets = Math.Max(0, services.relicTickets);
+            services.dungeonRelicTickets = Math.Max(0, services.dungeonRelicTickets);
             services.mainKills = Math.Max(0, services.mainKills);
             services.earnedGold = Math.Max(0, services.earnedGold);
             for (int i = 0; i < services.dungeonStages.Length; i++) services.dungeonStages[i] = Math.Max(0, services.dungeonStages[i]);
@@ -123,6 +127,7 @@ namespace DoodleIdle
             if (services.weeklyClaimed == null || services.weeklyClaimed.Length != 4) services.weeklyClaimed = new bool[4];
             services.attendanceIndex = Mathf.Clamp(services.attendanceIndex, 0, 7);
             services.activeDungeon = Mathf.Clamp(services.activeDungeon, -1, 2);
+            if (services.activeDungeon == 1) { services.activeDungeon = -1; services.dungeonProgress = 0; }
             ResetServicePeriods();
             lastServiceKills = game ? game.Kills : 0;
             Application.targetFrameRate = services.powerSaving ? 30 : 60;
@@ -244,6 +249,7 @@ namespace DoodleIdle
             claim.targetGraphic = card.GetComponent<Image>();
             claim.transition = Selectable.Transition.None;
             claim.interactable = current && services.attendanceDay != services.day;
+            Notify(card,()=>index==services.attendanceIndex&&CanClaimAttendance);
             claim.onClick.AddListener(() => {
                 ResetServicePeriods();
                 if (index == services.attendanceIndex) ClaimAttendance();
@@ -308,6 +314,7 @@ namespace DoodleIdle
             var paw = ServiceSymbol(wheel,"Paw",52); paw.anchorMin=paw.anchorMax=Vector2.one*.5f;paw.anchoredPosition=Vector2.zero;
             var spin = UiKit.Button(body, rouletteSpinning ? "돌리는 중" : "돌리기", () => StartCoroutine(SpinRoulette(wheel)), UiKit.Blue, 90);
             spin.interactable = !rouletteSpinning && services.spins < serviceTuning.dailySpins;
+            Notify(spin.transform,()=>CanSpinRoulette);
             responsive = holder.gameObject.AddComponent<DoodleRouletteLayout>();
             responsive.viewport = body.parent as RectTransform; responsive.body = body; responsive.wheel = wheel; responsive.pointer = pointer;
             responsive.remaining = remaining; responsive.counter=countBadge; responsive.odds = odds; responsive.spin = spin; responsive.Reflow();
@@ -351,6 +358,7 @@ namespace DoodleIdle
             ServiceText(description, () => "남은 시간 " + ServiceClock(attack ? AttackBuffSeconds : GoldBuffSeconds), 24, 34).alignment=TextAnchor.MiddleLeft;
             ServiceGauge(card, () => attack ? AttackBuffSeconds : GoldBuffSeconds, () => serviceTuning.buffSeconds, true, true);
             var activate = UiKit.Button(card, "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
+            Notify(activate.transform,()=> (attack?AttackBuffSeconds:GoldBuffSeconds)==0);
             var activateText = activate.GetComponentInChildren<Text>();
             Func<string> caption = () => (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "활성화 중" : "버프 활성화";
             Action refresh = () =>
@@ -407,9 +415,9 @@ namespace DoodleIdle
             ServiceText(body, QuestResetLabel, 20, 34);
             var tabs = UiKit.Row(body, "Quest tabs", 60);
             string[] names = { "일일", "반복", "주간" };
-            for (int i = 0; i < 3; i++) { int tab = i; UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : new Color(.92f,.92f,.92f),60); }
+            for (int i = 0; i < 3; i++) { int tab = i; var button=UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : new Color(.92f,.92f,.92f),60); Notify(button.transform,()=>QuestTabHasReward(tab)); }
             for (int i = 0; i < 4; i++) QuestCard(body, i);
-            UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);
+            var bulk=UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);Notify(bulk.transform,()=>QuestTabHasReward(questTab));
         }
 
         string QuestResetLabel()
@@ -441,6 +449,7 @@ namespace DoodleIdle
             UiKit.Icon(reward, "Diamond", 46);
             UiKit.Text(reward, UiNumber.Format(serviceTuning.questRewards[index]), 23, TextAnchor.MiddleCenter, 29);
             var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 72);
+            Notify(claim.transform,()=>CanClaimQuest(tab,index));
             ServiceWidth(claim.transform,94);
             var claimText = claim.GetComponentInChildren<Text>();
             Action refresh=()=>claim.GetComponent<Image>().color=!QuestClaimed(tab,index)&&QuestCounters(tab)[metric]>=goal?UiKit.Yellow:new Color(.89f,.89f,.89f);
@@ -478,69 +487,63 @@ namespace DoodleIdle
 
         void BuildDungeons(RectTransform body)
         {
-            UiKit.Text(body, "동굴별 처치 목표 달성 · 클리어 단계 누적", 19, TextAnchor.MiddleCenter, 34);
-            string[] descriptions = { "골드 " + UiNumber.Format(serviceTuning.dungeonGold), "다이아 " + UiNumber.Format(serviceTuning.dungeonDiamonds), "유물 뽑기권 " + UiNumber.Format(serviceTuning.dungeonRelicTickets) + "장" };
-            string[] keyNames = { "노랑 열쇠", "파랑 열쇠", "보라 열쇠" };
-            Color[] keyColors = { new Color(1,.83f,.2f),new Color(.25f,.65f,1),new Color(.66f,.36f,.93f) };
-            for (int i = 0; i < 3; i++)
+            UiKit.Text(body, "동굴별 처치 목표 달성 · 단계별 보상", 19, TextAnchor.MiddleCenter, 34);
+            foreach (int index in new[] { 0, 2 })
             {
-                int index = i;
-                var card = ServiceCard(body, DungeonNames[i], i == 0 ? new Color(1,.97f,.85f) : i == 1 ? new Color(.87f,.95f,1) : new Color(.94f,.9f,.98f));
-                var row = UiKit.Row(card, "Dungeon", 184,8);
-                var art = UiKit.Rect(row,"Dungeon illustration"); ServiceWidth(art,170);UiKit.Height(art,174);
-                var cave=UiKit.Icon(art,"Dungeon",164).rectTransform;cave.anchorMin=cave.anchorMax=Vector2.one*.5f;cave.anchoredPosition=Vector2.zero;
-                if(i>0) {var emblem=UiKit.Icon(art,i==1?"Diamond":"Relic",82).rectTransform;emblem.anchorMin=emblem.anchorMax=new Vector2(.5f,.76f);emblem.anchoredPosition=Vector2.zero; cave.anchoredPosition=new Vector2(0,-20);}
+                int stage = DungeonChallengeStage(index);
+                string reward = index == 0 ? "골드 " + UiNumber.Format(DungeonGoldReward(stage)) : "던전 유물 뽑기권 " + DungeonRelicReward(stage) + "장";
+                var card = ServiceCard(body, DungeonNames[index], index == 0 ? new Color(1,.97f,.85f) : new Color(.94f,.9f,.98f));
+                Notify(card, () => CanEnterDungeon(index));
+                var row = UiKit.Row(card, "Dungeon", 216, 8);
+                var art = UiKit.Rect(row, "Dungeon illustration"); ServiceWidth(art,170); UiKit.Height(art,174);
+                var cave = UiKit.Icon(art,"Dungeon",164).rectTransform; cave.anchorMin=cave.anchorMax=Vector2.one*.5f; cave.anchoredPosition=Vector2.zero;
+                var emblem=UiKit.Icon(art,index==0?"Gold":"DungeonPottery",76).rectTransform;
+                emblem.anchorMin=emblem.anchorMax=new Vector2(.5f,.76f);emblem.anchoredPosition=Vector2.zero;cave.anchoredPosition=new Vector2(0,-20);
                 var info = UiKit.Column(row, "Dungeon info", 3, 0); UiKit.Flexible(info, 2);
-                UiKit.Text(info, DungeonNames[i], 34, TextAnchor.MiddleLeft, 46);
-                UiKit.Text(info, descriptions[i] + "\n" + UiNumber.Format(GetDungeonStage(i)) + "단계 완료 · 적 " + UiNumber.Format(DungeonKillsFor(i)) + "마리", 21, TextAnchor.MiddleLeft, 48);
+                UiKit.Text(info, DungeonNames[index] + " · " + stage + "단계", 31, TextAnchor.MiddleLeft, 46);
+                UiKit.Text(info, reward + "\n적 " + DungeonKillsFor(index) + "마리 · 스테이지 " + DungeonDifficultyStage(stage) + " 난이도", 21, TextAnchor.MiddleLeft, 64);
                 var actions=UiKit.Row(info,"Dungeon actions",82,8);
                 var count=UiKit.Column(actions,"Attempts",2,0);
-                var key = UiKit.Row(count, "Independent daily attempts", 43,3);
-                var keySymbol=ServiceSymbol(key,"DungeonKey",35).GetComponent<DoodleServiceSymbol>();keySymbol.accent=keyColors[i];
-                ServiceText(key, () => Math.Max(0, serviceTuning.dungeonAttempts - services.dungeonUsed[index]) + "/" + serviceTuning.dungeonAttempts, 29, 41);
-                UiKit.Text(count,keyNames[i],18,TextAnchor.MiddleCenter,24);
-                var enter = UiKit.Button(actions, services.activeDungeon == i ? "진행 중" : "입장", () => EnterDungeon(index), UiKit.Blue, 76);ServiceWidth(enter.transform,118);
-                enter.interactable = services.activeDungeon < 0 && services.dungeonUsed[i] < serviceTuning.dungeonAttempts;
-                if (services.activeDungeon == i) ServiceGauge(card, () => services.dungeonProgress, () => DungeonKillsFor(index));
+                var key=UiKit.Row(count,"Independent daily attempts",43,3);
+                var keySymbol=ServiceSymbol(key,"DungeonKey",35).GetComponent<DoodleServiceSymbol>();
+                keySymbol.accent=index==0?new Color(1,.83f,.2f):new Color(.66f,.36f,.93f);
+                ServiceText(key,()=>Math.Max(0,serviceTuning.dungeonAttempts-services.dungeonUsed[index])+"/"+serviceTuning.dungeonAttempts,29,41);
+                UiKit.Text(count,index==0?"노랑 열쇠":"보라 열쇠",18,TextAnchor.MiddleCenter,24);
+                var enter=UiKit.Button(actions,services.activeDungeon==index?"진행 중":"입장",()=>EnterDungeon(index),UiKit.Blue,76);ServiceWidth(enter.transform,118);
+                enter.interactable=CanEnterDungeon(index);Notify(enter.transform,()=>CanEnterDungeon(index));
+                if(services.activeDungeon==index)ServiceGauge(card,()=>services.dungeonProgress,()=>DungeonKillsFor(index));
             }
-            UiKit.Text(body, "각 던전은 UTC 00:00에 각각 3회 충전", 17, TextAnchor.MiddleCenter, 28);
+            UiKit.Text(body,"각 던전은 UTC 00:00에 각각 3회 충전",17,TextAnchor.MiddleCenter,28);
         }
 
         public void EnterDungeon(int index)
         {
-            TickServices();
-            ResetServicePeriods();
-            if (index < 0 || index > 2 || services.activeDungeon >= 0 || services.dungeonUsed[index] >= serviceTuning.dungeonAttempts) return;
-            services.dungeonUsed[index]++; services.activeDungeon = index; services.dungeonProgress = 0;
-            if (game) game.RequestCombatWaveReset();
-            lastServiceKills = game ? game.Kills : 0; RecordServiceProgress("dungeon", 1); Save(); RefreshPage();
-            Toast(DungeonNames[index] + " 도전 시작! 필드의 적을 처치하세요");
+            TickServices(); ResetServicePeriods();
+            if (!CanEnterDungeon(index)) return;
+            services.dungeonUsed[index]++; services.activeDungeon=index; services.dungeonProgress=0;
+            if(game)game.RequestCombatWaveReset();
+            lastServiceKills=game?game.Kills:0;lastKills=lastServiceKills;
+            RecordServiceProgress("dungeon",1);Save();ClearOverlays();ClosePage();
+            Toast(DungeonNames[index]+" "+DungeonChallengeStage(index)+"단계 도전 시작!");
         }
 
         void CompleteDungeon()
         {
-            int index = services.activeDungeon;
-            services.dungeonStages[index] = (int)Math.Min(int.MaxValue, (long)services.dungeonStages[index] + 1);
-            services.activeDungeon = -1; services.dungeonProgress = 0;
-            if (game) game.RequestCombatWaveReset();
-            var rewards = new List<UiReward>();
-            if (index == 0)
-            {
-                Gold = SaturatingAdd(Gold, serviceTuning.dungeonGold); RecordServiceProgress("gold", serviceTuning.dungeonGold);
-                rewards.Add(new UiReward { name = "", icon = "Gold", amount = serviceTuning.dungeonGold, rarity = 0 });
+            int index=services.activeDungeon, stage=DungeonChallengeStage(index);
+            services.dungeonStages[index]=stage;
+            services.activeDungeon=-1;services.dungeonProgress=0;
+            if(game)game.RequestCombatWaveReset();
+            var rewards=new List<UiReward>();
+            if(index==0) {
+                int amount=DungeonGoldReward(stage);
+                Gold=SaturatingAdd(Gold,amount);RecordServiceProgress("gold",amount);
+                rewards.Add(new UiReward { name="",icon="Gold",amount=amount,rarity=0 });
+            } else {
+                int amount=DungeonRelicReward(stage);GrantDungeonRelicTickets(amount);
+                rewards.Add(new UiReward { name="던전 유물 뽑기권",icon="DungeonPottery",amount=amount,rarity=0 });
             }
-            else if(index == 1)
-            {
-                Diamonds += serviceTuning.dungeonDiamonds;
-                rewards.Add(new UiReward { name = "", icon = "Diamond", amount = serviceTuning.dungeonDiamonds, rarity = 0 });
-            }
-            else
-            {
-                GrantRelicTickets(serviceTuning.dungeonRelicTickets);
-                rewards.Add(new UiReward { name = "유물 뽑기권", icon = "Relic", amount = serviceTuning.dungeonRelicTickets, rarity = 0 });
-            }
-            Save(); if (ActivePage == "Dungeons") RefreshPage();
-            ShowRewards("던전 클리어!\n" + DungeonNames[index] + " · " + UiNumber.Format(GetDungeonStage(index)) + "단계", rewards);
+            Save();if(ActivePage=="Dungeons")RefreshPage();
+            ShowRewards("던전 클리어!\n"+DungeonNames[index]+" · "+stage+"단계",rewards);
         }
 
         List<LocalRank> LocalRanking()

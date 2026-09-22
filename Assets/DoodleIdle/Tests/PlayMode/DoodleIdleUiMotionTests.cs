@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -70,7 +71,9 @@ namespace DoodleIdle.Tests
                 Assert.That(motion.Position,Is.EqualTo(0));
                 UiNode(tabs).GetComponentsInChildren<Button>().Single(x=>x.name==right).onClick.Invoke();
                 motion=UiNode(tabs).GetComponent<DoodleSlidingSelection>();Assert.That(motion.Position,Is.EqualTo(0));
-                yield return new WaitForSecondsRealtime(.1f);
+                // Seek the real tween to a precise mid-point; CI frames can exceed its entire duration.
+                var slide=(Tween)typeof(DoodleSlidingSelection).GetField("tween",ServicePrivate).GetValue(motion);
+                slide.Goto(.1f,true);
                 Assert.That(motion.Position,Is.GreaterThan(0).And.LessThan(1));
                 yield return new WaitForSecondsRealtime(.2f);Assert.That(motion.Position,Is.EqualTo(1).Within(.001f));
                 Object.Destroy(CaptureFrame("sliding-tabs-"+page+"-right.png",720,1520));

@@ -127,7 +127,7 @@ namespace DoodleIdle
         Button IconButton(Transform parent,string id,string label,string icon,Action click,float height)
         {
             var b=UiKit.Button(parent,"",click,UiKit.Paper,height); b.name=id; var im=UiKit.Icon(b.transform,icon,40); UiKit.Stretch(im.rectTransform,7,25,7,5);
-            var text=b.GetComponentInChildren<Text>(); text.text=label; text.resizeTextMaxSize=27; UiKit.Stretch(text.rectTransform,1,4,1,height-32); return b;
+            var text=b.GetComponentInChildren<Text>(); text.text=label; text.resizeTextMaxSize=27; UiKit.Stretch(text.rectTransform,1,4,1,height-32); Notify(b.transform,()=>NotificationForPage(id)); return b;
         }
         static void FixedWidth(Transform t,float width) { var l=t.GetComponent<LayoutElement>()??t.gameObject.AddComponent<LayoutElement>(); l.minWidth=l.preferredWidth=width; l.flexibleWidth=0; }
         static void Anchor(RectTransform r,Vector2 anchor,Vector2 offset,Vector2 size) { r.anchorMin=r.anchorMax=anchor; r.pivot=Vector2.one*.5f; r.anchoredPosition=offset; r.sizeDelta=size; }
@@ -334,9 +334,9 @@ namespace DoodleIdle
         void LateUpdate()
         {
             if(!initialized)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
-            Relayout(); TickServices();
+            Relayout(); bool wasDungeon=ActiveDungeonIndex>=0; TickServices();
             if(game.Kills<lastKills)lastKills=game.Kills;
-            if(game.Kills>lastKills) { int earned=Mathf.Max(1,Mathf.RoundToInt((game.Kills-lastKills)*10*GoldGainMultiplier*GoldBuffMultiplier)); Gold=SaturatingAdd(Gold,earned); RecordServiceProgress("gold",earned); lastKills=game.Kills; }
+            if(game.Kills>lastKills) { int earned=wasDungeon?0:GoldForMainKills(CombatDifficultyStage,game.Kills-lastKills); Gold=SaturatingAdd(Gold,earned); RecordServiceProgress("gold",earned); lastKills=game.Kills; }
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             RefreshHud(); if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
             if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }

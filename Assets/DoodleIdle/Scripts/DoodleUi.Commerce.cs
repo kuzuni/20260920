@@ -46,8 +46,8 @@ namespace DoodleIdle
             public int freeUsedCount;
         }
 
-        readonly string[] commerceCategories = { "Armor", "Club", "Skill", "Companion", "Relic" };
-        readonly string[] commerceLabels = { "갑옷", "몽둥이", "스킬", "동료", "유물" };
+        readonly string[] commerceCategories = { "Armor", "Club", "Skill", "Companion", "Relic", "DungeonRelic" };
+        readonly string[] commerceLabels = { "갑옷", "몽둥이", "스킬", "동료", "유물", "던전 유물" };
         readonly string[] commerceGrades = GradeNames;
         readonly Dictionary<string, SummonState> summonStates = new Dictionary<string, SummonState>();
         readonly System.Random commerceRandom = new System.Random();
@@ -95,8 +95,8 @@ namespace DoodleIdle
                 if (!json.Contains("freeUsedCount") && state.freeUsedDay == CommerceDay()) state.freeUsedCount = 1;
                 state.freeUsedCount = Mathf.Clamp(state.freeUsedCount, 0, 3);
                 state.category = category;
-                state.level = category=="Relic"?0:Mathf.Clamp(state.level, 1, MaxSummonLevel);
-                state.experience = category=="Relic" || state.level==MaxSummonLevel ? 0 : Mathf.Clamp(state.experience, 0, CommerceExperienceNeeded(state) - 1);
+                state.level = IsRelicSummon(category)?0:Mathf.Clamp(state.level, 1, MaxSummonLevel);
+                state.experience = IsRelicSummon(category) || state.level==MaxSummonLevel ? 0 : Mathf.Clamp(state.experience, 0, CommerceExperienceNeeded(state) - 1);
                 summonStates[category] = state;
             }
         }
@@ -107,11 +107,14 @@ namespace DoodleIdle
                 PlayerPrefs.SetString("DoodleUi.Commerce." + state.category, JsonUtility.ToJson(state));
         }
 
+        static bool IsRelicSummon(string category) => category=="Relic"||category=="DungeonRelic";
+        static string SummonIcon(string category) => category=="Skill"?"SkillMeteor":category=="Relic"?"NavPottery":category=="DungeonRelic"?"DungeonPottery":category;
+
         static string CommerceDay() { return DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
 
         int CommerceExperienceNeeded(SummonState state)
         {
-            if(state.category=="Relic")return 1;
+            if(IsRelicSummon(state.category))return 1;
             return commerceTuning.levelExperience[Mathf.Min(state.level - 1, commerceTuning.levelExperience.Length - 1)];
         }
 
@@ -123,14 +126,14 @@ namespace DoodleIdle
 
         public int SummonLevel(string category) { if(summonStates.Count==0)InitCommerce();return summonStates[category].level; }
         public int SummonExperience(string category) { return summonStates[category].experience; }
-        public int FreeSummonsRemaining(string category) { var state=summonStates[category]; return state.freeUsedDay == CommerceDay() ? Mathf.Max(0,3-state.freeUsedCount) : 3; }
+        public int FreeSummonsRemaining(string category) { if(category=="DungeonRelic")return 0; var state=summonStates[category]; return state.freeUsedDay == CommerceDay() ? Mathf.Max(0,3-state.freeUsedCount) : 3; }
         public bool CanFreeSummon(string category) => FreeSummonsRemaining(category) > 0;
 
         public int[] SummonWeights(string category) => SummonWeights(category, SummonLevel(category));
         public int[] SummonWeights(string category, int previewLevel)
         {
             int level=Mathf.Clamp(previewLevel, 1, MaxSummonLevel);
-            if(category=="Relic")return new[]{10000,0,0,0,0,0,0};
+            if(IsRelicSummon(category))return new[]{10000,0,0,0,0,0,0};
             var anchors=commerceTuning.rates;var lower=anchors[0];var upper=anchors[anchors.Length-1];
             foreach(var tier in anchors){if(tier.level<=level)lower=tier;if(tier.level>=level){upper=tier;break;}}
             double t=upper.level==lower.level?0:(level-lower.level)/(double)(upper.level-lower.level);
@@ -192,7 +195,7 @@ namespace DoodleIdle
             }
             if (shopTab == 1) { BuildCurrencyProducts(body); return; }
             foreach (string category in commerceCategories) BuildSummonRow(body, category);
-            UiKit.Text(body, "무료 뽑기는 종류별 하루 1회 · 매일 UTC 00:00 초기화", 17, TextAnchor.MiddleCenter, 40);
+            UiKit.Text(body, "무료 뽑기는 종류별 하루 3회 · 던전 유물은 전용 뽑기권 사용", 17, TextAnchor.MiddleCenter, 40);
         }
 
         RectTransform CommerceFramedRow(Transform parent, string name, float height)
@@ -213,19 +216,20 @@ namespace DoodleIdle
         {
             var state = summonStates[category];
             var row = CommerceFramedRow(body, "Summon_" + category, category == "Relic" ? 336 : 264);
-            UiKit.Icon(row, category, 213);
+            UiKit.Icon(row, SummonIcon(category), 213).name="Icon: "+category;
             var content = UiKit.Column(row, "SummonInformation", 7, 0);
             UiKit.Flexible(content);
             var title = UiKit.Row(content, "SummonTitle", 68, 5);
-            bool relic=category=="Relic";
+            bool relic=IsRelicSummon(category);
             UiKit.Text(title, (relic?"":"Lv. " + state.level + (state.level==MaxSummonLevel?" MAX":"")+"\n") + CommerceLabel(category) + " 뽑기", 32, TextAnchor.MiddleLeft, 68);
             var info = UiKit.Button(title, "i", () => ShowSummonProbabilities(category), UiKit.Blue, 36);
             var size = info.GetComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = 36;
             size.flexibleWidth = 0;
             int needed = CommerceExperienceNeeded(state);
-            if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 " + (100d / Items("Relic").Count).ToString("0.##") + "%",22,TextAnchor.MiddleLeft,28);
+            if(relic)UiKit.Text(content,"모든 유물 동일 등급 · 각각 " + (100d / Items(category).Count).ToString("0.##") + "%",22,TextAnchor.MiddleLeft,28);
             else UiKit.Gauge(content, state.level==MaxSummonLevel?"MAX":UiNumber.Format(state.experience) + "/" + UiNumber.Format(needed), state.level==MaxSummonLevel?1:(float)state.experience / needed, 28).GetComponentInChildren<Text>().resizeTextMaxSize = 23;
+            if(category=="DungeonRelic")UiKit.Text(content,"전용 뽑기권 "+UiNumber.Format(DungeonRelicTickets)+"장",22,TextAnchor.MiddleLeft,28);
             BuildSummonButtons(content, category);
             if (category == "Relic")
             {
@@ -243,6 +247,13 @@ namespace DoodleIdle
         void BuildSummonButtons(Transform parent, string category, bool result = false)
         {
             var actions = UiKit.Row(parent, "SummonActions", 68, 5);
+            if(category=="DungeonRelic") {
+                foreach(int count in new[]{1,10,50}) {
+                    var ticket=UiKit.Button(actions,count+"회 뽑기\n뽑기권 "+count+"장",()=>TrySummonDungeonRelicTickets(count),UiKit.Yellow,68);
+                    ticket.name="DungeonRelicTicketSummon"+count;CommerceButtonText(ticket,22);ticket.interactable=DungeonRelicTickets>=count;
+                }
+                return;
+            }
             var free = UiKit.Button(actions, "무료 " + commerceTuning.freeCount + "회뽑기\n(" + FreeSummonsRemaining(category) + "/3)", () => TrySummon(category, commerceTuning.freeCount, true), result ? UiKit.Blue : UiKit.Green, 68);
             free.name = "무료 " + commerceTuning.freeCount + "회\n뽑기";
             CommerceButtonText(free, 24);
@@ -279,7 +290,7 @@ namespace DoodleIdle
         // No store SDK, payment provider, or remote entitlement is simulated here.
         public bool TrySummon(string category, int count, bool free)
         {
-            if (!summonStates.ContainsKey(category)) return false;
+            if (category=="DungeonRelic" || !summonStates.ContainsKey(category)) return false;
             if (free && count != commerceTuning.freeCount) return false;
             if (!free && count != 10 && count != 50) return false;
             if (free && !CanFreeSummon(category)) { Toast("오늘 무료 뽑기를 모두 사용했어요."); return false; }
@@ -312,17 +323,27 @@ namespace DoodleIdle
             return true;
         }
 
+        public bool TrySummonDungeonRelicTickets(int count)
+        {
+            if(summonStates.Count==0)InitCommerce();
+            if((count!=1&&count!=10&&count!=50)||DungeonRelicTickets<count)return false;
+            var rewards=new List<UiItem>();
+            for(int i=0;i<count;i++){var item=GrantItem("DungeonRelic",commerceRandom);if(item==null)return false;rewards.Add(item);}
+            if(!TrySpendDungeonRelicTickets(count))return false;
+            long before=Power;CompleteSummon("DungeonRelic",rewards);NotifyPowerChanged(before,"던전 유물 획득");return true;
+        }
+
         void CompleteSummon(string category, List<UiItem> rewards)
         {
             var state = summonStates[category];
             foreach (var item in rewards) AddItem(item, 1);
-            if(category!="Relic" && state.level<MaxSummonLevel)state.experience += rewards.Count;
-            while (category!="Relic" && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
+            if(!IsRelicSummon(category) && state.level<MaxSummonLevel)state.experience += rewards.Count;
+            while (!IsRelicSummon(category) && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
             {
                 state.experience -= CommerceExperienceNeeded(state);
                 state.level++;
             }
-            if(category=="Relic"||state.level==MaxSummonLevel)state.experience=0;
+            if(IsRelicSummon(category)||state.level==MaxSummonLevel)state.experience=0;
             RecordServiceProgress("summon", rewards.Count);
             Save();
             RefreshPage();
@@ -349,9 +370,9 @@ namespace DoodleIdle
                 var footer = UiKit.Footer(body, "Summon result footer", 228);
                 var state = summonStates[category];
                 var summary = UiKit.Row(footer, "Summon progress summary", 46, 10);
-                var summaryIcon = UiKit.Icon(summary, category, 46);
+                var summaryIcon = UiKit.Icon(summary, SummonIcon(category), 46);
                 var summaryText = UiKit.Column(summary, "Summon progress text", 4, 0);
-                bool relic=category=="Relic";
+                bool relic=IsRelicSummon(category);
                 var level = UiKit.Text(summaryText, CommerceLabel(category) + (relic?" 뽑기":" 뽑기 Lv. "+state.level+(state.level==MaxSummonLevel?" MAX":"")), 36, TextAnchor.MiddleLeft, 46);
                 int needed = CommerceExperienceNeeded(state);
                 var experience = UiKit.Text(summaryText, "", 29, TextAnchor.MiddleLeft, 34);
@@ -435,12 +456,12 @@ namespace DoodleIdle
         }
         public double PreviewItemProbability(UiItem item, int level)
         {
-            var items = Items(item.category);
+            var items = Items(item.dungeonRelic?"DungeonRelic":item.category);
             return item.category == "Relic" ? 100d / items.Count : SummonWeights(item.category, level)[item.rarity] / 100d / items.FindAll(x => x.rarity == item.rarity).Count;
         }
         void ShowSummonProbabilityPage(string category, int level, bool animate=true)
         {
-            bool relic = category == "Relic";
+            bool relic = IsRelicSummon(category);
             level = relic ? 0 : Mathf.Clamp(level, 1, MaxSummonLevel);
             ShowDetail("뽑기 확률", body =>
             {

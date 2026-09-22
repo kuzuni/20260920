@@ -17,7 +17,7 @@ namespace DoodleIdle
                 case "SkillTornado": case "SkillDoubleClaw": case "SkillLightning": case "SkillRedSlash": count = 2; break;
                 case "SkillGolem": count = 4; break;
                 case "SkillDumbbell": case "SkillMeteorRock": case "SkillMeteor": case "SkillMeteorCrater":
-                case "NavPottery": case "NavColosseum": count = 1; break;
+                case "NavPottery": case "NavColosseum": case "DungeonPottery": count = 1; break;
                 default: return null;
             }
             bool valid = frames.TryGetValue(key, out var sprites) && sprites.Length == count;

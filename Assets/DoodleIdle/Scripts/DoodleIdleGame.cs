@@ -268,6 +268,7 @@ namespace DoodleIdle
             var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
             if (!isPlayer)
             {
+                actor.hp = actor.maxHp = EnemyMaxHealth * (Ui ? Ui.EnemyHealthMultiplier(Ui.CombatDifficultyStage) : 1);
                 actor.dashCooldown = 2 + actor.phase * .4f;
                 NormalizeEnemyFrame(actor,art.sprite);
                 actor.art.flipX = player.Position.x < p.x;
@@ -286,7 +287,7 @@ namespace DoodleIdle
                 foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
-                boss.isBoss = true; boss.hp = boss.maxHp = EnemyMaxHealth * 20;
+                boss.isBoss = true; boss.hp = boss.maxHp = boss.maxHp * 20;
                 boss.root.name = "Stage boss";
                 boss.root.transform.localScale = Vector3.one * 3;
                 boss.body.mass = 9;

@@ -203,8 +203,10 @@ namespace DoodleIdle
                 bool synthesis = selected.rarity != 6 && selected.level >= 100;
                 var upgrade = UiKit.Button(actions, synthesis ? "합성" : "강화", () => { if (synthesis) SynthesizeFromUi(selected); else UpgradeSelected(selected, false); }, synthesis ? UiKit.Purple : UiKit.Blue, 46);
                 upgrade.interactable = synthesis ? selected.count >= 5 : selected.count >= CopiesNeeded(selected);
+                Notify(upgrade.transform,()=>synthesis?CanSynthesize(selected):CanUpgradeItem(selected));
                 CollectionButtonText(upgrade, 28);
-                CollectionButtonText(UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46), 28);
+                var equip=UiKit.Button(actions, selected.equipped ? "장착 중" : "장착", () => EquipFromUi(selected, false), UiKit.Green, 46);
+                Notify(equip.transform,()=>CanImproveLoadout(selected));CollectionButtonText(equip,28);
             }
             else UiKit.Text(actions, "미획득", 24, TextAnchor.MiddleCenter, 32);
             OwnershipStrip(body, "Equipment");
@@ -309,6 +311,7 @@ namespace DoodleIdle
                 level.color = item.discovered ? UiKit.Ink : Color.white;
                 card.GetComponent<DoodleUiSlotLayout>().Invalidate();
             }
+            Notify(card.transform,()=>ItemNeedsAttention(item));
             return card;
         }
 
@@ -375,11 +378,14 @@ namespace DoodleIdle
             {
                 var synthesis = UiKit.Button(row, "일괄 합성", () => { int made = SynthesizeAll(category); RefreshPage(); Toast(UiNumber.Format(made) + "개 합성했습니다."); }, UiKit.Purple, 68);
                 synthesis.interactable = !collectionBulkRunning;
+                Notify(synthesis.transform,()=>!collectionBulkRunning&&Items(category).Exists(CanSynthesize));
                 CollectionButtonText(synthesis, 28);
             }
             var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
             upgrade.interactable = !collectionBulkRunning;
             var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast("강한 " + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
+            Notify(upgrade.transform,()=>!collectionBulkRunning&&CategoryCanUpgrade(category));
+            Notify(auto.transform,()=>CategoryCanEquip(category));
             CollectionButtonText(upgrade, 33); CollectionButtonText(auto, 33);
         }
 
@@ -482,8 +488,10 @@ namespace DoodleIdle
                         Toast(paid > 0 ? UiNumber.Format(paid) + " 다이아 환불 완료" : "환불 가능한 조각 또는 지갑 공간이 없습니다.");
                     }, refund ? UiKit.Purple : UiKit.Blue, 56);
                     upgrade.interactable = refund ? CanRefundSkill(item) : item.count >= CopiesNeeded(item);
+                    Notify(upgrade.transform,()=>refund?SkillRefundQuote(item)>0:CanUpgradeItem(item));
                     CollectionButtonText(upgrade, 27);
-                    CollectionButtonText(UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56), 27);
+                    var equip=UiKit.Button(buttons, item.equipped ? "장착 해제" : "장착", () => EquipFromUi(item, true), UiKit.Yellow, 56);
+                    Notify(equip.transform,()=>CanImproveLoadout(item));CollectionButtonText(equip,27);
                 }
             });
         }
@@ -539,7 +547,7 @@ namespace DoodleIdle
                 + "골드 +" + UiNumber.Format(EffectBonus("gold", "Relic")) + "% · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", "Relic")) + "% · 치명 피해 +" + UiNumber.Format(EffectBonus("critDamage", "Relic")) + "%";
             summary += "\n기본 공격 +" + UiNumber.Format(EffectBonus("basicAttack", "Relic")) + "% · 스킬 +" + UiNumber.Format(EffectBonus("skillAttack", "Relic")) + "% · 동료 +" + UiNumber.Format(EffectBonus("companionAttack", "Relic")) + "%";
             UiKit.Text(totals, summary, 21, TextAnchor.MiddleCenter, 88);
-            foreach (var entry in Items("Relic"))
+            foreach (var entry in AllRelics)
             {
                 var item = entry;
                 var frame = CollectionBox(body, "Relic " + item.id, UiKit.Paper);
@@ -559,10 +567,12 @@ namespace DoodleIdle
                 CollectionWidth(button.transform, 146);
                 button.interactable = item.discovered && item.count > 0 && item.level < collectionTuning.maxItemLevel && !collectionBulkRunning;
                 UiKit.Repeat(button, "relic:" + item.id, attempt);
+                Notify(button.transform,()=>!collectionBulkRunning&&CanUpgradeItem(item));
             }
             var footer = UiKit.Footer(body, "Relic footer", 72);
             var bulk = UiKit.Button(footer, "일괄강화", () => StartCollectionBulk("Relic"), UiKit.Blue, 68);
             bulk.interactable = !collectionBulkRunning;
+            Notify(bulk.transform,()=>!collectionBulkRunning&&AllRelics.Exists(CanUpgradeItem));
             CollectionButtonText(bulk, 34);
         }
 
@@ -593,7 +603,7 @@ namespace DoodleIdle
             int chunk = 0;
             try
             {
-                foreach (var item in Items(category))
+                foreach (var item in category=="Relic" ? AllRelics : Items(category))
                 {
                     while (true)
                     {

@@ -30,7 +30,7 @@ namespace DoodleIdle
         Material groundMaterial;
         int activeTheme = -1;
         public static int ThemeIndexForStage(int stage) => (Math.Max(1, stage) - 1) / 100 % ThemeNames.Length;
-        public int CurrentThemeIndex => ThemeIndexForStage(Ui ? Ui.MainStage + 1 : 1);
+        public int CurrentThemeIndex => Ui && Ui.ActiveDungeonIndex >= 0 ? Ui.DungeonThemeIndex : ThemeIndexForStage(Ui ? Ui.CombatDifficultyStage : 1);
         public string CurrentThemeName => ThemeNames[CurrentThemeIndex];
 
         [Serializable] sealed class ThemeAtlasLayout { public SpriteRegion[] frames; }

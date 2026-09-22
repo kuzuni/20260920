@@ -9,7 +9,7 @@ namespace DoodleIdle
     {
         public string id, name, icon, category, effect, description, ability;
         public int rarity, count, level, slot, tier;
-        public bool equipped, discovered;
+        public bool equipped, discovered, dungeonRelic;
         public float ownedPercent, equipValue, cooldown;
         public string projectile, trajectory;
         public int volleyCount;
@@ -45,7 +45,7 @@ namespace DoodleIdle
         float starterDamageBaseline = 1;
         readonly System.Random collectionRandom = new System.Random();
 
-        [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered; }
+        [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered, dungeonRelic; }
         [Serializable] sealed class StatSave { public string id; public int level; }
         [Serializable] sealed class CollectionSave { public int version; public List<ItemSave> items = new List<ItemSave>(); public List<StatSave> stats = new List<StatSave>(); }
 
@@ -117,8 +117,10 @@ namespace DoodleIdle
         public List<UiItem> Items(string category)
         {
             InitCollections();
-            return collectionItems.FindAll(x => x.category == category);
+            return collectionItems.FindAll(x => category == "DungeonRelic" ? x.category == "Relic" && x.dungeonRelic : x.category == category && (category != "Relic" || !x.dungeonRelic));
         }
+
+        public List<UiItem> AllRelics { get { InitCollections();return collectionItems.FindAll(x=>x.category=="Relic"); } }
 
         // A roll selects a catalog entry only. The caller grants it explicitly after charging currency.
         public UiItem GrantItem(string category, System.Random rng)
@@ -126,7 +128,7 @@ namespace DoodleIdle
             if (rng == null) throw new ArgumentNullException(nameof(rng));
             var items = Items(category);
             if (items.Count == 0) throw new ArgumentException("Unknown collection category", nameof(category));
-            if(category=="Relic")return items[rng.Next(items.Count)];
+            if(category=="Relic"||category=="DungeonRelic")return items[rng.Next(items.Count)];
             var weights=SummonWeights(category);
             int roll = rng.Next(10000), grade = 0;
             while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
@@ -144,6 +146,7 @@ namespace DoodleIdle
         public double ItemProbability(UiItem item)
         {
             if (item == null) return 0;
+            if(item.category=="Relic")return 100d/Items(item.dungeonRelic?"DungeonRelic":"Relic").Count;
             int count = Items(item.category).FindAll(x => x.rarity == item.rarity).Count;
             return count == 0 ? 0 : GradeProbability(item.category, item.rarity) / count;
         }
