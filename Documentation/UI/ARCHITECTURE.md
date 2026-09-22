@@ -10,6 +10,13 @@ Only `Documentation/UI/FinalDesign/01..25 *.png` is the visual reference. Text r
 - Never edit another owner's file or scene/prefab. Report API requirements to coordinator. Do not commit or push independently.
 
 ## Shared code contract
+
+### 2026-09-23 hit and notification presentation
+
+- Player contact immunity keeps its one-second window and quarter-second phases. The flash phase uses `DoodlePlayerHit.shader` to replace RGB with white while preserving source alpha and applying explicit material `_Opacity=0.6`; the alternate phase restores the normal sprite material with 0.8 renderer alpha. A private player material avoids affecting other actors and is disposed with the game. The explicit opacity handles URP sprite batching paths that do not supply renderer alpha as vertex color.
+- `UiKit.NotificationDot` provides a cached, slightly irregular ink-outline/coral-fill sprite. All notifications retain their common upper-right position and non-interactive layout. Equipment recommendations consider only the strongest discovered item in each equipment category; upgrade/synthesis notifications remain independent.
+- Stat titles include current `Lv.N`, with existing current/next value rows. Equipment cards use `Lv.N` and reserve enough header width beside grade and corner badges.
+- Dungeon relic wallet, shop/result cost buttons and clear rewards use the transparent `DungeonRelicTicket` icon. It is imported at 256px with mipmaps for clean small UI rendering. Item/category artwork remains the pottery icon.
 Namespace DoodleIdle. `public sealed partial class DoodleUi : MonoBehaviour`. Runtime uGUI, programmatic construction. Native panels, text, images, Buttons, ScrollRects (never screenshot backgrounds). Existing game art reused; common hand ink borders, cream white panels, pastel green/blue/yellow action buttons, red close X.
 
 Shared fields/properties: `DoodleIdleGame game; Font font; long Gold = 0; int Diamonds = 0; string PlayerName = "먼지고양이"; long Power` computed from collection bonuses; `string ActivePage {get;}`. Shared `RefreshPage()` rebuilds current page; `Toast(string)`; `Save()` persists local state; `ShowPage(string)` routes `Stats,Equipment,Skills,Companions,Relics,Dungeons,Pvp,Shop,Attendance,Roulette,Buffs,Quests,Chat,Settings`. `ShowDetail(string title, Action<RectTransform> build)` opens stacked modal; `CloseDetail()` closes only top overlay. `ShowRewards(string title, List<UiReward> rewards)` opens panel-free dim reward overlay; UiReward fields `string name, icon; int amount, rarity`.
