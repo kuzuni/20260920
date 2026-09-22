@@ -65,6 +65,14 @@ namespace DoodleIdle
             return (int)Math.Min(int.MaxValue,Math.Max(0,Math.Round(unit*count*GoldGainMultiplier*GoldBuffMultiplier)));
         }
         public int DungeonGoldReward(int stage) => GoldForMainKills(DungeonDifficultyStage(stage),Math.Max(1,serviceTuning.goldDungeonEnemyCount));
+        void CreditPendingFieldGold()
+        {
+            if(!game)return;
+            if(game.Kills<lastKills)lastKills=game.Kills;
+            if(game.Kills==lastKills)return;
+            int earned=ActiveDungeonIndex>=0?0:GoldForMainKills(CombatDifficultyStage,game.Kills-lastKills);
+            Gold=SaturatingAdd(Gold,earned);RecordServiceProgress("gold",earned);lastKills=game.Kills;
+        }
         public int DungeonRelicReward(int stage) => (int)Math.Min(int.MaxValue,Math.Max(1L,serviceTuning.dungeonRelicTickets)+Math.Max(0L,(long)stage-1));
         public void GrantDungeonRelicTickets(int amount)
         {

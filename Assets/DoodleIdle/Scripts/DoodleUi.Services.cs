@@ -518,7 +518,7 @@ namespace DoodleIdle
 
         public void EnterDungeon(int index)
         {
-            TickServices(); ResetServicePeriods();
+            CreditPendingFieldGold(); TickServices(); ResetServicePeriods();
             if (!CanEnterDungeon(index)) return;
             services.dungeonUsed[index]++; services.activeDungeon=index; services.dungeonProgress=0;
             if(game)game.RequestCombatWaveReset();

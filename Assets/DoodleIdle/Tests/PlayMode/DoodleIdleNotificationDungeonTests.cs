@@ -76,6 +76,18 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator DungeonEntrySettlesPendingFieldGoldBeforeChangingRewardContext()
+        {
+            game.TogglePause();var ui=game.Ui;long before=ui.Gold;
+            DefeatActualServiceEnemies(1);
+            int earned=ui.GoldForMainKills(ui.CombatDifficultyStage,1);
+            ui.EnterDungeon(0);
+            Assert.That(ui.Gold,Is.EqualTo(before+earned),"The last field kill cannot lose its reward when entry happens before LateUpdate.");
+            yield return null;
+            Assert.That(ui.Gold,Is.EqualTo(before+earned),"The settled kill cannot pay twice.");
+        }
+
+        [UnityTest]
         public IEnumerator DungeonRelicsAreExclusiveUniformPersistentAndShareTheirOptions()
         {
             game.TogglePause();var ui=game.Ui;

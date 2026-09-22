@@ -334,9 +334,7 @@ namespace DoodleIdle
         void LateUpdate()
         {
             if(!initialized)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
-            Relayout(); bool wasDungeon=ActiveDungeonIndex>=0; TickServices();
-            if(game.Kills<lastKills)lastKills=game.Kills;
-            if(game.Kills>lastKills) { int earned=wasDungeon?0:GoldForMainKills(CombatDifficultyStage,game.Kills-lastKills); Gold=SaturatingAdd(Gold,earned); RecordServiceProgress("gold",earned); lastKills=game.Kills; }
+            Relayout(); CreditPendingFieldGold(); TickServices();
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             RefreshHud(); if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
             if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }
