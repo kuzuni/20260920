@@ -119,7 +119,7 @@ namespace DoodleIdle
                 if (locked) statArt.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
-                UiKit.Text(text, stat.name, 30, TextAnchor.MiddleLeft, 39);
+                UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id), 30, TextAnchor.MiddleLeft, 39);
                 float current = StatValue(stat.id);
                 float next = current + stat.increment * upgrades;
                 if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
@@ -303,10 +303,10 @@ namespace DoodleIdle
             if (IsEquipment(item))
             {
                 card.GetComponentInChildren<Text>().text = GradeNames[item.rarity] + item.tier;
-                var level = UiKit.Text(card.transform, "+" + item.level, 20, TextAnchor.UpperRight, 24);
+                var level = UiKit.Text(card.transform, "Lv." + item.level, 20, TextAnchor.UpperRight, 24);
                 level.name = "Enhancement level";
                 var rect = level.rectTransform;
-                rect.anchorMin = new Vector2(.48f, 1); rect.anchorMax = Vector2.one;
+                rect.anchorMin = new Vector2(.38f, 1); rect.anchorMax = Vector2.one;
                 rect.offsetMin = new Vector2(0, -24); rect.offsetMax = new Vector2(-5, -2);
                 level.color = item.discovered ? UiKit.Ink : Color.white;
                 card.GetComponent<DoodleUiSlotLayout>().Invalidate();

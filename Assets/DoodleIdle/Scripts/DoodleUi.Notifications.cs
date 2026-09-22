@@ -19,8 +19,8 @@ namespace DoodleIdle
                 var rect=UiKit.Rect(target,"Red notification dot");
                 rect.anchorMin=rect.anchorMax=Vector2.one;rect.anchoredPosition=new Vector2(-7,-7);rect.sizeDelta=Vector2.one*18;
                 rect.gameObject.AddComponent<LayoutElement>().ignoreLayout=true;
-                badge.marker=rect.gameObject.AddComponent<Image>();badge.marker.sprite=UiKit.Circle;
-                badge.marker.color=new Color(1,.12f,.12f);badge.marker.raycastTarget=false;
+                badge.marker=rect.gameObject.AddComponent<Image>();badge.marker.sprite=UiKit.NotificationDot;
+                badge.marker.color=Color.white;badge.marker.raycastTarget=false;
             }
             badge.Refresh();
             target.GetComponent<DoodleUiSlotLayout>()?.Invalidate();
@@ -37,6 +37,12 @@ namespace DoodleIdle
         public bool CanImproveLoadout(UiItem item)
         {
             if(item==null||!item.discovered||item.equipped||EquipLimit(item.category)<=0)return false;
+            if(IsEquipment(item)) {
+                UiItem best=null;
+                foreach(var candidate in Items(item.category))
+                    if(candidate.discovered&&(best==null||ItemEquipValue(candidate)>ItemEquipValue(best)))best=candidate;
+                if(item!=best)return false;
+            }
             var equipped=EquippedItems(item.category);
             if(equipped.Count<EquipLimit(item.category))return true;
             float weakest=float.MaxValue;foreach(var current in equipped)weakest=Mathf.Min(weakest,ItemEquipValue(current));

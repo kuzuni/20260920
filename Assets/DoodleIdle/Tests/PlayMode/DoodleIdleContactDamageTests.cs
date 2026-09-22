@@ -34,17 +34,20 @@ namespace DoodleIdle.Tests
             Assert.That(damageText.transform.position.y, Is.GreaterThan(PlayerBody().position.y));
             typeof(DoodleIdleGame).GetMethod("TickDamageNumbers", GrowthPrivate).Invoke(game, new object[] { .2f });
             Assert.That(damageText.color.r, Is.EqualTo(.62f).Within(.001), "Floating damage keeps its gray color while fading.");
-            Color dark = (Color)tint.Invoke(game, new object[] { Color.white });
-            Assert.That(dark.r, Is.LessThan(.2)); Assert.That(dark.a, Is.InRange(.5f, .7f));
+            Color whiteFlash = (Color)tint.Invoke(game, new object[] { Color.white });
+            Assert.That(whiteFlash.r, Is.EqualTo(1)); Assert.That(whiteFlash.g, Is.EqualTo(1)); Assert.That(whiteFlash.b, Is.EqualTo(1)); Assert.That(whiteFlash.a, Is.InRange(.5f, .7f));
             var art = (SpriteRenderer)player.GetType().GetField("art").GetValue(player);
-            art.color = dark;
-            Object.Destroy(CaptureFrame("player-contact-invulnerability-dark.png", 1000, 1000, false));
+            var appearance = typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate);
+            art.color = Color.white; appearance.Invoke(game, null);
+            Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player White Hit"));
+            Object.Destroy(CaptureFrame("player-contact-invulnerability-white.png", 1000, 1000, false));
             Step(.2f);
-            Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(dark), "The dark phase remains stable for a quarter second.");
+            Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(whiteFlash), "The white phase remains stable for a quarter second.");
             Step(.06f);
             Color light = (Color)tint.Invoke(game, new object[] { Color.white });
             Assert.That(light.r, Is.GreaterThan(.9)); Assert.That(light.a, Is.LessThan(1));
-            art.color = light;
+            art.color = Color.white; appearance.Invoke(game, null);
+            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player White Hit"));
             Object.Destroy(CaptureFrame("player-contact-invulnerability-light.png", 1000, 1000, false));
             Step(.73f); Assert.That(game.PlayerContactHits, Is.EqualTo(1));
             Step(.011f); Assert.That(game.PlayerContactHits, Is.EqualTo(2));
@@ -52,6 +55,9 @@ namespace DoodleIdle.Tests
             Step(1.01f);
             Assert.That(game.PlayerInvulnerable, Is.False);
             Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(Color.white));
+            art.color = Color.white; appearance.Invoke(game, null);
+            Assert.That(art.color, Is.EqualTo(Color.white));
+            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player White Hit"));
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var representatives = actors.Cast<object>().GroupBy(a => (int)a.GetType().GetField("kind").GetValue(a)).Select(g => g.First());
             foreach (var enemy in representatives) {

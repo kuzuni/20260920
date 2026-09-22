@@ -8,6 +8,7 @@ namespace DoodleIdle
         [Min(0)] public float enemyContactDamage = 64;
         public const float ContactInvulnerabilityDuration = 1;
         float contactInvulnerability;
+        Material playerHitMaterial;
         public float PlayerHealth => player == null ? 0 : player.hp;
         public float PlayerMaxHealth => player == null ? 0 : player.maxHp;
         public bool PlayerInvulnerable => contactInvulnerability > .0001f;
@@ -57,8 +58,20 @@ namespace DoodleIdle
         Color PlayerInvulnerabilityTint(Color normal)
         {
             if (!PlayerInvulnerable) return normal;
-            bool dark = Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .25f) % 2 == 0;
-            return dark ? new Color(.15f, .15f, .15f, .6f) : new Color(normal.r, normal.g, normal.b, .8f);
+            return PlayerWhiteFlashPhase ? new Color(1, 1, 1, .6f) : new Color(normal.r, normal.g, normal.b, .8f);
+        }
+
+        bool PlayerWhiteFlashPhase => PlayerInvulnerable && Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .25f) % 2 == 0;
+
+        void ApplyPlayerHitAppearance()
+        {
+            player.art.color = PlayerInvulnerabilityTint(player.art.color);
+            if (PlayerWhiteFlashPhase) {
+                if (!playerHitMaterial) playerHitMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodlePlayerHit")) { name = "Doodle player white hit flash" };
+                playerHitMaterial.mainTexture = player.art.sprite.texture;
+                player.art.sharedMaterial = playerHitMaterial;
+            }
+            else if (playerHitMaterial && player.art.sharedMaterial == playerHitMaterial) SetSpriteArt(player.art, player.art.sprite);
         }
 
         void UpdatePlayerHealthBar()

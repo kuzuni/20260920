@@ -574,7 +574,7 @@ namespace DoodleIdle
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
             actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
             if (!actor.isPlayer && actor.dashWindup > 0 && actor.flash <= 0) actor.art.color = new Color(1, .75f, .65f);
-            if (actor.isPlayer) actor.art.color = PlayerInvulnerabilityTint(actor.art.color);
+            if (actor.isPlayer) ApplyPlayerHitAppearance();
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
@@ -762,6 +762,7 @@ namespace DoodleIdle
             KillCannonTweens();
             DisposeParticleMaterials();
             if (spriteMaterial) Destroy(spriteMaterial);
+            if (playerHitMaterial) Destroy(playerHitMaterial);
             foreach (var material in textureMaterials.Values) if (material) Destroy(material);
             textureMaterials.Clear();
             if (frictionless) Destroy(frictionless);

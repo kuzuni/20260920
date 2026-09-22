@@ -187,6 +187,7 @@ namespace DoodleIdle.Tests
             UiOpen("Equipment");
             Assert.That(UiNode("Collection actions").GetChild(0).name, Is.EqualTo("일괄 합성"));
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(31));
+            Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Where(x=>x.name=="Enhancement level").All(x=>x.text.StartsWith("Lv.")),Is.True);
             Object.Destroy(CaptureFrame("revision-equipment-synthesis.png", 720, 1520));
             yield return null;
         }

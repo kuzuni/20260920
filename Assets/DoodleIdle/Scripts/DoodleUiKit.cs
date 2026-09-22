@@ -17,9 +17,9 @@ namespace DoodleIdle
         public static readonly Color Purple = new Color(.77f,.58f,.94f);
         public static Font Font;
         static readonly Dictionary<string, Sprite> art = new Dictionary<string, Sprite>();
-        static Sprite frame, circle;
+        static Sprite frame, circle, notificationDot;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetCache() { art.Clear(); frame = circle = null; Font = null; }
+        static void ResetCache() { art.Clear(); frame = circle = notificationDot = null; Font = null; }
         static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
         public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f), new Color(1,.63f,.65f), new Color(.65f,1,.94f) }[Mathf.Clamp(grade,0,6)];
         public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,6)];
@@ -147,6 +147,23 @@ namespace DoodleIdle
             return b;
         }
         public static Sprite Circle => circle && circle.texture ? circle : circle=Shape(true);
+        public static Sprite NotificationDot => notificationDot && notificationDot.texture ? notificationDot : notificationDot=MakeNotificationDot();
+        static Sprite MakeNotificationDot()
+        {
+            const int n=96;
+            var texture=new Texture2D(n,n,TextureFormat.RGBA32,false) { name="Doodle ink notification dot", filterMode=FilterMode.Bilinear, wrapMode=TextureWrapMode.Clamp };
+            var pixels=new Color[n*n];
+            for(int y=0;y<n;y++) for(int x=0;x<n;x++) {
+                float dx=x-47.5f,dy=y-47.5f,angle=Mathf.Atan2(dy,dx);
+                float radius=42+1.3f*Mathf.Sin(angle*3+.4f)+.8f*Mathf.Sin(angle*5);
+                float distance=Mathf.Sqrt(dx*dx+dy*dy),edge=radius-distance;
+                Color color=Color.Lerp(Ink,Red,Mathf.Clamp01(edge-8));
+                color.a=Mathf.Clamp01(edge+.5f);
+                pixels[y*n+x]=color;
+            }
+            texture.SetPixels(pixels);texture.Apply();
+            return Sprite.Create(texture,new Rect(0,0,n,n),Vector2.one*.5f,100,0,SpriteMeshType.FullRect);
+        }
         public static Sprite Frame => frame && frame.texture ? frame : frame=Shape(false);
         static Sprite Shape(bool round)
         {
@@ -313,7 +330,7 @@ namespace DoodleIdle
             var level=transform.Find("Enhancement level") as RectTransform;
             if(level)
             {
-                grade.rectTransform.anchorMax=new Vector2(.53f,1);
+                grade.rectTransform.anchorMax=new Vector2(.38f,1);
                 // Keep the enhancement number readable beside the shared corner notification.
                 float notificationInset=GetComponent<DoodleNotificationBadge>()?18:0;
                 level.offsetMin=new Vector2(0,-top);level.offsetMax=new Vector2(-pad-notificationInset,-2*scale);

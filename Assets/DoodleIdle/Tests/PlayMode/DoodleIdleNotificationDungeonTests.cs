@@ -17,6 +17,7 @@ namespace DoodleIdle.Tests
             var dot=(RectTransform)target.Find("Red notification dot");
             Assert.That(dot.anchorMin,Is.EqualTo(Vector2.one));Assert.That(dot.anchorMax,Is.EqualTo(Vector2.one));
             Assert.That(dot.GetComponent<Image>().raycastTarget,Is.False);
+            Assert.That(dot.GetComponent<Image>().sprite,Is.SameAs(UiKit.NotificationDot));
             Assert.That(dot.GetComponent<LayoutElement>().ignoreLayout,Is.True);
             var level=target.Find("Enhancement level") as RectTransform;
             if(level)Assert.That(UiLocalBounds((RectTransform)target,level).xMax,Is.LessThan(UiLocalBounds((RectTransform)target,dot).xMin-1),"The notification must not cover the enhancement level.");
@@ -57,6 +58,11 @@ namespace DoodleIdle.Tests
                 var weak=ui.Items(category).First();var strong=ui.Items(category).Last();
                 ui.AddItem(weak,1);weak.count=0;ui.AutoEquip(category);
                 ui.AddItem(strong,1);strong.count=0;
+                if(category=="Armor") {
+                    var intermediate=ui.Items(category)[5];ui.AddItem(intermediate,1);intermediate.count=0;
+                    Assert.That(ui.CanImproveLoadout(intermediate),Is.False,"Only the best owned armor receives a better-equipment notification.");
+                    Assert.That(ui.CanImproveLoadout(strong),Is.True);
+                }
                 string page=category=="Armor"?"Equipment":category=="Skill"?"Skills":"Companions";
                 UiOpen(page);AssertBadge(UiNode(page),true);AssertBadge(UiNode("자동장착"),true);
                 AssertBadge(UiNode("Slot: "+strong.name,UiNode("Collection inventory")),true);

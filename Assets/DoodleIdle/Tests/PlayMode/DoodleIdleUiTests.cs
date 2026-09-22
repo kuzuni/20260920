@@ -138,6 +138,8 @@ namespace DoodleIdle.Tests
             ExecuteEvents.Execute(upgrade.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
             Assert.That(game.Ui.AttackStatLevel, Is.EqualTo(attack + 10));
             Assert.That(game.Ui.Gold, Is.LessThan(gold));
+            Assert.That(UiNode("Stat attack").GetComponentsInChildren<Text>().Any(t=>t.text=="공격력 Lv."+game.Ui.AttackStatLevel),Is.True);
+            Object.Destroy(CaptureFrame("stats-current-level-label.png",720,1520));
             UiClick("Stats", UiNode("Bottom navigation"));
             Assert.That(game.Ui.ActivePage, Is.Null);
             UiOpen("Equipment");
