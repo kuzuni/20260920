@@ -67,6 +67,8 @@ namespace DoodleIdle.Tests
             uiSavedDiamonds = PlayerPrefs.GetInt("DoodleUi.Diamonds");
             PlayerPrefs.DeleteKey("DoodleUi.Diamonds");
             uiHadCameraMode=PlayerPrefs.HasKey("DoodleUi.CameraMode");uiSavedCameraMode=PlayerPrefs.GetInt("DoodleUi.CameraMode");PlayerPrefs.DeleteKey("DoodleUi.CameraMode");
+            // The opt-in continuous campaign must use the real empty first-launch state.
+            if (TestContext.CurrentContext.Test.Name == "ContinuousFirstDayCampaignReachesStage300") return;
             // Mechanic/UI fixtures explicitly own a progressed profile; production starts empty.
             PlayerPrefs.SetString("DoodleUi.Gold", "125480");
             PlayerPrefs.SetInt("DoodleUi.Diamonds", 1250);
