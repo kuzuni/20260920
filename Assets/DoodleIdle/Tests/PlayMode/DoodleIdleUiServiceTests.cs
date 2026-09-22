@@ -378,7 +378,7 @@ namespace DoodleIdle.Tests
             Assert.That(keys.Length,Is.EqualTo(2));Assert.That(keys.Select(x=>x.accent).Distinct().Count(),Is.EqualTo(2));
             Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("다이아 동굴")),Is.False);
             ui.EnterDungeon(1);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));
-            Object.Destroy(CaptureFrame("dungeon-new-list.png",720,1520));
+            UnityEngine.Object.Destroy(CaptureFrame("dungeon-new-list.png",720,1520));
             foreach(int dungeon in new[]{0,2})for(int attempt=0;attempt<3;attempt++) {
                 UiOpen("Dungeons");Assert.That(ui.DungeonChallengeStage(dungeon),Is.EqualTo(attempt+1));
                 long gold=ui.Gold;int diamonds=ui.Diamonds,tickets=ui.DungeonRelicTickets;
