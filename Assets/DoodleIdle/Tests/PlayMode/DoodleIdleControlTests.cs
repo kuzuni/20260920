@@ -29,9 +29,11 @@ namespace DoodleIdle.Tests
             Assert.That(hp.transform.localScale.x, Is.EqualTo(initialHp), "Touching the orbiting gun must not damage an enemy.");
             Assert.That(game.OrbitBulletsLaunched, Is.Zero);
             Place(bodies[0], new Vector2(6, 0));
-            var launches = new List<float>();
+            var launches = new List<double>();
             game.OrbitBulletLaunched += (time, position, direction) => {
-                launches.Add(time);
+                // The full campaign can advance the global clock for many hours before
+                // this test. Float timestamps lose millisecond precision at that age.
+                launches.Add(Time.fixedTimeAsDouble);
                 Assert.That(Vector2.Distance(position, muzzle.position), Is.LessThan(.001f));
                 Assert.That(direction.magnitude, Is.EqualTo(1).Within(.001f));
             };

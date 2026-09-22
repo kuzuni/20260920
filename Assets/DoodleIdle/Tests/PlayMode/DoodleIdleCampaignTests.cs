@@ -16,6 +16,35 @@ namespace DoodleIdle.Tests
 
         void CampaignClose() => game.Ui.ClosePage();
 
+        [UnityTest]
+        public IEnumerator BasicShotDamageAndRangeIgnoreExtraRenderUpdates()
+        {
+            var bodies = DurableSkillTargets();
+            yield return null; // Restore a positive render delta after the fixture's paused scene load.
+            Place(bodies[0], new Vector2(3, 0));
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            var hp = actors[0].GetType().GetField("hp");
+            float before = (float)hp.GetValue(actors[0]);
+            var shots = (IList)typeof(DoodleIdleGame).GetField("shots", GrowthPrivate).GetValue(game);
+            Assert.That(shots.Count, Is.Zero);
+            typeof(DoodleIdleGame).GetMethod("FireSlash", GrowthPrivate).Invoke(game, new object[] { Vector2.right });
+            var shot = shots[0];
+            var age = shot.GetType().GetField("age");
+            var visual = (Transform)shot.GetType().GetField("visual").GetValue(shot);
+            var origin = visual.position;
+            float elapsed = game.Elapsed;
+            Assert.That(Time.deltaTime, Is.GreaterThan(0));
+            var render = typeof(DoodleIdleGame).GetMethod("Update", GrowthPrivate);
+            for (int frame = 0; frame < 30; frame++) render.Invoke(game, null);
+            Assert.That((float)age.GetValue(shot), Is.Zero, "Extra render updates cannot age a damaging projectile.");
+            Assert.That(visual.position, Is.EqualTo(origin));
+            Assert.That((float)hp.GetValue(actors[0]), Is.EqualTo(before));
+            Assert.That(game.Elapsed, Is.EqualTo(elapsed));
+            yield return PhysicsTicks(30);
+            Assert.That((float)hp.GetValue(actors[0]), Is.LessThan(before), "The same shot must hit through actual physics ticks.");
+            Assert.That(shots.Count, Is.Zero, "A shot expires after its physics lifetime.");
+        }
+
         void CampaignManage()
         {
             var ui = game.Ui;
@@ -96,6 +125,14 @@ namespace DoodleIdle.Tests
                     ui.StatLevel("attack").ToString(), ui.StatLevel("health").ToString(), ui.StatLevel("healthRegen").ToString(), ui.StatLevel("crit2Chance").ToString(),
                     ui.CurrentAttackPower.ToString("R", System.Globalization.CultureInfo.InvariantCulture), ui.Gold.ToString(), ui.Diamonds.ToString(), ui.MainMissionNumber.ToString(), ui.GetDungeonStage(0).ToString(), ui.GetDungeonStage(2).ToString() });
                 File.AppendAllText(report, row + "\n"); Debug.Log("CAMPAIGN " + row + " objective=" + ui.CurrentMainMission.label);
+                // game-ci prints Unity's log only at completion. Send numeric progress to
+                // the Linux runner's stdout as well, without changing the saved report.
+                if (Application.platform == RuntimePlatform.LinuxEditor) {
+                    try {
+                        using (var output = new StreamWriter(new FileStream("/dev/stdout", FileMode.Open, FileAccess.Write, FileShare.ReadWrite)))
+                            output.WriteLine("CAMPAIGN_PROGRESS " + row);
+                    } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
             }
             try {
                 ui.ClaimAttendance(); CampaignClose();
