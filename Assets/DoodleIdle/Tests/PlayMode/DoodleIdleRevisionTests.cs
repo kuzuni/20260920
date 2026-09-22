@@ -228,9 +228,9 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Gold, Is.EqualTo(gold));
             UiOpen("Stats");
             Assert.That(UiNode("Stat crit4Chance").GetComponentsInChildren<Button>().Single().interactable, Is.False);
-            GrowthLevels["crit2Chance"] = 999;
+            GrowthLevels["crit2Chance"] = 3999;
             ui.Gold = long.MaxValue;
-            Assert.That(ui.StatUpgradeQuote("crit2Chance", 100, out int upgrades), Is.EqualTo(long.MaxValue));
+            Assert.That(ui.StatUpgradeQuote("crit2Chance", 100, out int upgrades), Is.EqualTo(ui.StatUpgradeQuote("crit2Chance", 1, out _)));
             Assert.That(upgrades, Is.EqualTo(1));
             Assert.That(ui.UpgradeStat("crit2Chance", 100), Is.True);
             Assert.That(ui.Critical4Unlocked, Is.True);

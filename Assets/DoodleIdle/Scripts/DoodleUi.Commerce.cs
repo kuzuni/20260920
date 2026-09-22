@@ -149,7 +149,7 @@ namespace DoodleIdle
         }
 
         static bool IsRelicSummon(string category) => category=="Relic"||category=="DungeonRelic";
-        static string SummonIcon(string category) => category=="Skill"?"SkillMeteor":category=="Relic"?"NavPottery":category=="DungeonRelic"?"DungeonPottery":category;
+        static string SummonIcon(string category) => category=="Companion"?"CompanionMon_10":category=="Skill"?"SkillMeteor":category=="Relic"?"NavPottery":category=="DungeonRelic"?"DungeonPottery":category;
 
         static string CommerceDay() { return DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
 

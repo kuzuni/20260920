@@ -41,7 +41,7 @@ namespace DoodleIdle.Tests
                     Place(bodies[0], new Vector2(3,0));
                     Place(bodies[1], new Vector2(3,profile.radius + .5f));
                     Place(bodies[2], new Vector2(3,profile.radius + .7f));
-                    float damage = game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(100),"Skill") * (float)game.Ui.ExpectedCriticalMultiplier;
+                    float damage = game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(100),"Skill") * (float)game.Ui.ExpectedCriticalMultiplier * game.Ui.SkillPowerMultiplier(ability);
                     impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,ability });
                     Assert.That(100000 - (float)health.GetValue(actors[0]), Is.EqualTo(damage).Within(.03f), ability + " direct hit is never doubled");
                     Assert.That(100000 - (float)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(.03f), ability + " splash keeps attack/relic/critical scaling");

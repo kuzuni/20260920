@@ -97,7 +97,7 @@ namespace DoodleIdle
                             {
                                 string migrated = entry.id == "defense" ? "healthRegen" : entry.id == "speed" ? "crit2Chance" : null;
                                 if (migrated != null && !state.stats.Exists(x => x.id == migrated))
-                                    statLevels[migrated] = Mathf.Clamp(entry.level, 0, StatMaxLevel(migrated));
+                                    statLevels[migrated] = (int)Math.Max(0,Math.Min(StatMaxLevel(migrated),(long)entry.level*(migrated=="crit2Chance"?4:1)));
                             }
                     }
                 }
