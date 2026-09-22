@@ -7,6 +7,41 @@ using UnityEngine.UI;
 
 namespace DoodleIdle
 {
+    public sealed class DoodleSlidingSelection : MonoBehaviour
+    {
+        RectTransform indicator;
+        Tween tween;
+        Action<float> changed;
+        bool roundKnob;
+        public float Position { get; private set; }
+        public void Configure(RectTransform visual, float start, float target, Action<float> remember = null, bool knob = false)
+        {
+            indicator = visual; changed = remember; roundKnob = knob;
+            Apply(start); Slide(target);
+        }
+        void Apply(float value)
+        {
+            Position = value;
+            if (roundKnob) {
+                indicator.anchorMin = indicator.anchorMax = new Vector2(value, .5f);
+                indicator.anchoredPosition = new Vector2(Mathf.Lerp(20, -20, value), 0);
+            } else {
+                indicator.anchorMin = new Vector2(value * .5f, 0);
+                indicator.anchorMax = new Vector2(value * .5f + .5f, 1);
+                indicator.offsetMin = new Vector2(4,4); indicator.offsetMax = new Vector2(-4,-4);
+            }
+            changed?.Invoke(value);
+        }
+        public void Slide(float target)
+        {
+            tween?.Kill();
+            tween = DOTween.To(() => Position, Apply, target, .23f).SetUpdate(true).SetEase(Ease.OutCubic);
+        }
+        public void CompleteMotion() { tween?.Complete(); }
+        void OnDisable() { tween?.Kill(); }
+        void OnDestroy() { tween?.Kill(); }
+    }
+
     public sealed class DoodleToastMotion : MonoBehaviour
     {
         Sequence sequence;
@@ -134,9 +169,8 @@ namespace DoodleIdle
             sequence?.Kill();
             opacity = GetComponent<CanvasGroup>();
             if (!opacity) opacity = gameObject.AddComponent<CanvasGroup>();
-            opacity.alpha = 0; transform.localScale = Vector3.one * .94f;
+            opacity.alpha = 1; transform.localScale = Vector3.one * .90f;
             sequence = DOTween.Sequence().SetUpdate(true);
-            sequence.Join(DOTween.To(() => opacity.alpha, value => opacity.alpha = value, 1, .16f));
             sequence.Join(DOTween.To(() => transform.localScale, value => transform.localScale = value, Vector3.one, .22f).SetEase(Ease.OutCubic));
         }
         public static void Close(GameObject dim, Transform root)
@@ -161,6 +195,7 @@ namespace DoodleIdle
         {
             foreach (var motion in root.GetComponentsInChildren<DoodlePopupMotion>()) motion.sequence?.Complete(true);
             foreach (var button in root.GetComponentsInChildren<DoodleButtonMotion>()) button.CompleteMotion();
+            foreach (var slider in root.GetComponentsInChildren<DoodleSlidingSelection>()) slider.CompleteMotion();
         }
         void OnDisable() { sequence?.Kill(); }
         void OnDestroy() { sequence?.Kill(); }

@@ -9,6 +9,7 @@ namespace DoodleIdle
     public sealed partial class DoodleUi
     {
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4";
+        float equipmentTabPosition;
         int statBatch = 1;
         bool collectionBulkRunning;
         UiItem pendingEquip;
@@ -214,9 +215,9 @@ namespace DoodleIdle
             }, 5);
             var footer = UiKit.Footer(body, "Equipment footer", 130);
             CollectionActions(footer, equipmentCategory);
-            var tabs = UiKit.Row(footer, "Equipment tabs", 52, 4);
-            CollectionButtonText(UiKit.EquipmentTab(tabs, "갑옷", () => { equipmentCategory = "Armor"; RefreshPage(); }, equipmentCategory == "Armor", 52), 31);
-            CollectionButtonText(UiKit.EquipmentTab(tabs, "몽둥이", () => { equipmentCategory = "Club"; RefreshPage(); }, equipmentCategory == "Club", 52), 31);
+            var tabs = UiKit.Box(footer, "Equipment tabs", new Color(.78f,.78f,.76f), 52);
+            UiKit.SlidingTabs(tabs, "갑옷", "몽둥이", equipmentCategory == "Armor" ? 0 : 1, equipmentTabPosition,
+                index => { equipmentCategory = index == 0 ? "Armor" : "Club"; RefreshPage(); }, value => equipmentTabPosition = value, 52);
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
@@ -236,11 +237,11 @@ namespace DoodleIdle
             for (int i = 0; i < capacity; i++)
             {
                 if (i >= unlocked) {
-                    int stage = SkillSlotUnlockStage(i);
-                    var locked = UiKit.Button(slots, "", () => Toast("스테이지 " + stage + " 도달 시 해금됩니다."), new Color(.55f, .56f, .57f), slotHeight);
-                    locked.name = "Locked skill slot " + i;
+                    string requirement = category == "Skill" ? "스테이지 " + SkillSlotUnlockStage(i) + " 도달" : CompanionSlotUnlockRequirement(i);
+                    var locked = UiKit.Button(slots, "", () => Toast(requirement + " 시 해금됩니다."), new Color(.55f, .56f, .57f), slotHeight);
+                    locked.name = (category == "Skill" ? "Locked skill slot " : "Locked companion slot ") + i;
                     var labelText = locked.GetComponentInChildren<Text>();
-                    labelText.text = stage + "\n스테이지";
+                    labelText.text = category == "Skill" ? SkillSlotUnlockStage(i) + "\n스테이지" : GradeNames[i + 2] + "1 이상\n갑옷 획득";
                     labelText.fontSize = labelText.resizeTextMaxSize = 16;
                     labelText.resizeTextMinSize = 10; labelText.color = Color.white;
                     labelText.rectTransform.anchorMin = Vector2.zero; labelText.rectTransform.anchorMax = new Vector2(1, .43f);

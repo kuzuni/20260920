@@ -38,6 +38,8 @@ namespace DoodleIdle
             public Vector2 curveControl, curveNormal;
             public float curveAge, curveDuration, curveSide;
             public float age, duration, trail;
+            public float reboundTime;
+            public Vector2 reboundDirection;
             public int hits;
             public float size=1; public bool purple;
             public Vector2 waveDirection;
@@ -232,6 +234,7 @@ namespace DoodleIdle
                 bool finished = false;
                 if (!shot.purple && !Alive(shot.target)) {
                     shot.target = ClosestExcept(old, shot.previous);
+                    if (shot.kind == ProjectileKind.Ball && !Alive(shot.target)) shot.target = Closest(old);
                     // Rebase a new arc at the current position when its previous target dies.
                     if((shot.kind==ProjectileKind.Fire || shot.purple) && Alive(shot.target))StartHomingCurve(shot,old);
                 }
@@ -268,6 +271,8 @@ namespace DoodleIdle
                 {
                     float speed = shot.kind == ProjectileKind.Ball ? 15 : shot.kind == ProjectileKind.Fire ? 10 : 18;
                     next = Alive(shot.target) ? Vector2.MoveTowards(old, shot.end, speed * dt) : old;
+                    bool rebounding = shot.kind == ProjectileKind.Ball && shot.reboundTime > 0;
+                    if (rebounding) { next = old + shot.reboundDirection * (10 * dt); shot.reboundTime -= dt; }
                     if(shot.kind==ProjectileKind.Fire && Alive(shot.target)) {
                         shot.curveAge+=dt;
                         float t=Mathf.Clamp01(shot.curveAge/shot.curveDuration),u=1-t;
@@ -277,7 +282,8 @@ namespace DoodleIdle
                     Actor collision = null; float closest = float.MaxValue;
                     foreach (var enemy in enemies)
                     {
-                        if (enemy == shot.previous) continue;
+                        if (rebounding) break;
+                        if (enemy == shot.previous && enemy != shot.target) continue;
                         if ((shot.kind == ProjectileKind.Fire || shot.purple) && enemy != shot.target) continue;
                         if (SegmentDistance(enemy.Position, old, next) > (.56f + (shot.kind == ProjectileKind.Ball ? .31f : .14f)*shot.size)) continue;
                         float d = (enemy.Position - old).sqrMagnitude;
@@ -291,6 +297,13 @@ namespace DoodleIdle
                             BallEnemyHit?.Invoke(collision.root.GetInstanceID(), shot.hits);
                             SkillImpact(collision, 24*shot.size, (next - old).normalized, shot.size > 1 ? "Durian" : "BouncyBall");
                             shot.previous = collision; shot.target = ClosestExcept(next, collision);
+                            // A lone boss must receive every remaining bounce instead of being permanently excluded.
+                            if (!Alive(shot.target) && Alive(collision)) {
+                                shot.target = collision;
+                                shot.reboundDirection = (old - collision.Position).normalized;
+                                if (shot.reboundDirection.sqrMagnitude < .01f) shot.reboundDirection = Vector2.left;
+                                shot.reboundTime = .18f;
+                            }
                             if (shot.hits == 7) { LastCompletedBallHits = shot.hits; BallsCompleted++; finished = true; }
                         }
                         else
@@ -301,6 +314,7 @@ namespace DoodleIdle
                         }
                     }
                     if (shot.kind != ProjectileKind.Ball && shot.age > 5) finished = true;
+                    if (shot.kind == ProjectileKind.Ball && enemies.Count == 0) finished = true;
                 }
                 shot.art.transform.position = next;
                 if(shot.purple)EmitBurst(purpleFireParticles,old,Color.white,2,.2f,.4f,.15f,.2f,.4f);

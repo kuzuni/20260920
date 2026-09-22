@@ -14,7 +14,7 @@ namespace DoodleIdle
             int count;
             switch (key)
             {
-                case "SkillTornado": case "SkillDoubleClaw": case "SkillLightning": count = 2; break;
+                case "SkillTornado": case "SkillDoubleClaw": case "SkillLightning": case "SkillRedSlash": count = 2; break;
                 case "SkillGolem": count = 4; break;
                 case "SkillDumbbell": case "SkillMeteorRock": case "SkillMeteor": case "SkillMeteorCrater":
                 case "NavPottery": case "NavColosseum": count = 1; break;

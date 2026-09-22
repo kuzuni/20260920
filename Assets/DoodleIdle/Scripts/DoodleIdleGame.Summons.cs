@@ -75,6 +75,10 @@ namespace DoodleIdle
             string[] names = { "SnakeHead", "SnakeSegment", "GuardianSword", "Cannon", "Cannonball", "Cucumber", "StormCloud", "StormCloudB", "PurpleSnakeHead", "PurpleSnakeSegment", "GoldCoin", "HealthBarFrame", "HealthBarFill", "Lightning", "SandPuff", "InkStain", "Shotgun", "ShotPellet", "Explosion", "DragonHead", "DragonSegment", "DragonWingUp", "DragonWingDown", "RedSlashA", "RedSlashB", "Molotov", "SoundWave", "GroundFlame", "OrbitGun", "OrbitBullet", "MuzzleFlash" };
             foreach (string name in names)
             {
+                if (name == "RedSlashA" || name == "RedSlashB") {
+                    summonArt.Add(name, Instantiate(DoodleExpansionArt.Get("SkillRedSlash", name == "RedSlashA" ? 0 : 1)));
+                    continue;
+                }
                 var texture = Resources.Load<Texture2D>("DoodleIdle/" + name);
                 if (!texture) throw new InvalidOperationException("Missing generated summon art: " + name);
                 var pixels = texture.GetPixels32();
@@ -249,7 +253,7 @@ namespace DoodleIdle
         {
             var wave = AddMoving(SummonSkill.RedWave, summonArt["RedSlashA"], player.Position, direction, 4.2f, SlashSpeed, 1.1f, 22, 2.1f);
             // The source crescent opens right; rotate it so the curved cutting edge leads.
-            wave.art.transform.rotation = Aim(direction) * Quaternion.Euler(0, 0, 180);
+            wave.art.transform.rotation = Aim(direction);
             RedWavesLaunched++;
             RedWaveLaunched?.Invoke(Time.fixedTime);
         }

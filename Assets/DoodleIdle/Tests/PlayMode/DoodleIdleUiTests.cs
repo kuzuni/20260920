@@ -163,8 +163,9 @@ namespace DoodleIdle.Tests
             Assert.That(game.Ui.EquippedSkills.Count, Is.EqualTo(game.Ui.UnlockedSkillSlots - 1));
             foreach (var item in game.Ui.Items("Companion")) game.Ui.AddItem(item, 1);
             UiOpen("Companions"); UiScrollBottom(); UiClick("자동장착");
-            Assert.That(game.Ui.EquippedCompanions.Count, Is.EqualTo(5));
+            Assert.That(game.Ui.EquippedCompanions.Count, Is.EqualTo(game.Ui.UnlockedCompanionSlots));
             Assert.That(UiNode("Equipped Companion").GetComponentsInChildren<Button>().Length, Is.EqualTo(5));
+            Assert.That(UiNode("Equipped Companion").GetComponentsInChildren<DoodleUiPadlock>().Length, Is.EqualTo(5 - game.Ui.UnlockedCompanionSlots));
             var masks = UiNode("Eight equipped cooldowns").GetComponentsInChildren<Image>().Where(i => i.name == "Clockwise cooldown mask").ToArray();
             Assert.That(masks.Length, Is.EqualTo(8));
             Assert.That(masks.All(i => i.fillClockwise && i.fillMethod == Image.FillMethod.Radial360), Is.True);
@@ -182,17 +183,21 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 5));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet));
             Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(5));
-            Assert.That(ui.CanFreeSummon("Armor"), Is.False);
+            Assert.That(ui.FreeSummonsRemaining("Armor"), Is.EqualTo(2));
             Assert.That(ui.CanFreeSummon("Club"), Is.True);
+            Assert.That(ui.TrySummon("Armor", 5, true), Is.True);
+            Assert.That(ui.FreeSummonsRemaining("Armor"), Is.EqualTo(1));
+            Assert.That(ui.TrySummon("Armor", 5, true), Is.True);
+            Assert.That(ui.FreeSummonsRemaining("Armor"), Is.Zero);
             Assert.That(ui.TrySummon("Armor", 5, true), Is.False);
-            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 5));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 15));
             ui.CloseFullscreen();
             UiClick("10회 뽑기", UiNode("Summon_Armor"));
-            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 15));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 25));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet - 100));
             Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(10));
             UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
-            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 65));
+            Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 75));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet - 600));
             Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(50));
             Assert.That(UiNode("SummonResultCards").GetComponentsInChildren<Text>().Any(t => t.text.Contains("+1")), Is.False);
@@ -219,6 +224,20 @@ namespace DoodleIdle.Tests
             ui.Save();
             Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds"), Is.Zero);
             Assert.That(PlayerPrefs.GetString("DoodleUi.Commerce.Armor"), Does.Contain("freeUsedDay"));
+            var probes=new List<GameObject>();
+            try {
+                var restored=GrowthProbe(probes);typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(restored,null);
+                Assert.That(restored.FreeSummonsRemaining("Armor"),Is.Zero);
+                var states=(Dictionary<string,DoodleUi.SummonState>)typeof(DoodleUi).GetField("summonStates",GrowthPrivate).GetValue(restored);
+                states["Armor"].freeUsedDay=System.DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
+                Assert.That(restored.FreeSummonsRemaining("Armor"),Is.EqualTo(3),"A new day restores all three attempts.");
+                Assert.That(restored.FreeSummonsRemaining("Club"),Is.EqualTo(3),"Each category has its own allowance.");
+                var legacy=new DoodleUi.SummonState{category="Armor",freeUsedDay=System.DateTime.UtcNow.ToString("yyyy-MM-dd")};
+                PlayerPrefs.SetString("DoodleUi.Commerce.Armor",JsonUtility.ToJson(legacy).Replace(",\"freeUsedCount\":0",""));
+                var migrated=GrowthProbe(probes);typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(migrated,null);
+                Assert.That(migrated.FreeSummonsRemaining("Armor"),Is.EqualTo(2),"A legacy used day represents one consumed attempt.");
+            } finally {foreach(var probe in probes)Object.Destroy(probe);ui.Save();}
+
             yield return null;
         }
 
@@ -256,18 +275,11 @@ namespace DoodleIdle.Tests
             UiClick("i", bottomRow);
             Assert.That(game.Ui.HasOverlay, Is.True);
             var detail = UiNode("Detail dim: 뽑기 확률");
-            foreach (var item in game.Ui.Items("Relic"))
-                Assert.That(detail.GetComponentsInChildren<Transform>().Any(t => t.name == "Probability_" + item.id), Is.True, "Probability disclosure must include " + item.name);
-            scroll = UiTopScroll();
+            Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(1));
+            Assert.That(UiNode("Probability_grade_0").GetComponentsInChildren<Text>().Any(t => t.text == "100%"), Is.True);
+            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("각 12.5%")), Is.True);
+            Object.Destroy(CaptureFrame("grade-probability-relic.png",720,1520));
             yield return null;
-            // The five relics now fit in the unchanged portrait viewport at every aspect ratio.
-            foreach (var item in game.Ui.Items("Relic"))
-            {
-                var row = (RectTransform)UiNode("Probability_" + item.id);
-                var bounds = UiLocalBounds(scroll.viewport, row);
-                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin - 1));
-                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(scroll.viewport.rect.yMax + 1));
-            }
             UiClick("Close 뽑기 확률", detail);
             scroll = UiTopScroll(); scroll.verticalNormalizedPosition = 1;
             Canvas.ForceUpdateCanvases();
@@ -275,13 +287,17 @@ namespace DoodleIdle.Tests
             detail = UiNode("Detail dim: 뽑기 확률");
             scroll = UiTopScroll();
             yield return null;
-            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height), "The larger armor catalog still needs scrolling.");
-            ExecuteEvents.Execute(scroll.gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -30) }, ExecuteEvents.scrollHandler);
-            Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(1));
-            scroll.verticalNormalizedPosition = 0;
+            Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(7));
+            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("같은 등급의 아이템은 모두 같은 확률")), Is.True);
+            for(int grade=0;grade<7;grade++) {
+                var rate=UiNode("Probability_grade_"+grade).GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate");
+                Assert.That(rate.text,Is.EqualTo(game.Ui.GradeProbability("Armor",grade).ToString("0.##")+"%"));
+            }
+            if(scroll.content.rect.height>scroll.viewport.rect.height)scroll.verticalNormalizedPosition=0;
             Canvas.ForceUpdateCanvases();
-            var lastProbability = (RectTransform)UiNode("Probability_" + game.Ui.Items("Armor").Last().id);
-            Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, lastProbability)), Is.True, "The final armor probability must be reachable.");
+            var lastProbability = (RectTransform)UiNode("Probability_grade_6");
+            Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, lastProbability)), Is.True, "The final grade probability must be reachable.");
+            Object.Destroy(CaptureFrame("grade-probability-armor.png",720,1520));
             UiClick("Close 뽑기 확률", detail);
             Assert.That(game.Ui.HasOverlay, Is.False);
             Assert.That(game.Ui.ActivePage, Is.EqualTo("Shop"), "Closing a nested probability dialog must preserve the shop.");

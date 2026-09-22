@@ -31,6 +31,9 @@ namespace DoodleIdle.Tests
                     Object.Destroy(CaptureFrame("expansion-detail-"+category+"-"+size.x+"x"+size.y+".png",size.x,size.y));
                 ui.CloseDetail();
             }
+            string[] order={"Lightning","Banana","Stone","Arrows","BouncyBall","Fire","Cannon","Shotgun","Sound","DoubleClaw","GiantWorm","Cloud","Molotov","Dumbbell","Eggplant","TetherSnake","Shuriken","WaveSnakes","BrickVolley","Durian","RedWave","Tornado","FireRing","Dragon","BlueMolotov","IceSnakes","PurpleFireArrows","Meteor","RedCloud","Golem"};
+            CollectionAssert.AreEqual(order,ui.Items("Skill").Select(x=>x.ability).ToArray());
+            for(int i=0;i<order.Length;i++)Assert.That(ui.Items("Skill")[i].rarity,Is.EqualTo(i/5));
             foreach(string id in new[]{"drone","sword","orbit"})Assert.That(ui.Items("Companion").Any(x=>x.id==id),Is.True);
             UiOpen("Shop");Canvas.ForceUpdateCanvases();
             var scroll=UiTopScroll();Assert.That(scroll.content.rect.height,Is.GreaterThan(scroll.viewport.rect.height));
@@ -51,8 +54,8 @@ namespace DoodleIdle.Tests
         {
             var bodies=IsolateSummonTest();Place(bodies[0],new Vector2(9,0));Place(bodies[1],new Vector2(10,3));
             game.CastVariant("Eggplant");
-            var plants=NamedArt("Eggplant variant projectile");Assert.That(plants.Length,Is.EqualTo(3));
-            Assert.That(plants.Select(p=>p.transform.rotation).Distinct().Count(),Is.EqualTo(3));
+            var plants=NamedArt("Cucumber variant projectile");Assert.That(plants.Length,Is.EqualTo(2));
+            Assert.That(plants.Select(p=>p.transform.rotation).Distinct().Count(),Is.EqualTo(2));
             game.CastVariant("IceSnakes");Assert.That(NamedArt("IceSnakes head").Length,Is.EqualTo(3));
             Assert.That(NamedArt("IceSnakes head").All(p=>Mathf.Abs(p.transform.localScale.x-.94f)<.001f),Is.True);
             game.CastVariant("GiantWorm");Assert.That(NamedArt("Spiral worm head").Single().transform.localScale.x,Is.EqualTo(1.24f).Within(.01f));
@@ -80,6 +83,7 @@ namespace DoodleIdle.Tests
         public IEnumerator ExpansionEquippedCompanionsFollowAttackAndUnequipRemovesThem()
         {
             var bodies=IsolateSummonTest();for(int i=0;i<8;i++)Place(bodies[i],new Vector2(3+i*.4f,1));
+            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
             var items=game.Ui.Items("Companion");string[] selected={"drone","sword","orbit","companion_frost","companion_bee"};
             foreach(var item in items){item.equipped=selected.Contains(item.id);if(item.equipped){item.discovered=true;item.level=1;item.slot=System.Array.IndexOf(selected,item.id);}}
             game.companionsEnabled=true;

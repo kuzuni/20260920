@@ -36,7 +36,7 @@ namespace DoodleIdle.Tests
             game.Ui.ShowPage("Stats");
             var motion = UiRoot.GetComponentsInChildren<DoodlePopupMotion>().Single();
             Assert.That(motion.transform.localScale.x, Is.LessThan(1));
-            Assert.That(motion.GetComponent<CanvasGroup>().alpha, Is.Zero);
+            Assert.That(motion.GetComponent<CanvasGroup>().alpha, Is.EqualTo(1), "Opening uses scale only, never fades in.");
             yield return new WaitForSecondsRealtime(.3f);
             Assert.That(motion.transform.localScale.x, Is.EqualTo(1).Within(.001));
             Assert.That(motion.GetComponent<CanvasGroup>().alpha, Is.EqualTo(1).Within(.001));
@@ -56,6 +56,32 @@ namespace DoodleIdle.Tests
             Assert.That(motion == null, Is.True, "Exit animation must remove the visual tree.");
             game.Ui.ShowRewards("획득 보상", new System.Collections.Generic.List<UiReward> { new UiReward { icon="Diamond", amount=500 } });
             Assert.That(UiNode("Floating rewards").GetComponent<DoodlePopupMotion>(), Is.Not.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator EquipmentAndSkinSelectionsSlideBothDirectionsWhilePaused()
+        {
+            Time.timeScale=0;
+            foreach(string page in new[]{"Equipment","Skins"}) {
+                UiOpen(page);
+                string tabs=page=="Equipment"?"Equipment tabs":"Skin tabs";
+                string left=page=="Equipment"?"갑옷":"무기 스킨",right=page=="Equipment"?"몽둥이":"외형 스킨";
+                var motion=UiNode(tabs).GetComponent<DoodleSlidingSelection>();
+                Assert.That(motion.Position,Is.EqualTo(0));
+                UiNode(tabs).GetComponentsInChildren<Button>().Single(x=>x.name==right).onClick.Invoke();
+                motion=UiNode(tabs).GetComponent<DoodleSlidingSelection>();Assert.That(motion.Position,Is.EqualTo(0));
+                yield return new WaitForSecondsRealtime(.1f);
+                Assert.That(motion.Position,Is.GreaterThan(0).And.LessThan(1));
+                yield return new WaitForSecondsRealtime(.2f);Assert.That(motion.Position,Is.EqualTo(1).Within(.001f));
+                Object.Destroy(CaptureFrame("sliding-tabs-"+page+"-right.png",720,1520));
+                UiNode(tabs).GetComponentsInChildren<Button>().Single(x=>x.name==left).onClick.Invoke();
+                motion=UiNode(tabs).GetComponent<DoodleSlidingSelection>();Assert.That(motion.Position,Is.EqualTo(1));
+                yield return new WaitForSecondsRealtime(.3f);Assert.That(motion.Position,Is.EqualTo(0).Within(.001f));
+                Object.Destroy(CaptureFrame("sliding-tabs-"+page+"-left.png",720,1520));
+            }
+            game.Ui.ClosePage();
+            Assert.That(UiNode("Camera mode").Find("Icon: Camera").GetComponent<Image>().sprite.name,Is.EqualTo("Camera"));
+            Object.Destroy(CaptureFrame("main-camera-icon.png",720,1520));
         }
 
         [UnityTest]

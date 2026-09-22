@@ -88,6 +88,7 @@ namespace DoodleIdle.Tests
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
             float Hp(int index) => (float)actors[index].GetType().GetField("hp").GetValue(actors[index]);
             float untouched=Hp(3);
+            var times=new List<float>();game.SkillProjectileLaunched+=(skill,time,id)=>{if(skill==DoodleIdleGame.ExtraSkill.Arrows)times.Add(time);};
             game.CastVariant("PurpleFireArrows");
             var first=NamedArt("PurpleFireArrows projectile").Single();
             float previousY=0,lastSign=0;int reversals=0;
@@ -106,7 +107,14 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(65);
             Assert.That(first.transform.position.x,Is.GreaterThan(18),"The arrow continues past targets without steering back.");
             Assert.That(game.ArrowsLaunched,Is.EqualTo(8));
-            Assert.That(game.ArrowHits,Is.EqualTo(24),"Each of eight arrows hits each of three enemies once.");
+            Assert.That(times.Count,Is.EqualTo(8));
+            for(int i=1;i<times.Count;i++)Assert.That(times[i]-times[i-1],Is.EqualTo(.1f).Within(.025f));
+            var shots=(IList)typeof(DoodleIdleGame).GetField("extraShots",GrowthPrivate).GetValue(game);
+            for(int i=0;i<8;i++) {
+                var direction=(Vector2)shots[i].GetType().GetField("waveDirection").GetValue(shots[i]);
+                Assert.That(Mathf.DeltaAngle(Mathf.Atan2(direction.y,direction.x)*Mathf.Rad2Deg,i*45),Is.EqualTo(0).Within(.01f));
+            }
+            Assert.That(game.ArrowHits,Is.EqualTo(3),"Only the rightward arrow hits these three collinear enemies; seven other arrows spread outward.");
             for(int i=0;i<3;i++)Assert.That(Hp(i),Is.LessThan(100000));
             Assert.That(Hp(3),Is.EqualTo(untouched),"An off-path enemy is not a homing target.");
             yield return PhysicsTicks(80);yield return null;
@@ -119,18 +127,20 @@ namespace DoodleIdle.Tests
             var bodies=IsolateSummonTest();
             foreach(var body in bodies)Place(body,new Vector2(20,20));
             Place(bodies[0],new Vector2(8,0));
-            Assert.That(game.Ui.Items("Skill").Single(x=>x.id=="eggplant").name,Is.EqualTo("가지의 분노"));
+            Assert.That(game.Ui.Items("Skill").Single(x=>x.id=="eggplant").name,Is.EqualTo("오이 분노"));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cucumber);game.CastVariant("Eggplant");
             var cucumber=NamedArt("Cucumber moving skill").Single();
-            var eggplants=NamedArt("Eggplant variant projectile");Assert.That(eggplants.Length,Is.EqualTo(3));
-            var center=eggplants.Single(p=>Mathf.Abs(Mathf.DeltaAngle(p.transform.eulerAngles.z,90))<.01f);
+            var cucumbers=NamedArt("Cucumber variant projectile");Assert.That(cucumbers.Length,Is.EqualTo(2));
+            Assert.That(cucumbers.All(p=>p.sprite.texture==cucumber.sprite.texture),Is.True,"Both use the original cucumber artwork.");
             var times=new List<float>();game.SkillProjectileLaunched+=(skill,time,id)=>{if(skill==DoodleIdleGame.ExtraSkill.BouncyBall)times.Add(time);};
             game.CastVariant("Durian");game.CastVariant("Shuriken");
             Assert.That(NamedArt("Shuriken variant projectile").Length,Is.EqualTo(8),"All radial shots launch together.");
             yield return PhysicsTicks(10);
-            Assert.That(Vector3.Distance(center.transform.position,cucumber.transform.position),Is.LessThan(.001f));
-            Assert.That(Quaternion.Angle(center.transform.rotation,cucumber.transform.rotation),Is.LessThan(.01f));
-            Assert.That(Vector3.Distance(center.transform.localScale,cucumber.transform.localScale),Is.LessThan(.001f));
+            foreach(var plant in cucumbers) {
+                Assert.That(plant.transform.position.magnitude,Is.EqualTo(cucumber.transform.position.magnitude).Within(.001f));
+                Assert.That(Quaternion.Angle(plant.transform.rotation,cucumber.transform.rotation),Is.EqualTo(15).Within(.01f));
+                Assert.That(Vector3.Distance(plant.transform.localScale,cucumber.transform.localScale),Is.LessThan(.001f));
+            }
             var angles=NamedArt("Shuriken variant projectile").Select(p=>Mathf.Repeat(Mathf.Atan2(p.transform.position.y,p.transform.position.x)*Mathf.Rad2Deg,360)).OrderBy(a=>a).ToArray();
             for(int i=0;i<8;i++)Assert.That(Mathf.Repeat(angles[(i+1)%8]-angles[i],360),Is.EqualTo(45).Within(.02f));
             Assert.That(NamedArt("Shuriken afterimage").Length,Is.GreaterThan(8));
@@ -140,6 +150,26 @@ namespace DoodleIdle.Tests
             Assert.That(times[1]-times[0],Is.EqualTo(.2f).Within(.025f));Assert.That(times[2]-times[1],Is.EqualTo(.2f).Within(.025f));
             game.ResetGame();yield return null;
             Assert.That(NamedArt("Shuriken afterimage"),Is.Empty);
+        }
+
+        [UnityTest]
+        public IEnumerator ThreeDuriansFinishAllSevenHitsAgainstALoneBoss()
+        {
+            var bodies=DurableSkillTargets();game.refillBelow=0;
+            var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
+            for(int i=actors.Count-1;i>0;i--) {
+                Object.Destroy((GameObject)actors[i].GetType().GetField("root").GetValue(actors[i]));actors.RemoveAt(i);
+            }
+            Place(bodies[0],new Vector2(5,0));
+            var hitTimes=new List<float>();var victims=new List<int>();
+            game.BallEnemyHit+=(id,count)=>{victims.Add(id);hitTimes.Add(Time.fixedTime);};
+            game.CastVariant("Durian");
+            yield return PhysicsTicks(250);yield return null;
+            Assert.That(game.EnemyCount,Is.EqualTo(1));
+            Assert.That(game.BallsCompleted,Is.EqualTo(3));Assert.That(game.LastCompletedBallHits,Is.EqualTo(7));
+            Assert.That(victims.Count,Is.EqualTo(21));Assert.That(victims.Distinct().Count(),Is.EqualTo(1));
+            Assert.That(hitTimes.Last()-hitTimes.First(),Is.GreaterThan(1),"Remaining hits have a visible rebound cadence, not one-frame duplicate damage.");
+            Assert.That(NamedArt("Durian projectile"),Is.Empty);
         }
 
         [UnityTest]
@@ -278,8 +308,11 @@ namespace DoodleIdle.Tests
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.RedWave);
             var wave = NamedArt("RedWave moving skill").Single();
             Assert.That(game.RedWavesLaunched, Is.EqualTo(1), "The volley must be sequential, not five simultaneous waves.");
-            Assert.That(Vector2.Dot(-wave.transform.right, Vector2.right), Is.GreaterThan(.99f), "The convex edge must lead, with the open crescent facing back.");
+            Assert.That(Vector2.Dot(wave.transform.right, Vector2.right), Is.GreaterThan(.99f), "The convex edge must lead, with the open crescent facing back.");
             Assert.That(wave.transform.localScale.x, Is.GreaterThan(4));
+            Assert.That(wave.sprite.texture.name,Is.EqualTo("SkillRedSlash"));
+            var poseA=DoodleExpansionArt.Get("SkillRedSlash",0);var poseB=DoodleExpansionArt.Get("SkillRedSlash",1);
+            Assert.That(poseA.rect,Is.Not.EqualTo(poseB.rect));Assert.That(poseA.bounds.size,Is.EqualTo(poseB.bounds.size));
             var wings = NamedArt("Animated dragon wings").Single();
             var wingFrames = new HashSet<string>(); var slashFrames = new HashSet<string>();
             Vector3 start = wave.transform.position;

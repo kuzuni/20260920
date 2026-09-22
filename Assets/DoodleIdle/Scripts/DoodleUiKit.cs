@@ -76,6 +76,23 @@ namespace DoodleIdle
         }
         public static void Repeat(Button button,string key,Func<bool> action)
         { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
+        public static void SlidingTabs(Transform parent, string left, string right, int selected, float start, Action<int> choose, Action<float> remember, float height)
+        {
+            var indicator = Box(parent, "Sliding selection", Yellow);
+            indicator.GetComponent<Image>().raycastTarget = false;
+            var motion = parent.gameObject.AddComponent<DoodleSlidingSelection>();
+            motion.Configure(indicator, start, selected, remember);
+            for (int i = 0; i < 2; i++) {
+                int index = i;
+                var button = Button(parent, i == 0 ? left : right, () => { if (index != selected) choose(index); }, Color.clear, height);
+                button.GetComponent<Outline>().enabled = false;
+                button.transition = Selectable.Transition.None;
+                var rect = (RectTransform)button.transform;
+                rect.anchorMin = new Vector2(i * .5f, 0); rect.anchorMax = new Vector2(i * .5f + .5f, 1);
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                button.GetComponentInChildren<Text>().resizeTextMaxSize = 31;
+            }
+        }
         public static Button EquipmentTab(Transform parent,string label,Action click,bool selected,float height=52)
         {
             var row=parent.GetComponent<HorizontalLayoutGroup>();if(row){row.spacing=0;row.padding=new RectOffset();}
@@ -149,6 +166,19 @@ namespace DoodleIdle
             art.Remove(key);
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
             var expansion=DoodleExpansionArt.Get(key);if(expansion){art[key]=expansion;return expansion;}
+            if(key=="Camera")
+            {
+                var tex=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color[64*64];
+                for(int y=0;y<64;y++)for(int x=0;x<64;x++) {
+                    bool body=x>=5&&x<=58&&y>=12&&y<=48, top=x>=15&&x<=31&&y>48&&y<=55;
+                    if(!body&&!top)continue;
+                    float radius=new Vector2(x-34,y-30).magnitude;
+                    bool border=body&&(x<9||x>54||y<16||y>44), finder=top&&(x<19||x>27||y>51);
+                    pixels[y*64+x]=border||finder||radius<=15&&radius>=10?Ink:radius<10?Blue:Paper;
+                }
+                tex.SetPixels(pixels);tex.Apply();tex.name="Camera icon";
+                var icon=Sprite.Create(tex,new Rect(0,0,64,64),Vector2.one*.5f,64);icon.name=key;art[key]=icon;return icon;
+            }
             if(key=="AddSlot" || key=="ReplaceArrow")
             {
                 var tex=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color[64*64];

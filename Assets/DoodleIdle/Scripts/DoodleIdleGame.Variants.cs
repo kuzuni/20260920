@@ -31,8 +31,8 @@ namespace DoodleIdle
             if(player==null || enemies.Count==0 || VariantInterval(ability)<=0)return;
             var origin=player.Position;var target=Closest(origin);var direction=(target.Position-origin).normalized;
             if(ability=="Eggplant") {
-                for(int i=-1;i<=1;i++) {
-                    var shot=VariantProjectile("Eggplant",origin,Rotate(direction,i*30),4.6f,6,3.2f,42,1.3f);
+                for(int i=0;i<2;i++) {
+                    var shot=VariantProjectile("Cucumber",origin,Rotate(direction,(i-.5f)*30),4.6f,6,3.2f,42,1.3f);
                     shot.rolling=true;UpdateRollingVegetable(shot.art,shot.direction,0,shot.size);
                 }
             }
@@ -68,8 +68,8 @@ namespace DoodleIdle
                     var shot=extraShots[extraShots.Count-1];shot.size=2;shot.purple=volley.ability=="PurpleFireArrows";
                     if(shot.purple) {
                         shot.curveSide=volley.index%2==0?1:-1;
-                        shot.waveDirection=volley.direction;
-                        shot.curveNormal=new Vector2(-volley.direction.y,volley.direction.x);
+                        shot.waveDirection=Rotate(volley.direction,volley.index*45);
+                        shot.curveNormal=new Vector2(-shot.waveDirection.y,shot.waveDirection.x);
                     }
                     SetSpriteArt(shot.art,DoodleVariantArt.Get(shot.purple?"PurpleFireArrow":"Durian"));shot.art.transform.localScale*=2;
                     shot.art.name=volley.ability+" projectile";VariantProjectilesLaunched++;

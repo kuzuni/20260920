@@ -167,6 +167,16 @@ namespace DoodleIdle
                 return count;
             }
         }
+        public int UnlockedCompanionSlots {
+            get {
+                InitCollections();
+                int highest = -1;
+                foreach (var item in collectionItems)
+                    if (item.category == "Armor" && item.discovered) highest = Math.Max(highest, item.rarity);
+                return Mathf.Clamp(highest - 1, 1, 5);
+            }
+        }
+        public string CompanionSlotUnlockRequirement(int slot) => GradeNames[slot + 2] + "1 이상 갑옷 획득";
         List<UiItem> EquippedItems(string category)
         {
             int limit = EquipLimit(category);
@@ -174,7 +184,7 @@ namespace DoodleIdle
             equipped.Sort((a, b) => a.slot.CompareTo(b.slot));
             return equipped;
         }
-        int EquipLimit(string category) => category == "Skill" ? UnlockedSkillSlots : category == "Companion" ? 5 : category == "Relic" ? 0 : 1;
+        int EquipLimit(string category) => category == "Skill" ? UnlockedSkillSlots : category == "Companion" ? UnlockedCompanionSlots : category == "Relic" ? 0 : 1;
         void NormalizeEquipment(string category)
         {
             var equipped = Items(category).FindAll(x => x.equipped && x.discovered);

@@ -109,6 +109,15 @@ namespace DoodleIdle.Tests
                 yield return new WaitForSecondsRealtime(.24f);
                 Assert.That(cards[0].alpha, Is.GreaterThan(cards.Last().alpha));
                 Assert.That(UiNode("SummonResultCards").GetComponentsInChildren<Transform>().Any(x => x.name == "Quantity gauge"), Is.False);
+                var gauge=UiNode("Summon experience gauge");
+                Assert.That(gauge.GetComponentInChildren<Text>().text,Does.Contain("/"));
+                var skip=UiNode("Summon animation skip");
+                Assert.That(skip.GetComponentInChildren<Text>().text,Is.EqualTo("연출 스킵"));
+                Assert.That(skip.Find("Skip toggle track/Toggle knob"),Is.Not.Null);
+                Assert.That(gauge.GetSiblingIndex(),Is.LessThan(skip.GetSiblingIndex()));
+                Assert.That(skip.GetSiblingIndex(),Is.LessThan(skip.parent.Find("SummonActions").GetSiblingIndex()));
+                Assert.That(UiNode("Fullscreen: 뽑기 결과").GetComponentsInChildren<Text>().Any(x=>x.text.Contains("상세 보기")),Is.False);
+                Object.Destroy(CaptureFrame("summon-large-confetti-and-controls.png",720,1520));
                 UiClick("Summon animation skip"); Assert.That(reveal.VisibleCards, Is.EqualTo(10));
                 UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과")); Assert.That(ui.Diamonds, Is.EqualTo(88000));
                 reveal = UiRoot.GetComponentInChildren<DoodleSummonReveal>();
@@ -120,11 +129,15 @@ namespace DoodleIdle.Tests
                 Assert.That(UiNode("Previous probability level").GetComponent<Button>().interactable, Is.False);
                 var god = ui.Items("Armor").Single(x => x.rarity == 6);
                 Assert.That(ui.PreviewItemProbability(god, 1), Is.Zero);
-                for (int page = 2; page <= 30; page++) { UiClick("Next probability level"); yield return null; }
+                for (int page = 2; page <= 30; page++) {
+                    UiClick("Next probability level");
+                    Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentInChildren<DoodlePopupMotion>().transform.localScale,Is.EqualTo(Vector3.one));
+                    yield return null;
+                }
                 Assert.That(UiNode("Probability level title").GetComponent<Text>().text, Does.Contain("30"));
                 Assert.That(UiNode("Next probability level").GetComponent<Button>().interactable, Is.False);
-                Assert.That(UiNode("Probability_" + god.id).GetComponentsInChildren<Text>().Any(x => x.text == "1%"), Is.True);
-                Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(x => x.text.Contains("등장") || x.text.Contains("등급별 확률")), Is.False);
+                Assert.That(UiNode("Probability_grade_6").GetComponentsInChildren<Text>().Any(x => x.text == "1%"), Is.True);
+                Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(x => x.text == "등급별 확률"), Is.True);
                 Assert.That(ui.SummonLevel("Armor"), Is.EqualTo(level)); Assert.That(ui.SummonExperience("Armor"), Is.EqualTo(experience));
                 Object.Destroy(CaptureFrame("latest-probability-level-30.png", 720, 1520));
                 ui.CloseDetail(); ui.ShowSummonProbabilities("Relic");

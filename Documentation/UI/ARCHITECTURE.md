@@ -84,3 +84,12 @@ Main integrates real combat kills into wallet/mission and reads real cooldowns. 
 - Summon result cards suppress quantity gauges. `DoodleSummonReveal` reveals cards in order using unscaled time. Animated confetti replaces static decoration; a persisted skip button completes/hides animation. Repeated draws replace the result tree with no window entrance animation.
 - `PreviewItemProbability(item, level)` reads the same weight interpolation as live draws without changing summon state. Probability popup shows item rates with previous/next level buttons; no grade summary/unlock notice.
 - Reward close callbacks invoke cosmetic Gold/Diamond flights to existing wallet labels. Close callbacks are removed before use; flights do not mint currency. UI motion uses unscaled time.
+
+## 2026-09-22 latest overrides
+
+- Companion equip capacity derives from highest discovered Armor rarity: 1 initially, then Epic/Legendary/Mythic/God unlock 2/3/4/5. Discovery survives consuming copies. Slot normalization and real combat share this limit.
+- Skill catalog keeps IDs but reorders five entries per grade. Eggplant ID now names 오이 분노 with old Cucumber art and two rolling shots. Durian keeps three seven-hit projectiles; a single surviving target is reacquired after a short rebound. Purple arrows launch in eight sequential radial directions.
+- SkillRedSlash contains two shared-bounds generated frames. Runtime RedWave uses its right-facing energy crescents with unchanged five-wave cadence.
+- Probability UI shows grade totals and equal-within-grade notice. Paging replaces the old tree immediately with no entrance/exit motion. Popup entrance uses opaque scale only.
+- DoodleSlidingSelection uses unscaled DOTween and persists tab progress across content rebuilds. Result footer order: level, experience gauge including current/required text, skip toggle, draw buttons, confirm. Relics omit experience. Item cards still omit copy counts.
+- Free summon allowance is three five-item draws per category per UTC day. freeUsedCount persists alongside freeUsedDay; legacy used-day saves migrate to one consumed draw.

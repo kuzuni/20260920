@@ -86,6 +86,10 @@ namespace DoodleIdle
             UiKit.Text(rewardRow,"받기",22,TextAnchor.MiddleLeft,30);
             var cameraButton=UiKit.Button(safe,"카메라  1",CycleCameraMode,UiKit.Paper,40);cameraButton.name="Camera mode";
             cameraControl=(RectTransform)cameraButton.transform;cameraLabel=cameraButton.GetComponentInChildren<Text>();cameraLabel.resizeTextMaxSize=23;
+            cameraLabel.rectTransform.offsetMin=new Vector2(38,4);
+            var cameraIcon=UiKit.Icon(cameraControl,"Camera",30);
+            cameraIcon.rectTransform.anchorMin=cameraIcon.rectTransform.anchorMax=new Vector2(0,.5f);
+            cameraIcon.rectTransform.anchoredPosition=new Vector2(21,0);
             stageInfo=UiKit.Rect(safe,"Stage progress");stageLabel=UiKit.Text(stageInfo,"",28,TextAnchor.MiddleCenter,68);UiKit.Stretch(stageLabel.rectTransform,0,44,0,0);
             stageLabel.supportRichText=false;stageLabel.color=UiKit.Ink;stageLabel.gameObject.AddComponent<Outline>().effectColor=UiKit.Paper;
             breakthroughButton=UiKit.Button(stageInfo,"돌파 모드",ToggleBreakthroughMode,UiKit.Green,36);
@@ -260,10 +264,10 @@ namespace DoodleIdle
                 case "설정": window.maxWidth=510;window.maxHeight=750;window.centerFromTop=.493f;break;
             }
         }
-        public void ShowDetail(string title,Action<RectTransform> build)
+        public void ShowDetail(string title,Action<RectTransform> build,bool animate=true)
         {
             StopRepeating();
-            ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); var body=Window(dim,title,false,CloseDetail); build(body); Relayout(true);
+            ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); bool previous=rebuildingPage; rebuildingPage=!animate; try { var body=Window(dim,title,false,CloseDetail); build(body); } finally { rebuildingPage=previous; } Relayout(true);
         }
         public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); if(rewardCloseEffects.TryGetValue(last,out var effect)){rewardCloseEffects.Remove(last);effect();} DoodlePopupMotion.Close(last,root); RefreshHud(); }
         public void ShowFullscreen(string title,Action<RectTransform> build,bool animate=true)

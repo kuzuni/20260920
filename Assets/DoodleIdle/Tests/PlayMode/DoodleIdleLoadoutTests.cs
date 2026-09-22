@@ -67,6 +67,7 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();
             ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
+            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = game.Ui.Items(category); int capacity = category == "Skill" ? 8 : 5;
                 foreach (var item in items) { game.Ui.AddItem(item, 1); item.equipped = false; }
@@ -186,6 +187,48 @@ namespace DoodleIdle.Tests
             }
             finally { foreach (var probe in probes) Object.Destroy(probe); }
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CompanionSlotsUnlockFromArmorDiscoveryAndPersistAfterCopiesAreConsumed()
+        {
+            game.TogglePause(); var ui=game.Ui;
+            var armor=ui.Items("Armor"); var companions=ui.Items("Companion");
+            foreach(var item in armor){item.discovered=false;item.equipped=false;item.count=item.level=0;}
+            foreach(var item in companions){ui.AddItem(item,1);item.equipped=false;}
+            Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(1));
+            ui.AddItem(ui.Items("Club").Single(x=>x.rarity==6),1);
+            Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(1),"Weapons cannot unlock companion slots.");
+            ui.AutoEquip("Companion");Assert.That(ui.EquippedCompanions.Count,Is.EqualTo(1));
+            UiOpen("Companions");
+            Assert.That(UiNode("Equipped Companion").GetComponentsInChildren<DoodleUiPadlock>().Length,Is.EqualTo(4));
+            Object.Destroy(CaptureFrame("companion-armor-unlocks-first.png",720,1520));
+            for(int grade=0;grade<=6;grade++) {
+                var item=armor.First(x=>x.rarity==grade);ui.AddItem(item,1);
+                int expected=Mathf.Clamp(grade-1,1,5);
+                Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(expected));
+                item.count=0; // Discovery survives synthesis or consuming spare copies.
+                Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(expected));
+                ui.AutoEquip("Companion");Assert.That(ui.EquippedCompanions.Count,Is.EqualTo(expected));
+            }
+            foreach(var item in armor.Where(x=>x.rarity<6))item.discovered=false;
+            Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(5),"Directly acquiring God armor unlocks all earlier slots.");
+            UiOpen("Companions");Object.Destroy(CaptureFrame("companion-armor-unlocks-god.png",720,1520));
+            var probes=new System.Collections.Generic.List<GameObject>();
+            try {
+                ui.Save();var restored=GrowthProbe(probes);
+                Assert.That(restored.UnlockedCompanionSlots,Is.EqualTo(5));Assert.That(restored.EquippedCompanions.Count,Is.EqualTo(5));
+                foreach(var item in armor){item.discovered=false;item.level=item.count=0;}
+                ui.Save();var legacy=GrowthProbe(probes);
+                Assert.That(legacy.EquippedCompanions.Count,Is.EqualTo(1));
+                Assert.That(legacy.Items("Companion").Count(x=>x.equipped),Is.EqualTo(1));
+                Assert.That(legacy.Items("Companion").All(x=>x.discovered),Is.True);
+            } finally {foreach(var probe in probes)Object.Destroy(probe);}
+            ui.ClosePage();game.TogglePause();IsolateSummonTest();
+            foreach(var item in companions)item.equipped=false;
+            companions[0].equipped=true;companions[0].slot=0;companions[1].equipped=true;companions[1].slot=1;
+            game.companionsEnabled=true;yield return PhysicsTicks(3);
+            Assert.That(game.ActiveCompanions,Is.EqualTo(1),"A legacy equipped item in a locked slot cannot spawn.");
         }
 
         void ExportCompanionProjectileSheets()

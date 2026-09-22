@@ -22,6 +22,7 @@ namespace DoodleIdle
         [Serializable] sealed class SkinSave { public List<string> owned = new List<string>(); public string weapon, appearance; }
         readonly List<UiSkin> skinCatalog = new List<UiSkin>();
         bool skinsInitialized;
+        float skinTabPosition;
         string skinCategory = "Weapon", selectedWeaponSkin, selectedAppearanceSkin;
 
         void InitSkins()
@@ -217,9 +218,9 @@ namespace DoodleIdle
                     RefreshSkinDetails(body);
                 }, 150);
             }
-            var tabs = UiKit.Row(UiKit.Footer(body, "Skins footer", 56), "Skin tabs", 56, 4);
-            UiKit.EquipmentTab(tabs, "무기 스킨", () => { skinCategory = "Weapon"; RefreshSkinDetails(body); }, skinCategory == "Weapon", 56);
-            UiKit.EquipmentTab(tabs, "외형 스킨", () => { skinCategory = "Appearance"; RefreshSkinDetails(body); }, skinCategory == "Appearance", 56);
+            var tabs = UiKit.Box(UiKit.Footer(body, "Skins footer", 56), "Skin tabs", new Color(.78f,.78f,.76f), 56);
+            UiKit.SlidingTabs(tabs, "무기 스킨", "외형 스킨", skinCategory == "Weapon" ? 0 : 1, skinTabPosition,
+                index => { skinCategory = index == 0 ? "Weapon" : "Appearance"; RefreshSkinDetails(body); }, value => skinTabPosition = value, 56);
         }
 
         void RefreshSkinDetails(RectTransform previousBody)
