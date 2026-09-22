@@ -14,6 +14,7 @@ Only `Documentation/UI/FinalDesign/01..25 *.png` is the visual reference. Text r
 ### 2026-09-23 first-day progression (supersedes older numeric rules below)
 
 - See `DAY_ONE_BALANCE.md` for the eight-hour target, stage income projection, combat coefficients, ticket missions and shop fulfillment limitations.
+- `CONTINUOUS_CAMPAIGN.md` specifies the opt-in empty-account run to stage 300. Damage-bearing basic shots/stone shots and combat elapsed time run in `FixedUpdate`, alongside other combat, so long render frames cannot extend projectile range during accelerated validation or slow-device gameplay.
 - Non-relic summons have 35 levels with exact 0.001% rarity weights. Within each rarity, lower numbered entries are more common. Relic and dungeon-relic pools remain uniform and unlevelled.
 - Equipment equip values are percentages of attack/health stats. Skill and companion damage coefficients and levels feed both actual damage and UI estimates. Death demotes the current field stage while retaining highest-stage unlocks.
 - Mission action history persists independently of daily/weekly resets. Cave tutorials follow the stage-45 repeating mission cycle. Free diamonds and mileage use the separate `DoodleUi.CommerceExtras.v1` save, included in game reset.
