@@ -341,6 +341,10 @@ namespace DoodleIdle.Tests
         {
             ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
             game.enemyDashEnabled = false; // This fixture isolates the player's full loadout.
+            // The high saved stage opens all slots; this cast/refill fixture still uses baseline enemies.
+            // DungeonEntryReplacesActualMapAndActorsAndUsesMainStageDifficulty covers stage scaling.
+            var baselineTuning=(DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning",ServicePrivate).GetValue(game.Ui);
+            baselineTuning.enemyHealthStageGrowth=baselineTuning.enemyDamageStageGrowth=0;
             game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
             game.companionsEnabled=true;
             foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
