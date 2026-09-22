@@ -57,17 +57,38 @@ namespace DoodleIdle
         public int CombatDifficultyStage => ActiveDungeonIndex < 0 ? (int)Math.Min(int.MaxValue, (long)MainStage+1) : DungeonDifficultyStage(DungeonChallengeStage(ActiveDungeonIndex));
         public int DungeonThemeIndex => ActiveDungeonIndex == 0 ? 8 : 6;
         public int HighestMainStage => services==null?0:Math.Max(services.highestMainStage,services.mainStage);
+        public int ProjectedStatLevel(int displayStage)
+        {
+            double completed=Math.Max(0L,(long)displayStage-1);
+            double gold=101*serviceTuning.goldPerEnemy*(completed+serviceTuning.goldStageGrowth*completed*(completed-1)/2)*serviceTuning.projectedGoldMultiplier
+                +completed*serviceTuning.projectedMissionGoldPerStage;
+            double baseCost=0;foreach(var stat in collectionTuning.stats)if(stat.id!="crit4Chance")baseCost+=stat.baseCost;
+            double growth=Math.Max(1.000001,collectionTuning.costGrowth);
+            return (int)Math.Min(collectionTuning.maxStatLevel,Math.Max(0,Math.Log(1+gold*(growth-1)/Math.Max(1,baseCost))/Math.Log(growth)));
+        }
+        double ProjectedBaseStat(string id,int stage)
+        {
+            var stat=Array.Find(collectionTuning.stats,x=>x.id==id);
+            return stat==null?1:StatValueAtLevel(stat,ProjectedStatLevel(stage));
+        }
+        static double ProjectedGearFactor(int stage) => 1+Math.Min(100,8+Math.Max(0,stage-1)*.46)/100;
         public float EnemyHealthMultiplier(int displayStage)
         {
             if(serviceTuning.enemyHealthStageGrowth<=0)return 1;
             double stage=Math.Max(0L,(long)displayStage-1);
-            return (float)Math.Min(1e30,(1+stage*serviceTuning.enemyHealthStageGrowth)*Math.Pow(serviceTuning.enemyPowerGrowth,Math.Min(20000,stage*4))*(1+stage*serviceTuning.enemyHealthBudget));
+            // Budget-based growth keeps early gold upgrades and late stage difficulty together.
+            // This is a deterministic stage curve, never scaled from the live player's equipment.
+            double attack=ProjectedBaseStat("attack",displayStage)*ProjectedGearFactor(displayStage)*(1+Math.Min(4,stage*.0048))*(1+serviceTuning.attackBuff);
+            double ramp=Math.Min(1,stage/50);
+            double health=attack*serviceTuning.enemyHealthAttackRatio*ramp;
+            return (float)Math.Min(1e30,Math.Max(1+stage*serviceTuning.enemyHealthStageGrowth,health/68));
         }
         public float EnemyDamageMultiplier(int displayStage)
         {
             if(serviceTuning.enemyDamageStageGrowth<=0)return 1;
             double stage=Math.Max(0L,(long)displayStage-1);
-            return (float)Math.Min(1e30,(1+stage*serviceTuning.enemyDamageStageGrowth)*Math.Pow(serviceTuning.enemyDamagePowerGrowth,Math.Min(20000,stage*4))*(1+stage*.04));
+            double health=ProjectedBaseStat("health",displayStage)*ProjectedGearFactor(displayStage)*(1+Math.Min(2,stage*.00165));
+            return (float)Math.Min(1e30,Math.Max(1,health*serviceTuning.enemyDamageStageGrowth/64));
         }
         public void HandlePlayerDefeat()
         {

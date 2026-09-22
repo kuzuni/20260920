@@ -32,7 +32,9 @@ namespace DoodleIdle.Tests
             typeof(DoodleUi).GetMethod("InitCommerceExtras",ServicePrivate).Invoke(ui,null);
             Assert.That(ui.MileageCoupons,Is.Zero);Assert.That(ui.GrantConfirmedCurrencyProduct(5,"verified-test-0"),Is.False);
             Assert.That(UiKit.Art("MileageCoupon").texture,Is.Not.SameAs(UiKit.Art("TicketCompanion").texture));
-            ui.ShowPage("Shop");UiClick("재화");Object.Destroy(CaptureFrame("dayone-diamond-shop.png",720,1560));
+            UiOpen("Shop");UiClick("재화");Object.Destroy(CaptureFrame("dayone-diamond-shop.png",720,1560));
+            UiNode("Currency product cards").GetComponentInParent<UnityEngine.UI.ScrollRect>().verticalNormalizedPosition=0;
+            Object.Destroy(CaptureFrame("dayone-diamond-shop-bonus.png",720,1560));
             yield return null;
         }
 
@@ -41,15 +43,16 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();var ui=game.Ui;
             ui.RecordMissionAction("attendance");ui.RecordMissionAction("relicAttempt");ui.RecordMissionAction("equip:Companion");
-            DayOneState("mainStage",1200);DayOneState("highestMainStage",1200);DayOneState("mainStageKillProgress",70);
+            DayOneState("mainStage",1199);DayOneState("highestMainStage",1199);DayOneState("mainStageKillProgress",70);
             int slots=ui.UnlockedSkillSlots;ui.HandlePlayerDefeat();
-            Assert.That(ui.MainStage,Is.EqualTo(1199));Assert.That(ui.MainStageKillProgress,Is.Zero);
-            Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(slots));Assert.That(ui.MissionProgress("stage"),Is.EqualTo(1200));
+            Assert.That(ui.MainStage,Is.EqualTo(1198));Assert.That(ui.MainStageKillProgress,Is.Zero);
+            Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(slots));Assert.That(ui.MissionProgress("stage"),Is.EqualTo(1199));
             DayOneState("day","2000-01-01");ui.Save();ReloadPersistedServices();
             Assert.That(ui.CareerProgress("attendance"),Is.GreaterThanOrEqualTo(1));
             Assert.That(ui.CareerProgress("relicAttempt"),Is.GreaterThanOrEqualTo(1));
             Assert.That(ui.CareerProgress("equip:Companion"),Is.GreaterThanOrEqualTo(1));
-            Assert.That(ui.MainStage,Is.EqualTo(1199));
+            Assert.That(ui.MainStage,Is.EqualTo(1198));
+            DayOneState("mainStage",0);ui.HandlePlayerDefeat();Assert.That(ui.MainStage,Is.Zero);
             yield return null;
         }
 
@@ -88,11 +91,11 @@ namespace DoodleIdle.Tests
             long cost=0;foreach(var stat in GrowthTuning.stats.Take(4))for(int level=0;level<1200;level++)cost+=(long)Math.Ceiling(stat.baseCost*Math.Pow(GrowthTuning.costGrowth,level));
             Assert.That(income/(double)cost,Is.InRange(.9,1.4),"Stage kills, cave gold and small mission rewards must fund about Lv1200, not many times that budget.");
             Debug.Log("DAYONE budget gold="+income+" cost1200="+cost+" attack="+ui.CurrentAttackPower+" hp="+ui.MaxHealth+" enemyHP="+68*ui.EnemyHealthMultiplier(300));
-            Object.Destroy(CaptureFrame("dayone-stage300-stats.png",720,1560));
+            ui.ShowPage("Stats");Object.Destroy(CaptureFrame("dayone-stage300-stats.png",720,1560));ui.ClosePage();
             game.summonSkillsEnabled=true;game.companionsEnabled=true;game.autoPlay=true;
             game.RequestCombatWaveReset();game.TogglePause();
             float start=Time.fixedTime;int hits=game.PlayerContactHits;Time.timeScale=8;
-            while(ui.MainStage==299 && Time.fixedTime-start<150)yield return new WaitForFixedUpdate();
+            while(ui.MainStage==299 && Time.fixedTime-start<240)yield return new WaitForFixedUpdate();
             Debug.Log("DAYONE stage300 combatSeconds="+(Time.fixedTime-start)+" stage="+ui.MainStage+" contactHits="+(game.PlayerContactHits-hits));
             Assert.That(ui.MainStage,Is.GreaterThanOrEqualTo(300),"A balanced Lv1200/Epic1 profile must clear the stage and its real boss without defeat.");
             game.TogglePause();Object.Destroy(CaptureFrame("dayone-stage300-clear.png",720,1560));

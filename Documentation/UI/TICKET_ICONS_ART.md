@@ -1,7 +1,8 @@
 # 미션 뽑기권과 마일리지 쿠폰
 
 - 내장 image_gen 사용, 3열×2행 아틀라스. 경로: `Assets/DoodleIdle/Resources/DoodleIdle/UI/TicketIcons.png`.
-- 순서: 갑옷, 몽둥이, 스킬 / 동료, 유물, 마일리지. 실제 알파 채널에서 셀 사이 배경은 0, 티켓 내부는 254이며 RGB에 남은 배경색은 표시되지 않는다.
+- 순서: 갑옷, 몽둥이, 스킬 / 동료, 유물, 사용하지 않는 이전 마일리지 시안. 실제 알파 채널에서 셀 사이 배경은 0, 티켓 내부는 254이며 RGB에 남은 배경색은 표시되지 않는다.
+- 최종 마일리지는 별도 `MileageCoupon.png`의 파란 다이아 카드로 교체했다. 최종 프롬프트는 `MILEAGE_DIAMOND_CARD.md`에 있다. 아래 프롬프트의 금색 별 티켓은 더 이상 게임에 표시하지 않는다.
 - 생성 프롬프트:
 
 > Create a transparent sprite atlas for a cute hand-drawn idle game, 3 columns by 2 rows of SIX distinct paper ticket icons, evenly spaced in six equal square cells. Use the supplied ticket only as the STYLE reference: thick wobbly black ink outline, cream paper, simple pastel colored border, semicircular ticket notches, small dashed perforation. Each ticket tilted gently upward right and centered in its cell with transparent margins. No words, letters or numbers anywhere. Top row left: light blue bordered ARMOR summon ticket with a simple gray breastplate emblem. Top row middle: tan bordered CLUB summon ticket with a small wooden spiked club emblem. Top row right: coral bordered SKILL summon ticket with a red meteor and flame emblem. Bottom row left: green bordered COMPANION summon ticket with a tiny cute green tank companion emblem, no player/cat. Bottom row middle: lavender bordered RELIC summon ticket with a cream round blue-pattern pottery jar emblem. Bottom row right: GOLD MILEAGE coupon with a gold border and a large blue diamond emblem. Very simple emblem silhouettes suitable for 32 pixel UI, no tiny textures, no hatching, no complex patterns. All six tickets are complete separate objects; do not join their edges. Genuine transparent alpha background throughout; no grid lines, labels, shadows, floating marks or extra symbols. 3:2 whole atlas.

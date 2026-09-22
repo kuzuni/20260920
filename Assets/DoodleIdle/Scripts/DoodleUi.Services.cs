@@ -21,7 +21,7 @@ namespace DoodleIdle
             public int goldDungeonEnemyCount = 500;
             public float goldPerEnemy = 10, goldStageGrowth = 0;
             public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .01f;
-            public float enemyPowerGrowth=1.0095f,enemyHealthBudget=.25f,enemyDamagePowerGrowth=1.007f;
+            public float enemyHealthAttackRatio=6,projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;
             public float goldBuff = .5f, attackBuff = .3f;
             public int[] dailyGoals = { 200, 1000, 3, 5 };
             public int[] repeatGoals = { 500, 10, 5, 5000 };
