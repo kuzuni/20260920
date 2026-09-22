@@ -110,7 +110,7 @@ namespace DoodleIdle.Tests
                 }
                 Time.timeScale = 64; Time.maximumDeltaTime = 1; Application.targetFrameRate = 60;
                 var tick = new WaitForFixedUpdate();
-                while (ui.MainStage < 300 && Time.fixedTimeAsDouble - start < 12 * 3600) {
+                while (ui.MainStage < 300 && Time.fixedTimeAsDouble - start < 4 * 3600) {
                     double elapsed = Time.fixedTimeAsDouble - start;
                     // Services use UTC. Remap only remaining buff time to the accelerated combat clock;
                     // activation still pays the real price and uses the real duration every time.
@@ -134,7 +134,7 @@ namespace DoodleIdle.Tests
                 Report(Time.fixedTimeAsDouble - start);
                 foreach (string category in CampaignCategories) Debug.Log("CAMPAIGN inventory " + category + " " + string.Join(";", ui.Items(category).Where(x => x.discovered).Select(x => x.id + ":" + x.level + (x.equipped ? " equipped" : ""))));
                 Object.Destroy(CaptureFrame("campaign-final.png", 720, 1560));
-                Assert.That(ui.MainStage, Is.GreaterThanOrEqualTo(300), "Report contains actual 12-hour progress if the fresh account cannot reach 300.");
+                Assert.That(ui.MainStage, Is.GreaterThanOrEqualTo(300), "Report contains actual four-hour progress if the fresh account cannot reach 300.");
             }
             finally { Time.timeScale = originalTimeScale; Time.maximumDeltaTime = oldMaximum; Application.targetFrameRate = oldFrameRate; ui.SkipSummonAnimations = oldSkip; }
         }
