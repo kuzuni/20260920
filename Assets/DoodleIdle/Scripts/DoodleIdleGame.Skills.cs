@@ -289,14 +289,14 @@ namespace DoodleIdle
                         {
                             shot.hits++; BallHits++;
                             BallEnemyHit?.Invoke(collision.root.GetInstanceID(), shot.hits);
-                            SkillDamage(collision, 24*shot.size, (next - old).normalized);
+                            SkillImpact(collision, 24*shot.size, (next - old).normalized, shot.size > 1 ? "Durian" : "BouncyBall");
                             shot.previous = collision; shot.target = ClosestExcept(next, collision);
                             if (shot.hits == 7) { LastCompletedBallHits = shot.hits; BallsCompleted++; finished = true; }
                         }
                         else
                         {
                             if (shot.kind == ProjectileKind.Fire) FireHits++; else ArrowHits++;
-                            SkillDamage(collision, (shot.kind == ProjectileKind.Fire ? 38 : 22)*shot.size, (next - old).normalized);
+                            SkillImpact(collision, (shot.kind == ProjectileKind.Fire ? 38 : 22)*shot.size, (next - old).normalized, shot.kind == ProjectileKind.Fire ? "Fire" : "Arrows");
                             finished = true;
                         }
                     }

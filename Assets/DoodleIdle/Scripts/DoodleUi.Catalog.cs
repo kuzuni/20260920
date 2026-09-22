@@ -14,6 +14,7 @@ namespace DoodleIdle
         public string projectile, trajectory;
         public int volleyCount;
         public float volleyGap, attackInterval, projectileSpeed, explosionRadius;
+        public float splashDamageMultiplier = 1;
     }
 
     [Serializable]

@@ -497,7 +497,7 @@ namespace DoodleIdle
                     shot.visual.Rotate(0, 0, dt * 640);
                     if (t >= 1)
                     {
-                        if (shot.target != null && shot.target.root) SkillDamage(shot.target, 42, (shot.end - shot.start).normalized);
+                        if (Alive(shot.target)) SkillImpact(shot.target, 42, (shot.end - shot.start).normalized, "Stone");
                         Burst(shot.end, new Color(.57f, .53f, .46f), 5);
                     }
                 }
@@ -524,6 +524,27 @@ namespace DoodleIdle
 
         void SkillDamage(Actor enemy, float weight, Vector2 push)
             => DamageByCategory(enemy, weight, push, "Skill");
+
+        void SkillImpact(Actor target, float weight, Vector2 push, string ability)
+        {
+            if (!Alive(target)) return;
+            Vector2 center = target.Position;
+            var splash = DoodleAttackPower.SkillSplash(ability);
+            SkillDamage(target, weight, push);
+            if (splash.radius <= 0) return;
+            skillSplashCounts[ability] = SkillSplashCount(ability) + 1;
+            if (splash.particleIndex < 0)
+                EmitBurst(dustParticles, center, new Color(.74f,.70f,.62f,.85f), 9, .16f, .36f, splash.radius * 2.5f, .22f, .4f);
+            else if (ability == "RedCloud")
+                EmitBurst(companionImpactParticles[splash.particleIndex], center, new Color(1,.25f,.25f), 9, .16f, .32f, 3, .18f, .3f);
+            else EmitCompanionImpact(splash.particleIndex, center, splash.radius);
+            for (int i = enemies.Count - 1; i >= 0; i--) {
+                var enemy = enemies[i];
+                float contact = enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
+                if (enemy != target && Vector2.Distance(enemy.Position, center) <= splash.radius + contact)
+                    SkillDamage(enemy, weight * splash.fraction, (enemy.Position - center).normalized);
+            }
+        }
 
         void DamageByCategory(Actor enemy, float weight, Vector2 push, string category)
         {

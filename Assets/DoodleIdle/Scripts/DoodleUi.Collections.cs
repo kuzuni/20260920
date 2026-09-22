@@ -459,7 +459,11 @@ namespace DoodleIdle
                     UiKit.Text(body, "1타 = 공격력의 " + UiNumber.Format(ItemHitPercent(item), 2) + "% · 재사용 " + UiNumber.Format(interval, 2) + "초", 16, TextAnchor.MiddleCenter, 24);
                     if (item.ability == "Molotov" || item.ability == "BlueMolotov")
                         UiKit.Text(body, "화상 1타 = 공격력의 " + UiNumber.Format(DoodleAttackPower.Percent(8), 2) + "%", 16, TextAnchor.MiddleCenter, 22);
+                    float splashFraction = ItemSplashFraction(item);
+                    if (splashFraction > 0)
+                        UiKit.Text(body, "주변 1명당 " + UiNumber.Format(splashFraction * 100) + "% · " + UiNumber.Format(ItemHitDamage(item) * splashFraction, 2) + " 피해\n직격 대상은 중복 피해 없음", 15, TextAnchor.MiddleCenter, 42);
                     string basis = item.category == "Companion" ? item.volleyCount + "발 모두 명중 · 추가 폭발 대상 제외" : DoodleAttackPower.Skill(item.ability).basis;
+                    if (item.category == "Skill" && splashFraction > 0) basis += " · 추가 폭발 대상 제외";
                     UiKit.Text(body, basis + "\n현재 공격력·유물·버프 반영 / DPS는 치명타 평균 반영\n전부 명중 가정 · 이동·대상 수에 따라 실제 피해 변동", 14, TextAnchor.MiddleCenter, 60);
                     UiKit.Text(body, "장착 시에만 자동 공격 · 공격력 +" + UiNumber.Format(ItemEquipValue(item) * (item.category == "Skill" ? .02f : 1), 2) + "%", 15, TextAnchor.MiddleCenter, 22);
                 }

@@ -97,8 +97,8 @@ namespace DoodleIdle
                 var r=UiKit.Box(skillDock,"Skill status "+i,UiKit.Paper,65); r.GetComponent<Image>().sprite=UiKit.Circle;
                 var icon=UiKit.Icon(r,"Banana",48); UiKit.Stretch(icon.rectTransform,8,8,8,8); hudIcons.Add(icon);
                 var mask=UiKit.Rect(r,"Clockwise cooldown mask"); UiKit.Stretch(mask,3,3,3,3); var im=mask.gameObject.AddComponent<Image>(); im.sprite=UiKit.Circle; im.type=Image.Type.Filled; im.fillMethod=Image.FillMethod.Radial360; im.fillClockwise=true; im.fillOrigin=(int)Image.Origin360.Top; im.color=new Color(.06f,.07f,.1f,.58f); im.raycastTarget=false; hudMasks.Add(im);
-                var lockRect=UiKit.Rect(r,"HUD skill lock"); lockRect.anchorMin=lockRect.anchorMax=Vector2.one*.5f; lockRect.sizeDelta=new Vector2(22,28);
-                var padlock=lockRect.gameObject.AddComponent<DoodleUiPadlock>(); padlock.raycastTarget=false; hudLocks.Add(padlock);
+                var lockRect=UiKit.Rect(r,"HUD skill lock"); lockRect.anchorMin=lockRect.anchorMax=Vector2.one*.5f; lockRect.sizeDelta=new Vector2(40,48);
+                var padlock=lockRect.gameObject.AddComponent<DoodleUiPadlock>(); padlock.largeHud=true; padlock.SetAllDirty(); padlock.raycastTarget=false; hudLocks.Add(padlock);
             }
         }
         Text BuildBuff(Transform parent,string name,string art)

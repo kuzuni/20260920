@@ -63,7 +63,7 @@ namespace DoodleIdle
         {
             if (Alive(strike.target)) strike.position = strike.target.Position;
             Echo("Double claw strike " + frame, DoodleExpansionArt.Get("SkillDoubleClaw", frame), strike.position, Vector2.one * 2, Quaternion.identity, .22f, 1, 600);
-            if (Alive(strike.target)) { SkillDamage(strike.target, 38, Vector2.zero); ClawHits++; }
+            if (Alive(strike.target)) { SkillImpact(strike.target, 38, Vector2.zero, "DoubleClaw"); ClawHits++; }
         }
         void CastMeteor()
         {
@@ -134,7 +134,7 @@ namespace DoodleIdle
                         EmitBurst(golemSlamParticles, position + direction.normalized * .65f + Vector2.down * .35f,
                             new Color(.72f, .64f, .5f, .85f), 22, .25f, .6f, 4.2f, .25f, .5f);
                         if (Alive(unit.target) && direction.magnitude <= 1.6f) {
-                            SkillDamage(unit.target, 32, direction.normalized); GolemHits++;
+                            SkillImpact(unit.target, 32, direction.normalized, "Golem"); GolemHits++;
                         }
                     }
                     SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillGolem", unit.punch > .18f ? 2 : unit.punch > 0 ? 3 : (int)(unit.age * 7) % 2));
@@ -203,6 +203,7 @@ namespace DoodleIdle
             }
             foreach (var flash in lightningFlashes) if (flash.art) Destroy(flash.art.gameObject);
             lightningFlashes.Clear();
+            skillSplashCounts.Clear();
             foreach (var meteor in meteors) if (meteor.art) Destroy(meteor.art.gameObject);
             pursuers.Clear(); meteors.Clear(); meteorVolleys.Clear(); clawStrikes.Clear(); stoneVolleys.Clear();
             TornadoHits = ClawHits = GolemHits = GolemsSummoned = MeteorsLanded = MeteorsLaunched = MeteorHits = 0;

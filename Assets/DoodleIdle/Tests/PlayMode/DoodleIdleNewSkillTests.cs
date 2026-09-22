@@ -23,6 +23,93 @@ namespace DoodleIdle.Tests
         bool CastCatalogSkill(string ability) => game.DebugCastSkill(game.Ui.Items("Skill").Single(x => x.ability == ability).id);
 
         [UnityTest]
+        public IEnumerator NewSkillSplashesKeepDirectDamageScaleNeighborsAndEmitOnRealHits()
+        {
+            string[] abilities = { "Stone", "Arrows", "BouncyBall", "Fire", "Shotgun", "Lightning", "DoubleClaw", "Cloud", "Durian", "RedCloud", "Golem" };
+            var bodies = DurableSkillTargets(); game.TogglePause();
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            var impact = typeof(DoodleIdleGame).GetMethod("SkillImpact", GrowthPrivate);
+            var health = actors[0].GetType().GetField("hp");
+            var relic = game.Ui.Items("Relic").Single(x => x.effect == "skillAttack");
+            relic.discovered = true; relic.level = 10; GrowthLevels["attack"] += 10;
+            foreach (bool critical in new[] { false, true }) {
+                GrowthLevels["crit2Chance"] = critical ? 1000 : 0;
+                foreach (string ability in abilities) {
+                    var profile = DoodleAttackPower.SkillSplash(ability);
+                    for (int i = 0; i < 3; i++) health.SetValue(actors[i], 100000f);
+                    Place(bodies[0], new Vector2(3,0));
+                    Place(bodies[1], new Vector2(3,profile.radius + .5f));
+                    Place(bodies[2], new Vector2(3,profile.radius + .7f));
+                    float damage = game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(100),"Skill") * (float)game.Ui.ExpectedCriticalMultiplier;
+                    impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,ability });
+                    Assert.That(100000 - (float)health.GetValue(actors[0]), Is.EqualTo(damage).Within(.03f), ability + " direct hit is never doubled");
+                    Assert.That(100000 - (float)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(.03f), ability + " splash keeps attack/relic/critical scaling");
+                    Assert.That((float)health.GetValue(actors[2]), Is.EqualTo(100000f), ability + " outside radius");
+                }
+            }
+            // Death removes the direct target from the population before the secondary pass.
+            health.SetValue(actors[0],1f); health.SetValue(actors[1],100000f);
+            Place(bodies[1],new Vector2(3,.2f));
+            var neighbor = actors[1];
+            impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,"Stone" });
+            Assert.That((float)health.GetValue(neighbor), Is.LessThan(100000f));
+            GrowthLevels["crit2Chance"] = 0;
+            game.TogglePause();
+            foreach (string ability in abilities) {
+                game.ResetGame(); yield return null;
+                bodies = DurableSkillTargets();
+                for (int i = 0; i < 8; i++) Place(bodies[i],new Vector2(3+(i%4)*.35f,(i/4)*.35f));
+                Assert.That(game.SkillSplashCount(ability), Is.Zero);
+                Assert.That(CastCatalogSkill(ability), Is.True, ability);
+                for (int tick = 0; tick < 120 && game.SkillSplashCount(ability) == 0; tick++) yield return new WaitForFixedUpdate();
+                Assert.That(game.SkillSplashCount(ability), Is.GreaterThan(0), ability + " real cast reaches the splash path");
+                yield return PhysicsTicks(2);
+                Assert.That(game.GetComponentsInChildren<ParticleSystem>().Any(x => x.particleCount > 0 && (x.name.StartsWith("Companion impact:") || x.name == "Dust Particle System")), Is.True, ability);
+                if (ability == "Fire" || ability == "Golem" || ability == "Lightning")
+                    Object.Destroy(CaptureFrame("small-splash-"+ability+".png",1000,1000,false));
+            }
+            game.ResetGame(); yield return null;
+            Assert.That(abilities.All(x => game.SkillSplashCount(x) == 0), Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator CompanionSplashesKeepExistingFullDamageAndNewReducedDamage()
+        {
+            var bodies = DurableSkillTargets(); game.TogglePause();
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            var health = actors[0].GetType().GetField("hp");
+            var hit = typeof(DoodleIdleGame).GetMethod("CompanionDamage", GrowthPrivate);
+            var explode = typeof(DoodleIdleGame).GetMethod("CompanionExplosion", GrowthPrivate);
+            int[] added = { 0,1,2,3,5,6,7,11 };
+            GrowthLevels["crit2Chance"] = 1000;
+            var relic = game.Ui.Items("Relic").Single(x=>x.effect=="companionAttack"); relic.discovered=true; relic.level=10;
+            foreach (var item in game.Ui.Items("Companion")) {
+                int index = DoodleCollectionArt.CompanionIndex(item.icon);
+                Assert.That(item.explosionRadius, Is.GreaterThan(0));
+                Assert.That(item.splashDamageMultiplier, added.Contains(index) ? Is.InRange(.3f,.5f) : Is.EqualTo(1));
+                Place(bodies[0],new Vector2(3,0)); Place(bodies[1],new Vector2(3,item.explosionRadius+.5f)); Place(bodies[2],new Vector2(3,item.explosionRadius+.7f));
+                for(int i=0;i<3;i++)health.SetValue(actors[i],100000f);
+                float weight=DoodleAttackPower.CompanionWeight(item);
+                float damage=game.Ui.ItemHitDamage(item)*(float)game.Ui.ExpectedCriticalMultiplier;
+                hit.Invoke(game,new object[]{actors[0],weight,Vector2.zero});
+                explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,weight*item.splashDamageMultiplier,actors[0],index});
+                Assert.That(100000-(float)health.GetValue(actors[0]),Is.EqualTo(damage).Within(.03f),item.name);
+                Assert.That(100000-(float)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(.03f),item.name);
+                Assert.That((float)health.GetValue(actors[2]),Is.EqualTo(100000));
+                Assert.That(Particles("Companion impact: "+index).particleCount,Is.GreaterThan(0),item.name);
+            }
+            UiOpen("Companions");
+            UiClick("Slot: "+game.Ui.Items("Companion")[0].name,UiNode("Collection inventory"));
+            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("주변 1명당 50%")),Is.True);
+            Object.Destroy(CaptureFrame("small-splash-companion-details.png",720,1520));
+            game.Ui.CloseDetail(); UiOpen("Skills");
+            UiClick("Slot: "+game.Ui.Items("Skill").Single(x=>x.ability=="Shotgun").name,UiNode("Collection inventory"));
+            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("주변 1명당 30%")),Is.True);
+            Object.Destroy(CaptureFrame("small-splash-skill-details.png",720,1520));
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator BasicAttackToggleStopsSlashAndDashButKeepsCompanionsAndEquippedSkills()
         {
             var bodies = DurableSkillTargets(); Place(bodies[0], new Vector2(3, 0));

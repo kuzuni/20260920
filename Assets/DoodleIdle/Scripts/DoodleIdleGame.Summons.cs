@@ -143,12 +143,14 @@ namespace DoodleIdle
             Actor target = Closest(origin);
             return target != null && (target.Position - origin).sqrMagnitude <= range * range ? target : null;
         }
-        void Impact(SummonSkill skill, Actor target, float amount, Vector2 direction)
+        void Impact(SummonSkill skill, Actor target, float amount, Vector2 direction, string splashAbility = null)
         {
             if (!Alive(target)) return;
             summonHits[(int)skill]++;
             SummonImpact?.Invoke(skill, target.root.GetInstanceID());
-            SkillDamage(target, amount, direction);
+            if (splashAbility != null) SkillImpact(target, amount, direction, splashAbility);
+            else if (skill == SummonSkill.Shotgun) SkillImpact(target, amount, direction, "Shotgun");
+            else SkillDamage(target, amount, direction);
         }
 
         SpriteRenderer Echo(string label, Sprite art, Vector2 position, Vector2 scale, Quaternion rotation, float lifetime, float alpha, int order)
@@ -377,7 +379,7 @@ namespace DoodleIdle
                     Vector2 delta = target.Position - origin;
                     Echo("Lightning afterimage", cloud.red?DoodleVariantArt.Get("RedLightning"):summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, .85f), Aim(delta), .4f, .35f, 570);
                     Echo("Lightning strike", cloud.red?DoodleVariantArt.Get("RedLightning"):summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, 1.1f), Aim(delta), .12f, 1, 580);
-                    Impact(SummonSkill.StormCloud, target, 23, delta.normalized); LightningStrikes++;
+                    Impact(SummonSkill.StormCloud, target, 23, delta.normalized, cloud.red ? "RedCloud" : "Cloud"); LightningStrikes++;
                 }
             }
         }

@@ -315,8 +315,28 @@ namespace DoodleIdle
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleUiPadlock : MaskableGraphic
     {
+        public bool largeHud;
         protected override void OnPopulateMesh(VertexHelper vh)
         {
+            if (largeHud) {
+                vh.Clear();
+                // Bold curved shackle, outlined body and keyhole remain legible on the main HUD.
+                for (int i = 0; i < 20; i++) {
+                    float a = i * Mathf.PI / 20, b = (i + 1) * Mathf.PI / 20;
+                    int s = vh.currentVertCount;
+                    foreach (var p in new[] { new Vector2(Mathf.Cos(a)*14, 6+Mathf.Sin(a)*14), new Vector2(Mathf.Cos(b)*14, 6+Mathf.Sin(b)*14), new Vector2(Mathf.Cos(b)*8, 6+Mathf.Sin(b)*8), new Vector2(Mathf.Cos(a)*8, 6+Mathf.Sin(a)*8) }) vh.AddVert(p, UiKit.Ink, Vector2.zero);
+                    vh.AddTriangle(s,s+1,s+2); vh.AddTriangle(s,s+2,s+3);
+                }
+                Quad(vh,-17,-22,17,6,UiKit.Ink); Quad(vh,-12,-17,12,1,new Color(.94f,.90f,.78f));
+                for (int i = 0; i < 16; i++) {
+                    int s = vh.currentVertCount; float a = i*Mathf.PI/8, b=(i+1)*Mathf.PI/8;
+                    vh.AddVert(new Vector2(0,-6),UiKit.Ink,Vector2.zero);
+                    vh.AddVert(new Vector2(Mathf.Cos(a)*3.5f,-6+Mathf.Sin(a)*3.5f),UiKit.Ink,Vector2.zero);
+                    vh.AddVert(new Vector2(Mathf.Cos(b)*3.5f,-6+Mathf.Sin(b)*3.5f),UiKit.Ink,Vector2.zero); vh.AddTriangle(s,s+1,s+2);
+                }
+                Quad(vh,-1.6f,-13,1.6f,-6,UiKit.Ink);
+                return;
+            }
             vh.Clear();Quad(vh,-9,-11,9,5,UiKit.Ink);Quad(vh,-7,-9,7,3,Color.white);
             Quad(vh,-6,4,-3,11,Color.white);Quad(vh,3,4,6,11,Color.white);Quad(vh,-4,9,4,12,Color.white);Quad(vh,-1,-6,1,-1,UiKit.Ink);
         }

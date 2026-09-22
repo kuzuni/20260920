@@ -15,7 +15,7 @@ namespace DoodleIdle
         sealed class CompanionShot
         {
             public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
-            public float age, duration, speed, damage, explosionRadius; public bool arc;
+            public float age, duration, speed, damage, explosionRadius, splashDamageMultiplier; public bool arc;
         }
         readonly Dictionary<string, CompanionActor> companions = new Dictionary<string, CompanionActor>();
         readonly Dictionary<string, Sprite> companionSprites = new Dictionary<string, Sprite>();
@@ -105,7 +105,7 @@ namespace DoodleIdle
                 Echo("Companion cloud lightning", sprite, target.Position + Vector2.up * 1.35f,
                     new Vector2(2.7f, .7f), Aim(Vector2.down), .22f, 1, 570);
                 CompanionDamage(target, damage, Vector2.down);
-                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage, target, DoodleCollectionArt.CompanionIndex(item.icon));
+                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage * item.splashDamageMultiplier, target, DoodleCollectionArt.CompanionIndex(item.icon));
             }
             else
             {
@@ -114,7 +114,7 @@ namespace DoodleIdle
                 art.transform.rotation = Aim(direction);
                 companionShots.Add(new CompanionShot { impactIndex = DoodleCollectionArt.CompanionIndex(item.icon), art = art, start = origin,
                     end = target.Position, direction = direction, arc = arc, duration = arc ? .7f + shotIndex * .025f : 2,
-                    speed = item.projectileSpeed, damage = damage, explosionRadius = item.explosionRadius });
+                    speed = item.projectileSpeed, damage = damage, explosionRadius = item.explosionRadius, splashDamageMultiplier = item.splashDamageMultiplier });
             }
             CompanionShotsLaunched++; companionShotCounts[item.id] = CompanionShotCount(item.id) + 1;
             CompanionShotLaunched?.Invoke(item.id, Time.fixedTime, item.trajectory == "Arc", item.explosionRadius);
@@ -138,7 +138,7 @@ namespace DoodleIdle
                 if (victim != null || landed)
                 {
                     if (victim != null) CompanionDamage(victim, shot.damage, shot.direction);
-                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage, victim, shot.impactIndex);
+                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage * shot.splashDamageMultiplier, victim, shot.impactIndex);
                 }
                 if (victim != null || landed || shot.age >= shot.duration) { Destroy(shot.art.gameObject); companionShots.RemoveAt(i); }
             }

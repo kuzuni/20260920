@@ -133,6 +133,11 @@ namespace DoodleIdle.Tests
             foreach (var item in skills) { ui.AddItem(item, 1); item.equipped = false; }
             ServiceSetSavedField(ServiceStateObject, "mainStage", 0);
             Assert.That(ui.UnlockedSkillSlots, Is.EqualTo(1));
+            ui.ClosePage(); ui.RefreshHud();
+            var hudLocks = UiNode("Eight equipped cooldowns").GetComponentsInChildren<DoodleUiPadlock>();
+            Assert.That(hudLocks.Length, Is.EqualTo(7));
+            Assert.That(hudLocks.All(x => x.largeHud && x.rectTransform.rect.width >= 40), Is.True);
+            Object.Destroy(CaptureFrame("main-large-skill-padlocks.png", 720, 1520));
             ui.AutoEquip("Skill");
             Assert.That(ui.EquippedSkills.Count, Is.EqualTo(1));
             UiOpen("Skills");

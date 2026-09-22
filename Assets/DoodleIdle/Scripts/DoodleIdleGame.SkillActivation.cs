@@ -7,6 +7,8 @@ namespace DoodleIdle
     {
         readonly Dictionary<string, float> equippedSkillClocks = new Dictionary<string, float>();
         readonly Dictionary<string, int> skillActivationCounts = new Dictionary<string, int>();
+        readonly Dictionary<string, int> skillSplashCounts = new Dictionary<string, int>();
+        public int SkillSplashCount(string ability) => skillSplashCounts.TryGetValue(ability, out var count) ? count : 0;
         readonly HashSet<string> equippedSkillAbilities = new HashSet<string>();
         bool castingEquippedSkill;
         float debugBananaRemaining;
@@ -105,7 +107,7 @@ namespace DoodleIdle
                     {
                         var target = targets[i];
                         ShowLightningStrike(target.Position);
-                        Impact(SummonSkill.StormCloud, target, 35, Vector2.down); LightningStrikes++;
+                        Impact(SummonSkill.StormCloud, target, 35, Vector2.down, "Lightning"); LightningStrikes++;
                     }
                     break;
                 case "Molotov": CastSummonSkill(SummonSkill.Molotov); break;
