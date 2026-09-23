@@ -52,7 +52,7 @@ namespace DoodleIdle.Tests
             var drops = NamedArt("Companion shot: companion_scorpion");
             Assert.That(game.CompanionShotCount(scorpion.id), Is.EqualTo(5));
             Assert.That(drops.Length, Is.EqualTo(5));
-            Assert.That(drops.All(x => x.sprite.name == "AscensionRevision_4"), Is.True);
+            Assert.That(drops.All(x => x.sprite.texture.name == "AscensionRevisions" && x.sprite.rect == UiKit.Art(scorpion.projectile).rect), Is.True);
             var angles = drops.Select(x => x.transform.eulerAngles.z).OrderBy(x => x).ToArray();
             Assert.That(angles.Distinct().Count(), Is.EqualTo(5), "Poison fans out instead of throwing a tail.");
             Assert.That(NamedArt("Scorpion poison spray"), Is.Not.Empty);
