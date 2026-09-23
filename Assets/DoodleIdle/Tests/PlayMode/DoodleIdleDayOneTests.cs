@@ -348,7 +348,7 @@ namespace DoodleIdle.Tests
             long income=0;for(int stage=1;stage<=300;stage++)income+=ui.GoldForMainKills(stage,101);
             for(int stage=1;stage<=3;stage++)income+=ui.DungeonGoldReward(stage);
             income+=(22+59*11)*500;
-            long cost=0;foreach(var stat in GrowthTuning.stats.Take(4))for(int level=0;level<1200;level++)cost+=(long)Math.Ceiling(stat.baseCost*Math.Pow(GrowthTuning.costGrowth,level));
+            long cost=0;foreach(var stat in GrowthTuning.stats.Take(4))for(int level=0;level<1200;level++)cost+=DoodleUi.StatUpgradePrice(GrowthTuning.statCosts,stat.id,level);
             // Historical day-one profile is now only a combat smoke fixture. The user
             // controls difficulty manually; no eight-hour/income target is enforced.
             Assert.That(income,Is.GreaterThan(0));

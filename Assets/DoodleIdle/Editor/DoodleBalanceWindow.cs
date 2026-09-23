@@ -9,8 +9,11 @@ namespace DoodleIdle.Editor
     public sealed class DoodleBalanceWindow : OdinEditorWindow
     {
         const string TuningPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/ServicesTuning.json";
+        const string CollectionPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json";
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning draft = new DoodleUi.ServiceTuning();
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning loaded = new DoodleUi.ServiceTuning();
+        [SerializeField, HideInInspector] UiStatCostTuning statDraft = new UiStatCostTuning();
+        [SerializeField, HideInInspector] UiStatCostTuning statLoaded = new UiStatCostTuning();
         [MenuItem("Doodle Idle/밸런스 조절")]
         public static void Open() => GetWindow<DoodleBalanceWindow>("밸런스 조절").Show();
         DoodleIdleGame Game => Object.FindFirstObjectByType<DoodleIdleGame>();
@@ -80,11 +83,52 @@ namespace DoodleIdle.Editor
             }
         }
 
+        [InfoBox("강화 비용만 조절합니다. 공격력·체력·체력회복은 같은 레벨에서 같은 비용을 사용합니다. 비용 = 시작 비용 × (1 + 증가율)^현재 레벨, 소수점 올림. 증가율 0%이면 비용이 고정됩니다. 능력치는 기존처럼 레벨마다 일정하게 증가합니다.")]
+        [ShowInInspector, BoxGroup("스탯 강화 비용/공격력 · 체력 · 체력회복 공통"), LabelText("시작 비용 (골드)"), MinValue(1)]
+        int CommonStatCost { get => statDraft.commonBaseCost; set => statDraft.commonBaseCost = value; }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/공격력 · 체력 · 체력회복 공통"), LabelText("레벨당 비용 증가율 (%)"), MinValue(0)]
+        float CommonStatGrowth { get => statDraft.commonGrowth * 100; set => statDraft.commonGrowth = value / 100; }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/x2 치명타 확률"), LabelText("시작 비용 (골드)"), MinValue(1)]
+        int Critical2Cost { get => statDraft.critical2BaseCost; set => statDraft.critical2BaseCost = value; }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/x2 치명타 확률"), LabelText("레벨당 비용 증가율 (%)"), MinValue(0)]
+        float Critical2Growth { get => statDraft.critical2Growth * 100; set => statDraft.critical2Growth = value / 100; }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/x4 치명타 확률"), LabelText("시작 비용 (골드)"), MinValue(1)]
+        int Critical4Cost { get => statDraft.critical4BaseCost; set => statDraft.critical4BaseCost = value; }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/x4 치명타 확률"), LabelText("레벨당 비용 증가율 (%)"), MinValue(0)]
+        float Critical4Growth { get => statDraft.critical4Growth * 100; set => statDraft.critical4Growth = value / 100; }
+        [BoxGroup("스탯 강화 비용/미리보기"), LabelText("강화 전 레벨"), MinValue(0)]
+        public int previewStatLevel = 0;
+
+        [System.Serializable]
+        public sealed class StatCostPreviewRow
+        {
+            [ReadOnly, LabelText("스탯")] public string stat;
+            [ReadOnly, LabelText("기존 비용")] public string current;
+            [ReadOnly, LabelText("수정 비용")] public string edited;
+        }
+        [ShowInInspector, BoxGroup("스탯 강화 비용/미리보기"), TableList(IsReadOnly = true, AlwaysExpanded = true), HideLabel]
+        StatCostPreviewRow[] StatCostPreview
+        {
+            get {
+                var current = Ui ? Ui.ReadStatCostTuning() : statLoaded;
+                var rows = new StatCostPreviewRow[3];
+                string[] ids = { "attack", "crit2Chance", "crit4Chance" };
+                string[] names = { "공격력 · 체력 · 회복", "x2 치명타 확률", "x4 치명타 확률" };
+                for (int i = 0; i < rows.Length; i++) rows[i] = new StatCostPreviewRow {
+                    stat = names[i],
+                    current = DoodleUi.StatUpgradePrice(current, ids[i], previewStatLevel).ToString("N0"),
+                    edited = DoodleUi.StatUpgradePrice(statDraft, ids[i], previewStatLevel).ToString("N0")
+                };
+                return rows;
+            }
+        }
+
         [Button("실행 중인 게임에 적용", ButtonSizes.Large), EnableIf(nameof(CanApply))]
         public void Apply()
         {
             if (!Ui) return;
             Ui.ApplyBalanceTuning(draft); draft = Ui.ReadBalanceTuning();
+            Ui.ApplyStatCostTuning(statDraft); statDraft = Ui.ReadStatCostTuning();
             ShowNotification(new GUIContent("적 체력 비율과 스테이지 진행을 유지하며 적용했습니다."));
         }
 
@@ -93,12 +137,18 @@ namespace DoodleIdle.Editor
         public void SaveDefaults()
         {
             var defaults = JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath));
+            var collections = JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath));
             DoodleUi.CopyBalanceTuning(draft, defaults);
+            DoodleUi.CopyStatCostTuning(statDraft, collections.statCosts);
             File.WriteAllText(TuningPath, JsonUtility.ToJson(defaults, true) + "\n");
+            File.WriteAllText(CollectionPath, JsonUtility.ToJson(collections, true) + "\n");
             AssetDatabase.ImportAsset(TuningPath);
-            if (Ui) Ui.ApplyBalanceTuning(defaults);
+            AssetDatabase.ImportAsset(CollectionPath);
+            if (Ui) { Ui.ApplyBalanceTuning(defaults); Ui.ApplyStatCostTuning(collections.statCosts); }
             draft = defaults;
             loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(defaults));
+            statDraft = collections.statCosts;
+            statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
             ShowNotification(new GUIContent("밸런스 기본값 저장 완료"));
         }
 
@@ -108,6 +158,9 @@ namespace DoodleIdle.Editor
             draft = Ui ? Ui.ReadBalanceTuning() : File.Exists(TuningPath)
                 ? JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath)) : new DoodleUi.ServiceTuning();
             loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(draft));
+            statDraft = Ui ? Ui.ReadStatCostTuning() : File.Exists(CollectionPath)
+                ? JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath)).statCosts : new UiStatCostTuning();
+            statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
         }
 
         [BoxGroup("다이아 디버그"), LabelText("지급량"), MinValue(1)]

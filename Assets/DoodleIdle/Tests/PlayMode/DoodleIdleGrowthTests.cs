@@ -19,6 +19,59 @@ namespace DoodleIdle.Tests
         bool GrowthBulkRunning => (bool)typeof(DoodleUi).GetField("collectionBulkRunning", GrowthPrivate).GetValue(game.Ui);
 
         [UnityTest]
+        public IEnumerator StatCostControlsShareBasicStatsAndKeepCriticalCurvesIndependent()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            ui.Gold = 1000;
+            var draft = ui.ReadStatCostTuning();
+            draft.commonBaseCost = 10; draft.commonGrowth = .5f;
+            draft.critical2BaseCost = 13; draft.critical2Growth = .25f;
+            draft.critical4BaseCost = 17; draft.critical4Growth = 1;
+            Assert.That(ui.ReadStatCostTuning().commonBaseCost, Is.EqualTo(20), "Draft edits must not change live prices.");
+            string statValues = string.Join("|", GrowthTuning.stats.Select(JsonUtility.ToJson));
+            string itemBefore = JsonUtility.ToJson(GrowthTuning.items[0]);
+            foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance", "crit4Chance" }) GrowthLevels[id] = 2;
+            ui.ShowPage("Stats");
+            ui.ApplyStatCostTuning(draft);
+            Assert.That(ui.Gold, Is.EqualTo(1000));
+            foreach (string id in new[] { "attack", "health", "healthRegen" }) {
+                Assert.That(ui.StatLevel(id), Is.EqualTo(2));
+                Assert.That(ui.StatUpgradeQuote(id, 1, out _), Is.EqualTo(23));
+                Assert.That(ui.StatUpgradeQuote(id, 3, out _), Is.EqualTo(108));
+                var labels = UiNode("Stat " + id).GetComponentsInChildren<Text>();
+                Assert.That(labels.Any(t => t.text.Contains("23")), Is.True, "An open stat popup must refresh its costs.");
+            }
+            Assert.That(ui.StatUpgradeQuote("crit2Chance", 1, out _), Is.EqualTo(21));
+            Assert.That(ui.StatUpgradeQuote("crit4Chance", 1, out int lockedCount), Is.Zero);
+            Assert.That(lockedCount, Is.Zero, "Changing prices must not bypass the x4 unlock requirement.");
+            float health = ui.StatValue("health");
+            Assert.That(ui.UpgradeStat("health", 3), Is.True);
+            Assert.That(ui.Gold, Is.EqualTo(892));
+            Assert.That(ui.StatValue("health") - health, Is.EqualTo(120));
+            GrowthLevels["crit2Chance"] = 4000;
+            Assert.That(ui.StatUpgradeQuote("crit4Chance", 3, out _), Is.EqualTo(476));
+            Assert.That(ui.UpgradeStat("crit4Chance", 3), Is.True);
+            Assert.That(ui.Gold, Is.EqualTo(416));
+            ui.Gold = 58;
+            Assert.That(ui.StatUpgradeQuote("attack", -1, out int maxCount), Is.EqualTo(57));
+            Assert.That(maxCount, Is.EqualTo(2));
+            Assert.That(ui.UpgradeStat("attack", -1), Is.True);
+            Assert.That(ui.Gold, Is.EqualTo(1));
+            Assert.That(ui.StatLevel("attack"), Is.EqualTo(4));
+            Assert.That(string.Join("|", GrowthTuning.stats.Select(JsonUtility.ToJson)), Is.EqualTo(statValues));
+            Assert.That(JsonUtility.ToJson(GrowthTuning.items[0]), Is.EqualTo(itemBefore));
+            var restored = JsonUtility.FromJson<UiCollectionTuning>(JsonUtility.ToJson(GrowthTuning));
+            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "healthRegen", 2), Is.EqualTo(23));
+            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit2Chance", 2), Is.EqualTo(21));
+            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit4Chance", 2), Is.EqualTo(68));
+            draft.commonGrowth = 0; ui.ApplyStatCostTuning(draft);
+            Assert.That(ui.StatUpgradeQuote("attack", 1, out _), Is.EqualTo(10));
+            Assert.That(DoodleUi.StatUpgradePrice(draft, "crit4Chance", 10000), Is.EqualTo(long.MaxValue));
+            ui.ClosePage();
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator GrowthFiveStatsChargeOneHundredExactPurchasesAndRejectAnUnaffordableBatch()
         {
             game.TogglePause();
@@ -31,7 +84,7 @@ namespace DoodleIdle.Tests
             var attack = GrowthTuning.stats.Single(x => x.id == "attack");
             int initialLevel = ui.StatLevel("attack"), upgrades;
             long expected = 0;
-            for (int i = 0; i < 100; i++) expected += (long)Math.Ceiling(attack.baseCost * Math.Pow(GrowthTuning.costGrowth, initialLevel + i));
+            for (int i = 0; i < 100; i++) expected += (long)Math.Ceiling(GrowthTuning.statCosts.commonBaseCost * Math.Pow(1d + GrowthTuning.statCosts.commonGrowth, initialLevel + i));
             long quoted = ui.StatUpgradeQuote("attack", 100, out upgrades);
             Assert.That(upgrades, Is.EqualTo(100));
             Assert.That(quoted, Is.EqualTo(expected));
@@ -87,7 +140,7 @@ namespace DoodleIdle.Tests
             var ui = game.Ui;
             // Seed a boundary profile with affordable test prices, avoiding a huge unrelated
             // economy grind while exercising the real quote, payment and upgrade paths.
-            GrowthTuning.costGrowth = 1;
+            GrowthTuning.statCosts.critical2Growth = GrowthTuning.statCosts.critical4Growth = 0;
             ui.Gold = 1000000;
             foreach (string id in new[] { "crit2Chance", "crit4Chance" })
             {
@@ -96,10 +149,10 @@ namespace DoodleIdle.Tests
                 GrowthLevels[id] = cap - 1;
                 long gold = ui.Gold;
                 int count;
-                Assert.That(ui.StatUpgradeQuote(id, 100, out count), Is.EqualTo(stat.baseCost));
+                Assert.That(ui.StatUpgradeQuote(id, 100, out count), Is.EqualTo((id == "crit2Chance" ? GrowthTuning.statCosts.critical2BaseCost : GrowthTuning.statCosts.critical4BaseCost)));
                 Assert.That(count, Is.EqualTo(1));
                 Assert.That(ui.UpgradeStat(id, 100), Is.True);
-                Assert.That(ui.Gold, Is.EqualTo(gold - stat.baseCost));
+                Assert.That(ui.Gold, Is.EqualTo(gold - (id == "crit2Chance" ? GrowthTuning.statCosts.critical2BaseCost : GrowthTuning.statCosts.critical4BaseCost)));
                 Assert.That(ui.StatValue(id), Is.EqualTo(100));
                 gold = ui.Gold;
                 Assert.That(ui.UpgradeStat(id, -1), Is.False);

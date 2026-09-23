@@ -62,9 +62,14 @@ namespace DoodleIdle
             double completed=Math.Max(0L,(long)displayStage-1);
             double gold=101*serviceTuning.goldPerEnemy*(completed+serviceTuning.goldStageGrowth*completed*(completed-1)/2)*serviceTuning.projectedGoldMultiplier
                 +completed*serviceTuning.projectedMissionGoldPerStage;
-            double baseCost=0;foreach(var stat in collectionTuning.stats)if(stat.id!="crit4Chance")baseCost+=stat.baseCost;
-            double growth=Math.Max(1.000001,collectionTuning.costGrowth);
-            return (int)Math.Min(collectionTuning.maxStatLevel,Math.Max(0,Math.Log(1+gold*(growth-1)/Math.Max(1,baseCost))/Math.Log(growth)));
+            // Historical smoke-fixture projection; each cost group now has its own curve.
+            double spent=0;
+            for (int level=0;level<collectionTuning.maxStatLevel;level++) {
+                spent += 3d*StatUpgradePrice(collectionTuning.statCosts,"attack",level)
+                    + StatUpgradePrice(collectionTuning.statCosts,"crit2Chance",level);
+                if(spent>gold)return level;
+            }
+            return collectionTuning.maxStatLevel;
         }
         public float EnemyHealthMultiplier(int displayStage) => EnemyHealthMultiplier(serviceTuning, displayStage);
         public static float EnemyHealthMultiplier(ServiceTuning tuning, int displayStage)

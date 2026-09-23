@@ -15,6 +15,12 @@ Default formulas, where S is the displayed stage:
 - Enemy contact damage: stage 0/1 uses the starting damage (default 0); stages 2–70 interpolate from the starting damage to the configurable early target (default 100). After 70: `100 × (1 + (S−70) × damage increase)`. No contact immunity or damage numbers trigger for zero damage.
 - Redundant overall multipliers have been removed from the window, tuning data and combat/reward formulas. Default per-stage increases are 2%. These are editable starting values, not a measured stage-300 completion-time promise.
 
+## Stat upgrade cost controls
+
+The same Odin window now exposes three independent cost groups: Attack/Health/Health Regen (shared), x2 critical chance, and x4 critical chance. Each has a starting gold cost and a per-level cost increase percentage. Defaults are 20/20/40 gold and 0.4% growth for each group. Health/Regen starting costs therefore change from 18/16 to the shared 20. Stat gains stay linear at +5/+40/+1 and +0.025/+0.05 percentage points.
+
+At current level L, the next upgrade costs `ceil(starting cost × (1 + increase)^L)`; 0% means fixed cost. The level preview, single/bulk/MAX quotes and actual purchases use one shared price function. x4 remains locked until x2 reaches its cap. Applying costs preserves levels, stats and wallet and refreshes an open stat popup. Saving defaults writes only the new cost settings into the freshly loaded `Collections.json` alongside the existing service tuning save, preserving the catalog and ability values. Three basic stats always have equal costs at equal levels. These cost groups replace the old per-stat base costs and global cost-growth field.
+
 ## Collection/stat rules
 
 - At equal enhancement levels, consecutive tiers within a rarity multiply damage/DPS by 1.1; the last tier to the next rarity's first multiplies by 2.5. Equipment has five tiers per rarity except God; skills have five and companions four per rarity, excluding God.

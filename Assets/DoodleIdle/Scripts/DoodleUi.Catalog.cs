@@ -24,13 +24,19 @@ namespace DoodleIdle
         public string id, name, icon;
         public float initial, increment;
         public float valueGrowth = 1;
-        public int baseCost;
+    }
+
+    [Serializable]
+    public sealed class UiStatCostTuning
+    {
+        public int commonBaseCost = 20, critical2BaseCost = 20, critical4BaseCost = 40;
+        public float commonGrowth = .004f, critical2Growth = .004f, critical4Growth = .004f;
     }
 
     [Serializable]
     public sealed class UiCollectionTuning
     {
-        public float costGrowth = 1.08f;
+        public UiStatCostTuning statCosts = new UiStatCostTuning();
         public int maxStatLevel = 10000, maxItemLevel = 1000, copiesPerUpgrade = 5;
         public float relicStepPercent = 1;
         public float[] skillDpsPercentByGrade = { 25f, 91.50625f, 334.935752f, 1225.948585f, 4487.278307f, 16424.560423f };

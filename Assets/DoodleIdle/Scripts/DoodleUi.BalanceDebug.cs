@@ -8,6 +8,36 @@ namespace DoodleIdle
         // Return a copy: editing the Odin form does not alter live combat until Apply.
         public ServiceTuning ReadBalanceTuning() => JsonUtility.FromJson<ServiceTuning>(JsonUtility.ToJson(serviceTuning));
 
+        public UiStatCostTuning ReadStatCostTuning() => JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(collectionTuning.statCosts));
+
+        public static void CopyStatCostTuning(UiStatCostTuning source, UiStatCostTuning destination)
+        {
+            if (source == null || destination == null) return;
+            destination.commonBaseCost = Math.Max(1, source.commonBaseCost);
+            destination.critical2BaseCost = Math.Max(1, source.critical2BaseCost);
+            destination.critical4BaseCost = Math.Max(1, source.critical4BaseCost);
+            destination.commonGrowth = BalanceValue(source.commonGrowth, 0, .004f);
+            destination.critical2Growth = BalanceValue(source.critical2Growth, 0, .004f);
+            destination.critical4Growth = BalanceValue(source.critical4Growth, 0, .004f);
+        }
+
+        // One price function for the Odin preview, UI quote and actual single/bulk/MAX purchases.
+        public static long StatUpgradePrice(UiStatCostTuning tuning, string id, int currentLevel)
+        {
+            int cost = id == "crit2Chance" ? tuning.critical2BaseCost : id == "crit4Chance" ? tuning.critical4BaseCost : tuning.commonBaseCost;
+            float growth = id == "crit2Chance" ? tuning.critical2Growth : id == "crit4Chance" ? tuning.critical4Growth : tuning.commonGrowth;
+            double raw = Math.Max(1, cost) * Math.Pow(1d + BalanceValue(growth, 0, .004f), Math.Max(0, currentLevel));
+            return double.IsInfinity(raw) || raw >= long.MaxValue ? long.MaxValue : Math.Max(1, (long)Math.Ceiling(raw));
+        }
+
+        public void ApplyStatCostTuning(UiStatCostTuning tuning)
+        {
+            if (tuning == null || collectionTuning == null) return;
+            CopyStatCostTuning(tuning, collectionTuning.statCosts);
+            RefreshHud();
+            if (ActivePage == "Stats") RefreshPage();
+        }
+
         static float BalanceValue(float value, float minimum, float fallback) =>
             float.IsNaN(value) || float.IsInfinity(value) ? fallback : Mathf.Clamp(value, minimum, 1000000);
 
