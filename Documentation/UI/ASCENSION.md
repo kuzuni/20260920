@@ -43,6 +43,10 @@
 
 ## 원본과 검증
 
+- 이미지는 내장 `image_gen`으로 생성하고 기존 플레이어 이미지를 스타일 참조로 사용했다. 최종 동료 모습과 투척물은 [Unity CI 렌더 미리보기](AscensionCompanionsPreview.png)에서 확인할 수 있다.
+- 최종 이미지 파일은 모두 `Assets/DoodleIdle/Resources/DoodleIdle/`에 저장한다: `AscensionAtlas.png`(스킬·장비), `SkillFireGolem.png`(불골렘 4동작), `AscensionCompanions.png`(동료), `AscensionProjectiles.png`(투척물), `AscensionRevisions.png`(boat·GOAT 두 동작과 독방울·지구·구명튜브·클로버). 수정 아틀라스가 기존 달토끼·황금돼지와 해당 투척물 셀을 대체한다.
 - 생성 프롬프트 및 최종 PNG 경로: [스킬·장비](ascension-art-prompts.json), [동료·투척물](ascension-companion-art-prompts.json).
 - 검증은 GitHub Actions의 Unity PlayMode에서 수행한다. `ascension` 수동 실행 옵션은 신규 전투, 저장 이관, 카탈로그, 장비 합성, 확률, 피해량과 아트 검사를 포함한다.
 - 실제 uGUI/URP 렌더 결과는 CI 아티팩트의 `ascension-*.png`, 검사 결과는 `playmode-results.xml`에 저장한다.
+- 최종 검증: [Unity CI 35907418220](https://github.com/kuzuni/20260920/actions/runs/35907418220), 코드 커밋 `6bc0b4b`, 관련 PlayMode 검사 **25/25 통과** (2026-09-24 KST). 신규 동료·투척물, 스킬 수량과 발사 간격, 해제 시 예약 공격 취소, 저장 이관, 확률, 장비 합성, UI와 기존 이동·돌진·충돌을 확인했다.
+- 40개 스킬을 교체하며 200초간 진행하는 자동 전투 검사도 통과했다. 맵 가장자리의 적 밀집 상태에서 이동·동시 넉백이 적을 계속 밀어 겹치지 않도록 여유 공간에 맞춰 속도를 제한한다. 기존 충돌 검사의 허용 기준은 유지하고, 적 위치·반지름은 프레임당 한 번씩 읽어 재사용한다.
