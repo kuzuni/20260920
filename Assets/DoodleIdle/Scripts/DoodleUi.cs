@@ -165,6 +165,7 @@ namespace DoodleIdle
             mission.sizeDelta=new Vector2(tall?300:270,tall?184:152);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?408:278);missionText.resizeTextMaxSize=tall?24:19;UiKit.Height(missionText.transform,tall?96:68);
             Anchor(cameraControl,new Vector2(0,0),new Vector2(96,tall?329:208),new Vector2(164,tall?42:34));
             Anchor(stageInfo,new Vector2(.5f,1),new Vector2(0,-191),new Vector2(230,140));
+            RefreshBossHud();
             foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) if(!window.GetComponent<DoodlePopupMotion>() || !window.GetComponent<DoodlePopupMotion>().IsClosing) window.Reflow(safe);
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
             foreach(var squares in root.GetComponentsInChildren<DoodleUiSquareRow>()) squares.Reflow();
