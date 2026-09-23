@@ -226,3 +226,5 @@
 - 38f832b / Actions 35758253210에서 관련 5/5 통과했으나 화면 검토로 흰색 효과가 불투명한 문제와 `50장` 글씨 잘림을 발견했다. 명시적 셰이더 불투명도, 수량 텍스트 폭, 티켓 축소 품질을 보완했다.
 - 최종 3c1670f / [Actions 35759029642](https://github.com/kuzuni/20260920/actions/runs/35759029642): **5/5 통과, 실패 0, 43.368초**. 접촉 무적/원상복원, 알림 조건, 스탯 갱신, 장비 강화·합성, 전용 유물 티켓 사용과 UI 아이콘을 검사했다. 전체 검사는 재실행하지 않았다.
 - 흰색 반투명/일반 단계, 스탯 레벨, 장비 Lv.100과 알림 간격, 상점/결과 티켓 수량 캡처 확인 완료. 아티팩트: `C:/Users/user/.codex/artifacts/progression-themes/run35759029642`. 로컬 Unity/게임 실행 없음.
+
+Latest skill slot unlocks: the first slot is open at start, then stages 10/30/60/120/180/300/800 unlock slots 2–8. Hosted run 35831626793 on 20ac53c passed the boundary, auto-equip, HUD/popup label and saved-loadout restoration test. The stage-1 popup capture was visually checked against the new requirements.
