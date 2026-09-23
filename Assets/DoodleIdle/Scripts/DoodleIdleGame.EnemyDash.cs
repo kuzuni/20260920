@@ -17,6 +17,9 @@ namespace DoodleIdle
             // A cave uses its equivalent main-stage difficulty, including dash unlocks.
             bool canDash = enemyDashEnabled && Ui && Ui.CombatDifficultyStage >= EnemyDashStartStage;
             foreach (var enemy in enemies) {
+                enemy.crowdPosition = enemy.Position; enemy.crowdRadius = ActorRadius(enemy);
+            }
+            foreach (var enemy in enemies) {
                 Vector2 toPlayer = player.Position - enemy.Position;
                 if (!canDash) enemy.dashWindup = enemy.enemyDashRemaining = 0;
                 if (canDash && enemy.enemyDashRemaining > 0) {
@@ -59,11 +62,11 @@ namespace DoodleIdle
         {
             // Do not continually drive a packed crowd into existing contacts. Reserve
             // half the remaining gap because both neighbours can move in the same tick.
-            float factor = 1, radius = ActorRadius(enemy);
+            float factor = 1, radius = enemy.crowdRadius;
             foreach (var other in enemies) {
                 if (other == enemy) continue;
-                Vector2 relative = other.Position - enemy.Position;
-                float separation = radius + ActorRadius(other), reach = separation + .1f;
+                Vector2 relative = other.crowdPosition - enemy.crowdPosition;
+                float separation = radius + other.crowdRadius, reach = separation + .1f;
                 if (Mathf.Abs(relative.x) > reach || Mathf.Abs(relative.y) > reach) continue;
                 float distance = relative.magnitude;
                 if (distance <= .0001f) { factor = 0; break; }

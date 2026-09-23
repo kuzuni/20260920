@@ -57,6 +57,8 @@ namespace DoodleIdle
             public float hp = 68, maxHp = 68, flash, phase;
             public float walkClock;
             public float knockbackTime = -1, knockbackImpulse;
+            public Vector2 crowdPosition;
+            public float crowdRadius;
             public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
             public Vector2 enemyDashDirection;
             public bool isPlayer, isBoss;
