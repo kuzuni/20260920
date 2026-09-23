@@ -59,6 +59,19 @@ namespace DoodleIdle.Tests
                 for(int level=1;level<=35;level++)
                 {
                     states[category].level=level;
+                    var weights=ui.SummonWeights(category,level);
+                    var defaults=(int[])new DoodleUi.CommerceTuning().rates[level-1].basisPoints.Clone();
+                    if(category=="Skill"||category=="Companion") { defaults[5]+=defaults[6];defaults[6]=0; }
+                    CollectionAssert.AreEqual(defaults,weights,"Resource tuning and fallback defaults must agree at every level.");
+                    Assert.That(weights.Sum(),Is.EqualTo(100000));
+                    int boundary=0;
+                    for(int grade=0;grade<weights.Length;grade++) {
+                        if(weights[grade]>0) {
+                            Assert.That(ui.GrantItem(category,new RevisionRoll(boundary)).rarity,Is.EqualTo(grade));
+                            Assert.That(ui.GrantItem(category,new RevisionRoll(boundary+weights[grade]-1)).rarity,Is.EqualTo(grade));
+                        }
+                        boundary+=weights[grade];
+                    }
                     Assert.That(ui.Items(category).Sum(ui.ItemProbability),Is.EqualTo(100).Within(.000001));
                     Assert.That(ui.GradeProbability(category,0),Is.GreaterThanOrEqualTo(10));
                     Assert.That(ui.GradeProbability(category,1),Is.GreaterThanOrEqualTo(9));
@@ -80,6 +93,19 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.TrySummon(category,50,false),Is.True);
                 Assert.That(ui.SummonLevel(category),Is.EqualTo(35));Assert.That(ui.SummonExperience(category),Is.Zero);
                 ui.CloseFullscreen();
+            }
+            foreach(int level in new[]{2,10,20,30}) {
+                states["Armor"].level=level;
+                ui.ShowSummonProbabilities("Armor");
+                var panel=UiNode("Detail dim: 뽑기 확률");
+                var weights=ui.SummonWeights("Armor",level);
+                for(int grade=0;grade<7;grade++) {
+                    var row=panel.GetComponentsInChildren<RectTransform>().Single(r=>r.name=="Probability_grade_"+grade);
+                    string displayed=row.GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate").text;
+                    Assert.That(displayed,Is.EqualTo((weights[grade]/1000d).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture)+"%"));
+                }
+                if(level==30) { yield return null; Object.Destroy(CaptureFrame("summon-rates-revised-level30.png",720,1520)); }
+                ui.CloseDetail();
             }
             var relics=ui.Items("Relic");Assert.That(relics.Select(x=>x.rarity).Distinct().Count(),Is.EqualTo(1));
             foreach(var item in relics)Assert.That(ui.ItemProbability(item),Is.EqualTo(12.5));
