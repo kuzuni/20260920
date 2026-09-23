@@ -201,14 +201,16 @@ namespace DoodleIdle.Editor
             if (dragPosition >= 0) maximum = dragMaximum;
             if (Event.current.type == EventType.Repaint) {
                 EditorGUI.DrawRect(area, new Color(.12f, .13f, .15f));
+                var tickStyle = new GUIStyle(EditorStyles.miniLabel);
+                tickStyle.normal.textColor = new Color(.85f, .87f, .9f);
                 Handles.BeginGUI();
                 for (int i = 0; i <= 4; i++) {
                     float y = plot.yMax - plot.height * i / 4;
                     Handles.color = new Color(.26f, .28f, .3f); Handles.DrawLine(new Vector3(plot.x, y), new Vector3(plot.xMax, y));
-                    GUI.Label(new Rect(area.x, y - 9, 73, 20), Number(Unscale(maximum * i / 4)), EditorStyles.miniLabel);
+                    GUI.Label(new Rect(area.x, y - 9, 73, 20), Number(Unscale(maximum * i / 4)), tickStyle);
                     int x = (int)Math.Round(Origin + i / 4d * (graphEnd - (double)Origin));
                     float px = plot.x + plot.width * i / 4;
-                    GUI.Label(new Rect(px - 20, plot.yMax + 5, 70, 20), x.ToString("N0"), EditorStyles.miniLabel);
+                    GUI.Label(new Rect(px - 20, plot.yMax + 5, 70, 20), x.ToString("N0"), tickStyle);
                 }
                 DrawLine(plot, maximum, at => Sample(current, currentStats, at), new Color(.55f, .57f, .6f));
                 DrawLine(plot, maximum, DraftValue, new Color(.3f, .95f, .55f));

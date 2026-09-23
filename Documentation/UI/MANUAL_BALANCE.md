@@ -4,7 +4,7 @@ The user canceled the eight-hour/stage-300 target. Earlier campaign timings are 
 
 ## Odin window
 
-Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas and includes current relic/buff gold bonuses during play. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
+Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas; the graph shows base gold before relic/buff bonuses. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
 
 **다이아 디버그 → 지급량 → 다이아 지급** adds the entered amount directly to the saved wallet, clamped at its integer limit. It does not consume any daily reward allowance.
 
@@ -40,6 +40,10 @@ At current level L, the next upgrade costs `ceil(starting cost × (1 + increase)
 Validation must run in GitHub-hosted Unity Actions, never local Unity/play mode.
 
 ### Validation evidence
+
+- [Interactive curves 35824378619](https://github.com/kuzuni/20260920/actions/runs/35824378619): 8/8 passed on `2ffb2f1`. Covers exponential baselines, control-point add/replace/remove, interpolation, independent curve snapshots, JSON restoration, shared actual purchases/payouts, dungeon HP/rewards, early zero damage and numeric caps. Odin graph editor compiled; native mouse dragging/context-menu/Undo interactions were not automated. A subsequent presentation-only change makes axis labels readable in both editor themes.
+- [Three stat-cost groups 35823228553](https://github.com/kuzuni/20260920/actions/runs/35823228553): 7/7 passed on `04079dd`, including shared basic costs, independent critical prices, quote/payment/MAX consistency, open-popup refresh and unchanged stat increments.
+- [Multiplier removal 35822520920](https://github.com/kuzuni/20260920/actions/runs/35822520920): 4/4 passed on `51738fc`.
 
 - [Editable starting values 35821709650](https://github.com/kuzuni/20260920/actions/runs/35821709650): 4/4 passed on `40c3150`. Covers custom starting gold/HP/damage and early damage endpoint, shared preview/live calculations, retained living-enemy HP fraction, JSON round-trip, cave payouts, default zero-damage first stage and contact immunity. Odin editor code compiled in hosted Unity; the window itself was not visually exercised.
 - [Full run 35800146301](https://github.com/kuzuni/20260920/actions/runs/35800146301): 106 passed, 12 failed, 1 optional campaign skipped. Failures exposed old fixed-HP/fixed-reward/button fixtures and overly strict float comparisons; all were investigated.
