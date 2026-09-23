@@ -19,6 +19,9 @@ namespace DoodleIdle
             destination.commonGrowth = BalanceValue(source.commonGrowth, 0, .004f);
             destination.critical2Growth = BalanceValue(source.critical2Growth, 0, .004f);
             destination.critical4Growth = BalanceValue(source.critical4Growth, 0, .004f);
+            destination.commonCurve = source.commonCurve?.Copy() ?? new DoodleGrowthCurve();
+            destination.critical2Curve = source.critical2Curve?.Copy() ?? new DoodleGrowthCurve();
+            destination.critical4Curve = source.critical4Curve?.Copy() ?? new DoodleGrowthCurve();
         }
 
         // One price function for the Odin preview, UI quote and actual single/bulk/MAX purchases.
@@ -26,7 +29,11 @@ namespace DoodleIdle
         {
             int cost = id == "crit2Chance" ? tuning.critical2BaseCost : id == "crit4Chance" ? tuning.critical4BaseCost : tuning.commonBaseCost;
             float growth = id == "crit2Chance" ? tuning.critical2Growth : id == "crit4Chance" ? tuning.critical4Growth : tuning.commonGrowth;
-            double raw = Math.Max(1, cost) * Math.Pow(1d + BalanceValue(growth, 0, .004f), Math.Max(0, currentLevel));
+            var curve = id == "crit2Chance" ? tuning.critical2Curve : id == "crit4Chance" ? tuning.critical4Curve : tuning.commonCurve;
+            double raw = DoodleGrowthCurve.Exponential(Math.Max(1, cost), BalanceValue(growth, 0, .004f), currentLevel, curve?.Evaluate(currentLevel, 0) ?? 1);
+            // Exact graph targets can land a few double-precision ULPs above an integer.
+            double nearest = Math.Round(raw);
+            if (Math.Abs(raw - nearest) <= Math.Max(1, Math.Abs(raw)) * 8.881784197001252e-16) raw = nearest;
             return double.IsInfinity(raw) || raw >= long.MaxValue ? long.MaxValue : Math.Max(1, (long)Math.Ceiling(raw));
         }
 
@@ -52,6 +59,9 @@ namespace DoodleIdle
             destination.goldStageGrowth = BalanceValue(source.goldStageGrowth, 0, .02f);
             destination.enemyHealthStageGrowth = BalanceValue(source.enemyHealthStageGrowth, 0, .02f);
             destination.enemyDamageStageGrowth = BalanceValue(source.enemyDamageStageGrowth, 0, .02f);
+            destination.goldCurve = source.goldCurve?.Copy() ?? new DoodleGrowthCurve();
+            destination.enemyHealthCurve = source.enemyHealthCurve?.Copy() ?? new DoodleGrowthCurve();
+            destination.enemyDamageCurve = source.enemyDamageCurve?.Copy() ?? new DoodleGrowthCurve();
         }
 
         public void ApplyBalanceTuning(ServiceTuning tuning)

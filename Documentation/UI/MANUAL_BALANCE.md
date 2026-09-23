@@ -10,16 +10,16 @@ Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy 
 
 Default formulas, where S is the displayed stage:
 
-- Gold per kill: `starting gold (default 10) × (1 + max(0,S−1) × gold increase)`, then existing relic and buff multipliers. Gold cave rewards use the same formula for 500 kills at difficulty `cave stage × 50`.
-- Enemy health: `starting HP (default 68) × (1 + max(0,S−1) × health increase)`. Boss health retains its existing ×20 factor.
-- Enemy contact damage: stage 0/1 uses the starting damage (default 0); stages 2–70 interpolate from the starting damage to the configurable early target (default 100). After 70: `100 × (1 + (S−70) × damage increase)`. No contact immunity or damage numbers trigger for zero damage.
+- Gold per kill: `starting gold (default 10) × (1 + gold increase)^max(0,S−1) × gold curve correction`, then existing relic and buff multipliers. Gold cave rewards use the same formula for 500 kills at difficulty `cave stage × 50`.
+- Enemy health: `starting HP (default 68) × (1 + health increase)^max(0,S−1) × HP curve correction`. Boss health retains its existing ×20 factor.
+- Enemy contact damage: stage 0/1 uses the starting damage (default 0); stages 2–70 interpolate from the starting damage to the configurable early target (default 100). After 70: `100 × (1 + damage increase)^(S−70)`, then the damage curve correction. No contact immunity or damage numbers trigger for zero damage.
 - Redundant overall multipliers have been removed from the window, tuning data and combat/reward formulas. Default per-stage increases are 2%. These are editable starting values, not a measured stage-300 completion-time promise.
 
 ## Stat upgrade cost controls
 
 The same Odin window now exposes three independent cost groups: Attack/Health/Health Regen (shared), x2 critical chance, and x4 critical chance. Each has a starting gold cost and a per-level cost increase percentage. Defaults are 20/20/40 gold and 0.4% growth for each group. Health/Regen starting costs therefore change from 18/16 to the shared 20. Stat gains stay linear at +5/+40/+1 and +0.025/+0.05 percentage points.
 
-At current level L, the next upgrade costs `ceil(starting cost × (1 + increase)^L)`; 0% means fixed cost. The level preview, single/bulk/MAX quotes and actual purchases use one shared price function. x4 remains locked until x2 reaches its cap. Applying costs preserves levels, stats and wallet and refreshes an open stat popup. Saving defaults writes only the new cost settings into the freshly loaded `Collections.json` alongside the existing service tuning save, preserving the catalog and ability values. Three basic stats always have equal costs at equal levels. These cost groups replace the old per-stat base costs and global cost-growth field.
+At current level L, the next upgrade costs `ceil(starting cost × (1 + increase)^L × group curve correction)`; 0% means fixed cost. The level preview, single/bulk/MAX quotes and actual purchases use one shared price function. x4 remains locked until x2 reaches its cap. Applying costs preserves levels, stats and wallet and refreshes an open stat popup. Saving defaults writes only the new cost settings into the freshly loaded `Collections.json` alongside the existing service tuning save, preserving the catalog and ability values. Three basic stats always have equal costs at equal levels. These cost groups replace the old per-stat base costs and global cost-growth field.
 
 ## Collection/stat rules
 
@@ -54,3 +54,13 @@ Validation must run in GitHub-hosted Unity Actions, never local Unity/play mode.
 - Repeat: 19 objectives. Kill 500; enhance equipment/skills/companions/relics 10 times each; enhance each of the five stats 10 times; draw each of the six categories 10 times; clear a dungeon once; claim attendance once. These pay 5 diamonds/cycle. Roulette pays 3 diamonds for 5 spins. Gold acquisition is removed.
 - Entries and successful clears have separate counters. All payment routes (free, tickets, mixed, diamonds) feed the matching summon objective once. Category/stat counters do not bleed into one another.
 - Repeated rewards pay completed cycles in bulk while preserving the next cycle's remainder, including across reloads and daily/weekly resets. Wallet-cap handling retains unpaid cycles. Legacy metric indices and pending repeat progress are retained; old claim flags are mapped only to matching objectives.
+
+## Interactive growth graphs
+
+The Odin balance window now uses a two-column workspace: category settings/formula on the left, actual existing/draft plots on the right. Select one of six categories (gold, HP, damage, shared basic-stat cost, x2 cost, x4 cost). There is no universal game-economy formula: this revision chooses exponential baseline growth for extended progression, retaining the requested early damage ramp.
+
+Right-click the graph to add a point at that step/value or delete an existing point. Drag a yellow point to move it; the blue origin changes the starting value. Selected points also have exact numeric inputs. Undo/redo uses Unity Undo; resetting points restores the exponential baseline. X-range and log10(1+value) Y-axis controls affect display only. Zero-valued baseline segments must first be raised with their starting/early-target settings before a correction point can lift them. Curves can be non-monotonic if deliberately edited that way.
+
+Stored control points are per-step correction factors, not a redundant global multiplier. The implicit origin factor is 1; factors interpolate linearly between points and remain constant after the last point. Displayed points are actual final values, converted to factors internally. Starting values/growth edits therefore rescale the curve consistently. Points are deep-copied when applying and serialize with the tuning files. All reward/HP/damage/cost previews share gameplay calculations, including currency rounding/caps. Gold plots exclude temporary relic/buff bonuses and show the base reward; field/cave payouts still apply those bonuses. Graph HP/damage show a normal enemy, with the standard contact base 64.
+
+Stage HP and gold have changed from linear to exponential growth; the old stage-300 combat pacing claim remains canceled. No new completion-time guarantee is made.

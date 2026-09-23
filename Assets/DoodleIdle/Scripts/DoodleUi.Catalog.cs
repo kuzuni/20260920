@@ -31,6 +31,7 @@ namespace DoodleIdle
     {
         public int commonBaseCost = 20, critical2BaseCost = 20, critical4BaseCost = 40;
         public float commonGrowth = .004f, critical2Growth = .004f, critical4Growth = .004f;
+        public DoodleGrowthCurve commonCurve = new DoodleGrowthCurve(), critical2Curve = new DoodleGrowthCurve(), critical4Curve = new DoodleGrowthCurve();
     }
 
     [Serializable]

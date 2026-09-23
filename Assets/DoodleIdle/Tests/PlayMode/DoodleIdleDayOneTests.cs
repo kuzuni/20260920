@@ -13,6 +13,62 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
+        public IEnumerator EditableGrowthCurvesDriveRewardsEnemiesAndSharedStatCosts()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var original = ui.ReadBalanceTuning();
+            var tuning = ui.ReadBalanceTuning();
+            double normalGold = 10 * Math.Pow(1d + tuning.goldStageGrowth, 50);
+            Assert.That(DoodleUi.GoldForMainKills(tuning, 51, 1), Is.EqualTo((int)Math.Round(normalGold)));
+            Assert.That(DoodleUi.EnemyHealthMultiplier(tuning, 51) * 68, Is.EqualTo(68*Math.Pow(1d+tuning.enemyHealthStageGrowth,50)).Within(.01));
+            tuning.goldCurve.SetPoint(51, 3, 1);
+            Assert.That(tuning.goldCurve.Evaluate(26, 1), Is.EqualTo(2));
+            Assert.That(tuning.goldCurve.Evaluate(80, 1), Is.EqualTo(3));
+            Assert.That(DoodleUi.GoldForMainKills(tuning, 51, 1), Is.EqualTo((int)Math.Round(normalGold*3)));
+            Assert.That(ui.GoldForMainKills(51, 1), Is.EqualTo(DoodleUi.GoldForMainKills(original,51,1,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
+            tuning.enemyHealthCurve.SetPoint(51, 2, 1);
+            tuning.enemyDamageCurve.SetPoint(70, .5, 1);
+            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,1), Is.Zero);
+            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,70)*64, Is.EqualTo(50).Within(.001));
+            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,71)*64, Is.EqualTo(51).Within(.001));
+            ui.ApplyBalanceTuning(tuning);
+            Assert.That(ui.EnemyHealthMultiplier(51)*68, Is.EqualTo(136*Math.Pow(1d+tuning.enemyHealthStageGrowth,50)).Within(.01));
+            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(DoodleUi.GoldForMainKills(tuning,50,500,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
+            var copied = ui.ReadBalanceTuning();
+            copied.goldCurve.SetPoint(51, 9, 1);
+            Assert.That(ui.ReadBalanceTuning().goldCurve.Evaluate(51,1), Is.EqualTo(3), "Editing a snapshot must not change the live curve.");
+            copied.goldCurve.SetPoint(21, 2, 1);
+            copied.goldCurve.SetPoint(51, 4, 1);
+            Assert.That(copied.goldCurve.points.Length, Is.EqualTo(2), "Adding at the same step replaces rather than duplicates the point.");
+            Assert.That(copied.goldCurve.points[0].position, Is.EqualTo(21));
+            copied.goldCurve.RemovePoint(21);
+            Assert.That(copied.goldCurve.points.Length, Is.EqualTo(1));
+            var roundTrip = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(tuning));
+            Assert.That(DoodleUi.GoldForMainKills(roundTrip,51,500), Is.EqualTo(DoodleUi.GoldForMainKills(tuning,51,500)));
+            var costs = ui.ReadStatCostTuning();
+            costs.commonCurve.SetPoint(10, 3, 0); costs.critical2Curve.SetPoint(10, 2, 0);
+            costs.critical4Curve.SetPoint(10, 5, 0);
+            ui.ApplyStatCostTuning(costs);
+            foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance" }) {
+                GrowthLevels[id] = 10;
+                Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(DoodleUi.StatUpgradePrice(costs,id,10)));
+            }
+            Assert.That(ui.StatUpgradeQuote("attack",1,out _), Is.EqualTo(ui.StatUpgradeQuote("healthRegen",1,out _)));
+            Assert.That(ui.StatUpgradeQuote("crit2Chance",1,out _), Is.LessThan(ui.StatUpgradeQuote("attack",1,out _)));
+            var restoredCosts = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(costs));
+            Assert.That(DoodleUi.StatUpgradePrice(restoredCosts,"crit4Chance",10), Is.EqualTo(DoodleUi.StatUpgradePrice(costs,"crit4Chance",10)));
+            costs.commonCurve.SetPoint(10, 100d/DoodleGrowthCurve.Exponential(costs.commonBaseCost,costs.commonGrowth,10), 0);
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"attack",10), Is.EqualTo(100), "A graph target of 100 must not round floating point dust up to 101.");
+            tuning.goldCurve.SetPoint(int.MaxValue, 0, 1);
+            Assert.That(DoodleUi.GoldForMainKills(tuning,int.MaxValue,500), Is.Zero);
+            tuning.goldCurve.RemovePoint(int.MaxValue);
+            Assert.That(DoodleUi.GoldForMainKills(tuning,int.MaxValue,500), Is.EqualTo(int.MaxValue));
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit4Chance",int.MaxValue), Is.EqualTo(long.MaxValue));
+            ui.ApplyBalanceTuning(original);
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ManualBalanceControlsApplyToLiveEnemiesGoldCavesAndDiamondWallet()
         {
             game.TogglePause(); var ui = game.Ui;
@@ -40,7 +96,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(ui.GoldForMainKills(50, 500)));
             draft.goldStageGrowth = .1f; draft.enemyHealthStageGrowth = .2f; draft.enemyDamageStageGrowth = .3f;
             ui.ApplyBalanceTuning(draft);
-            Assert.That(ui.EnemyHealthMultiplier(51), Is.EqualTo(44).Within(.001));
+            Assert.That(ui.EnemyHealthMultiplier(51), Is.EqualTo(4*Math.Pow(1d+draft.enemyHealthStageGrowth,50)).Within(2));
             Assert.That(ui.EnemyDamageMultiplier(71) * 64, Is.EqualTo(260).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
             draft.enemyStartingDamage = 0; draft.earlyEnemyDamageMax = 0; ui.ApplyBalanceTuning(draft);
