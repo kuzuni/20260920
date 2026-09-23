@@ -1,3 +1,9 @@
+# Historical campaign baseline
+
+The eight-hour/stage-300 target was canceled on 2026-09-23. The results below are historical; current manual tuning is documented in [MANUAL_BALANCE.md](MANUAL_BALANCE.md). Do not enforce the previous time budget against the new balance.
+
+---
+
 # 새 계정 연속 성장 측정
 
 목표는 8시간 플레이로 300스테이지를 클리어하는 것이다. 계수는 실제 연속 측정 결과에 맞춰 조정하며 세부 수치는 `DAY_ONE_BALANCE.md`에 기록한다.

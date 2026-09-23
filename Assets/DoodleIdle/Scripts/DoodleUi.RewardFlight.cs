@@ -20,7 +20,7 @@ namespace DoodleIdle
             var layer = UiKit.Rect(root, "Reward flight " + currency); UiKit.Stretch(layer);
             var icons = new Image[8];
             for (int i = 0; i < icons.Length; i++) {
-                var rect = UiKit.Rect(layer, "Flying " + currency); rect.sizeDelta = Vector2.one * 36;
+                var rect = UiKit.Rect(layer, "Flying " + currency); rect.sizeDelta = Vector2.one * (currency == "Diamond" ? 108 : 36);
                 icons[i] = rect.gameObject.AddComponent<Image>(); icons[i].sprite = sprite;
                 icons[i].preserveAspect = true; icons[i].raycastTarget = false; rect.position = origin;
             }

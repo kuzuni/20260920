@@ -11,6 +11,13 @@ Only `Documentation/UI/FinalDesign/01..25 *.png` is the visual reference. Text r
 
 ## Shared code contract
 
+### 2026-09-23 manual balance and opacity revision (latest)
+
+- `MANUAL_BALANCE.md` supersedes the eight-hour target and earlier numeric damage/stat rules. Odin's **Doodle Idle/밸런스 조절** exposes gold/HP/damage multipliers and stage increases, session apply, persistent defaults and debug diamonds. Enemy curves no longer depend on projected first-day stats.
+- Same-rarity tiers scale ×1.1 and next-rarity boundaries ×2.5 for equipment and estimated skill/companion DPS. Linear stat increments are +5/+40/+1; all relic options gain +1 percentage point/level. Ability cards show enhancement levels; auto-equip uses rarity then DPS.
+- Paid summon buttons spend matching tickets first and diamonds for the remainder. Buffs are free. Free diamond/draw actions propagate their notification dots to Shop. Diamond reward-flight artwork is 3× larger.
+- Hit feedback preserves sprite RGB/tint; only opacity changes with the existing 0.6/0.8 quarter-second phases and one-second immunity. This supersedes the white flash description below.
+
 ### 2026-09-23 first-day progression (supersedes older numeric rules below)
 
 - See `DAY_ONE_BALANCE.md` for the eight-hour target, stage income projection, combat coefficients, ticket missions and shop fulfillment limitations.

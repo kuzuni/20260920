@@ -90,7 +90,7 @@ namespace DoodleIdle.Tests
                 Assert.That(item.splashDamageMultiplier, added.Contains(index) ? Is.InRange(.3f,.5f) : Is.EqualTo(1));
                 Place(bodies[0],new Vector2(3,0)); Place(bodies[1],new Vector2(3,item.explosionRadius+.5f)); Place(bodies[2],new Vector2(3,item.explosionRadius+.7f));
                 for(int i=0;i<3;i++)health.SetValue(actors[i],100000f);
-                float weight=DoodleAttackPower.CompanionWeight(item);
+                float weight=game.Ui.CompanionHitWeight(item);
                 float damage=game.Ui.ItemHitDamage(item)*(float)game.Ui.ExpectedCriticalMultiplier;
                 hit.Invoke(game,new object[]{actors[0],weight,Vector2.zero});
                 explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,weight*item.splashDamageMultiplier,actors[0],index});

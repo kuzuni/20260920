@@ -177,6 +177,7 @@ namespace DoodleIdle
             Gold -= cost;
             statLevels[id] += count;
             RecordServiceProgress("statUpgrade", count);
+            RecordServiceProgress("statUpgrade:"+id, count);
             NotifyPowerChanged(before, "스탯 강화");
             return true;
         }
@@ -300,7 +301,7 @@ namespace DoodleIdle
         Button CollectionSlot(Transform parent, UiItem item, Action click, float height = 112)
         {
             var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, IsEquipment(item) && item.level >= 100 && item.rarity != 6 ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
-            if (IsEquipment(item))
+            if (IsEquipment(item) || item.category == "Skill" || item.category == "Companion")
             {
                 card.GetComponentInChildren<Text>().text = GradeNames[item.rarity] + item.tier;
                 var level = UiKit.Text(card.transform, "Lv." + item.level, 20, TextAnchor.UpperRight, 24);
@@ -383,7 +384,7 @@ namespace DoodleIdle
             }
             var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
             upgrade.interactable = !collectionBulkRunning;
-            var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast("강한 " + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
+            var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast((category == "Skill" || category == "Companion" ? "높은 등급의 " : "강한 ") + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
             Notify(upgrade.transform,()=>!collectionBulkRunning&&CategoryCanUpgrade(category));
             Notify(auto.transform,()=>CategoryCanEquip(category));
             CollectionButtonText(upgrade, 33); CollectionButtonText(auto, 33);
@@ -393,7 +394,7 @@ namespace DoodleIdle
         {
             long before = Power;
             var owned = Items(category).FindAll(x => x.discovered);
-            owned.Sort((a, b) => { int score = ItemEquipValue(b).CompareTo(ItemEquipValue(a)); return score != 0 ? score : string.CompareOrdinal(a.id, b.id); });
+            owned.Sort((a, b) => { int score = CompareEquipPriority(b, a); return score != 0 ? score : string.CompareOrdinal(a.id, b.id); });
             foreach (var item in Items(category)) item.equipped = false;
             for (int i = 0; i < Math.Min(EquipLimit(category), owned.Count); i++) { owned[i].equipped = true; owned[i].slot = i; }
             if(owned.Count>0)RecordMissionAction("equip:"+category);
@@ -473,7 +474,7 @@ namespace DoodleIdle
                     string basis = item.category == "Companion" ? item.volleyCount + "발 모두 명중 · 추가 폭발 대상 제외" : DoodleAttackPower.Skill(item.ability).basis;
                     if (item.category == "Skill" && splashFraction > 0) basis += " · 추가 폭발 대상 제외";
                     UiKit.Text(body, basis + "\n현재 공격력·유물·버프 반영 / DPS는 치명타 평균 반영\n전부 명중 가정 · 이동·대상 수에 따라 실제 피해 변동", 14, TextAnchor.MiddleCenter, 60);
-                    UiKit.Text(body, "장착 시에만 자동 공격 · 공격력 +" + UiNumber.Format(ItemEquipValue(item) * (item.category == "Skill" ? .02f : 1), 2) + "%", 15, TextAnchor.MiddleCenter, 22);
+                    UiKit.Text(body, "장착 시에만 자동 공격", 15, TextAnchor.MiddleCenter, 22);
                 }
                 else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);

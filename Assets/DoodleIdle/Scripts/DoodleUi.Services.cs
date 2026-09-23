@@ -15,18 +15,21 @@ namespace DoodleIdle
             public int[] attendance = { 100, 150, 200, 250, 300, 400, 700 };
             public int[] roulette = { 20, 50, 100, 30, 200, 50, 500, 100 };
             public int dailySpins = 5, dungeonAttempts = 3, pvpAttempts = 5;
-            public int buffSeconds = 900, buffPrice = 20, dungeonKills = 30;
+            public int buffSeconds = 900, buffPrice = 0, dungeonKills = 30;
             public int mainStageKills = 100, relicDungeonKills = 50;
             public int dungeonRelicTickets = 10;
             public int goldDungeonEnemyCount = 500;
-            public float goldPerEnemy = 10, goldStageGrowth = 0;
-            public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .0045f;
-            public float enemyHealthAttackRatio=20.75f,projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;
+            public float goldPerEnemy = 10, goldStageGrowth = .02f, goldRewardMultiplier = 1;
+            public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .02f;
+            public float enemyHealthBaseMultiplier = 1, enemyDamageBaseMultiplier = 1;
+            public int earlyEnemyDamageEndStage = 70;
+            public float earlyEnemyDamageMax = 100;
+            public float projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;
             public float goldBuff = .5f, attackBuff = .3f;
-            public int[] dailyGoals = { 200, 1000, 3, 5 };
-            public int[] repeatGoals = { 500, 10, 5, 5000 };
-            public int[] weeklyGoals = { 5000, 15, 10, 100 };
-            public int[] questRewards = { 500, 500, 500, 500 };
+            public int[] dailyGoals = { 500, 1, 1, 1, 1, 10, 10, 10, 10, 10, 10 };
+            public int[] repeatGoals = { 500, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 1, 5, 1 };
+            public int[] weeklyGoals = { 5000, 7, 5, 5, 5, 100, 100, 100, 100, 100, 100 };
+            public int dailyQuestReward = 1000, weeklyQuestReward = 3000, repeatQuestReward = 5, repeatRouletteReward = 3;
         }
 
         [Serializable] sealed class ServiceState
@@ -34,8 +37,9 @@ namespace DoodleIdle
             public string day = "", week = "", attendanceDay = "";
             public int attendanceIndex, spins, pvpUsed, pvpPoints = 1240;
             public int[] dungeonUsed = new int[3];
-            public int[] daily = new int[8], weekly = new int[8], repeat = new int[8];
-            public bool[] dailyClaimed = new bool[4], weeklyClaimed = new bool[4];
+            public int[] daily = new int[ServiceMetrics.Length], weekly = new int[ServiceMetrics.Length], repeat = new int[ServiceMetrics.Length];
+            public bool[] dailyClaimed = new bool[11], weeklyClaimed = new bool[11];
+            public int questSchemaVersion;
             public long goldExpiry, attackExpiry;
             public bool powerSaving;
             public float music = .6f, effects = .8f;
@@ -72,8 +76,6 @@ namespace DoodleIdle
         }
 
         const string ServicesSaveKey = "DoodleUi.Services.v1";
-        static readonly string[] ServiceMetrics = { "kills", "gold", "dungeon", "roulette", "equipmentUpgrade", "skillUpgrade", "pvp", "summon" };
-        static readonly int[][] QuestMetrics = { new[] { 0, 1, 2, 3 }, new[] { 0, 4, 5, 1 }, new[] { 0, 2, 6, 7 } };
         // Index 1 is a retired save slot; preserve indices of earned relic cave progress.
         static readonly string[] DungeonNames = { "골드 동굴", "", "유물 동굴" };
         readonly System.Random serviceRandom = new System.Random();
@@ -123,11 +125,7 @@ namespace DoodleIdle
             services.mainKills = Math.Max(0, services.mainKills);
             services.earnedGold = Math.Max(0, services.earnedGold);
             for (int i = 0; i < services.dungeonStages.Length; i++) services.dungeonStages[i] = Math.Max(0, services.dungeonStages[i]);
-            if (services.daily == null || services.daily.Length != 8) services.daily = new int[8];
-            if (services.weekly == null || services.weekly.Length != 8) services.weekly = new int[8];
-            if (services.repeat == null || services.repeat.Length != 8) services.repeat = new int[8];
-            if (services.dailyClaimed == null || services.dailyClaimed.Length != 4) services.dailyClaimed = new bool[4];
-            if (services.weeklyClaimed == null || services.weeklyClaimed.Length != 4) services.weeklyClaimed = new bool[4];
+            NormalizeQuestState();
             services.attendanceIndex = Mathf.Clamp(services.attendanceIndex, 0, 7);
             services.activeDungeon = Mathf.Clamp(services.activeDungeon, -1, 2);
             if (services.activeDungeon == 1) { services.activeDungeon = -1; services.dungeonProgress = 0; }
@@ -159,13 +157,13 @@ namespace DoodleIdle
             {
                 services.day = day; services.spins = 0; services.pvpUsed = 0;
                 Array.Clear(services.dungeonUsed, 0, 3);
-                Array.Clear(services.daily, 0, 8); Array.Clear(services.dailyClaimed, 0, 4);
+                Array.Clear(services.daily, 0, services.daily.Length); Array.Clear(services.dailyClaimed, 0, services.dailyClaimed.Length);
                 if (services.attendanceIndex == 7 && services.attendanceDay != day) services.attendanceIndex = 0;
                 changed = true;
             }
             if (string.CompareOrdinal(week, services.week) > 0)
             {
-                services.week = week; Array.Clear(services.weekly, 0, 8); Array.Clear(services.weeklyClaimed, 0, 4); changed = true;
+                services.week = week; Array.Clear(services.weekly, 0, services.weekly.Length); Array.Clear(services.weeklyClaimed, 0, services.weeklyClaimed.Length); changed = true;
             }
             return changed;
         }
@@ -281,7 +279,7 @@ namespace DoodleIdle
             if (services.attendanceDay == services.day || services.attendanceIndex >= 7) return;
             int amount = serviceTuning.attendance[services.attendanceIndex++];
             services.attendanceDay = services.day;
-            RecordMissionAction("attendance");
+            RecordServiceProgress("attendance", 1);
             GrantServiceDiamonds(amount, "출석 보상 획득!");
         }
 
@@ -366,7 +364,7 @@ namespace DoodleIdle
             var activate = UiKit.Button(card, "버프 활성화", () => ExtendBuff(attack), UiKit.Blue, 60);
             Notify(activate.transform,()=> (attack?AttackBuffSeconds:GoldBuffSeconds)==0);
             var activateText = activate.GetComponentInChildren<Text>();
-            Func<string> caption = () => (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "활성화 중" : "버프 활성화";
+            Func<string> caption = () => (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0 ? "활성화 중" : "무료 활성화";
             Action refresh = () =>
             {
                 bool active = (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0;
@@ -375,7 +373,7 @@ namespace DoodleIdle
             };
             serviceBindings.Add(new ServiceBinding { text = activateText, value = caption, refresh = refresh });
             activateText.text = caption(); refresh();
-            UiKit.Text(card, "다이아 " + UiNumber.Format(serviceTuning.buffPrice) + " · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
+            UiKit.Text(card, "무료 · " + (serviceTuning.buffSeconds / 60) + "분", 18, TextAnchor.MiddleCenter, 24);
         }
 
         public void ExtendBuff(bool attack)
@@ -383,10 +381,9 @@ namespace DoodleIdle
             // Keep the public entry point for existing callers, but an active buff cannot be extended.
             long now = ServiceNow;
             if ((attack ? services.attackExpiry : services.goldExpiry) > now) return;
-            if (Diamonds < serviceTuning.buffPrice) { Toast("다이아가 부족합니다"); return; }
             long expiry = now + TimeSpan.FromSeconds(serviceTuning.buffSeconds).Ticks;
             if (attack) services.attackExpiry = expiry; else services.goldExpiry = expiry;
-            RecordMissionAction("buff");Diamonds -= serviceTuning.buffPrice; Save(); RefreshPage();
+            RecordMissionAction("buff"); Save(); RefreshPage();
         }
 
         void ServiceGauge(Transform parent, Func<int> current, Func<int> maximum, bool clock = false, bool separate = false)
@@ -422,7 +419,7 @@ namespace DoodleIdle
             var tabs = UiKit.Row(body, "Quest tabs", 60);
             string[] names = { "일일", "반복", "주간" };
             for (int i = 0; i < 3; i++) { int tab = i; var button=UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : new Color(.92f,.92f,.92f),60); Notify(button.transform,()=>QuestTabHasReward(tab)); }
-            for (int i = 0; i < 4; i++) QuestCard(body, i);
+            for (int i = 0; i < QuestCount(questTab); i++) QuestCard(body, i);
             var bulk=UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);Notify(bulk.transform,()=>QuestTabHasReward(questTab));
         }
 
@@ -443,17 +440,15 @@ namespace DoodleIdle
             int tab = questTab, metric = QuestMetrics[tab][index], goal = QuestGoal(tab, index);
             var card = ServiceCard(parent, "Quest " + tab + " " + index, UiKit.Paper);
             var row = UiKit.Row(card, "Quest summary", 102,8);
-            string[] icons = { "BatA", "Gold", "Dungeon", "Roulette", "Pvp", "Banana", "Pvp", "Roulette" };
-            UiKit.Icon(row, icons[metric], 64);
+            UiKit.Icon(row, QuestIcons[metric], 64);
             var text = UiKit.Column(row, "Quest text", 3, 0); UiKit.Flexible(text, 1);
-            string[] labels = { "적 {0}마리 처치", "골드 {0} 획득", "던전 {0}회 도전", "룰렛 {0}회 돌리기", "장비 {0}회 강화", "스킬 {0}회 강화", "PVP {0}회 도전", "뽑기 {0}회 진행" };
-            UiKit.Text(text, string.Format(labels[metric], UiNumber.Format(goal)), tab == 1 ? 22 : 25, TextAnchor.MiddleLeft, tab == 1 ? 26 : 38);
+            UiKit.Text(text, string.Format(QuestLabels[metric], UiNumber.Format(goal)), 22, TextAnchor.MiddleLeft, 42);
             if (tab == 1)
                 ServiceText(text, () => UiNumber.Format(services.repeat[metric] / goal) + "회 완료 · 미수령", 18, 18).alignment = TextAnchor.MiddleLeft;
             ServiceGauge(text, () => tab == 1 ? services.repeat[metric] % goal : QuestCounters(tab)[metric], () => goal, false, true);
             var reward = UiKit.Column(row, "Quest reward", 2, 0); ServiceWidth(reward,52);
             UiKit.Icon(reward, "Diamond", 46);
-            UiKit.Text(reward, UiNumber.Format(serviceTuning.questRewards[index]), 23, TextAnchor.MiddleCenter, 29);
+            UiKit.Text(reward, UiNumber.Format(QuestReward(tab,index)), 23, TextAnchor.MiddleCenter, 29);
             var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 72);
             Notify(claim.transform,()=>CanClaimQuest(tab,index));
             ServiceWidth(claim.transform,94);
@@ -469,12 +464,12 @@ namespace DoodleIdle
             ResetServicePeriods(); long reward = 0;
             long capacity = (long)int.MaxValue - Math.Max(0, Diamonds);
             bool walletFull = false;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < QuestCount(questTab); i++)
             {
                 if (selected >= 0 && i != selected) continue;
                 int metric = QuestMetrics[questTab][i], goal = QuestGoal(questTab, i);
                 if (QuestClaimed(questTab, i) || QuestCounters(questTab)[metric] < goal) continue;
-                int perCycle = serviceTuning.questRewards[i];
+                int perCycle = QuestReward(questTab,i);
                 if (perCycle <= 0) continue;
                 long completed = questTab == 1 ? services.repeat[metric] / goal : 1;
                 long paidCycles = Math.Min(completed, (capacity - reward) / perCycle);
@@ -530,7 +525,7 @@ namespace DoodleIdle
             services.dungeonUsed[index]++; services.activeDungeon=index; services.dungeonProgress=0;
             if(game)game.RequestCombatWaveReset();
             lastServiceKills=game?game.Kills:0;lastKills=lastServiceKills;
-            RecordServiceProgress("dungeon",1);Save();ClearOverlays();ClosePage();
+            RecordServiceProgress("dungeon",1);RecordServiceProgress("dungeonEnter:"+index,1);Save();ClearOverlays();ClosePage();
             Toast(DungeonNames[index]+" "+DungeonChallengeStage(index)+"단계 도전 시작!");
         }
 
@@ -539,6 +534,7 @@ namespace DoodleIdle
             int index=services.activeDungeon, stage=DungeonChallengeStage(index);
             services.dungeonStages[index]=stage;
             RecordMissionAction("dungeon:"+index);
+            RecordServiceProgress("dungeonClear",1);
             services.activeDungeon=-1;services.dungeonProgress=0;
             if(game)game.RequestCombatWaveReset();
             var rewards=new List<UiReward>();

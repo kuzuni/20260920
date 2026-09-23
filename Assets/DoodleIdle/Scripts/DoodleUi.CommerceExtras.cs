@@ -41,21 +41,19 @@ namespace DoodleIdle
             if(category=="Relic")services.relicTickets-=count;else summonStates[category].tickets-=count;
             long before=Power;CompleteSummon(category,rewards);NotifyPowerChanged(before,"뽑기권 사용");return true;
         }
-        void BuildTicketActions(Transform parent,string category)
+        void BuildTicketBalance(Transform parent,string category)
         {
             var row=UiKit.Row(parent,"Tickets: "+category,48,4);
             UiKit.Icon(row,TicketIcon(category),32);
-            UiKit.Text(row,UiNumber.Format(SummonTickets(category))+"장",20,TextAnchor.MiddleLeft,36);
-            foreach(int count in new[]{1,10,50}) {
-                int draws=count;var button=UiKit.Button(row,count+"회",()=>TrySummonTickets(category,draws),UiKit.Yellow,44);
-                button.name="TicketSummon_"+category+"_"+count;button.interactable=SummonTickets(category)>=count;CommerceButtonText(button,20);
-            }
+            UiKit.Text(row,UiNumber.Format(SummonTickets(category))+"장 보유 · 뽑기권 우선 사용",20,TextAnchor.MiddleLeft,36);
         }
         public int FreeDiamondClaimsRemaining => commerceExtras.freeDiamondDay==CommerceDay()?30-commerceExtras.freeDiamondClaims:30;
+        public bool CanClaimFreeDiamonds => FreeDiamondClaimsRemaining>0 && Diamonds<=int.MaxValue-1000;
+        public bool HasFreeShopReward => CanClaimFreeDiamonds || Array.Exists(commerceCategories, category => category!="DungeonRelic" && CanFreeSummon(category));
         public int MileageCoupons => commerceExtras.mileageCoupons;
         public bool ClaimFreeDiamonds()
         {
-            if(FreeDiamondClaimsRemaining<=0||Diamonds>int.MaxValue-1000)return false;
+            if(!CanClaimFreeDiamonds)return false;
             if(commerceExtras.freeDiamondDay!=CommerceDay()){commerceExtras.freeDiamondDay=CommerceDay();commerceExtras.freeDiamondClaims=0;}
             int amount=commerceRandom.Next(200,1001);commerceExtras.freeDiamondClaims++;
             GrantServiceDiamonds(amount,"무료 다이아 획득!");return true;
@@ -94,7 +92,8 @@ namespace DoodleIdle
             label.anchorMin=new Vector2(0,.74f);label.anchorMax=new Vector2(1,.98f);label.offsetMin=new Vector2(8,0);label.offsetMax=new Vector2(-8,0);
             var icon=UiKit.Icon(card,"DiamondPile",150).rectTransform;icon.anchorMin=new Vector2(.1f,.26f);icon.anchorMax=new Vector2(.9f,.73f);icon.offsetMin=icon.offsetMax=Vector2.zero;
             var button=UiKit.Button(card,"무료 받기 ("+FreeDiamondClaimsRemaining+"/30)",()=>ClaimFreeDiamonds(),UiKit.Yellow,64);CommerceButtonText(button,23);
-            button.interactable=FreeDiamondClaimsRemaining>0;
+            button.interactable=CanClaimFreeDiamonds;
+            Notify(button.transform,()=>CanClaimFreeDiamonds);
             var rect=(RectTransform)button.transform;rect.anchorMin=new Vector2(.04f,.04f);rect.anchorMax=new Vector2(.96f,.23f);rect.offsetMin=rect.offsetMax=Vector2.zero;
         }
     }

@@ -97,7 +97,7 @@ namespace DoodleIdle
             var direction = (target.Position - origin).normalized;
             if (spread) direction = Rotate(direction, (shotIndex - (item.volleyCount - 1) * .5f) * 10);
             companion.facingLeft = direction.x < 0; companion.art.flipX = companion.facingLeft;
-            float damage = DoodleAttackPower.CompanionWeight(item);
+            float damage = Ui.CompanionHitWeight(item);
             var sprite = WorldIcon(item.projectile);
             if (item.trajectory == "Lightning")
             {

@@ -198,6 +198,8 @@ namespace DoodleIdle
             long unit = category == "Relic" ? commerceTuning.relicUnitCost : category == "Skill" ? commerceTuning.skillUnitCost : category == "Companion" ? commerceTuning.companionUnitCost : Math.Max(1, commerceTuning.tenCost / 10);
             return (int)Math.Min(int.MaxValue, Math.Max(1, unit) * count);
         }
+        public int SummonTicketCost(string category, int count) => Math.Min(Math.Max(0, count), SummonTickets(category));
+        public int SummonDiamondCost(string category, int count) => SummonCost(category, Math.Max(0, count) - SummonTicketCost(category, count));
         decimal SkillRefundRemainder => decimal.TryParse(PlayerPrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
         int RefundableSkillCopies(UiItem item)
         {
@@ -225,7 +227,8 @@ namespace DoodleIdle
             body.GetComponent<VerticalLayoutGroup>().spacing = 8;
             var tabs = UiKit.Row(body, "ShopTabs", 64, 2);
             CommerceButtonText(UiKit.Button(tabs, "뽑기", () => { shopTab = 0; RefreshPage(); }, shopTab == 0 ? UiKit.Yellow : UiKit.Paper, 64), 35);
-            CommerceButtonText(UiKit.Button(tabs, "재화", () => { shopTab = 1; RefreshPage(); }, shopTab == 1 ? UiKit.Blue : UiKit.Paper, 64), 35);
+            var currencyTab = UiKit.Button(tabs, "재화", () => { shopTab = 1; RefreshPage(); }, shopTab == 1 ? UiKit.Blue : UiKit.Paper, 64);
+            CommerceButtonText(currencyTab, 35); Notify(currencyTab.transform, () => CanClaimFreeDiamonds);
             CommerceButtonText(UiKit.Button(tabs,"마일리지",()=>{shopTab=2;RefreshPage();},shopTab==2?UiKit.Purple:UiKit.Paper,64),32);
             if (window)
             {
@@ -277,7 +280,7 @@ namespace DoodleIdle
                 UiKit.Text(wallet,"전용 뽑기권 "+UiNumber.Format(DungeonRelicTickets)+"장",22,TextAnchor.MiddleLeft,32);
             }
             BuildSummonButtons(content, category);
-            if(category!="DungeonRelic")BuildTicketActions(content,category);
+            if(category!="DungeonRelic")BuildTicketBalance(content,category);
         }
 
         void BuildSummonButtons(Transform parent, string category, bool result = false)
@@ -303,12 +306,14 @@ namespace DoodleIdle
             free.name = "무료 " + commerceTuning.freeCount + "회\n뽑기";
             CommerceButtonText(free, 24);
             free.interactable = CanFreeSummon(category);
-            PaidSummonButton(actions, category, 10, SummonCost(category, 10), UiKit.Yellow);
-            PaidSummonButton(actions, category, 50, SummonCost(category, 50), UiKit.Yellow);
+            Notify(free.transform, () => CanFreeSummon(category));
+            PaidSummonButton(actions, category, 10, UiKit.Yellow);
+            PaidSummonButton(actions, category, 50, UiKit.Yellow);
         }
 
-        void PaidSummonButton(Transform parent, string category, int count, int cost, Color color)
+        void PaidSummonButton(Transform parent, string category, int count, Color color)
         {
+            int tickets = SummonTicketCost(category, count), cost = SummonDiamondCost(category, count);
             var column = UiKit.Column(parent, "PaidSummon" + count, 0, 0);
             UiKit.Flexible(column);
             var button = UiKit.Button(column, count + "회 뽑기", () => TrySummon(category, count, false), color, 68);
@@ -316,13 +321,18 @@ namespace DoodleIdle
             var label = button.GetComponentInChildren<Text>();
             label.rectTransform.anchorMin = new Vector2(0, .44f); label.rectTransform.anchorMax = Vector2.one;
             label.rectTransform.offsetMin = new Vector2(3, 0); label.rectTransform.offsetMax = new Vector2(-3, -3);
-            var price = UiKit.Row(button.transform, "DiamondCost", 24, 4);
+            var price = UiKit.Row(button.transform, "DiamondCost", 24, 2);
             price.anchorMin = new Vector2(0, 0); price.anchorMax = new Vector2(1, .44f);
             price.offsetMin = new Vector2(4, 3); price.offsetMax = new Vector2(-4, 0);
-            UiKit.Icon(price, "Diamond", 20);
-            var priceText = UiKit.Text(price, UiNumber.Format(cost), 20, TextAnchor.MiddleCenter, 24);
-            var priceSize = priceText.GetComponent<LayoutElement>();
-            priceSize.minWidth = priceSize.preferredWidth = cost >= 1000 ? 42 : 34; priceSize.flexibleWidth = 0;
+            void PricePart(string icon, string text, string name, float width) {
+                UiKit.Icon(price, icon, 18);
+                var amount = UiKit.Text(price, text, 18, TextAnchor.MiddleCenter, 24);
+                amount.name = name; amount.resizeTextMinSize = 12;
+                var size = amount.GetComponent<LayoutElement>();
+                size.minWidth = 12; size.preferredWidth = width; size.flexibleWidth = 0;
+            }
+            if (tickets > 0) PricePart(TicketIcon(category), tickets + "장", "SummonTicketCost", 30);
+            if (cost > 0 || tickets == 0) PricePart("Diamond", UiNumber.Format(cost), "SummonDiamondCost", cost >= 1000 ? 42 : 34);
         }
 
         static void CommerceButtonText(Button button, int size)
@@ -339,7 +349,8 @@ namespace DoodleIdle
             if (free && count != commerceTuning.freeCount) return false;
             if (!free && count != 10 && count != 50) return false;
             if (free && !CanFreeSummon(category)) { Toast("오늘 무료 뽑기를 모두 사용했어요."); return false; }
-            int cost = free ? 0 : SummonCost(category, count);
+            int tickets = free ? 0 : SummonTicketCost(category, count);
+            int cost = free ? 0 : SummonDiamondCost(category, count);
             if (Diamonds < cost) { Toast("다이아가 부족해요."); return false; }
             var rewards = new List<UiItem>(count);
             for (int i = 0; i < count; i++)
@@ -350,6 +361,8 @@ namespace DoodleIdle
             }
             Diamonds -= cost;
             var state = summonStates[category];
+            if (category == "Relic") services.relicTickets -= tickets;
+            else state.tickets -= tickets;
             if (free) { state.freeUsedCount = state.freeUsedDay == CommerceDay() ? state.freeUsedCount + 1 : 1; state.freeUsedDay = CommerceDay(); }
             CompleteSummon(category, rewards);
             return true;
@@ -383,7 +396,7 @@ namespace DoodleIdle
             var state = summonStates[category];
             foreach (var item in rewards) AddItem(item, 1);
             state.lifetimeDraws=state.lifetimeDraws>long.MaxValue-rewards.Count?long.MaxValue:state.lifetimeDraws+rewards.Count;
-            RecordMissionAction("summon:"+category,rewards.Count);
+            RecordServiceProgress("summon:"+category,rewards.Count);
             if(!IsRelicSummon(category) && state.level<MaxSummonLevel)state.experience += rewards.Count;
             while (!IsRelicSummon(category) && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
             {

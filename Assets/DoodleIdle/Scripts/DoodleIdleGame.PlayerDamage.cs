@@ -31,7 +31,8 @@ namespace DoodleIdle
             // Preserve missing HP when equipment/stat maximum health changes.
             player.hp = Mathf.Clamp(player.hp + maxHealth - player.maxHp + (Ui ? Ui.HealthRegen * dt : 0), 0, maxHealth);
             player.maxHp = maxHealth;
-            if (!PlayerInvulnerable && enemyContactDamage > 0) {
+            float damage=enemyContactDamage*(Ui?Ui.EnemyDamageMultiplier(Ui.CombatDifficultyStage):1);
+            if (!PlayerInvulnerable && damage > 0) {
                 foreach (var enemy in enemies) {
                     if (!Alive(enemy)) continue;
                     Vector2 relative = enemy.Position - player.Position;
@@ -39,7 +40,6 @@ namespace DoodleIdle
                     float radius = player.collider.radius * Mathf.Abs(player.root.transform.lossyScale.x)
                         + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                     if (SegmentDistance(Vector2.zero, relative, next) > radius + .02f) continue;
-                    float damage=enemyContactDamage*(Ui?Ui.EnemyDamageMultiplier(Ui.CombatDifficultyStage):1);
                     player.hp = Mathf.Max(0, player.hp - damage);
                     ShowDamageNumber(player.Position, damage, true);
                     PlayerContactHits++; contactInvulnerability = ContactInvulnerabilityDuration;
@@ -59,19 +59,20 @@ namespace DoodleIdle
         Color PlayerInvulnerabilityTint(Color normal)
         {
             if (!PlayerInvulnerable) return normal;
-            return PlayerWhiteFlashPhase ? new Color(1, 1, 1, .6f) : new Color(normal.r, normal.g, normal.b, .8f);
+            return new Color(normal.r, normal.g, normal.b, PlayerFadedHitPhase ? .6f : .8f);
         }
 
-        bool PlayerWhiteFlashPhase => PlayerInvulnerable && Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .25f) % 2 == 0;
+        bool PlayerFadedHitPhase => PlayerInvulnerable && Mathf.FloorToInt((ContactInvulnerabilityDuration - contactInvulnerability) / .25f) % 2 == 0;
 
         void ApplyPlayerHitAppearance()
         {
             player.art.color = PlayerInvulnerabilityTint(player.art.color);
-            if (PlayerWhiteFlashPhase) {
-                if (!playerHitMaterial) playerHitMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodlePlayerHit")) { name = "Doodle player white hit flash" };
+            if (PlayerFadedHitPhase) {
+                if (!playerHitMaterial) playerHitMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodlePlayerHit")) { name = "Doodle player hit fade" };
                 playerHitMaterial.mainTexture = player.art.sprite.texture;
                 // SpriteRenderer alpha is not provided through vertex color in every URP batching path.
                 playerHitMaterial.SetFloat("_Opacity", player.art.color.a);
+                playerHitMaterial.SetColor("_TintColor", new Color(player.art.color.r, player.art.color.g, player.art.color.b, 1));
                 player.art.sharedMaterial = playerHitMaterial;
             }
             else if (playerHitMaterial && player.art.sharedMaterial == playerHitMaterial) SetSpriteArt(player.art, player.art.sprite);

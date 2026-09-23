@@ -45,14 +45,14 @@ namespace DoodleIdle
             }
             var equipped=EquippedItems(item.category);
             if(equipped.Count<EquipLimit(item.category))return true;
-            float weakest=float.MaxValue;foreach(var current in equipped)weakest=Mathf.Min(weakest,ItemEquipValue(current));
-            return ItemEquipValue(item)>weakest;
+            UiItem weakest=null;foreach(var current in equipped)if(weakest==null||CompareEquipPriority(current,weakest)<0)weakest=current;
+            return weakest!=null&&CompareEquipPriority(item,weakest)>0;
         }
         bool CategoryCanUpgrade(string category) => Items(category).Exists(CanUpgradeItem);
         bool CategoryCanEquip(string category) => Items(category).Exists(CanImproveLoadout);
         bool ItemNeedsAttention(UiItem item) => CanUpgradeItem(item)||CanSynthesize(item)||CanImproveLoadout(item)||(item.category=="Skill"&&SkillRefundQuote(item)>0);
-        public bool CanClaimQuest(int tab,int index) => services!=null&&!QuestClaimed(tab,index)&&QuestCounters(tab)[QuestMetrics[tab][index]]>=QuestGoal(tab,index)&&serviceTuning.questRewards[index]>0&&(long)Diamonds+serviceTuning.questRewards[index]<=int.MaxValue;
-        public bool QuestTabHasReward(int tab) { for(int i=0;i<4;i++)if(CanClaimQuest(tab,i))return true;return false; }
+        public bool CanClaimQuest(int tab,int index) => services!=null&&index>=0&&index<QuestCount(tab)&&!QuestClaimed(tab,index)&&QuestCounters(tab)[QuestMetrics[tab][index]]>=QuestGoal(tab,index)&&QuestReward(tab,index)>0&&(long)Diamonds+QuestReward(tab,index)<=int.MaxValue;
+        public bool QuestTabHasReward(int tab) { for(int i=0;i<QuestCount(tab);i++)if(CanClaimQuest(tab,i))return true;return false; }
         public bool CanClaimAttendance => services!=null&&services.attendanceIndex<7&&services.attendanceDay!=services.day;
         public bool CanSpinRoulette => services!=null&&!rouletteSpinning&&services.spins<serviceTuning.dailySpins;
         public bool CanEnterDungeon(int index) => services!=null&&(index==0||index==2)&&services.activeDungeon<0&&services.dungeonUsed[index]<serviceTuning.dungeonAttempts;
@@ -60,6 +60,7 @@ namespace DoodleIdle
         {
             if(services==null||collectionTuning==null)return false;
             switch(page) {
+                case "Shop": return HasFreeShopReward;
                 case "Quests": return QuestTabHasReward(0)||QuestTabHasReward(1)||QuestTabHasReward(2);
                 case "Attendance": return CanClaimAttendance;
                 case "Roulette": return CanSpinRoulette;

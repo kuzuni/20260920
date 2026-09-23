@@ -1,6 +1,6 @@
-Shader "DoodleIdle/Player White Hit"
+Shader "DoodleIdle/Player Hit Fade"
 {
-    Properties { _MainTex ("Sprite", 2D) = "white" {} _Opacity ("Hit opacity", Range(0,1)) = 0.6 }
+    Properties { _MainTex ("Sprite", 2D) = "white" {} _Opacity ("Hit opacity", Range(0,1)) = 0.6 _TintColor ("Sprite tint", Color) = (1,1,1,1) }
     SubShader
     {
         Tags { "Queue"="Transparent" "RenderType"="Transparent" "RenderPipeline"="UniversalPipeline" }
@@ -18,6 +18,7 @@ Shader "DoodleIdle/Player White Hit"
             SAMPLER(sampler_MainTex);
             CBUFFER_START(UnityPerMaterial)
                 half _Opacity;
+                half4 _TintColor;
             CBUFFER_END
             struct Attributes { float4 positionOS : POSITION; float4 color : COLOR; float2 uv : TEXCOORD0; };
             struct Varyings { float4 positionCS : SV_POSITION; half4 color : COLOR; float2 uv : TEXCOORD0; };
@@ -31,8 +32,8 @@ Shader "DoodleIdle/Player White Hit"
             }
             half4 Frag(Varyings input) : SV_Target
             {
-                half alpha = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv).a;
-                return half4(1, 1, 1, alpha * _Opacity);
+                half4 sprite = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
+                return half4(sprite.rgb * _TintColor.rgb, sprite.a * _Opacity);
             }
             ENDHLSL
         }

@@ -13,6 +13,8 @@ namespace DoodleIdle.Tests
         public IEnumerator ContactDamageUsesSharedOneSecondImmunityBlinkAndAllEnemyKinds()
         {
             var bodies = DurableSkillTargets(); game.TogglePause();
+            DayOneState("mainStage", 1); // First-stage enemies are intentionally harmless.
+            ((DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning", ServicePrivate).GetValue(game.Ui)).earlyEnemyDamageMax = 64 * 69;
             var player = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
             var reset = typeof(DoodleIdleGame).GetMethod("ResetPlayerContactDamage", GrowthPrivate);
             var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate);
@@ -34,21 +36,25 @@ namespace DoodleIdle.Tests
             Assert.That(damageText.transform.position.y, Is.GreaterThan(PlayerBody().position.y));
             typeof(DoodleIdleGame).GetMethod("TickDamageNumbers", GrowthPrivate).Invoke(game, new object[] { .2f });
             Assert.That(damageText.color.r, Is.EqualTo(.62f).Within(.001), "Floating damage keeps its gray color while fading.");
-            Color whiteFlash = (Color)tint.Invoke(game, new object[] { Color.white });
-            Assert.That(whiteFlash.r, Is.EqualTo(1)); Assert.That(whiteFlash.g, Is.EqualTo(1)); Assert.That(whiteFlash.b, Is.EqualTo(1)); Assert.That(whiteFlash.a, Is.InRange(.5f, .7f));
+            Color original = new Color(.3f, .6f, .9f, 1);
+            Color faded = (Color)tint.Invoke(game, new object[] { original });
+            Assert.That(faded, Is.EqualTo(new Color(original.r, original.g, original.b, .6f)));
             var art = (SpriteRenderer)player.GetType().GetField("art").GetValue(player);
             var appearance = typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate);
-            art.color = Color.white; appearance.Invoke(game, null);
-            Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player White Hit"));
+            art.color = original; appearance.Invoke(game, null);
+            Assert.That(art.color, Is.EqualTo(faded));
+            Assert.That(art.sharedMaterial.GetColor("_TintColor"), Is.EqualTo(original));
+            Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player Hit Fade"));
             Assert.That(art.sharedMaterial.GetFloat("_Opacity"), Is.EqualTo(.6f).Within(.001f));
-            Object.Destroy(CaptureFrame("player-contact-invulnerability-white.png", 1000, 1000, false));
-            Step(.2f);
-            Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(whiteFlash), "The white phase remains stable for a quarter second.");
-            Step(.06f);
-            Color light = (Color)tint.Invoke(game, new object[] { Color.white });
-            Assert.That(light.r, Is.GreaterThan(.9)); Assert.That(light.a, Is.LessThan(1));
             art.color = Color.white; appearance.Invoke(game, null);
-            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player White Hit"));
+            Object.Destroy(CaptureFrame("player-contact-invulnerability-faded.png", 1000, 1000, false));
+            Step(.2f);
+            Assert.That((Color)tint.Invoke(game, new object[] { original }), Is.EqualTo(faded), "The fade phase remains stable for a quarter second.");
+            Step(.06f);
+            Color light = (Color)tint.Invoke(game, new object[] { original });
+            Assert.That(light, Is.EqualTo(new Color(original.r, original.g, original.b, .8f)));
+            art.color = Color.white; appearance.Invoke(game, null);
+            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player Hit Fade"));
             Object.Destroy(CaptureFrame("player-contact-invulnerability-light.png", 1000, 1000, false));
             Step(.73f); Assert.That(game.PlayerContactHits, Is.EqualTo(1));
             Step(.011f); Assert.That(game.PlayerContactHits, Is.EqualTo(2));
@@ -58,7 +64,7 @@ namespace DoodleIdle.Tests
             Assert.That((Color)tint.Invoke(game, new object[] { Color.white }), Is.EqualTo(Color.white));
             art.color = Color.white; appearance.Invoke(game, null);
             Assert.That(art.color, Is.EqualTo(Color.white));
-            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player White Hit"));
+            Assert.That(art.sharedMaterial.shader.name, Is.Not.EqualTo("DoodleIdle/Player Hit Fade"));
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var representatives = actors.Cast<object>().GroupBy(a => (int)a.GetType().GetField("kind").GetValue(a)).Select(g => g.First());
             foreach (var enemy in representatives) {
@@ -85,6 +91,47 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator EarlyEnemiesRampFromZeroTo100WithoutFakeHitsAtStageOne()
+        {
+            var bodies = DurableSkillTargets(); game.TogglePause(); var ui = game.Ui;
+            var reset = typeof(DoodleIdleGame).GetMethod("ResetPlayerContactDamage", GrowthPrivate);
+            var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate);
+            DayOneState("mainStage", 0); reset.Invoke(game, null);
+            Place(bodies[0], Vector2.zero);
+            float full = game.PlayerHealth;
+            tick.Invoke(game, new object[] { 0f });
+            bodies[0].transform.localScale = Vector3.one * 3;
+            tick.Invoke(game, new object[] { 1.1f });
+            Assert.That(game.PlayerHealth, Is.EqualTo(full));
+            Assert.That(game.PlayerContactHits, Is.Zero);
+            Assert.That(game.PlayerInvulnerable, Is.False);
+            Assert.That(game.GetComponentsInChildren<Text>().Any(x => x.name == "Player damage number" && x.gameObject.activeSelf), Is.False);
+            Assert.That(ui.EnemyDamageMultiplier(0), Is.Zero);
+            Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
+            float previous = 0;
+            for (int stage = 2; stage <= 70; stage++) {
+                float damage = 64 * ui.EnemyDamageMultiplier(stage);
+                Assert.That(damage, Is.GreaterThan(previous).And.LessThanOrEqualTo(100));
+                previous = damage;
+            }
+            Assert.That(previous, Is.EqualTo(100).Within(.001));
+            Assert.That(64 * ui.EnemyDamageMultiplier(71), Is.InRange(100, 120));
+            for (int stage = 71; stage <= 151; stage++) {
+                float damage = 64 * ui.EnemyDamageMultiplier(stage);
+                Assert.That(damage, Is.GreaterThanOrEqualTo(previous).And.LessThan(previous * 1.3f));
+                previous = damage;
+            }
+            DayOneState("mainStage", 69); reset.Invoke(game, null);
+            tick.Invoke(game, new object[] { 0f });
+            Assert.That(game.PlayerHealth, Is.EqualTo(full - 100).Within(.01));
+            Assert.That(game.PlayerContactHits, Is.EqualTo(1));
+            DayOneState("mainStage", 0); DayOneState("activeDungeon", 0);
+            Assert.That(ui.CombatDifficultyStage, Is.EqualTo(50));
+            Assert.That(ui.EnemyDamageMultiplier(ui.CombatDifficultyStage), Is.GreaterThan(0), "Dungeon difficulty is independent of the field's harmless first stage.");
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator EnemyDashPreparesChargesWithFacingTrailsThenReturnsToMovement()
         {
             var bodies = DurableSkillTargets(); game.enemyDashEnabled = true;
@@ -92,6 +139,7 @@ namespace DoodleIdle.Tests
             // contact damage so defeat does not replace its observed actors.
             var liveTuning = (DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning", ServicePrivate).GetValue(game.Ui);
             liveTuning.enemyDamageStageGrowth = 0;
+            liveTuning.earlyEnemyDamageMax = 64;
             Assert.That(game.Ui.EnemyDamageMultiplier(1000), Is.EqualTo(1));
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var representatives = actors.Cast<object>().GroupBy(a => (int)a.GetType().GetField("kind").GetValue(a)).Select(g => g.First()).ToArray();

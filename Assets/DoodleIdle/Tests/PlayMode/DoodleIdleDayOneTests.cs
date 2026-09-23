@@ -13,6 +13,233 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
+        public IEnumerator ManualBalanceControlsApplyToLiveEnemiesGoldCavesAndDiamondWallet()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            int stage = ui.CombatDifficultyStage, progress = ui.MainStageKillProgress;
+            var original = ui.ReadBalanceTuning();
+            var draft = ui.ReadBalanceTuning();
+            float health = ui.EnemyHealthMultiplier(stage), damage = ui.EnemyDamageMultiplier(stage);
+            int gold = ui.GoldForMainKills(50, 500);
+            draft.goldRewardMultiplier = 3;
+            draft.enemyHealthBaseMultiplier = 4;
+            draft.enemyDamageBaseMultiplier = 2;
+            Assert.That(ui.EnemyHealthMultiplier(stage), Is.EqualTo(health), "An editable snapshot must not change the live game.");
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            var actor = actors[0]; var type = actor.GetType();
+            var maxHp = type.GetField("maxHp"); var hp = type.GetField("hp");
+            float originalHp = (float)maxHp.GetValue(actor);
+            hp.SetValue(actor, originalHp * .4f);
+            ui.ApplyBalanceTuning(draft);
+            Assert.That(ui.EnemyHealthMultiplier(stage), Is.EqualTo(health * 4).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(stage), Is.EqualTo(damage * 2).Within(.001));
+            Assert.That((float)maxHp.GetValue(actor), Is.EqualTo(originalHp * 4).Within(.01));
+            Assert.That((float)hp.GetValue(actor) / (float)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(progress));
+            Assert.That(ui.GoldForMainKills(50, 500), Is.EqualTo(gold * 3).Within(2));
+            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(ui.GoldForMainKills(50, 500)));
+            draft.goldStageGrowth = .1f; draft.enemyHealthStageGrowth = .2f; draft.enemyDamageStageGrowth = .3f;
+            ui.ApplyBalanceTuning(draft);
+            Assert.That(ui.EnemyHealthMultiplier(51), Is.EqualTo(44).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(71) * 64, Is.EqualTo(260).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
+            draft.enemyDamageBaseMultiplier = 0; ui.ApplyBalanceTuning(draft);
+            Assert.That(ui.EnemyDamageMultiplier(1000), Is.Zero);
+            ui.ApplyBalanceTuning(original);
+            int wallet = ui.Diamonds;
+            Assert.That(ui.GrantDebugDiamonds(10000), Is.EqualTo(10000));
+            Assert.That(ui.Diamonds, Is.EqualTo(wallet + 10000));
+            Assert.That(PlayerPrefs.GetInt("DoodleUi.Diamonds"), Is.EqualTo(ui.Diamonds));
+            Assert.That(ui.GrantDebugDiamonds(-1), Is.Zero);
+            ui.Diamonds = int.MaxValue - 3;
+            Assert.That(ui.GrantDebugDiamonds(10000), Is.EqualTo(3));
+            Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator TierRatiosLinearStatsAndRelicStepsMatchTheManualBalanceRules()
+        {
+            game.TogglePause(); var ui=game.Ui;
+            foreach (var pair in new[] { new[] { "attack", "5" }, new[] { "health", "40" }, new[] { "healthRegen", "1" } }) {
+                foreach (int level in new[] { 0, 15, 1200, 5000 }) {
+                    GrowthLevels[pair[0]]=level; float before=ui.StatValue(pair[0]);
+                    GrowthLevels[pair[0]]=level+1;
+                    Assert.That(ui.StatValue(pair[0])-before,Is.EqualTo(int.Parse(pair[1])),pair[0]);
+                }
+                GrowthLevels[pair[0]]=0;
+            }
+            foreach (string category in new[] { "Skill", "Companion", "Armor", "Club" }) {
+                var items=ui.Items(category).OrderBy(x=>x.rarity).ThenBy(x=>x.tier).ToArray();
+                foreach(int level in new[] { 1, 50, 100 }) {
+                    foreach(var item in items){item.discovered=true;item.equipped=false;item.level=level;}
+                    double previous=0; int previousGrade=-1;
+                    foreach(var item in items) {
+                        item.equipped=true;
+                        double value=category=="Armor"?ui.MaxHealth:category=="Club"?ui.CurrentAttackPower:ui.ItemExpectedDps(item);
+                        if(previous>0)Assert.That(value/previous,Is.EqualTo(item.rarity==previousGrade?1.1:2.5).Within(.0002),category+" "+item.name+" Lv."+level);
+                        previous=value;previousGrade=item.rarity;item.equipped=false;
+                    }
+                }
+            }
+            var effect=typeof(DoodleUi).GetMethod("EffectBonus",GrowthPrivate);
+            foreach(var relic in ui.AllRelics) {
+                relic.discovered=true;relic.level=10;
+                float before=(float)effect.Invoke(ui,new object[]{relic.effect,null,true});
+                relic.level++;
+                Assert.That((float)effect.Invoke(ui,new object[]{relic.effect,null,true})-before,Is.EqualTo(1).Within(.001),relic.id);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ShopBadgesTrackFreeDiamondsAndEveryFreeSummonPool()
+        {
+            game.TogglePause();var ui=game.Ui;bool skip=ui.SkipSummonAnimations;ui.SkipSummonAnimations=true;
+            try {
+                UiOpen("Shop");AssertBadge(UiNode("Shop"),true);AssertBadge(UiNode("재화",UiNode("ShopTabs")),true);
+                UiClick("재화",UiNode("ShopTabs"));
+                AssertBadge(UiNode("Free diamond card").GetComponentInChildren<UnityEngine.UI.Button>().transform,true);
+                for(int i=0;i<30;i++){Assert.That(ui.ClaimFreeDiamonds(),Is.True);ui.CloseDetail();}
+                AssertBadge(UiNode("Free diamond card").GetComponentInChildren<UnityEngine.UI.Button>().transform,false);
+                AssertBadge(UiNode("재화",UiNode("ShopTabs")),false);
+                AssertBadge(UiNode("Shop"),true);
+                UiClick("뽑기",UiNode("ShopTabs"));
+                foreach(string category in new[]{"Armor","Club","Skill","Companion","Relic"}) {
+                    AssertBadge(UiNode("무료 5회\n뽑기",UiNode("Summon_"+category)),true);
+                    for(int i=0;i<3;i++){Assert.That(ui.TrySummon(category,5,true),Is.True);ui.CloseFullscreen();}
+                    AssertBadge(UiNode("무료 5회\n뽑기",UiNode("Summon_"+category)),false);
+                    yield return null;
+                }
+                AssertBadge(UiNode("Shop"),false);
+                Object.Destroy(CaptureFrame("shop-free-rewards-exhausted.png",720,1560));
+            }
+            finally {ui.SkipSummonAnimations=skip;}
+        }
+
+        [UnityTest]
+        public IEnumerator EveryHigherAbilityGradeOutdamagesThePreviousGradeAtMaximumEnhancement()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Skill", "Companion" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) { item.discovered = true; item.level = 1; item.equipped = false; }
+                for (int grade = 0; grade < 5; grade++) {
+                    var lower = items.Where(x => x.rarity == grade).ToArray();
+                    var higher = items.Where(x => x.rarity == grade + 1).ToArray();
+                    foreach (var item in lower) item.level = ui.ItemMaxLevel(item);
+                    foreach (var item in higher) item.level = 1;
+                    double strongestLower = 0, weakestHigher = double.MaxValue;
+                    foreach (var item in lower) {
+                        item.equipped = true;
+                        strongestLower = Math.Max(strongestLower, ui.ItemExpectedDps(item));
+                        item.equipped = false;
+                    }
+                    foreach (var item in higher) {
+                        item.equipped = true;
+                        weakestHigher = Math.Min(weakestHigher, ui.ItemExpectedDps(item));
+                        item.equipped = false;
+                    }
+                    Assert.That(weakestHigher, Is.GreaterThan(strongestLower * 1.05), category + " grade " + (grade + 1) + " Lv.1 must beat every max-level item in grade " + grade);
+                }
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator LoadoutAutoEquipPrefersRarityThenDpsAndShowsEnhancementLevels()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            DayOneState("mainStage", 0); DayOneState("highestMainStage", 0);
+            foreach (var armor in ui.Items("Armor")) { armor.discovered = armor.equipped = false; }
+            foreach (string category in new[] { "Skill", "Companion" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) { item.discovered = item.equipped = false; item.count = 0; }
+                var normal = items.First(x => x.rarity == 0);
+                var advanced = items.First(x => x.rarity == 1);
+                normal.discovered = normal.equipped = true; normal.level = 100;
+                advanced.discovered = true; advanced.level = 1;
+                Assert.That(ui.CanImproveLoadout(advanced), Is.True);
+                ui.AutoEquip(category);
+                Assert.That(advanced.equipped, Is.True, "Higher rarity takes priority over a highly enhanced normal item.");
+                Assert.That(normal.equipped, Is.False);
+                Assert.That(ui.CanImproveLoadout(normal), Is.False, "Notification and auto-equip must agree.");
+                foreach (var item in items.Where(x => x.rarity == 1)) { item.discovered = true; item.level = 1; }
+                ui.AutoEquip(category);
+                var best = items.Where(x => x.discovered && x.rarity == 1).OrderByDescending(ui.ItemExpectedDps).First();
+                Assert.That(best.equipped, Is.True, "Within the same rarity use actual estimated skill/companion DPS.");
+                ui.ShowPage(category == "Skill" ? "Skills" : "Companions");
+                var levels = UiNode("Collection inventory").GetComponentsInChildren<UnityEngine.UI.Text>().Where(x => x.name == "Enhancement level").ToArray();
+                Assert.That(levels.Length, Is.EqualTo(items.Count));
+                Assert.That(levels.Any(x => x.text == "Lv.100"), Is.True);
+                Assert.That(UiNode("Equipped " + category).GetComponentsInChildren<UnityEngine.UI.Text>().Any(x => x.name == "Enhancement level" && x.text == "Lv.1"), Is.True);
+                Object.Destroy(CaptureFrame("enhancement-levels-" + category + ".png", 720, 1560));
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UiPaidSummonsSpendTicketsFirstAndOnlyChargeTheRemainder()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            bool oldSkip = ui.SkipSummonAnimations; ui.SkipSummonAnimations = true;
+            try {
+                foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" }) {
+                    Assert.That(ui.SummonTickets(category), Is.Zero);
+                    ui.GrantSummonTickets(category, 63); ui.Diamonds = 0;
+                    int initial = ui.Items(category).Sum(x => x.count);
+                    ui.ShowPage("Shop");
+                    UiClick("50회 뽑기", UiNode("Summon_" + category));
+                    Assert.That(ui.SummonTickets(category), Is.EqualTo(13), category);
+                    Assert.That(ui.Diamonds, Is.Zero);
+                    Assert.That(ui.Items(category).Sum(x => x.count), Is.EqualTo(initial + 50));
+                    UiClick("10회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
+                    Assert.That(ui.SummonTickets(category), Is.EqualTo(3));
+                    Assert.That(ui.Diamonds, Is.Zero);
+
+                    var ten = UiNode("PaidSummon10", UiNode("Fullscreen: 뽑기 결과"));
+                    Assert.That(UiNode("SummonTicketCost", ten).GetComponent<UnityEngine.UI.Text>().text, Is.EqualTo("3장"));
+                    int remainder = ui.SummonCost(category, 7);
+                    Assert.That(UiNode("SummonDiamondCost", ten).GetComponent<UnityEngine.UI.Text>().text, Is.EqualTo(UiNumber.Format(remainder)));
+                    ui.Diamonds = remainder - 1;
+                    long progress = ui.CareerProgress("summon:" + category);
+                    Assert.That(ui.TrySummon(category, 10, false), Is.False);
+                    Assert.That(ui.Diamonds, Is.EqualTo(remainder - 1));
+                    Assert.That(ui.SummonTickets(category), Is.EqualTo(3));
+                    Assert.That(ui.Items(category).Sum(x => x.count), Is.EqualTo(initial + 60));
+                    Assert.That(ui.CareerProgress("summon:" + category), Is.EqualTo(progress));
+                    ui.Diamonds = remainder;
+                    UiClick("10회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
+                    Assert.That(ui.Diamonds, Is.Zero);
+                    Assert.That(ui.SummonTickets(category), Is.Zero);
+                    Assert.That(ui.Items(category).Sum(x => x.count), Is.EqualTo(initial + 70));
+                    Assert.That(ui.CareerProgress("summon:" + category), Is.EqualTo(progress + 10));
+
+                    ui.GrantSummonTickets(category, 7); ui.Diamonds = 12345;
+                    Assert.That(ui.TrySummon(category, 5, true), Is.True);
+                    Assert.That(ui.Diamonds, Is.EqualTo(12345));
+                    Assert.That(ui.SummonTickets(category), Is.EqualTo(7), "Free draws never spend tickets.");
+                    ui.CloseFullscreen(); ReloadPersistedServices();
+                    typeof(DoodleUi).GetMethod("InitCommerce", ServicePrivate).Invoke(ui, null);
+                    Assert.That(ui.SummonTickets(category), Is.EqualTo(7), "Both relic and category ticket wallets persist.");
+                }
+                ui.ShowPage("Shop");
+                Object.Destroy(CaptureFrame("ticket-priority-shop.png", 720, 1560));
+                AssertUiGeometry("Ticket and diamond prices");
+                Assert.That(UiRoot.GetComponentsInChildren<UnityEngine.UI.Button>().Any(x => x.name.StartsWith("TicketSummon_")), Is.False);
+                ui.Diamonds = ui.SummonCost("Skill", 43);
+                UiClick("50회 뽑기", UiNode("Summon_Skill"));
+                Assert.That(ui.Diamonds, Is.Zero);
+                Assert.That(ui.SummonTickets("Skill"), Is.Zero);
+                Assert.That(ui.SummonTickets("Companion"), Is.EqualTo(7), "Only matching tickets may pay for a draw.");
+                Object.Destroy(CaptureFrame("ticket-priority-results.png", 720, 1560));
+                Assert.That(ui.TrySummon("DungeonRelic", 10, false), Is.False, "Dungeon relics keep their exclusive ticket payment.");
+                yield return null;
+            }
+            finally { ui.SkipSummonAnimations = oldSkip; }
+        }
+
+        [UnityTest]
         public IEnumerator DayOneCurrencyClaimsMileageTransactionsAndCardPersist()
         {
             game.TogglePause(); var ui=game.Ui; int initial=ui.Diamonds;
@@ -91,12 +318,14 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();var ui=game.Ui;SetDayOneProfile(300);
             Assert.That(ui.Critical2Chance,Is.EqualTo(30).Within(.01));
-            Assert.That(ui.CurrentAttackPower,Is.InRange(500000000f,2000000000f));
+            Assert.That(ui.StatValue("attack"),Is.EqualTo(128+5*1200),"The user now tunes linear stats rather than the older exponential 1c target.");
             long income=0;for(int stage=1;stage<=300;stage++)income+=ui.GoldForMainKills(stage,101);
             for(int stage=1;stage<=3;stage++)income+=ui.DungeonGoldReward(stage);
             income+=(22+59*11)*500;
             long cost=0;foreach(var stat in GrowthTuning.stats.Take(4))for(int level=0;level<1200;level++)cost+=(long)Math.Ceiling(stat.baseCost*Math.Pow(GrowthTuning.costGrowth,level));
-            Assert.That(income/(double)cost,Is.InRange(.9,1.4),"Stage kills, cave gold and small mission rewards must fund about Lv1200, not many times that budget.");
+            // Historical day-one profile is now only a combat smoke fixture. The user
+            // controls difficulty manually; no eight-hour/income target is enforced.
+            Assert.That(income,Is.GreaterThan(0));
             Debug.Log("DAYONE budget gold="+income+" cost1200="+cost+" attack="+ui.CurrentAttackPower+" hp="+ui.MaxHealth+" enemyHP="+68*ui.EnemyHealthMultiplier(300));
             ui.ShowPage("Stats");Object.Destroy(CaptureFrame("dayone-stage300-stats.png",720,1560));ui.ClosePage();
             game.summonSkillsEnabled=true;game.companionsEnabled=true;game.autoPlay=true;

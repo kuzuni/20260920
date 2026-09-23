@@ -159,27 +159,32 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             var tuning = ServiceTestTuning;
-            Assert.That(tuning.questRewards, Is.All.EqualTo(100));
-            string[][] metrics = {
-                new[] { "kills", "gold", "dungeon", "roulette" },
-                new[] { "kills", "equipmentUpgrade", "skillUpgrade", "gold" },
-                new[] { "kills", "dungeon", "pvp", "summon" }
-            };
+            Assert.That(tuning.dailyQuestReward, Is.EqualTo(1000));
+            Assert.That(tuning.weeklyQuestReward, Is.EqualTo(3000));
+            Assert.That(tuning.repeatQuestReward, Is.EqualTo(5));
+            Assert.That(tuning.repeatRouletteReward, Is.EqualTo(3));
             int[][] goals = { tuning.dailyGoals, tuning.repeatGoals, tuning.weeklyGoals };
             string[] tabs = { "일일", "반복", "주간" };
             UiOpen("Quests");
             for (int tab = 0; tab < 3; tab++)
             {
                 UiClick(tabs[tab], UiNode("Quest tabs"));
-                for (int quest = 0; quest < 4; quest++)
+                var counters = ServiceStateValue<int[]>(tab == 0 ? "daily" : tab == 1 ? "repeat" : "weekly");
+                System.Array.Clear(counters,0,counters.Length);
+                Assert.That(ui.QuestCount(tab), Is.EqualTo(tab == 1 ? 19 : 11));
+                Assert.That(Enumerable.Range(0,ui.QuestCount(tab)).Select(i=>ui.QuestMetric(tab,i)),Does.Not.Contain("gold"));
+                for (int quest = 0; quest < ui.QuestCount(tab); quest++)
                 {
-                    ui.RecordServiceProgress(metrics[tab][quest], goals[tab][quest]);
+                    string metric = ui.QuestMetric(tab,quest);
+                    ui.RecordServiceProgress(metric, goals[tab][quest]);
                     int before = ui.Diamonds;
                     UiClick("받기", UiNode("Quest " + tab + " " + quest));
-                    Assert.That(ui.Diamonds, Is.EqualTo(before + 100), tabs[tab] + " quest " + quest + " must pay exactly 100.");
+                    int reward = tab == 0 ? 1000 : tab == 2 ? 3000 : metric == "roulette" ? 3 : 5;
+                    Assert.That(ui.Diamonds, Is.EqualTo(before + reward), tabs[tab] + " " + metric);
                     AssertSingleDiamondReward();
                     ui.CloseDetail();
                 }
+                UnityEngine.Object.Destroy(CaptureFrame("quest-expanded-"+tab+".png",720,1560));
             }
             yield return null;
         }

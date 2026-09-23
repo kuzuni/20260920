@@ -32,7 +32,10 @@ namespace DoodleIdle
     {
         public float costGrowth = 1.08f;
         public int maxStatLevel = 10000, maxItemLevel = 1000, copiesPerUpgrade = 5;
-        public float relicStepPercent = 2;
+        public float relicStepPercent = 1;
+        public float[] skillDpsPercentByGrade = { 25f, 91.50625f, 334.935752f, 1225.948585f, 4487.278307f, 16424.560423f };
+        public float[] companionDpsPercentByGrade = { 22f, 73.205f, 243.589638f, 810.544519f, 2697.086886f, 8974.556614f };
+        public float abilityMaxEnhancementBonus = .99f;
         public UiStatDefinition[] stats;
         public UiItem[] items;
     }
@@ -264,7 +267,22 @@ namespace DoodleIdle
                 if (definition.id == id) return Mathf.Max(.001f, definition.initial);
             return 1;
         }
-        float ItemEquipValue(UiItem item) => item.equipValue * (1 + Math.Max(0, item.level - 1) * .15f);
+        float ItemEquipValue(UiItem item)
+        {
+            if(IsEquipment(item)) {
+                float enhancement=item.rarity==6?1+Math.Max(0,item.level-1)*.01f:AbilityEnhancementMultiplier(item);
+                return ((1+item.equipValue/100)*enhancement-1)*100;
+            }
+            return item.equipValue * (item.category=="Skill"||item.category=="Companion" ? AbilityEnhancementMultiplier(item) : 1 + Math.Max(0, item.level - 1) * .15f);
+        }
+        int CompareEquipPriority(UiItem a, UiItem b)
+        {
+            if(a.category=="Skill"||a.category=="Companion") {
+                int grade=a.rarity.CompareTo(b.rarity);
+                return grade!=0?grade:ItemExpectedDps(a).CompareTo(ItemExpectedDps(b));
+            }
+            return ItemEquipValue(a).CompareTo(ItemEquipValue(b));
+        }
         float ItemOwnedValue(UiItem item) => item.category == "Relic" ? item.level * collectionTuning.relicStepPercent : item.ownedPercent * (1 + Math.Max(0, item.level - 1) * .1f);
         float EffectBonus(string effect, string category = null, bool includeSkins = true)
         {
@@ -317,6 +335,7 @@ namespace DoodleIdle
             item.level++;
             if (item.category == "Armor" || item.category == "Club") RecordServiceProgress("equipmentUpgrade", 1);
             if (item.category == "Skill") RecordServiceProgress("skillUpgrade", 1);
+            if (item.category == "Companion") RecordServiceProgress("companionUpgrade", 1);
             if (notifyPower) NotifyPowerChanged(before, "강화");
             return true;
         }

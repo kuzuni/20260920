@@ -3,25 +3,42 @@
   "maxStatLevel": 10000,
   "maxItemLevel": 1000,
   "copiesPerUpgrade": 5,
-  "relicStepPercent": 2,
+  "relicStepPercent": 1,
+  "skillDpsPercentByGrade": [
+    25,
+    91.50625,
+    334.935752,
+    1225.948585,
+    4487.278307,
+    16424.560423
+  ],
+  "companionDpsPercentByGrade": [
+    22,
+    73.205,
+    243.589638,
+    810.544519,
+    2697.086886,
+    8974.556614
+  ],
+  "abilityMaxEnhancementBonus": 0.99,
   "stats": [
     {
       "id": "attack",
       "name": "공격력",
       "icon": "StatAttack",
       "initial": 128,
-      "increment": 8,
+      "increment": 5,
       "baseCost": 20,
-      "valueGrowth": 1.0076
+      "valueGrowth": 1
     },
     {
       "id": "health",
       "name": "체력",
       "icon": "StatHealth",
       "initial": 1280,
-      "increment": 80,
+      "increment": 40,
       "baseCost": 18,
-      "valueGrowth": 1.007
+      "valueGrowth": 1
     },
     {
       "id": "healthRegen",
@@ -30,7 +47,7 @@
       "initial": 5,
       "increment": 1,
       "baseCost": 16,
-      "valueGrowth": 1.007
+      "valueGrowth": 1
     },
     {
       "id": "crit2Chance",
@@ -67,7 +84,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 8,
+      "equipValue": 8.0,
       "cooldown": 0,
       "tier": 1
     },
@@ -86,7 +103,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 11,
+      "equipValue": 18.8,
       "cooldown": 0,
       "tier": 2
     },
@@ -105,7 +122,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 14,
+      "equipValue": 30.68,
       "cooldown": 0,
       "tier": 3
     },
@@ -124,7 +141,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 17,
+      "equipValue": 43.748,
       "cooldown": 0,
       "tier": 4
     },
@@ -143,7 +160,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 20,
+      "equipValue": 58.1228,
       "cooldown": 0,
       "tier": 5
     },
@@ -162,7 +179,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 25,
+      "equipValue": 295.307,
       "cooldown": 0,
       "tier": 1
     },
@@ -181,7 +198,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 30,
+      "equipValue": 334.8377,
       "cooldown": 0,
       "tier": 2
     },
@@ -200,7 +217,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 35,
+      "equipValue": 378.32147,
       "cooldown": 0,
       "tier": 3
     },
@@ -219,7 +236,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 40,
+      "equipValue": 426.153617,
       "cooldown": 0,
       "tier": 4
     },
@@ -238,7 +255,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 45,
+      "equipValue": 478.768979,
       "cooldown": 0,
       "tier": 5
     },
@@ -257,7 +274,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 55,
+      "equipValue": 1346.922447,
       "cooldown": 0,
       "tier": 1
     },
@@ -276,7 +293,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 64,
+      "equipValue": 1491.614691,
       "cooldown": 0,
       "tier": 2
     },
@@ -295,7 +312,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 73,
+      "equipValue": 1650.776161,
       "cooldown": 0,
       "tier": 3
     },
@@ -314,7 +331,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 82,
+      "equipValue": 1825.853777,
       "cooldown": 0,
       "tier": 4
     },
@@ -333,7 +350,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 91,
+      "equipValue": 2018.439154,
       "cooldown": 0,
       "tier": 5
     },
@@ -352,7 +369,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 100,
+      "equipValue": 5196.097886,
       "cooldown": 0,
       "tier": 1
     },
@@ -371,7 +388,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 116,
+      "equipValue": 5725.707674,
       "cooldown": 0,
       "tier": 2
     },
@@ -390,7 +407,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 132,
+      "equipValue": 6308.278442,
       "cooldown": 0,
       "tier": 3
     },
@@ -409,7 +426,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 148,
+      "equipValue": 6949.106286,
       "cooldown": 0,
       "tier": 4
     },
@@ -428,7 +445,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 164,
+      "equipValue": 7654.016914,
       "cooldown": 0,
       "tier": 5
     },
@@ -447,7 +464,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 180,
+      "equipValue": 19285.042286,
       "cooldown": 0,
       "tier": 1
     },
@@ -466,7 +483,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 208,
+      "equipValue": 21223.546515,
       "cooldown": 0,
       "tier": 2
     },
@@ -485,7 +502,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 236,
+      "equipValue": 23355.901166,
       "cooldown": 0,
       "tier": 3
     },
@@ -504,7 +521,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 264,
+      "equipValue": 25701.491283,
       "cooldown": 0,
       "tier": 4
     },
@@ -523,7 +540,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 292,
+      "equipValue": 28281.640411,
       "cooldown": 0,
       "tier": 5
     },
@@ -542,7 +559,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 320,
+      "equipValue": 70854.101028,
       "cooldown": 0,
       "tier": 1
     },
@@ -561,7 +578,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 370,
+      "equipValue": 77949.511131,
       "cooldown": 0,
       "tier": 2
     },
@@ -580,7 +597,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 420,
+      "equipValue": 85754.462244,
       "cooldown": 0,
       "tier": 3
     },
@@ -599,7 +616,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 470,
+      "equipValue": 94339.908468,
       "cooldown": 0,
       "tier": 4
     },
@@ -618,7 +635,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 520,
+      "equipValue": 103783.899315,
       "cooldown": 0,
       "tier": 5
     },
@@ -637,7 +654,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 7,
-      "equipValue": 600,
+      "equipValue": 259609.748288,
       "cooldown": 0,
       "tier": 1
     },
@@ -656,7 +673,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 8,
+      "equipValue": 8.0,
       "cooldown": 0,
       "tier": 1
     },
@@ -675,7 +692,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 11,
+      "equipValue": 18.8,
       "cooldown": 0,
       "tier": 2
     },
@@ -694,7 +711,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 14,
+      "equipValue": 30.68,
       "cooldown": 0,
       "tier": 3
     },
@@ -713,7 +730,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 17,
+      "equipValue": 43.748,
       "cooldown": 0,
       "tier": 4
     },
@@ -732,7 +749,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 20,
+      "equipValue": 58.1228,
       "cooldown": 0,
       "tier": 5
     },
@@ -751,7 +768,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 25,
+      "equipValue": 295.307,
       "cooldown": 0,
       "tier": 1
     },
@@ -770,7 +787,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 30,
+      "equipValue": 334.8377,
       "cooldown": 0,
       "tier": 2
     },
@@ -789,7 +806,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 35,
+      "equipValue": 378.32147,
       "cooldown": 0,
       "tier": 3
     },
@@ -808,7 +825,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 40,
+      "equipValue": 426.153617,
       "cooldown": 0,
       "tier": 4
     },
@@ -827,7 +844,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 45,
+      "equipValue": 478.768979,
       "cooldown": 0,
       "tier": 5
     },
@@ -846,7 +863,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 55,
+      "equipValue": 1346.922447,
       "cooldown": 0,
       "tier": 1
     },
@@ -865,7 +882,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 64,
+      "equipValue": 1491.614691,
       "cooldown": 0,
       "tier": 2
     },
@@ -884,7 +901,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 73,
+      "equipValue": 1650.776161,
       "cooldown": 0,
       "tier": 3
     },
@@ -903,7 +920,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 82,
+      "equipValue": 1825.853777,
       "cooldown": 0,
       "tier": 4
     },
@@ -922,7 +939,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 91,
+      "equipValue": 2018.439154,
       "cooldown": 0,
       "tier": 5
     },
@@ -941,7 +958,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 100,
+      "equipValue": 5196.097886,
       "cooldown": 0,
       "tier": 1
     },
@@ -960,7 +977,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 116,
+      "equipValue": 5725.707674,
       "cooldown": 0,
       "tier": 2
     },
@@ -979,7 +996,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 132,
+      "equipValue": 6308.278442,
       "cooldown": 0,
       "tier": 3
     },
@@ -998,7 +1015,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 148,
+      "equipValue": 6949.106286,
       "cooldown": 0,
       "tier": 4
     },
@@ -1017,7 +1034,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 164,
+      "equipValue": 7654.016914,
       "cooldown": 0,
       "tier": 5
     },
@@ -1036,7 +1053,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 180,
+      "equipValue": 19285.042286,
       "cooldown": 0,
       "tier": 1
     },
@@ -1055,7 +1072,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 208,
+      "equipValue": 21223.546515,
       "cooldown": 0,
       "tier": 2
     },
@@ -1074,7 +1091,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 236,
+      "equipValue": 23355.901166,
       "cooldown": 0,
       "tier": 3
     },
@@ -1093,7 +1110,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 264,
+      "equipValue": 25701.491283,
       "cooldown": 0,
       "tier": 4
     },
@@ -1112,7 +1129,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 292,
+      "equipValue": 28281.640411,
       "cooldown": 0,
       "tier": 5
     },
@@ -1131,7 +1148,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 320,
+      "equipValue": 70854.101028,
       "cooldown": 0,
       "tier": 1
     },
@@ -1150,7 +1167,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 370,
+      "equipValue": 77949.511131,
       "cooldown": 0,
       "tier": 2
     },
@@ -1169,7 +1186,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 420,
+      "equipValue": 85754.462244,
       "cooldown": 0,
       "tier": 3
     },
@@ -1188,7 +1205,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 470,
+      "equipValue": 94339.908468,
       "cooldown": 0,
       "tier": 4
     },
@@ -1207,7 +1224,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 520,
+      "equipValue": 103783.899315,
       "cooldown": 0,
       "tier": 5
     },
@@ -1226,7 +1243,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 7,
-      "equipValue": 600,
+      "equipValue": 259609.748288,
       "cooldown": 0,
       "tier": 1
     },
@@ -1335,9 +1352,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 56,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.125
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "banana",
@@ -1354,9 +1372,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 18,
+      "equipValue": 0,
       "cooldown": 0,
-      "damageMultiplier": 0.9
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "stone",
@@ -1373,9 +1392,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 24,
+      "equipValue": 0,
       "cooldown": 3.2,
-      "damageMultiplier": 1.125
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "arrows",
@@ -1392,9 +1412,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 22,
+      "equipValue": 0,
       "cooldown": 4.5,
-      "damageMultiplier": 0.9
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "ball",
@@ -1411,9 +1432,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 26,
+      "equipValue": 0,
       "cooldown": 7,
-      "damageMultiplier": 0.9
+      "damageMultiplier": 1.4641,
+      "tier": 5
     },
     {
       "id": "fire",
@@ -1430,9 +1452,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 35,
+      "equipValue": 0,
       "cooldown": 5.5,
-      "damageMultiplier": 1.05
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "cannon",
@@ -1449,9 +1472,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 45,
+      "equipValue": 0,
       "cooldown": 9,
-      "damageMultiplier": 1.05
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "shotgun",
@@ -1468,9 +1492,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 72,
+      "equipValue": 0,
       "cooldown": 7,
-      "damageMultiplier": 1.05
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "sound",
@@ -1487,9 +1512,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 82,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.05
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "double_claw",
@@ -1506,9 +1532,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 80,
+      "equipValue": 0,
       "cooldown": 5,
-      "damageMultiplier": 1.05
+      "damageMultiplier": 1.4641,
+      "tier": 5
     },
     {
       "id": "giant_worm",
@@ -1522,13 +1549,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 1,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 48,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.2
+      "damageMultiplier": 1.0
     },
     {
       "id": "cloud",
@@ -1545,9 +1572,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 52,
+      "equipValue": 0,
       "cooldown": 9,
-      "damageMultiplier": 1.2
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "molotov",
@@ -1564,9 +1592,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 78,
+      "equipValue": 0,
       "cooldown": 9,
-      "damageMultiplier": 1.2
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "dumbbell",
@@ -1583,9 +1612,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 120,
+      "equipValue": 0,
       "cooldown": 6,
-      "damageMultiplier": 1.2
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "eggplant",
@@ -1599,13 +1629,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 5,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 3,
-      "equipValue": 120,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.5
+      "damageMultiplier": 1.4641
     },
     {
       "id": "snake",
@@ -1622,9 +1652,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 42,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.4
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "shuriken",
@@ -1638,13 +1669,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 2,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 110,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.4
+      "damageMultiplier": 1.1
     },
     {
       "id": "ancient_snake",
@@ -1661,9 +1692,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 122,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.4
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "brick_volley",
@@ -1677,13 +1709,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 4,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.75
+      "damageMultiplier": 1.331
     },
     {
       "id": "durian",
@@ -1697,13 +1729,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 5,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 4,
-      "equipValue": 160,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 0.9799999999999999
+      "damageMultiplier": 1.4641
     },
     {
       "id": "red_wave",
@@ -1720,9 +1752,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 9,
-      "damageMultiplier": 2.0625
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "tornado",
@@ -1739,9 +1772,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 10,
-      "damageMultiplier": 1.65
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "golden_fire",
@@ -1758,9 +1792,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 5.5,
-      "damageMultiplier": 1.65
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "dragon",
@@ -1777,9 +1812,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 10,
-      "damageMultiplier": 1.65
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "blue_molotov",
@@ -1793,13 +1829,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 5,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 5,
-      "equipValue": 200,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.65
+      "damageMultiplier": 1.4641
     },
     {
       "id": "ice_snakes",
@@ -1813,13 +1849,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 1,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.9
+      "damageMultiplier": 1.0
     },
     {
       "id": "purple_arrows",
@@ -1833,13 +1869,13 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 2,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 8,
-      "damageMultiplier": 1.9
+      "damageMultiplier": 1.1
     },
     {
       "id": "meteor",
@@ -1856,9 +1892,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 20,
+      "equipValue": 0,
       "cooldown": 10,
-      "damageMultiplier": 1.9
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "heaven_cloud",
@@ -1875,9 +1912,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 128,
+      "equipValue": 0,
       "cooldown": 9,
-      "damageMultiplier": 1.9
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "golem",
@@ -1894,9 +1932,10 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 6,
-      "equipValue": 240,
+      "equipValue": 0,
       "cooldown": 13,
-      "damageMultiplier": 1.3299999999999998
+      "damageMultiplier": 1.4641,
+      "tier": 5
     },
     {
       "id": "companion_cat",
@@ -1913,7 +1952,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 2,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_0",
       "trajectory": "Straight",
@@ -1923,7 +1962,8 @@
       "attackInterval": 3.2,
       "projectileSpeed": 9,
       "splashDamageMultiplier": 0.5,
-      "damageMultiplier": 7.5093
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "companion_mushroom",
@@ -1940,7 +1980,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 2,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_1",
       "trajectory": "Arc",
@@ -1950,7 +1990,8 @@
       "attackInterval": 3.2,
       "projectileSpeed": 9,
       "splashDamageMultiplier": 0.5,
-      "damageMultiplier": 7.5093
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "companion_bat",
@@ -1967,7 +2008,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 2,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_2",
       "trajectory": "Straight",
@@ -1977,7 +2018,8 @@
       "attackInterval": 3.2,
       "projectileSpeed": 9,
       "splashDamageMultiplier": 0.5,
-      "damageMultiplier": 7.5093
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "companion_slime",
@@ -1994,7 +2036,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 4,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_3",
       "trajectory": "Straight",
@@ -2004,7 +2046,8 @@
       "attackInterval": 3.2,
       "projectileSpeed": 9,
       "splashDamageMultiplier": 0.5,
-      "damageMultiplier": 7.5093
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "companion_duck",
@@ -2021,7 +2064,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 4,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_4",
       "trajectory": "Straight",
@@ -2031,7 +2074,8 @@
       "attackInterval": 3.4800000000000004,
       "projectileSpeed": 10,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 11.136
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "companion_devil",
@@ -2048,7 +2092,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 6,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_5",
       "trajectory": "Straight",
@@ -2058,7 +2102,8 @@
       "attackInterval": 3.4800000000000004,
       "projectileSpeed": 10,
       "splashDamageMultiplier": 0.35,
-      "damageMultiplier": 5.568
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "companion_drone_cat",
@@ -2075,7 +2120,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 4,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_6",
       "trajectory": "Straight",
@@ -2085,7 +2130,8 @@
       "attackInterval": 3.4800000000000004,
       "projectileSpeed": 10,
       "splashDamageMultiplier": 0.35,
-      "damageMultiplier": 5.568
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "companion_spore",
@@ -2099,11 +2145,11 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 4,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 2,
       "projectile": "CompanionShot_7",
       "trajectory": "Arc",
@@ -2113,7 +2159,7 @@
       "attackInterval": 3.4800000000000004,
       "projectileSpeed": 10,
       "splashDamageMultiplier": 0.35,
-      "damageMultiplier": 5.568
+      "damageMultiplier": 1.331
     },
     {
       "id": "drone",
@@ -2130,7 +2176,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 40,
+      "equipValue": 0,
       "cooldown": 6,
       "projectile": "CompanionShot_8",
       "trajectory": "Arc",
@@ -2140,7 +2186,8 @@
       "attackInterval": 3.7600000000000002,
       "projectileSpeed": 11,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.6524
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "sword",
@@ -2157,7 +2204,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 60,
+      "equipValue": 0,
       "cooldown": 8,
       "projectile": "CompanionShot_9",
       "trajectory": "Straight",
@@ -2167,7 +2214,8 @@
       "attackInterval": 3.7600000000000002,
       "projectileSpeed": 11,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.6524
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "orbit",
@@ -2184,7 +2232,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 85,
+      "equipValue": 0,
       "cooldown": 8,
       "projectile": "CompanionShot_10",
       "trajectory": "Lightning",
@@ -2194,7 +2242,8 @@
       "attackInterval": 3.7600000000000002,
       "projectileSpeed": 11,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.6524
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "companion_snake_friend",
@@ -2211,7 +2260,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 6,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_11",
       "trajectory": "Straight",
@@ -2221,7 +2270,8 @@
       "attackInterval": 3.7600000000000002,
       "projectileSpeed": 11,
       "splashDamageMultiplier": 0.3,
-      "damageMultiplier": 4.6524
+      "damageMultiplier": 1.331,
+      "tier": 4
     },
     {
       "id": "companion_cloud_friend",
@@ -2238,7 +2288,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 6,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_12",
       "trajectory": "Arc",
@@ -2248,7 +2298,8 @@
       "attackInterval": 4.04,
       "projectileSpeed": 12,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.0939
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "companion_guardian_friend",
@@ -2265,7 +2316,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 8,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_13",
       "trajectory": "Straight",
@@ -2275,7 +2326,8 @@
       "attackInterval": 4.04,
       "projectileSpeed": 12,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.0939
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "companion_fire_friend",
@@ -2292,7 +2344,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 8,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_14",
       "trajectory": "Straight",
@@ -2302,7 +2354,8 @@
       "attackInterval": 4.04,
       "projectileSpeed": 12,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.0939
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "companion_frost",
@@ -2316,11 +2369,11 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 4,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 2,
       "projectile": "CompanionShot_15",
       "trajectory": "Arc",
@@ -2330,7 +2383,7 @@
       "attackInterval": 4.04,
       "projectileSpeed": 12,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 4.0939
+      "damageMultiplier": 1.331
     },
     {
       "id": "companion_dragon_friend",
@@ -2347,7 +2400,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 8,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_16",
       "trajectory": "Arc",
@@ -2357,7 +2410,8 @@
       "attackInterval": 4.32,
       "projectileSpeed": 13,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.7127
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "companion_star_cat",
@@ -2374,7 +2428,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_17",
       "trajectory": "Straight",
@@ -2384,7 +2438,8 @@
       "attackInterval": 4.32,
       "projectileSpeed": 13,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.7127
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "companion_brick",
@@ -2398,11 +2453,11 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 3,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 2,
       "projectile": "CompanionShot_18",
       "trajectory": "Arc",
@@ -2412,7 +2467,7 @@
       "attackInterval": 4.32,
       "projectileSpeed": 13,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.7127
+      "damageMultiplier": 1.21
     },
     {
       "id": "companion_tanuki",
@@ -2426,11 +2481,11 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 4,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 2,
       "projectile": "CompanionShot_19",
       "trajectory": "Straight",
@@ -2440,7 +2495,7 @@
       "attackInterval": 4.32,
       "projectileSpeed": 22,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.7127
+      "damageMultiplier": 1.331
     },
     {
       "id": "golden_drone",
@@ -2457,7 +2512,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 116,
+      "equipValue": 0,
       "cooldown": 6,
       "projectile": "CompanionShot_20",
       "trajectory": "Arc",
@@ -2467,7 +2522,8 @@
       "attackInterval": 4.6000000000000005,
       "projectileSpeed": 14,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.4347
+      "damageMultiplier": 1.0,
+      "tier": 1
     },
     {
       "id": "companion_sun_drone",
@@ -2484,7 +2540,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_21",
       "trajectory": "Straight",
@@ -2494,7 +2550,8 @@
       "attackInterval": 4.6000000000000005,
       "projectileSpeed": 14,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 2.576
+      "damageMultiplier": 1.1,
+      "tier": 2
     },
     {
       "id": "companion_ancient_dragon",
@@ -2511,7 +2568,7 @@
       "equipped": false,
       "discovered": false,
       "ownedPercent": 1,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 0,
       "projectile": "CompanionShot_22",
       "trajectory": "Straight",
@@ -2521,7 +2578,8 @@
       "attackInterval": 4.6000000000000005,
       "projectileSpeed": 14,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 3.4347
+      "damageMultiplier": 1.21,
+      "tier": 3
     },
     {
       "id": "companion_bee",
@@ -2535,11 +2593,11 @@
       "count": 0,
       "level": 0,
       "slot": 0,
-      "tier": 0,
+      "tier": 4,
       "equipped": false,
       "discovered": false,
       "ownedPercent": 2,
-      "equipValue": 10,
+      "equipValue": 0,
       "cooldown": 2,
       "projectile": "CompanionShot_23",
       "trajectory": "Arc",
@@ -2549,7 +2607,7 @@
       "attackInterval": 4.6000000000000005,
       "projectileSpeed": 14,
       "splashDamageMultiplier": 1,
-      "damageMultiplier": 2.576
+      "damageMultiplier": 1.331
     },
     {
       "id": "relic_basic_attack",

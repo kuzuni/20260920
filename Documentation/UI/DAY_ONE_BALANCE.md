@@ -1,3 +1,9 @@
+# Historical target — superseded
+
+The user canceled the eight-hour/stage-300 target on 2026-09-23. See [MANUAL_BALANCE.md](MANUAL_BALANCE.md) for the current editable curves, linear stats and tier ratios. Any timings and coefficients below describe the previous revision only.
+
+---
+
 # 첫날 성장 기준
 
 목표는 무료 보상을 모두 받고 스탯·장비·스킬·동료·유물·던전을 이용하는 8시간 플레이에서 약 300스테이지, 주요 스탯 Lv.1200, x2 치명타 약 30%, 공격력 약 1c다. 실제 도달 시간은 장착 조합, 뽑기 결과, 조작과 강화 시점에 따라 달라지며 아래 수치는 밸런스 기준이다.

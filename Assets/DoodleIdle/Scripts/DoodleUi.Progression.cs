@@ -66,29 +66,19 @@ namespace DoodleIdle
             double growth=Math.Max(1.000001,collectionTuning.costGrowth);
             return (int)Math.Min(collectionTuning.maxStatLevel,Math.Max(0,Math.Log(1+gold*(growth-1)/Math.Max(1,baseCost))/Math.Log(growth)));
         }
-        double ProjectedBaseStat(string id,int stage)
-        {
-            var stat=Array.Find(collectionTuning.stats,x=>x.id==id);
-            return stat==null?1:StatValueAtLevel(stat,ProjectedStatLevel(stage));
-        }
-        static double ProjectedGearFactor(int stage) => 1+Math.Min(100,8+Math.Max(0,stage-1)*.46)/100;
         public float EnemyHealthMultiplier(int displayStage)
         {
-            if(serviceTuning.enemyHealthStageGrowth<=0)return 1;
             double stage=Math.Max(0L,(long)displayStage-1);
-            // Budget-based growth keeps early gold upgrades and late stage difficulty together.
-            // This is a deterministic stage curve, never scaled from the live player's equipment.
-            double attack=ProjectedBaseStat("attack",displayStage)*ProjectedGearFactor(displayStage)*(1+Math.Min(4,stage*.0048))*(1+serviceTuning.attackBuff);
-            double ramp=Math.Min(1,stage/50);
-            double health=attack*serviceTuning.enemyHealthAttackRatio*ramp;
-            return (float)Math.Min(1e30,Math.Max(1+stage*serviceTuning.enemyHealthStageGrowth,health/68));
+            return (float)Math.Min(1e30,Math.Max(.001,serviceTuning.enemyHealthBaseMultiplier)*(1+stage*Math.Max(0,serviceTuning.enemyHealthStageGrowth)));
         }
         public float EnemyDamageMultiplier(int displayStage)
         {
-            if(serviceTuning.enemyDamageStageGrowth<=0)return 1;
-            double stage=Math.Max(0L,(long)displayStage-1);
-            double health=ProjectedBaseStat("health",displayStage)*ProjectedGearFactor(displayStage)*(1+Math.Min(2,stage*.00165));
-            return (float)Math.Min(1e30,Math.Max(1,health*serviceTuning.enemyDamageStageGrowth/64));
+            if(displayStage<=1)return 0;
+            int earlyEnd=Math.Max(2,serviceTuning.earlyEnemyDamageEndStage);
+            double earlyMax=Math.Max(0,serviceTuning.earlyEnemyDamageMax);
+            double damage=displayStage<=earlyEnd ? earlyMax*(displayStage-1)/(earlyEnd-1)
+                : earlyMax*(1+((long)displayStage-earlyEnd)*Math.Max(0,serviceTuning.enemyDamageStageGrowth));
+            return (float)Math.Min(1e30,damage*Math.Max(0,serviceTuning.enemyDamageBaseMultiplier)/64);
         }
         public void HandlePlayerDefeat()
         {
@@ -102,7 +92,7 @@ namespace DoodleIdle
         public int GoldForMainKills(int displayStage, int count)
         {
             if(count<=0)return 0;
-            double unit=Math.Max(0,serviceTuning.goldPerEnemy)*(1+Math.Max(0L,(long)displayStage-1)*Math.Max(0,serviceTuning.goldStageGrowth));
+            double unit=Math.Max(0,serviceTuning.goldPerEnemy)*Math.Max(0,serviceTuning.goldRewardMultiplier)*(1+Math.Max(0L,(long)displayStage-1)*Math.Max(0,serviceTuning.goldStageGrowth));
             return (int)Math.Min(int.MaxValue,Math.Max(0,Math.Round(unit*count*GoldGainMultiplier*GoldBuffMultiplier)));
         }
         public int DungeonGoldReward(int stage) => GoldForMainKills(DungeonDifficultyStage(stage),Math.Max(1,serviceTuning.goldDungeonEnemyCount));
