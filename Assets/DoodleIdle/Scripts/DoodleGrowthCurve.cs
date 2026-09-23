@@ -94,6 +94,17 @@ namespace DoodleIdle
             if (point != null) { if (incoming) point.inTangent = SafeTangent(tangent); else point.outTangent = SafeTangent(tangent); }
         }
 
+        // Degrees describe correction-factor units per stage/level, independent of graph zoom.
+        public double GetTangentAngle(int position, int origin, bool incoming)
+            => Math.Atan(GetTangent(position, origin, incoming)) * 180 / Math.PI;
+
+        public void SetTangentAngle(int position, int origin, bool incoming, double degrees)
+        {
+            if (double.IsNaN(degrees) || double.IsInfinity(degrees)) return;
+            degrees = Math.Max(-89.9, Math.Min(89.9, degrees));
+            SetTangent(position, origin, incoming, Math.Tan(degrees * Math.PI / 180));
+        }
+
         static double SafeFactor(double value) => double.IsNaN(value) || double.IsInfinity(value) ? 1 : Math.Max(0, Math.Min(1e100, value));
 
         public void SetPoint(int position, double factor, int origin)

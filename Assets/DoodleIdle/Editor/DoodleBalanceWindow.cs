@@ -397,7 +397,11 @@ namespace DoodleIdle.Editor
                         EditorGUI.BeginChangeCheck();
                         double edited = DoubleInput(side == 0 ? "앞 구간 손잡이 높이" : "뒤 구간 손잡이 높이", height);
                         if (EditorGUI.EndChangeCheck()) { Record("곡선 손잡이 높이 변경"); SetTangentValue(side == 0, edited); }
+                        EditorGUI.BeginChangeCheck();
+                        double angle = DoubleInput(side == 0 ? "앞 구간 곡선 각도 (°)" : "뒤 구간 곡선 각도 (°)", Curve.GetTangentAngle(selectedPoint, Origin, side == 0));
+                        if (EditorGUI.EndChangeCheck()) { Record("곡선 각도 변경"); Curve.SetTangentAngle(selectedPoint, Origin, side == 0, angle); Repaint(); }
                     }
+                    WrappedLabel("각도 범위: −89.9° ~ 89.9°. 스테이지/레벨 1당 보정값의 기울기를 각도로 표시합니다. 0°는 보정값이 평평한 상태이며 기본 성장률은 유지됩니다. 화면에서 보이는 각도는 로그 축·확대 비율에 따라 다릅니다.");
                     if (GUILayout.Button("선택점 손잡이 자동 정렬")) {
                         Record("곡선 손잡이 자동 정렬"); var automatic = Curve.Copy(); automatic.SetInterpolation(DoodleCurveInterpolation.Smooth, Origin);
                         Curve.SetTangent(selectedPoint, Origin, true, automatic.GetTangent(selectedPoint, Origin, true));

@@ -46,6 +46,26 @@ namespace DoodleIdle.Tests
             Assert.That(restored.Evaluate(15,0), Is.EqualTo(curve.Evaluate(15,0)).Within(.000001));
             var oldData = JsonUtility.FromJson<DoodleGrowthCurve>("{\"points\":[{\"position\":10,\"factor\":3}]}");
             Assert.That(oldData.Evaluate(5,0), Is.EqualTo(2), "Existing saved linear curves retain their shape.");
+            var angles = new DoodleGrowthCurve(); angles.SetPoint(10,3,0);
+            angles.SetTangentAngle(0,0,false,45);
+            angles.SetTangentAngle(10,0,true,-45);
+            Assert.That(angles.interpolation, Is.EqualTo(DoodleCurveInterpolation.Manual));
+            Assert.That(angles.GetTangent(0,0,false), Is.EqualTo(1).Within(.000001));
+            Assert.That(angles.GetTangent(10,0,true), Is.EqualTo(-1).Within(.000001));
+            Assert.That(angles.Evaluate(5,0), Is.EqualTo(4.5).Within(.000001), "Angles must change interpolated rewards while keeping endpoint values.");
+            Assert.That(angles.Evaluate(0,0), Is.EqualTo(1));
+            Assert.That(angles.Evaluate(10,0), Is.EqualTo(3));
+            angles.SetTangentAngle(10,0,true,0);
+            Assert.That(angles.GetTangent(10,0,true), Is.Zero);
+            angles.SetTangentAngle(10,0,true,-180);
+            Assert.That(angles.GetTangentAngle(10,0,true), Is.EqualTo(-89.9).Within(.000001));
+            angles.SetTangentAngle(0,0,false,180);
+            angles.SetTangentAngle(0,0,false,double.NaN);
+            angles.SetTangentAngle(0,0,false,double.PositiveInfinity);
+            var restoredAngles = JsonUtility.FromJson<DoodleGrowthCurve>(JsonUtility.ToJson(angles));
+            Assert.That(restoredAngles.GetTangentAngle(0,0,false), Is.EqualTo(89.9).Within(.000001));
+            Assert.That(restoredAngles.GetTangentAngle(10,0,true), Is.EqualTo(-89.9).Within(.000001));
+            curve.SetTangentAngle(12,0,false,-20);
             var tuning = ui.ReadBalanceTuning(); tuning.goldStageGrowth = 0; tuning.goldCurve = curve;
             ui.ApplyBalanceTuning(tuning);
             for (int stage=1;stage<=30;stage++)
