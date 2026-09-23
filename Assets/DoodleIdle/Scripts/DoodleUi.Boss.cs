@@ -29,7 +29,7 @@ namespace DoodleIdle
         }
         void RefreshBossHud()
         {
-            bool active = game && game.BossActive && BreakthroughMode && ActiveDungeonIndex < 0;
+            bool active = game && game.BossActive && MainBossPending && BreakthroughMode && ActiveDungeonIndex < 0;
             bossHud.gameObject.SetActive(active);
             stageInfo.sizeDelta = new Vector2(active ? 280 : 230, active ? 224 : 140);
             stageInfo.anchoredPosition = new Vector2(0, active ? -233 : -191);

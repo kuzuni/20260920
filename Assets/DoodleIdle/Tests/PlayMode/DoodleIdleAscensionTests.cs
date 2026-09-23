@@ -39,6 +39,7 @@ namespace DoodleIdle.Tests
             Assert.That(effect.LiveParticleCount,Is.GreaterThan(100));
             Assert.That(effect.raycastTarget,Is.False);
             Assert.That(effect.GetComponent<ParticleSystem>().main.useUnscaledTime,Is.True);
+            yield return new WaitForSecondsRealtime(.35f);
             Object.Destroy(CaptureFrame("ascension-reward-celebration.png",720,1520));
             yield return new WaitForSecondsRealtime(2.1f);
             Assert.That(effect.LiveParticleCount,Is.Zero);
