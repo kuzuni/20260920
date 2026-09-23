@@ -7,14 +7,27 @@ namespace DoodleIdle
     // Explicit atlas gutters keep each hand-drawn silhouette intact.
     public static class DoodleAscensionArt
     {
-        static readonly int[] xs = { 0, 222, 432, 639, 843, 1046, 1254 };
-        static readonly int[] ys = { 0, 290, 497, 690, 890, 1052, 1254 };
+        // Top-left pixel bounds. The artist's rows are intentionally not a uniform grid.
+        static readonly Rect[] regions = {
+            new Rect(22,140,199,94), new Rect(232,80,201,196), new Rect(438,94,191,176),
+            new Rect(650,89,167,186), new Rect(865,94,161,171), new Rect(1060,95,170,170),
+            new Rect(30,305,157,158), new Rect(225,333,189,106), new Rect(438,297,191,184),
+            new Rect(656,320,178,156), new Rect(852,312,179,158), new Rect(1046,297,193,187),
+            new Rect(23,521,187,160), new Rect(229,503,189,182), new Rect(430,515,181,166),
+            new Rect(637,529,180,153), new Rect(853,509,177,177), new Rect(1047,518,196,169),
+            new Rect(19,691,193,195), new Rect(232,721,196,159), new Rect(441,696,188,190),
+            new Rect(642,700,192,177), new Rect(848,722,190,156), new Rect(1049,736,192,137),
+            new Rect(20,921,185,120), new Rect(234,921,183,122), new Rect(445,919,174,126),
+            new Rect(659,899,168,154), new Rect(864,900,162,156), new Rect(1076,900,160,156),
+            new Rect(42,1054,164,160), new Rect(250,1047,169,165), new Rect(478,1088,109,109),
+            new Rect(673,1090,105,107), new Rect(834,1089,212,109), new Rect(1082,1065,132,145)
+        };
         static readonly Dictionary<int, Sprite> cache = new Dictionary<int, Sprite>();
         [Serializable] sealed class CompanionLayout { public CompanionRegion[] frames; }
         [Serializable] sealed class CompanionRegion { public float x, y, width, height, pixelsPerUnit; }
-        static CompanionLayout companionLayout;
+        static CompanionLayout companionLayout, revisionLayout;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetCache() { cache.Clear(); companionLayout = null; }
+        static void ResetCache() { cache.Clear(); companionLayout = revisionLayout = null; }
         public static Sprite Get(string key)
         {
             if (key == "SkillFireGolem") return FireGolem(0);
@@ -24,6 +37,7 @@ namespace DoodleIdle
         }
         public static Sprite CompanionFrame(int index, int frame)
         {
+            if (index == 5 || index == 7) return Revision((index == 5 ? 0 : 2) + frame % 2);
             int cell = index + (frame % 2) * 10, key = 200 + cell;
             if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
             if (companionLayout == null) companionLayout = JsonUtility.FromJson<CompanionLayout>(Resources.Load<TextAsset>("DoodleIdle/AscensionCompanionsLayout").text);
@@ -36,6 +50,8 @@ namespace DoodleIdle
         public static Sprite Projectile(int index)
         {
             if (index < 0 || index >= 12) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index == 3 || index == 9 || index == 5 || index == 7)
+                return Revision(index == 3 ? 4 : index == 9 ? 5 : index == 5 ? 6 : 7);
             int key = 300 + index;
             if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
             var texture = Resources.Load<Texture2D>("DoodleIdle/AscensionProjectiles");
@@ -51,6 +67,17 @@ namespace DoodleIdle
             var rect = new Rect(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
             sprite = Sprite.Create(texture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height));
             sprite.name = "AscensionShot_" + index; cache[key] = sprite; return sprite;
+        }
+        static Sprite Revision(int cell)
+        {
+            int key = 400 + cell;
+            if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
+            if (revisionLayout == null) revisionLayout = JsonUtility.FromJson<CompanionLayout>(Resources.Load<TextAsset>("DoodleIdle/AscensionRevisionsLayout").text);
+            var region = revisionLayout.frames[cell];
+            var texture = Resources.Load<Texture2D>("DoodleIdle/AscensionRevisions");
+            sprite = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
+                cell < 4 ? new Vector2(.5f, .08f) : Vector2.one * .5f, region.pixelsPerUnit);
+            sprite.name = "AscensionRevision_" + cell; cache[key] = sprite; return sprite;
         }
         public static Sprite FireGolem(int frame)
         {
@@ -70,9 +97,9 @@ namespace DoodleIdle
             if (cache.TryGetValue(cell, out var sprite) && sprite && sprite.texture) return sprite;
             var texture = Resources.Load<Texture2D>("DoodleIdle/AscensionAtlas");
             if (!texture) throw new InvalidOperationException("Missing ascension atlas.");
-            int col = cell % 6, row = cell / 6;
-            int left = xs[col] * texture.width / 1254, right = xs[col + 1] * texture.width / 1254;
-            int bottom = (1254 - ys[row + 1]) * texture.height / 1254, top = (1254 - ys[row]) * texture.height / 1254;
+            var region = regions[cell];
+            int left = Mathf.RoundToInt(region.xMin * texture.width / 1254), right = Mathf.RoundToInt(region.xMax * texture.width / 1254);
+            int bottom = Mathf.RoundToInt((1254 - region.yMax) * texture.height / 1254), top = Mathf.RoundToInt((1254 - region.yMin) * texture.height / 1254);
             int x0 = right, x1 = -1, y0 = top, y1 = -1;
             var pixels = texture.GetPixels32();
             for (int y = bottom; y < top; y++) for (int x = left; x < right; x++)

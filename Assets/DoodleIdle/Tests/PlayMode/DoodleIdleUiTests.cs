@@ -215,7 +215,7 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" })
             {
                 Assert.That(ui.Items(category).Sum(ui.ItemProbability), Is.EqualTo(100).Within(.000001));
-                for (int rarity = 0; rarity < 7; rarity++)
+                for (int rarity = 0; rarity < DoodleUi.GradeNames.Length; rarity++)
                     Assert.That(ui.Items(category).Where(x => x.rarity == rarity).Sum(ui.ItemProbability), Is.EqualTo(ui.GradeProbability(category, rarity)).Within(.000001));
             }
             UiClick("재화", UiNode("ShopTabs"));
@@ -291,15 +291,15 @@ namespace DoodleIdle.Tests
             detail = UiNode("Detail dim: 뽑기 확률");
             scroll = UiTopScroll();
             yield return null;
-            Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(7));
+            Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(DoodleUi.GradeNames.Length));
             Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("같은 등급 안에서는 낮은 번호")), Is.True);
-            for(int grade=0;grade<7;grade++) {
+            for(int grade=0;grade<DoodleUi.GradeNames.Length;grade++) {
                 var rate=UiNode("Probability_grade_"+grade).GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate");
                 Assert.That(rate.text,Is.EqualTo(game.Ui.GradeProbability("Armor",grade).ToString("0.###")+"%"));
             }
             if(scroll.content.rect.height>scroll.viewport.rect.height)scroll.verticalNormalizedPosition=0;
             Canvas.ForceUpdateCanvases();
-            var lastProbability = (RectTransform)UiNode("Probability_grade_6");
+            var lastProbability = (RectTransform)UiNode("Probability_grade_8");
             Assert.That(scroll.viewport.rect.Overlaps(UiLocalBounds(scroll.viewport, lastProbability)), Is.True, "The final grade probability must be reachable.");
             Object.Destroy(CaptureFrame("grade-probability-armor.png",720,1520));
             UiClick("Close 뽑기 확률", detail);

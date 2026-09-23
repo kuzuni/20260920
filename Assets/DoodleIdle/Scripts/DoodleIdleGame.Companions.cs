@@ -15,7 +15,7 @@ namespace DoodleIdle
         sealed class CompanionShot
         {
             public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
-            public float age, duration, speed, damage, explosionRadius, splashDamageMultiplier; public bool arc;
+            public float age, duration, speed, damage, explosionRadius, splashDamageMultiplier, sprayEcho; public bool arc, spray;
         }
         readonly Dictionary<string, CompanionActor> companions = new Dictionary<string, CompanionActor>();
         readonly Dictionary<string, Sprite> companionSprites = new Dictionary<string, Sprite>();
@@ -93,7 +93,8 @@ namespace DoodleIdle
         void FireCompanionShot(CompanionActor companion, int shotIndex, bool spread)
         {
             var item = companion.item; Vector2 origin = companion.art.transform.position;
-            var target = NearbyTarget(origin, shotIndex); if (!Alive(target)) return;
+            bool spray = item.trajectory == "Spray";
+            var target = NearbyTarget(origin, spray ? 0 : shotIndex); if (!Alive(target)) return;
             var direction = (target.Position - origin).normalized;
             if (spread) direction = Rotate(direction, (shotIndex - (item.volleyCount - 1) * .5f) * 10);
             companion.facingLeft = direction.x < 0; companion.art.flipX = companion.facingLeft;
@@ -111,10 +112,10 @@ namespace DoodleIdle
             else
             {
                 bool arc = item.trajectory == "Arc";
-                var art = Visual("Companion shot: " + item.id, sprite, origin, Vector2.one * (item.rarity >= 4 ? .7f : .5f), 515);
+                var art = Visual("Companion shot: " + item.id, sprite, origin, Vector2.one * (spray ? .4f : item.rarity >= 4 ? .7f : .5f), 515);
                 art.transform.rotation = Aim(direction);
                 companionShots.Add(new CompanionShot { impactIndex = DoodleCollectionArt.CompanionIndex(item.icon), art = art, start = origin,
-                    end = target.Position, direction = direction, arc = arc, duration = arc ? .7f + shotIndex * .025f : 2,
+                    end = target.Position, direction = direction, arc = arc, spray = spray, duration = arc ? .7f + shotIndex * .025f : 2,
                     speed = item.projectileSpeed, damage = damage, explosionRadius = item.explosionRadius, splashDamageMultiplier = item.splashDamageMultiplier });
             }
             CompanionShotsLaunched++; companionShotCounts[item.id] = CompanionShotCount(item.id) + 1;
@@ -131,6 +132,13 @@ namespace DoodleIdle
                 Vector2 next = shot.arc ? Vector2.Lerp(shot.start, shot.end, t) + Vector2.up * (8 * t * (1 - t))
                     : old + shot.direction * (shot.speed * dt);
                 shot.art.transform.position = next;
+                if (shot.spray) {
+                    shot.sprayEcho -= dt;
+                    if (shot.sprayEcho <= 0) {
+                        Echo("Scorpion poison spray", shot.art.sprite, next, Vector2.one * .25f, shot.art.transform.rotation, .15f, .55f, 514);
+                        shot.sprayEcho += .06f;
+                    }
+                }
                 if (shot.arc && (next - old).sqrMagnitude > .0001f) shot.art.transform.rotation = Aim(next - old);
                 Actor victim = null;
                 if (!shot.arc || t >= 1) foreach (var enemy in enemies)
