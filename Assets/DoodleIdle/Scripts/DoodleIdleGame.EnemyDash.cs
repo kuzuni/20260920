@@ -51,8 +51,28 @@ namespace DoodleIdle
                     continue;
                 }
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
-                enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
+                enemy.body.linearVelocity = LimitEnemyApproach(enemy, toPlayer.normalized * .6f + wander * .28f, dt);
             }
+        }
+
+        Vector2 LimitEnemyApproach(Actor enemy, Vector2 desired, float dt)
+        {
+            // Do not continually drive a packed crowd into existing contacts. Reserve
+            // half the remaining gap because both neighbours can move in the same tick.
+            float factor = 1, radius = ActorRadius(enemy);
+            foreach (var other in enemies) {
+                if (other == enemy) continue;
+                Vector2 relative = other.Position - enemy.Position;
+                float separation = radius + ActorRadius(other), reach = separation + .1f;
+                if (Mathf.Abs(relative.x) > reach || Mathf.Abs(relative.y) > reach) continue;
+                float distance = relative.magnitude;
+                if (distance <= .0001f) { factor = 0; break; }
+                float closing = Vector2.Dot(desired, relative / distance);
+                if (closing <= 0) continue;
+                float availableSpeed = Mathf.Max(0, distance - separation - .035f) * .5f / dt;
+                factor = Mathf.Min(factor, availableSpeed / closing);
+            }
+            return desired * factor;
         }
 
         void EnemyDashTrail(Actor enemy)
