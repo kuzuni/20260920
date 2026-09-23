@@ -51,6 +51,8 @@
 
 내장 `image_gen` 편집으로 `AscensionCompanions.png`와 `AscensionRevisions.png`를 수정했다. [최종 편집 프롬프트](ascension-anatomy-edit-prompts.json)에 두 파일의 저장 경로와 편집 지시를 기록했다.
 
+[팔다리 수정 CI](https://github.com/kuzuni/20260920/actions/runs/35929551306): 이미지 커밋 `8eb20d0`, 관련 렌더·공격 검사 **3/3 통과**. 실제 Unity 렌더에서 두 컷을 나란히 비교해 위 표의 팔다리 개수가 유지되는 것을 확인했다. `ascension-art` 옵션으로 이 검사를 재실행할 수 있다.
+
 ## 장비·등급·확률
 
 - 갑옷과 몽둥이에 각각 근원 가시, 근원 수정, 초월 날개, 초월 별빛, 갓 태양 5개씩 추가한다.
@@ -67,5 +69,5 @@
 - 생성 프롬프트 및 최종 PNG 경로: [스킬·장비](ascension-art-prompts.json), [동료·투척물](ascension-companion-art-prompts.json).
 - 검증은 GitHub Actions의 Unity PlayMode에서 수행한다. `ascension` 수동 실행 옵션은 신규 전투, 저장 이관, 카탈로그, 장비 합성, 확률, 피해량과 아트 검사를 포함한다.
 - 실제 uGUI/URP 렌더 결과는 CI 아티팩트의 `ascension-*.png`, 검사 결과는 `playmode-results.xml`에 저장한다.
-- 최종 검증: [Unity CI 35907418220](https://github.com/kuzuni/20260920/actions/runs/35907418220), 코드 커밋 `6bc0b4b`, 관련 PlayMode 검사 **25/25 통과** (2026-09-24 KST). 신규 동료·투척물, 스킬 수량과 발사 간격, 해제 시 예약 공격 취소, 저장 이관, 확률, 장비 합성, UI와 기존 이동·돌진·충돌을 확인했다.
+- 확장 구현 검증: [Unity CI 35907418220](https://github.com/kuzuni/20260920/actions/runs/35907418220), 코드 커밋 `6bc0b4b`, 관련 PlayMode 검사 **25/25 통과** (2026-09-24 KST). 신규 동료·투척물, 스킬 수량과 발사 간격, 해제 시 예약 공격 취소, 저장 이관, 확률, 장비 합성, UI와 기존 이동·돌진·충돌을 확인했다.
 - 40개 스킬을 교체하며 200초간 진행하는 자동 전투 검사도 통과했다. 맵 가장자리의 적 밀집 상태에서 이동·동시 넉백이 적을 계속 밀어 겹치지 않도록 여유 공간에 맞춰 속도를 제한한다. 기존 충돌 검사의 허용 기준은 유지하고, 적 위치·반지름은 프레임당 한 번씩 읽어 재사용한다.
