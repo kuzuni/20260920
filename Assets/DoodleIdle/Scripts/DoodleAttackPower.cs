@@ -29,6 +29,8 @@ namespace DoodleIdle
                 case "Cloud": return new Splash(.75f, .3f, 10);
                 case "RedCloud": return new Splash(.9f, .3f, 10);
                 case "DoubleClaw": return new Splash(.8f, .4f, 19);
+                case "FireGolem": return new Splash(1.8f, .5f, 23);
+                case "SolarVolley": return new Splash(1.4f, .5f, 21);
                 case "Golem": return new Splash(1.4f, .5f, -1);
                 default: return default;
             }
@@ -44,6 +46,16 @@ namespace DoodleIdle
         {
             switch (ability)
             {
+                case "BladeRing": return new Estimate(30, 12, "칼날 12개 순차 원형 발사");
+                case "FireGolem": return new Estimate(32, 160, "불골렘 10마리 · 10초 공격");
+                case "CactusRage": return new Estimate(42, 4, "선인장 4개 관통");
+                case "FireTornado": return new Estimate(18, 39, "7초 동안 범위 지속 피해");
+                case "RazorShuriken": return new Estimate(45, 8, "칼바람 표창 8개 관통");
+                case "MightyDragon": return new Estimate(13, 18, "큰 용 6초 접촉 + 불꽃 공격") { totalWeight = 13 * 18 + 12 * 3 * 19 };
+                case "GodHand": return new Estimate(150, 3, "손바닥 3개 · 넓은 범위 타격");
+                case "MissileRage": return new Estimate(55, 13, "미사일 13발 · 폭발당 적 1명");
+                case "ChimeraBrothers": return new Estimate(8, 102, "키메라 3마리 · 각각 6초 접촉");
+                case "SolarVolley": return new Estimate(57.6f, 21, "태양 3개 × 7회 튕김");
                 case "Banana": return new Estimate(19, 23, "적 1명에게 8초 접촉 · 약 23타");
                 case "Stone": return new Estimate(42, 3, "돌 3개 모두 명중");
                 case "Arrows": return new Estimate(22, 10, "화살 10발 모두 명중");

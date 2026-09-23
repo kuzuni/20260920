@@ -32,6 +32,7 @@ namespace DoodleIdle
         sealed class ExtraShot
         {
             public ProjectileKind kind;
+            public string ability;
             public SpriteRenderer art;
             public Actor target, previous;
             public Vector2 start, end;
@@ -99,7 +100,7 @@ namespace DoodleIdle
         void DisposeSkillArt() { for (int i = 0; i < skillArt.Length; i++) if (i != 3 && i != 1 && skillArt[i]) Destroy(skillArt[i]); }
         void ClearExtraSkills()
         {
-            ClearCompanions();ClearVariants();ClearExpansionSkills();
+            ClearCompanions();ClearVariants();ClearExpansionSkills();ClearAscension();
             ClearSummons();
             foreach (var shot in extraShots) if (shot.art) Destroy(shot.art.gameObject);
             extraShots.Clear();
@@ -284,18 +285,22 @@ namespace DoodleIdle
                     {
                         if (rebounding) break;
                         if (enemy == shot.previous && enemy != shot.target) continue;
-                        if ((shot.kind == ProjectileKind.Fire || shot.purple) && enemy != shot.target) continue;
+                        if (shot.ability != "MissileRage" && (shot.kind == ProjectileKind.Fire || shot.purple) && enemy != shot.target) continue;
                         if (SegmentDistance(enemy.Position, old, next) > (.56f + (shot.kind == ProjectileKind.Ball ? .31f : .14f)*shot.size)) continue;
                         float d = (enemy.Position - old).sqrMagnitude;
                         if (d < closest) { collision = enemy; closest = d; }
                     }
                     if (collision != null)
                     {
-                        if (shot.kind == ProjectileKind.Ball)
+                        if (shot.ability == "MissileRage")
+                        {
+                            next = collision.Position; ExplodeRageMissile(next); finished = true;
+                        }
+                        else if (shot.kind == ProjectileKind.Ball)
                         {
                             shot.hits++; BallHits++;
                             BallEnemyHit?.Invoke(collision.root.GetInstanceID(), shot.hits);
-                            SkillImpact(collision, 24*shot.size, (next - old).normalized, shot.size > 1 ? "Durian" : "BouncyBall");
+                            SkillImpact(collision, 24*shot.size, (next - old).normalized, shot.ability ?? (shot.size > 1 ? "Durian" : "BouncyBall"));
                             shot.previous = collision; shot.target = ClosestExcept(next, collision);
                             // A lone boss must receive every remaining bounce instead of being permanently excluded.
                             if (!Alive(shot.target) && Alive(collision)) {
@@ -313,7 +318,10 @@ namespace DoodleIdle
                             finished = true;
                         }
                     }
-                    if (shot.kind != ProjectileKind.Ball && shot.age > 5) finished = true;
+                    if (shot.kind != ProjectileKind.Ball && shot.age > 5) {
+                        if (shot.ability == "MissileRage" && !finished) ExplodeRageMissile(next);
+                        finished = true;
+                    }
                     if (shot.kind == ProjectileKind.Ball && enemies.Count == 0) finished = true;
                 }
                 shot.art.transform.position = next;

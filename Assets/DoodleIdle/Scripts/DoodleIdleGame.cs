@@ -394,6 +394,7 @@ namespace DoodleIdle
             TickCompanions(dt);
             TickExpansionSkills(dt);
             TickVariants(dt);
+            TickAscension(dt);
             TickExtraSkills(dt);
             TickSummons(dt);
             TickParticles(dt);

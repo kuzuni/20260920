@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        readonly ParticleSystem[] companionImpactParticles = new ParticleSystem[24];
+        readonly ParticleSystem[] companionImpactParticles = new ParticleSystem[34];
 
         void BuildCompanionImpactParticles(List<ParticleSystem> all)
         {

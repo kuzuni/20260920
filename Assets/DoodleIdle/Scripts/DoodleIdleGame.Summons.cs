@@ -48,6 +48,7 @@ namespace DoodleIdle
         sealed class MovingSkill
         {
             public SummonSkill kind;
+            public string ability;
             public SpriteRenderer art;
             public Vector2 start, direction, end;
             public Actor target;
@@ -61,6 +62,8 @@ namespace DoodleIdle
             public Actor target;
             public float age, flameClock;
             public bool ice;
+            public string ability;
+            public float size = 1;
             public readonly List<SpriteRenderer> parts = new List<SpriteRenderer>();
             public SpriteRenderer wings;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
@@ -283,20 +286,21 @@ namespace DoodleIdle
             art.transform.rotation=Aim(direction)*Quaternion.Euler(0,0,90+Mathf.Sin(age*15)*12);
             art.transform.localScale=new Vector3(size,size*(.72f+.28f*Mathf.Abs(Mathf.Cos(age*10))),1);
         }
-        void SpawnSnake(SummonSkill kind, Vector2 direction, bool ice=false)
+        void SpawnSnake(SummonSkill kind, Vector2 direction, bool ice=false, string ability=null, float size=1, int headCell=-1)
         {
             bool dragon = kind == SummonSkill.Dragon;
-            var snake = new Snake { ice=ice,kind = kind, direction = direction, origin = player.Position, head = player.Position, flameClock = .35f };
+            var snake = new Snake { ability=ability, size=size, ice=ice,kind = kind, direction = direction, origin = player.Position, head = player.Position, flameClock = .35f };
             int count = kind == SummonSkill.TetherSnake ? 32 : dragon ? 14 : 11;
             for (int i = 0; i < count; i++)
             {
                 bool tether = kind == SummonSkill.TetherSnake;
                 var art = summonArt[dragon ? (i == 0 ? "DragonHead" : "DragonSegment") : tether ? (i == 0 ? "PurpleSnakeHead" : "PurpleSnakeSegment") : (i == 0 ? "SnakeHead" : "SnakeSegment")];
                 if(ice)art=DoodleVariantArt.Get(i==0?"IceSnakeHead":"IceSnakeSegment");
-                var part = Visual((ice?"IceSnakes":kind.ToString()) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f)*(ice?2:1), (tether ? -500 : 445) - i);
+                if (headCell >= 0) art = DoodleAscensionArt.Cell(i == 0 ? headCell : dragon ? 32 : 33);
+                var part = Visual((ability ?? (ice?"IceSnakes":kind.ToString())) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f)*(ice?2:1)*size, (tether ? -500 : 445) - i);
                 part.enabled = false; snake.parts.Add(part);
             }
-            if (dragon) snake.wings = Visual("Animated dragon wings", summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f, 450);
+            if (dragon) snake.wings = Visual("Animated dragon wings", ability == "MightyDragon" ? DoodleAscensionArt.Cell(34) : summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f * size, 450);
             snakes.Add(snake);
         }
 
@@ -428,7 +432,8 @@ namespace DoodleIdle
                         if (SegmentDistance(enemy.Position, old, next) > shot.radius) continue;
                         if (shot.nextHit.TryGetValue(enemy, out float until) && shot.age < until) continue;
                         shot.nextHit[enemy] = shot.kind == SummonSkill.Sand ? shot.age + .22f : float.MaxValue;
-                        Impact(shot.kind, enemy, shot.damage, shot.direction);
+                        if (shot.ability != null) SkillDamage(enemy, shot.damage, shot.direction, shot.ability);
+                        else Impact(shot.kind, enemy, shot.damage, shot.direction);
                         if (shot.kind == SummonSkill.Shotgun) { finished = true; break; }
                     }
                 }
@@ -513,24 +518,25 @@ namespace DoodleIdle
                         var mouthTarget = InRange(position, 5);
                         part.transform.rotation = Aim(mouthTarget == null ? snake.direction : (mouthTarget.Position - position).normalized);
                     }
-                    float size = (dragon ? .7f : .47f) * (snake.ice?2:1) * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
+                    float size = (dragon ? .7f : .47f) * (snake.ice?2:1) * snake.size * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
                     part.transform.localScale = Vector3.one * size;
                     if (tether) part.color = new Color(1, 1, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
                     if (!visible) continue;
                     for (int e = enemies.Count - 1; e >= 0; e--)
                     {
                         var enemy = enemies[e];
-                        if (SegmentDistance(enemy.Position, old, position) > (dragon ? .92f : .8f)) continue;
+                        if (SegmentDistance(enemy.Position, old, position) > (dragon ? .92f : .8f) * snake.size) continue;
                         if (snake.nextHit.TryGetValue(enemy, out float until) && snake.age < until) continue;
                         snake.nextHit[enemy] = snake.age + (tether ? .18f : .35f);
-                        Impact(snake.kind, enemy, tether ? 8 : 13, (enemy.Position - player.Position).normalized, snake.ice ? "IceSnakes" : null);
+                        Impact(snake.kind, enemy, tether ? 8 : 13, (enemy.Position - player.Position).normalized, snake.ability ?? (snake.ice ? "IceSnakes" : null));
                     }
                 }
                 if (dragon)
                 {
                     snake.wings.transform.position = snake.parts[3].transform.position;
                     snake.wings.transform.rotation = snake.parts[3].transform.rotation * Quaternion.Euler(0, 0, 90);
-                    SetSpriteArt(snake.wings, summonArt[(int)(snake.age * 8) % 2 == 0 ? "DragonWingUp" : "DragonWingDown"]);
+                    if (snake.ability == "MightyDragon") snake.wings.transform.localScale = new Vector3(2.1f * snake.size, 2.1f * snake.size * (.75f + .25f * Mathf.Cos(snake.age * 15)), 1);
+                    else SetSpriteArt(snake.wings, summonArt[(int)(snake.age * 8) % 2 == 0 ? "DragonWingUp" : "DragonWingDown"]);
                     snake.flameClock -= dt;
                     if (snake.flameClock <= 0)
                     {
@@ -543,7 +549,8 @@ namespace DoodleIdle
                         {
                             Vector2 direction = Direction(Mathf.Atan2(aim.y, aim.x) + f * .18f);
                             Vector2 lip = mouth + (Vector2)(Aim(aim) * new Vector3(.34f, -.14f, 0));
-                            AddMoving(SummonSkill.Dragon, skillArt[2], lip, direction, .65f, 7.5f, .85f, 12, .72f); DragonFlames++;
+                            var flame = AddMoving(SummonSkill.Dragon, skillArt[2], lip, direction, .65f * snake.size, 7.5f, .85f, 12, .72f * snake.size);
+                            flame.ability = snake.ability; DragonFlames++;
                         }
                     }
                 }

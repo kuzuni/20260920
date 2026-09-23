@@ -51,7 +51,7 @@ namespace DoodleIdle
     public sealed partial class DoodleUi
     {
         const string CollectionsSaveKey = "DoodleUi.Collections.v1";
-        public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
+        public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "근원", "초월", "갓" };
         readonly List<UiItem> collectionItems = new List<UiItem>();
         readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
         UiCollectionTuning collectionTuning;
@@ -163,7 +163,7 @@ namespace DoodleIdle
         public double GradeProbability(string category, int rarity)
         {
             InitCollections();
-            return rarity >= 0 && rarity < 7 && Items(category).Exists(x => x.rarity == rarity) ? SummonWeights(category)[rarity]/1000d : 0;
+            return rarity >= 0 && rarity < GradeNames.Length && Items(category).Exists(x => x.rarity == rarity) ? SummonWeights(category)[rarity]/1000d : 0;
         }
 
         public double ItemProbability(UiItem item)
@@ -284,7 +284,7 @@ namespace DoodleIdle
         float ItemEquipValue(UiItem item)
         {
             if(IsEquipment(item)) {
-                float enhancement=item.rarity==6?1+Math.Max(0,item.level-1)*.01f:AbilityEnhancementMultiplier(item);
+                float enhancement=(item.rarity==6 && item.tier==1 || item.rarity==8)?1+Math.Max(0,item.level-1)*.01f:AbilityEnhancementMultiplier(item);
                 return ((1+item.equipValue/100)*enhancement-1)*100;
             }
             return item.equipValue * (item.category=="Skill"||item.category=="Companion" ? AbilityEnhancementMultiplier(item) : 1 + Math.Max(0, item.level - 1) * .15f);
@@ -308,7 +308,7 @@ namespace DoodleIdle
         }
         public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
         public static bool IsEquipment(UiItem item) => item != null && (item.category == "Armor" || item.category == "Club");
-        public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? (item.rarity == 6 ? int.MaxValue : 100) : item.category == "Skill" ? 100 : collectionTuning.maxItemLevel;
+        public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? ((item.rarity == 6 && item.tier == 1 || item.rarity == 8) ? int.MaxValue : 100) : item.category == "Skill" ? 100 : collectionTuning.maxItemLevel;
         long UpgradeCopiesBetween(int from, int to)
         {
             // Sum floor((level - 1) / 10) without a loop over a potentially old high level.
@@ -317,10 +317,13 @@ namespace DoodleIdle
         }
         public UiItem SynthesisTarget(UiItem item)
         {
-            if (!IsEquipment(item) || item.rarity == 6 || !collectionItems.Contains(item)) return null;
-            int grade = item.tier == 5 ? item.rarity + 1 : item.rarity;
-            int tier = item.tier == 5 ? 1 : item.tier + 1;
-            return Items(item.category).Find(x => x.rarity == grade && x.tier == tier);
+            if (!IsEquipment(item) || !collectionItems.Contains(item)) return null;
+            UiItem next = null;
+            foreach (var candidate in Items(item.category)) {
+                if (candidate.rarity < item.rarity || candidate.rarity == item.rarity && candidate.tier <= item.tier) continue;
+                if (next == null || candidate.rarity < next.rarity || candidate.rarity == next.rarity && candidate.tier < next.tier) next = candidate;
+            }
+            return next;
         }
         public int SynthesizeItem(UiItem item, bool all = false)
         {

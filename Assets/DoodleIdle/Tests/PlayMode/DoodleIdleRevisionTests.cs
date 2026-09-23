@@ -29,16 +29,16 @@ namespace DoodleIdle.Tests
             game.TogglePause(); var ui=game.Ui;
             foreach(string category in new[]{"Armor","Club"}) {
                 var items=ui.Items(category);
-                Assert.That(items.Select(x=>x.icon).Distinct().Count(),Is.EqualTo(31));
+                Assert.That(items.Select(x=>x.icon).Distinct().Count(),Is.EqualTo(36));
                 var sprites=items.Select(x=>UiKit.Art(x.icon)).ToArray();
-                Assert.That(sprites.Select(x=>x.rect).Distinct().Count(),Is.EqualTo(31));
+                Assert.That(sprites.Select(x=>x.rect).Distinct().Count(),Is.EqualTo(36));
                 for(int i=0;i<items.Count;i++) {
                     var sprite=sprites[i];
                     Assert.That(sprite.name,Is.EqualTo(items[i].icon));
-                    Assert.That(sprite.texture.name,Is.EqualTo("Equipment"+category));
+                    Assert.That(sprite.texture.name,Is.EqualTo(i < 31 ? "Equipment"+category : "AscensionAtlas"));
                     var rect=sprite.rect;
                     int width=(int)rect.width,height=(int)rect.height;
-                    Assert.That(width,Is.GreaterThan(120)); Assert.That(height,Is.GreaterThan(120));
+                    Assert.That(width,Is.GreaterThan(i < 31 ? 120 : 90)); Assert.That(height,Is.GreaterThan(i < 31 ? 120 : 90));
                     var pixels=sprite.texture.GetPixels((int)rect.x,(int)rect.y,width,height);
                     Assert.That(pixels.Count(p=>p.a>.125f),Is.InRange(width*height/5,width*height*95/100));
                     for(int x=0;x<width;x++) {
@@ -92,7 +92,7 @@ namespace DoodleIdle.Tests
                 foreach (var item in items) Assert.That(ui.ItemProbability(item), Is.EqualTo(100d/items.Count));
             }
             UiOpen("Shop"); ui.ShowSummonProbabilities("Skill");
-            Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("25% / 22.5% / 20% / 17.5% / 15%")),Is.True);
+            Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("10:9:8:7:6")),Is.True);
             yield return null;
         }
         [UnityTest]
@@ -103,12 +103,12 @@ namespace DoodleIdle.Tests
             foreach(string category in new[]{"Armor","Club","Skill","Companion"})
             {
                 double previousLegend=0,previousMyth=0,previousGod=0;
-                for(int level=1;level<=35;level++)
+                for(int level=1;level<=DoodleUi.MaxSummonLevel;level++)
                 {
                     states[category].level=level;
                     var weights=ui.SummonWeights(category,level);
                     var defaults=(int[])new DoodleUi.CommerceTuning().rates[level-1].basisPoints.Clone();
-                    if(category=="Skill"||category=="Companion") { defaults[5]+=defaults[6];defaults[6]=0; }
+                    if(level<35 && (category=="Skill"||category=="Companion")) { defaults[5]+=defaults[6];defaults[6]=0; }
                     CollectionAssert.AreEqual(defaults,weights,"Resource tuning and fallback defaults must agree at every level.");
                     Assert.That(weights.Sum(),Is.EqualTo(100000));
                     int boundary=0;
@@ -129,16 +129,16 @@ namespace DoodleIdle.Tests
                     if(level<25)Assert.That(god,Is.Zero);
                     previousLegend=legend;previousMyth=myth;previousGod=god;
                 }
-                int[] draws=new int[7];
+                int[] draws=new int[DoodleUi.GradeNames.Length];
                 for(int ticket=0;ticket<100000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
-                CollectionAssert.AreEqual(category=="Skill"||category=="Companion"?new[]{20000,20000,20000,20000,18000,2000,0}:new[]{20000,20000,20000,20000,18000,1900,100},draws,"All lottery intervals must match the displayed level 35 probabilities, including the six-grade catalogs.");
+                CollectionAssert.AreEqual(new[]{15000,20000,20000,20000,18000,1900,3000,2000,100},draws,"All level 50 intervals match the displayed nine-grade probabilities.");
                 states[category].level=1;
                 for(int ticket=0;ticket<100000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
-                states[category].level=34;states[category].experience=9999;
+                states[category].level=49;states[category].experience=9999;
                 Assert.That(ui.TrySummon(category,50,false),Is.True);
-                Assert.That(ui.SummonLevel(category),Is.EqualTo(35));Assert.That(ui.SummonExperience(category),Is.Zero);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(50));Assert.That(ui.SummonExperience(category),Is.Zero);
                 Assert.That(ui.TrySummon(category,50,false),Is.True);
-                Assert.That(ui.SummonLevel(category),Is.EqualTo(35));Assert.That(ui.SummonExperience(category),Is.Zero);
+                Assert.That(ui.SummonLevel(category),Is.EqualTo(50));Assert.That(ui.SummonExperience(category),Is.Zero);
                 ui.CloseFullscreen();
             }
             foreach(int level in new[]{2,10,20,30}) {
@@ -146,7 +146,7 @@ namespace DoodleIdle.Tests
                 ui.ShowSummonProbabilities("Armor");
                 var panel=UiNode("Detail dim: 뽑기 확률");
                 var weights=ui.SummonWeights("Armor",level);
-                for(int grade=0;grade<7;grade++) {
+                for(int grade=0;grade<DoodleUi.GradeNames.Length;grade++) {
                     var row=panel.GetComponentsInChildren<RectTransform>().Single(r=>r.name=="Probability_grade_"+grade);
                     string displayed=row.GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate").text;
                     Assert.That(displayed,Is.EqualTo((weights[grade]/1000d).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture)+"%"));
@@ -169,7 +169,7 @@ namespace DoodleIdle.Tests
             PlayerPrefs.SetString("DoodleUi.Commerce.Armor","{\"level\":999,\"experience\":1000}");
             PlayerPrefs.SetString("DoodleUi.Commerce.Relic","{\"level\":10,\"experience\":100}");
             typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(ui,null);
-            Assert.That(ui.SummonLevel("Armor"),Is.EqualTo(35));Assert.That(ui.SummonExperience("Armor"),Is.Zero);
+            Assert.That(ui.SummonLevel("Armor"),Is.EqualTo(50));Assert.That(ui.SummonExperience("Armor"),Is.Zero);
             Assert.That(ui.SummonLevel("Relic"),Is.Zero);Assert.That(ui.SummonExperience("Relic"),Is.Zero);
             yield return null;
         }
@@ -265,8 +265,8 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Armor", "Club" })
             {
                 var items = ui.Items(category);
-                Assert.That(items.Count, Is.EqualTo(31));
-                for (int grade = 0; grade < 7; grade++) Assert.That(items.Count(x => x.rarity == grade), Is.EqualTo(grade == 6 ? 1 : 5));
+                Assert.That(items.Count, Is.EqualTo(36));
+                for (int grade = 0; grade < 9; grade++) Assert.That(items.Count(x => x.rarity == grade), Is.EqualTo(grade < 6 ? 5 : grade == 6 ? 3 : grade == 7 ? 2 : 1));
                 for (int index = 0; index < items.Count - 1; index++)
                 {
                     var item = items[index]; var next = items[index + 1];
@@ -276,8 +276,8 @@ namespace DoodleIdle.Tests
                     Assert.That(ui.SynthesizeItem(item), Is.Zero);
                     Assert.That(ui.UpgradeItem(item), Is.True);
                     Assert.That(item.level, Is.EqualTo(100));
-                    Assert.That(ui.UpgradeItem(item), Is.False);
-                    item.count = 14; int before = next.count;
+                    Assert.That(ui.UpgradeItem(item), item.rarity == 6 && item.tier == 1 ? Is.True : Is.False);
+                    item.level = 100; item.count = 14; int before = next.count;
                     Assert.That(ui.SynthesizeItem(item, true), Is.EqualTo(2));
                     Assert.That(item.count, Is.EqualTo(4));
                     Assert.That(item.level, Is.EqualTo(100));
@@ -292,7 +292,7 @@ namespace DoodleIdle.Tests
             }
             UiOpen("Equipment");
             Assert.That(UiNode("Collection actions").GetChild(0).name, Is.EqualTo("일괄 합성"));
-            Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(31));
+            Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(36));
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Where(x=>x.name=="Enhancement level").All(x=>x.text.StartsWith("Lv.")),Is.True);
             Object.Destroy(CaptureFrame("revision-equipment-synthesis.png", 720, 1520));
             yield return null;

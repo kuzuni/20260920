@@ -324,7 +324,7 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = ui.Items(category);
                 foreach (var item in items) { item.discovered = true; item.level = 1; item.equipped = false; }
-                for (int grade = 0; grade < 5; grade++) {
+                for (int grade = 0; grade < DoodleUi.GradeNames.Length - 1; grade++) {
                     var lower = items.Where(x => x.rarity == grade).ToArray();
                     var higher = items.Where(x => x.rarity == grade + 1).ToArray();
                     foreach (var item in lower) item.level = ui.ItemMaxLevel(item);

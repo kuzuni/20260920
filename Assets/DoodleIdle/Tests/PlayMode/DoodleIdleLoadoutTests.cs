@@ -58,7 +58,7 @@ namespace DoodleIdle.Tests
             var window = ScriptableObject.CreateInstance(editorType);
             editorType.GetMethod("RefreshSkills").Invoke(window, null);
             var rows = (System.Collections.IList)editorType.GetField("skills", GrowthPrivate).GetValue(window);
-            Assert.That(rows.Count, Is.EqualTo(30)); Object.DestroyImmediate(window);
+            Assert.That(rows.Count, Is.EqualTo(40)); Object.DestroyImmediate(window);
 #endif
         }
 
@@ -67,7 +67,7 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();
             ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
-            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
+            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1), 1);
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = game.Ui.Items(category); int capacity = category == "Skill" ? 8 : 5;
                 foreach (var item in items) { game.Ui.AddItem(item, 1); item.equipped = false; }
@@ -97,10 +97,10 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = game.Ui.Items(category);
-                Assert.That(items.Select(x => x.icon).Distinct().Count(), Is.EqualTo(category == "Skill" ? 30 : 24));
+                Assert.That(items.Select(x => x.icon).Distinct().Count(), Is.EqualTo(category == "Skill" ? 40 : 34));
                 foreach (var item in items) Assert.That(UiKit.Art(item.icon), Is.Not.Null, item.id);
             }
-            Assert.That(game.Ui.Items("Companion").Select(x => x.projectile).Distinct().Count(), Is.EqualTo(24));
+            Assert.That(game.Ui.Items("Companion").Select(x => x.projectile).Distinct().Count(), Is.EqualTo(34));
             foreach (var renderer in game.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
             var display = new GameObject("Companion motion atlas");
             display.transform.SetParent(game.transform);
@@ -198,7 +198,7 @@ namespace DoodleIdle.Tests
             foreach(var item in armor){item.discovered=false;item.equipped=false;item.count=item.level=0;}
             foreach(var item in companions){ui.AddItem(item,1);item.equipped=false;}
             Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(1));
-            ui.AddItem(ui.Items("Club").Single(x=>x.rarity==6),1);
+            ui.AddItem(ui.Items("Club").Single(x=>x.rarity==6 && x.tier==1),1);
             Assert.That(ui.UnlockedCompanionSlots,Is.EqualTo(1),"Weapons cannot unlock companion slots.");
             ui.AutoEquip("Companion");Assert.That(ui.EquippedCompanions.Count,Is.EqualTo(1));
             UiOpen("Companions");
@@ -234,7 +234,7 @@ namespace DoodleIdle.Tests
 
         void ExportCompanionProjectileSheets()
         {
-            var items = game.Ui.Items("Companion");
+            var items = game.Ui.Items("Companion").Take(24).ToList();
             var previews = new Texture2D[24];
             var camera = Camera.main; camera.transform.position = new Vector3(0,0,-10); camera.orthographicSize = 1.5f;
             camera.backgroundColor = new Color(.96f,.96f,.92f);

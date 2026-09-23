@@ -17,41 +17,56 @@ namespace DoodleIdle
             public int relicUnitCost = 10, skillUnitCost = 20, companionUnitCost = 20;
             public int[] levelExperience = { 50, 100, 200, 400, 800, 1600, 3200, 6400, 10000 };
             public SummonRateTier[] rates = {
-                new SummonRateTier { level=1, basisPoints=new[]{90000,9000,1000,0,0,0,0} },
-                new SummonRateTier { level=2, basisPoints=new[]{86111,12444,1444,1,0,0,0} },
-                new SummonRateTier { level=3, basisPoints=new[]{82217,15889,1889,5,0,0,0} },
-                new SummonRateTier { level=4, basisPoints=new[]{78324,19333,2333,10,0,0,0} },
-                new SummonRateTier { level=5, basisPoints=new[]{74244,22778,2778,200,0,0,0} },
-                new SummonRateTier { level=6, basisPoints=new[]{68778,26222,3222,1777,1,0,0} },
-                new SummonRateTier { level=7, basisPoints=new[]{64330,29667,3667,2333,3,0,0} },
-                new SummonRateTier { level=8, basisPoints=new[]{58881,33111,4111,3888,9,0,0} },
-                new SummonRateTier { level=9, basisPoints=new[]{54434,36556,4556,4444,10,0,0} },
-                new SummonRateTier { level=10, basisPoints=new[]{49901,40000,5000,4999,100,0,0} },
-                new SummonRateTier { level=11, basisPoints=new[]{48000,39000,7500,5299,201,0,0} },
-                new SummonRateTier { level=12, basisPoints=new[]{46000,38000,10000,5599,401,0,0} },
-                new SummonRateTier { level=13, basisPoints=new[]{44001,37000,12500,5899,600,0,0} },
-                new SummonRateTier { level=14, basisPoints=new[]{42001,36000,15000,6199,800,0,0} },
-                new SummonRateTier { level=15, basisPoints=new[]{39999,35000,17500,6500,1000,1,0} },
-                new SummonRateTier { level=16, basisPoints=new[]{37997,34000,20000,6800,1200,3,0} },
-                new SummonRateTier { level=17, basisPoints=new[]{35991,33000,22500,7100,1400,9,0} },
-                new SummonRateTier { level=18, basisPoints=new[]{33986,32000,25000,7400,1599,15,0} },
-                new SummonRateTier { level=19, basisPoints=new[]{31951,31000,27500,7700,1799,50,0} },
-                new SummonRateTier { level=20, basisPoints=new[]{29911,30000,30000,8000,1999,90,0} },
-                new SummonRateTier { level=21, basisPoints=new[]{29000,29000,29000,9200,3599,201,0} },
-                new SummonRateTier { level=22, basisPoints=new[]{28000,28000,28000,10400,5199,401,0} },
-                new SummonRateTier { level=23, basisPoints=new[]{27001,27000,27000,11600,6799,600,0} },
-                new SummonRateTier { level=24, basisPoints=new[]{26001,26000,26000,12800,8399,800,0} },
-                new SummonRateTier { level=25, basisPoints=new[]{24999,25000,25000,14000,10000,1000,1} },
-                new SummonRateTier { level=26, basisPoints=new[]{23992,24000,24000,15200,11600,1200,8} },
-                new SummonRateTier { level=27, basisPoints=new[]{22988,23000,23000,16400,13200,1400,12} },
-                new SummonRateTier { level=28, basisPoints=new[]{21983,22000,22000,17600,14800,1599,18} },
-                new SummonRateTier { level=29, basisPoints=new[]{20982,21000,21000,18800,16400,1799,19} },
-                new SummonRateTier { level=30, basisPoints=new[]{19981,20000,20000,20000,18000,1999,20} },
-                new SummonRateTier { level=31, basisPoints=new[]{20000,20000,20000,20000,18000,1979,21} },
-                new SummonRateTier { level=32, basisPoints=new[]{20000,20000,20000,20000,18000,1959,41} },
-                new SummonRateTier { level=33, basisPoints=new[]{20000,20000,20000,20000,18000,1940,60} },
-                new SummonRateTier { level=34, basisPoints=new[]{20000,20000,20000,20000,18000,1920,80} },
-                new SummonRateTier { level=35, basisPoints=new[]{20000,20000,20000,20000,18000,1900,100} }
+                new SummonRateTier { level=1, basisPoints=new[]{90000,9000,1000,0,0,0,0,0,0} },
+                new SummonRateTier { level=2, basisPoints=new[]{86111,12444,1444,1,0,0,0,0,0} },
+                new SummonRateTier { level=3, basisPoints=new[]{82217,15889,1889,5,0,0,0,0,0} },
+                new SummonRateTier { level=4, basisPoints=new[]{78324,19333,2333,10,0,0,0,0,0} },
+                new SummonRateTier { level=5, basisPoints=new[]{74244,22778,2778,200,0,0,0,0,0} },
+                new SummonRateTier { level=6, basisPoints=new[]{68778,26222,3222,1777,1,0,0,0,0} },
+                new SummonRateTier { level=7, basisPoints=new[]{64330,29667,3667,2333,3,0,0,0,0} },
+                new SummonRateTier { level=8, basisPoints=new[]{58881,33111,4111,3888,9,0,0,0,0} },
+                new SummonRateTier { level=9, basisPoints=new[]{54434,36556,4556,4444,10,0,0,0,0} },
+                new SummonRateTier { level=10, basisPoints=new[]{49901,40000,5000,4999,100,0,0,0,0} },
+                new SummonRateTier { level=11, basisPoints=new[]{48000,39000,7500,5299,201,0,0,0,0} },
+                new SummonRateTier { level=12, basisPoints=new[]{46000,38000,10000,5599,401,0,0,0,0} },
+                new SummonRateTier { level=13, basisPoints=new[]{44001,37000,12500,5899,600,0,0,0,0} },
+                new SummonRateTier { level=14, basisPoints=new[]{42001,36000,15000,6199,800,0,0,0,0} },
+                new SummonRateTier { level=15, basisPoints=new[]{39999,35000,17500,6500,1000,1,0,0,0} },
+                new SummonRateTier { level=16, basisPoints=new[]{37997,34000,20000,6800,1200,3,0,0,0} },
+                new SummonRateTier { level=17, basisPoints=new[]{35991,33000,22500,7100,1400,9,0,0,0} },
+                new SummonRateTier { level=18, basisPoints=new[]{33986,32000,25000,7400,1599,15,0,0,0} },
+                new SummonRateTier { level=19, basisPoints=new[]{31951,31000,27500,7700,1799,50,0,0,0} },
+                new SummonRateTier { level=20, basisPoints=new[]{29911,30000,30000,8000,1999,90,0,0,0} },
+                new SummonRateTier { level=21, basisPoints=new[]{29000,29000,29000,9200,3599,201,0,0,0} },
+                new SummonRateTier { level=22, basisPoints=new[]{28000,28000,28000,10400,5199,401,0,0,0} },
+                new SummonRateTier { level=23, basisPoints=new[]{27001,27000,27000,11600,6799,600,0,0,0} },
+                new SummonRateTier { level=24, basisPoints=new[]{26001,26000,26000,12800,8399,800,0,0,0} },
+                new SummonRateTier { level=25, basisPoints=new[]{24999,25000,25000,14000,10000,1000,1,0,0} },
+                new SummonRateTier { level=26, basisPoints=new[]{23992,24000,24000,15200,11600,1200,8,0,0} },
+                new SummonRateTier { level=27, basisPoints=new[]{22988,23000,23000,16400,13200,1400,12,0,0} },
+                new SummonRateTier { level=28, basisPoints=new[]{21983,22000,22000,17600,14800,1599,18,0,0} },
+                new SummonRateTier { level=29, basisPoints=new[]{20982,21000,21000,18800,16400,1799,19,0,0} },
+                new SummonRateTier { level=30, basisPoints=new[]{19981,20000,20000,20000,18000,1999,20,0,0} },
+                new SummonRateTier { level=31, basisPoints=new[]{20000,20000,20000,20000,18000,1979,21,0,0} },
+                new SummonRateTier { level=32, basisPoints=new[]{20000,20000,20000,20000,18000,1959,41,0,0} },
+                new SummonRateTier { level=33, basisPoints=new[]{20000,20000,20000,20000,18000,1940,60,0,0} },
+                new SummonRateTier { level=34, basisPoints=new[]{20000,20000,20000,20000,18000,1920,80,0,0} },
+                new SummonRateTier { level=35, basisPoints=new[]{19999,20000,20000,20000,18000,1900,100,1,0} },
+                new SummonRateTier { level=36, basisPoints=new[]{19896,20000,20000,20000,18000,1900,201,3,0} },
+                new SummonRateTier { level=37, basisPoints=new[]{19690,20000,20000,20000,18000,1900,401,9,0} },
+                new SummonRateTier { level=38, basisPoints=new[]{19485,20000,20000,20000,18000,1900,600,15,0} },
+                new SummonRateTier { level=39, basisPoints=new[]{19250,20000,20000,20000,18000,1900,800,50,0} },
+                new SummonRateTier { level=40, basisPoints=new[]{19010,20000,20000,20000,18000,1900,1000,90,0} },
+                new SummonRateTier { level=41, basisPoints=new[]{18699,20000,20000,20000,18000,1900,1200,201,0} },
+                new SummonRateTier { level=42, basisPoints=new[]{18299,20000,20000,20000,18000,1900,1400,401,0} },
+                new SummonRateTier { level=43, basisPoints=new[]{17900,20000,20000,20000,18000,1900,1600,600,0} },
+                new SummonRateTier { level=44, basisPoints=new[]{17500,20000,20000,20000,18000,1900,1800,800,0} },
+                new SummonRateTier { level=45, basisPoints=new[]{17099,20000,20000,20000,18000,1900,2000,1000,1} },
+                new SummonRateTier { level=46, basisPoints=new[]{16697,20000,20000,20000,18000,1900,2200,1200,3} },
+                new SummonRateTier { level=47, basisPoints=new[]{16291,20000,20000,20000,18000,1900,2400,1400,9} },
+                new SummonRateTier { level=48, basisPoints=new[]{15885,20000,20000,20000,18000,1900,2600,1600,15} },
+                new SummonRateTier { level=49, basisPoints=new[]{15450,20000,20000,20000,18000,1900,2800,1800,50} },
+                new SummonRateTier { level=50, basisPoints=new[]{15000,20000,20000,20000,18000,1900,3000,2000,100} }
             };
             public CurrencyProduct[] products = {
                 new CurrencyProduct { amount=10000, priceWon=1100, mileageCoupons=0 },
@@ -66,7 +81,7 @@ namespace DoodleIdle
         [Serializable]
         public sealed class CurrencyProduct { public int amount, priceWon, mileageCoupons; }
         [Serializable] public sealed class SummonRateTier { public int level; public int[] basisPoints; }
-        public const int MaxSummonLevel=35, SummonWeightTotal=100000;
+        public const int MaxSummonLevel=50, SummonWeightTotal=100000;
 
         [Serializable]
         public sealed class SummonState
@@ -105,12 +120,12 @@ namespace DoodleIdle
                 commerceTuning.levelExperience[i] = Mathf.Max(1, commerceTuning.levelExperience[i]);
             var rates=commerceTuning.rates;
             if(rates==null||rates.Length<2||rates[0].level!=1||rates[rates.Length-1].level!=MaxSummonLevel)
-                throw new InvalidOperationException("Summon rate anchors must cover levels 1 through 35.");
+                throw new InvalidOperationException("Summon rate anchors must cover levels 1 through 50.");
             int priorLevel=0;
             foreach(var tier in rates)
             {
-                if(tier.level<=priorLevel||tier.basisPoints==null||tier.basisPoints.Length!=7)
-                    throw new InvalidOperationException("Summon rate anchors must increase and contain seven grades.");
+                if(tier.level<=priorLevel||tier.basisPoints==null||tier.basisPoints.Length!=GradeNames.Length)
+                    throw new InvalidOperationException("Summon rate anchors must increase and contain all nine grades.");
                 int total=0;foreach(int weight in tier.basisPoints){if(weight<0)throw new InvalidOperationException("Negative summon probability.");total+=weight;}
                 if(total!=SummonWeightTotal)
                     throw new InvalidOperationException("Summon rates must total 100% at 0.001% precision.");
@@ -174,18 +189,18 @@ namespace DoodleIdle
         public int[] SummonWeights(string category, int previewLevel)
         {
             int level=Mathf.Clamp(previewLevel, 1, MaxSummonLevel);
-            if(IsRelicSummon(category))return new[]{SummonWeightTotal,0,0,0,0,0,0};
+            if(IsRelicSummon(category))return new[]{SummonWeightTotal,0,0,0,0,0,0,0,0};
             var anchors=commerceTuning.rates;var lower=anchors[0];var upper=anchors[anchors.Length-1];
             foreach(var tier in anchors){if(tier.level<=level)lower=tier;if(tier.level>=level){upper=tier;break;}}
             double t=upper.level==lower.level?0:(level-lower.level)/(double)(upper.level-lower.level);
-            var weights=new int[7];int sum=0;
-            for(int grade=0;grade<7;grade++)
+            var weights=new int[GradeNames.Length];int sum=0;
+            for(int grade=0;grade<GradeNames.Length;grade++)
             {
                 int value=(int)Math.Round(lower.basisPoints[grade]+(upper.basisPoints[grade]-lower.basisPoints[grade])*t);
                 weights[grade]=value;sum+=value;
             }
             weights[0]+=SummonWeightTotal-sum;
-            if(category=="Skill" || category=="Companion") { weights[5]+=weights[6];weights[6]=0; }
+            if(level<35 && (category=="Skill" || category=="Companion")) { weights[5]+=weights[6];weights[6]=0; }
             return weights;
         }
 
@@ -546,7 +561,7 @@ namespace DoodleIdle
                 }
                 UiKit.Text(body, "등급별 확률", 27, TextAnchor.MiddleLeft, 42);
                 var weights = SummonWeights(category, level);
-                for (int grade = 0; grade < 7; grade++) {
+                for (int grade = 0; grade < GradeNames.Length; grade++) {
                     if (!Items(category).Exists(x => x.rarity == grade)) continue;
                     var row = CommerceFramedRow(body, "Probability_grade_" + grade, 64);
                     row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(10, 10, 5, 5);
@@ -556,7 +571,7 @@ namespace DoodleIdle
                     rate.name = "Grade probability rate";
                     FixedWidth(rate.transform, 100);
                 }
-                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : category=="Companion" ? "같은 등급 내 1~4번 확률 (10:9:8:7)\n29.4118% / 26.4706% / 23.5294% / 20.5882%" : "같은 등급 내 1~5번 확률 (10:9:8:7:6)\n25% / 22.5% / 20% / 17.5% / 15%", 20, TextAnchor.MiddleCenter, 60);
+                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : "같은 등급 내 순서별 가중치 10:9:8:7:6\n해당 등급 아이템 수에 맞춰 나눕니다.", 20, TextAnchor.MiddleCenter, 60);
                 UiKit.Text(body, relic ? "모든 유물 동일 확률" : level + " / " + MaxSummonLevel + " · 확률 미리보기", 20, TextAnchor.MiddleCenter, 40);
                 var footer = UiKit.Footer(body, "Probability confirmation footer", 64);
                 CommerceButtonText(UiKit.Button(footer, "확인", CloseDetail, UiKit.Yellow, 64), 34);

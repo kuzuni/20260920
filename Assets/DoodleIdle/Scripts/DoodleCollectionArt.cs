@@ -57,6 +57,7 @@ namespace DoodleIdle
         }
         public static Sprite CompanionFrame(int index, int frame)
         {
+            if (index >= 24 && index < 34) return DoodleAscensionArt.CompanionFrame(index - 24, frame);
             string key = "CompanionMon_" + index + "_" + frame;
             if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
             cache.Remove(key);
@@ -76,7 +77,7 @@ namespace DoodleIdle
             value.name = key; cache[key] = value; return value;
         }
         public static int CompanionIndex(string key) => int.Parse(key.Substring(13));
-        static readonly int[] impactCells = { 0, 0, 0, 9, 0, 5, 1, 8, 1, 2, 3, 5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+        static readonly int[] impactCells = { 0, 0, 0, 9, 0, 5, 1, 8, 1, 2, 3, 5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 5, 8, 11, 0, 10, 9, 15, 13, 13, 12 };
         static readonly string[] impactNames = { "잎 파열", "물보라", "전기 스파크", "낙뢰 섬광", "꿀 튐", "금속 스파크", "서리 파편", "마법 파열", "가시 파열", "달빛 섬광", "화염 폭발", "명중 섬광", "성운 소용돌이", "태양 불꽃", "얼음 파열", "붉은 화염" };
         public static Sprite CompanionImpact(int index) => impactCells[index] < 0 ? null : Get("CompanionImpact_" + impactCells[index]);
         public static string CompanionImpactName(int index) => index == 0 ? "가지 파편" : index == 1 ? "양파 조각" : index == 2 ? "나뭇잎 파편" : index == 3 ? "달빛 섬광" : index == 5 ? "볼트 파편" : index == 6 ? "이슬 물보라" : index == 7 ? "도토리 파편" : index == 11 ? "태엽 파편" : impactNames[impactCells[index]];

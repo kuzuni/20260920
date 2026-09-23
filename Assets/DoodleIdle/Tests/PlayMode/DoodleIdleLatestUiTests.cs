@@ -129,16 +129,16 @@ namespace DoodleIdle.Tests
                 int level = ui.SummonLevel("Armor"), experience = ui.SummonExperience("Armor");
                 ui.ShowSummonProbabilities("Armor");
                 Assert.That(UiNode("Previous probability level").GetComponent<Button>().interactable, Is.False);
-                var god = ui.Items("Armor").Single(x => x.rarity == 6);
+                var god = ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1);
                 Assert.That(ui.PreviewItemProbability(god, 1), Is.Zero);
-                for (int page = 2; page <= 35; page++) {
+                for (int page = 2; page <= DoodleUi.MaxSummonLevel; page++) {
                     UiClick("Next probability level");
                     Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentInChildren<DoodlePopupMotion>().transform.localScale,Is.EqualTo(Vector3.one));
                     yield return null;
                 }
-                Assert.That(UiNode("Probability level title").GetComponent<Text>().text, Does.Contain("35"));
+                Assert.That(UiNode("Probability level title").GetComponent<Text>().text, Does.Contain("50"));
                 Assert.That(UiNode("Next probability level").GetComponent<Button>().interactable, Is.False);
-                Assert.That(UiNode("Probability_grade_6").GetComponentsInChildren<Text>().Any(x => x.text == "0.1%"), Is.True);
+                Assert.That(UiNode("Probability_grade_8").GetComponentsInChildren<Text>().Any(x => x.text == "0.1%"), Is.True);
                 Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(x => x.text == "등급별 확률"), Is.True);
                 Assert.That(ui.SummonLevel("Armor"), Is.EqualTo(level)); Assert.That(ui.SummonExperience("Armor"), Is.EqualTo(experience));
                 Object.Destroy(CaptureFrame("latest-probability-level-30.png", 720, 1520));

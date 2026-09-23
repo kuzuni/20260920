@@ -11,12 +11,13 @@ namespace DoodleIdle
             public Actor target;
             public float age, attackClock, punch;
             public bool golem, slamPending;
+            public string ability;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
         }
         sealed class ClawStrike { public Actor target; public Vector2 position; public float clock = .24f; }
-        sealed class MeteorFall { public SpriteRenderer art; public Vector2 start, end; public float age, trail, echo; }
+        sealed class MeteorFall { public SpriteRenderer art; public Vector2 start, end; public float age, trail, echo; public bool hand; }
         sealed class StoneVolley { public int remaining = 2, index = 1; public float clock = .18f; public bool requiresEquipment; }
-        sealed class MeteorVolley { public int remaining = 2; public float clock = 1; public bool requiresEquipment; }
+        sealed class MeteorVolley { public int remaining = 2; public float clock = 1; public bool requiresEquipment, hand; }
         readonly List<MeteorVolley> meteorVolleys = new List<MeteorVolley>();
         sealed class LightningFlash { public SpriteRenderer art; public float age; }
         readonly List<LightningFlash> lightningFlashes = new List<LightningFlash>();
@@ -33,19 +34,20 @@ namespace DoodleIdle
         public int MeteorHits { get; private set; }
         public int GolemsSummoned { get; private set; }
 
-        void CastPursuer(bool golem)
+        void CastPursuer(bool golem, string ability = null)
         {
-            int count = golem ? 5 : 1;
+            int count = golem ? (ability == "FireGolem" ? 10 : 5) : 1;
             for (int i = 0; i < count; i++)
             {
                 Vector2 position = player.Position + (golem ? Direction(i * Mathf.PI * 2 / count) * 1.5f : Vector2.zero);
-                var art = Visual(golem ? "Summoned golem" : "Homing tornado", DoodleExpansionArt.Get(golem ? "SkillGolem" : "SkillTornado"), position, Vector2.one * (golem ? 1.6f : 2.5f), 510);
+                var sprite = ability != null ? (golem ? DoodleAscensionArt.FireGolem(0) : DoodleAscensionArt.Cell(3)) : DoodleExpansionArt.Get(golem ? "SkillGolem" : "SkillTornado");
+                var art = Visual(ability ?? (golem ? "Summoned golem" : "Homing tornado"), sprite, position, Vector2.one * (golem ? 1.6f : 2.5f), 510);
                 SpriteRenderer shadow = null;
                 if (!golem) {
                     shadow = Visual("Tornado ground shadow", disc, position + Vector2.down * 1.1f, new Vector2(1.05f, .3f), -900);
                     shadow.color = new Color(.08f, .07f, .06f, .32f);
                 }
-                pursuers.Add(new Pursuer { art = art, shadow = shadow, target = NearbyTarget(position, i), golem = golem });
+                pursuers.Add(new Pursuer { art = art, shadow = shadow, target = NearbyTarget(position, i), golem = golem, ability = ability ?? (golem ? "Golem" : "Tornado") });
                 if (golem) GolemsSummoned++;
             }
         }
@@ -65,19 +67,19 @@ namespace DoodleIdle
             Echo("Double claw strike " + frame, DoodleExpansionArt.Get("SkillDoubleClaw", frame), strike.position, Vector2.one * 2, Quaternion.identity, .22f, 1, 600);
             if (Alive(strike.target)) { SkillImpact(strike.target, 38, Vector2.zero, "DoubleClaw"); ClawHits++; }
         }
-        void CastMeteor()
+        void CastMeteor(bool hand = false)
         {
-            LaunchMeteor();
-            meteorVolleys.Add(new MeteorVolley { requiresEquipment = castingEquippedSkill });
+            LaunchMeteor(hand);
+            meteorVolleys.Add(new MeteorVolley { requiresEquipment = castingEquippedSkill, hand = hand });
         }
-        void LaunchMeteor()
+        void LaunchMeteor(bool hand = false)
         {
             var target = Closest(player.Position);
             if (!Alive(target)) return;
             Vector2 end = target.Position;
-            var start = end + new Vector2(4, 10);
-            var art = Visual("Falling red meteor", DoodleExpansionArt.Get("SkillMeteorRock"), start, Vector2.one * 2.3f, 650);
-            meteors.Add(new MeteorFall { art = art, start = start, end = end });
+            var start = end + new Vector2(hand ? 0 : 4, 10);
+            var art = Visual(hand ? "Falling divine palm" : "Falling red meteor", hand ? DoodleAscensionArt.Cell(6) : DoodleExpansionArt.Get("SkillMeteorRock"), start, Vector2.one * (hand ? 3.8f : 2.3f), 650);
+            meteors.Add(new MeteorFall { art = art, start = start, end = end, hand = hand });
             MeteorsLaunched++;
             MeteorProjectileLaunched?.Invoke(Time.fixedTime);
         }
@@ -85,10 +87,10 @@ namespace DoodleIdle
         {
             for (int i = meteorVolleys.Count - 1; i >= 0; i--) {
                 var volley = meteorVolleys[i];
-                if (volley.requiresEquipment && !SkillEquipped("Meteor")) { meteorVolleys.RemoveAt(i); continue; }
+                if (volley.requiresEquipment && !SkillEquipped(volley.hand ? "GodHand" : "Meteor")) { meteorVolleys.RemoveAt(i); continue; }
                 volley.clock -= dt;
                 if (volley.clock > .0001f) continue;
-                LaunchMeteor(); volley.clock += 1;
+                LaunchMeteor(volley.hand); volley.clock += 1;
                 if (--volley.remaining == 0) meteorVolleys.RemoveAt(i);
             }
             for (int i = lightningFlashes.Count - 1; i >= 0; i--) {
@@ -131,26 +133,31 @@ namespace DoodleIdle
                     }
                     if (unit.slamPending && unit.punch <= .18f) {
                         unit.slamPending = false;
+                        if (unit.ability == "FireGolem") EmitCannonExplosion(position + direction.normalized * .65f);
                         EmitBurst(golemSlamParticles, position + direction.normalized * .65f + Vector2.down * .35f,
                             new Color(.72f, .64f, .5f, .85f), 22, .25f, .6f, 4.2f, .25f, .5f);
                         if (Alive(unit.target) && direction.magnitude <= 1.6f) {
-                            SkillImpact(unit.target, 32, direction.normalized, "Golem"); GolemHits++;
+                            SkillImpact(unit.target, 32, direction.normalized, unit.ability); GolemHits++;
                         }
                     }
-                    SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillGolem", unit.punch > .18f ? 2 : unit.punch > 0 ? 3 : (int)(unit.age * 7) % 2));
+                    int frame = unit.punch > .18f ? 2 : unit.punch > 0 ? 3 : (int)(unit.age * 7) % 2;
+                    SetSpriteArt(unit.art, unit.ability == "FireGolem" ? DoodleAscensionArt.FireGolem(frame) : DoodleExpansionArt.Get("SkillGolem", frame));
                     unit.art.sortingOrder = Order(position) + 1;
                 }
                 else
                 {
                     if (Alive(unit.target)) position = Vector2.MoveTowards(position, unit.target.Position, dt * 12);
-                    SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillTornado", (int)(unit.age * 10) % 2));
+                    if (unit.ability == "FireTornado") {
+                        unit.art.transform.localScale = new Vector3(2.5f + Mathf.Sin(unit.age * 15) * .25f, 2.5f, 1);
+                        EmitMeteorFlame(position + Vector2.down * .8f, Vector2.up);
+                    } else SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillTornado", (int)(unit.age * 10) % 2));
                     for (int e = enemies.Count - 1; e >= 0; e--)
                     {
                         var enemy = enemies[e];
                         if ((enemy.Position - position).sqrMagnitude > 1.8f * 1.8f) continue;
                         if (unit.nextHit.TryGetValue(enemy, out float next) && next > unit.age) continue;
                         unit.nextHit[enemy] = unit.age + .18f;
-                        SkillDamage(enemy, 18, Vector2.zero, "Tornado"); TornadoHits++;
+                        SkillDamage(enemy, 18, Vector2.zero, unit.ability); TornadoHits++;
                     }
                 }
                 unit.art.transform.position = position;
@@ -164,7 +171,7 @@ namespace DoodleIdle
                 Vector2 previous = meteor.art.transform.position;
                 Vector2 direction = (meteor.end - meteor.start).normalized;
                 meteor.art.transform.position = position;
-                meteor.art.transform.rotation = Quaternion.Euler(0, 0, meteor.age * 720);
+                meteor.art.transform.rotation = Quaternion.Euler(0, 0, meteor.hand ? 0 : meteor.age * 720);
                 // Emit by travelled distance, so acceleration leaves an unbroken world-space trail.
                 float distance = Vector2.Distance(previous, position);
                 for (float step = .15f - meteor.trail; step <= distance; step += .15f)
@@ -172,7 +179,7 @@ namespace DoodleIdle
                 meteor.trail = (meteor.trail + distance) % .15f;
                 if (meteor.echo <= 0)
                 {
-                    Echo("Meteor rock afterimage", meteor.art.sprite, position, Vector2.one * 2.3f, meteor.art.transform.rotation, .22f, .28f, 638);
+                    Echo("Meteor rock afterimage", meteor.art.sprite, position, Vector2.one * (meteor.hand ? 3.8f : 2.3f), meteor.art.transform.rotation, .22f, .28f, 638);
                     meteor.echo += .05f;
                 }
                 if (t < 1) continue;
@@ -181,8 +188,8 @@ namespace DoodleIdle
                 EmitBurst(dustParticles, meteor.end, new Color(.65f, .5f, .38f), 16, .5f, 1.1f, 3, .5f, .9f);
                 Echo("Meteor impact crater", DoodleExpansionArt.Get("SkillMeteorCrater"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, 7, .9f, -890);
                 for (int e = enemies.Count - 1; e >= 0; e--)
-                    if ((enemies[e].Position - meteor.end).sqrMagnitude <= 3.2f * 3.2f)
-                    { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized, "Meteor"); MeteorHits++; }
+                    if ((enemies[e].Position - meteor.end).sqrMagnitude <= (meteor.hand ? 4.2f * 4.2f : 3.2f * 3.2f))
+                    { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized, meteor.hand ? "GodHand" : "Meteor"); MeteorHits++; }
                 MeteorsLanded++; Destroy(meteor.art.gameObject); meteors.RemoveAt(i);
             }
         }

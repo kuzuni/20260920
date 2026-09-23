@@ -23,6 +23,7 @@ namespace DoodleIdle
         }
         public float SkillInterval(string ability)
         {
+            float ascension = AscensionInterval(ability); if (ascension > 0) return ascension;
             float variant = VariantInterval(ability); if (variant > 0) return variant;
             switch (ability)
             {
@@ -119,7 +120,7 @@ namespace DoodleIdle
                 case "Golem": CastPursuer(true); break;
                 case "DoubleClaw": CastDoubleClaw(); break;
                 case "Meteor": CastMeteor(); break;
-                default: CastVariant(ability); break;
+                default: if (AscensionInterval(ability) > 0) CastAscension(ability); else CastVariant(ability); break;
             }
             skillActivationCounts[ability] = SkillActivationCount(ability) + 1;
             return true;

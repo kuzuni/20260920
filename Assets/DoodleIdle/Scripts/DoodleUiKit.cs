@@ -20,9 +20,9 @@ namespace DoodleIdle
         static Sprite frame, circle, notificationDot;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetCache() { art.Clear(); frame = circle = notificationDot = null; Font = null; }
-        static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "갓" };
-        public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f), new Color(1,.63f,.65f), new Color(.65f,1,.94f) }[Mathf.Clamp(grade,0,6)];
-        public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,6)];
+        static readonly string[] gradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "근원", "초월", "갓" };
+        public static Color Rarity(int grade) => new[] { new Color(.96f,.92f,.80f), new Color(.76f,.96f,.66f), new Color(.68f,.85f,1), new Color(.86f,.72f,.98f), new Color(1,.89f,.48f), new Color(1,.63f,.65f), new Color(.65f,1,.94f), new Color(.77f,.66f,1), new Color(1,.94f,.7f) }[Mathf.Clamp(grade,0,DoodleUi.GradeNames.Length-1)];
+        public static string GradeName(int grade) => gradeNames[Mathf.Clamp(grade,0,gradeNames.Length-1)];
         public static RectTransform Rect(Transform parent,string name)
         {
             var r = new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>(); r.SetParent(parent,false); return r;
@@ -181,6 +181,7 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(key)) key="Player";
             if(art.TryGetValue(key,out var cached) && cached && cached.texture) return cached;
             art.Remove(key);
+            var ascension=DoodleAscensionArt.Get(key);if(ascension){art[key]=ascension;return ascension;}
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
             var expansion=DoodleExpansionArt.Get(key);if(expansion){art[key]=expansion;return expansion;}
             if(key=="Camera")

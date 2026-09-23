@@ -220,7 +220,7 @@ namespace DoodleIdle
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)
             {
-                bool synthesis = selected.rarity != 6 && selected.level >= 100;
+                bool synthesis = SynthesisTarget(selected) != null && selected.level >= 100;
                 var upgrade = UiKit.Button(actions, synthesis ? "합성" : "강화", () => { if (synthesis) SynthesizeFromUi(selected); else UpgradeSelected(selected, false); }, synthesis ? UiKit.Purple : UiKit.Blue, 46);
                 upgrade.interactable = synthesis ? selected.count >= 5 : selected.count >= CopiesNeeded(selected);
                 Notify(upgrade.transform,()=>synthesis?CanSynthesize(selected):CanUpgradeItem(selected));
@@ -319,7 +319,7 @@ namespace DoodleIdle
 
         Button CollectionSlot(Transform parent, UiItem item, Action click, float height = 112)
         {
-            var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, IsEquipment(item) && item.level >= 100 && item.rarity != 6 ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
+            var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, IsEquipment(item) && item.level >= 100 && SynthesisTarget(item) != null ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
             if (IsEquipment(item) || item.category == "Skill" || item.category == "Companion")
             {
                 card.GetComponentInChildren<Text>().text = GradeNames[item.rarity] + item.tier;
@@ -394,7 +394,7 @@ namespace DoodleIdle
         void CollectionActions(RectTransform parent, string category)
         {
             var row = UiKit.Row(parent, "Collection actions", 68, 14);
-            if ((category == "Armor" || category == "Club") && Items(category).Exists(x => x.discovered && x.level >= 100 && x.rarity != 6))
+            if ((category == "Armor" || category == "Club") && Items(category).Exists(x => x.discovered && x.level >= 100 && SynthesisTarget(x) != null))
             {
                 var synthesis = UiKit.Button(row, "일괄 합성", () => { int made = SynthesizeAll(category); RefreshPage(); Toast(UiNumber.Format(made) + "개 합성했습니다."); }, UiKit.Purple, 68);
                 synthesis.interactable = !collectionBulkRunning;

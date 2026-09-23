@@ -14,9 +14,9 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();var ui=game.Ui;
             foreach(string category in new[]{"Skill","Companion"}) {
-                var items=ui.Items(category);Assert.That(items.Count,Is.EqualTo(category=="Skill"?30:24));
+                var items=ui.Items(category);Assert.That(items.Count,Is.EqualTo(category=="Skill"?40:34));
                 for(int grade=0;grade<6;grade++)Assert.That(items.Count(x=>x.rarity==grade),Is.EqualTo(category=="Skill"?5:4));
-                Assert.That(items.All(x=>x.rarity<6),Is.True);
+                CollectionAssert.AreEquivalent(Enumerable.Range(0,9), items.Select(x=>x.rarity).Distinct());
                 foreach(var item in items)Assert.That(UiKit.Art(item.icon),Is.Not.Null,item.id);
                 UiOpen(category=="Skill"?"Skills":"Companions");
                 var first=items.First(x=>x.discovered);
@@ -32,7 +32,7 @@ namespace DoodleIdle.Tests
                 ui.CloseDetail();
             }
             string[] order={"Lightning","Banana","Stone","Arrows","BouncyBall","Fire","Cannon","Shotgun","Sound","DoubleClaw","GiantWorm","Cloud","Molotov","Dumbbell","Eggplant","TetherSnake","Shuriken","WaveSnakes","BrickVolley","Durian","RedWave","Tornado","FireRing","Dragon","BlueMolotov","IceSnakes","PurpleFireArrows","Meteor","RedCloud","Golem"};
-            CollectionAssert.AreEqual(order,ui.Items("Skill").Select(x=>x.ability).ToArray());
+            CollectionAssert.AreEqual(order,ui.Items("Skill").Take(30).Select(x=>x.ability).ToArray());
             for(int i=0;i<order.Length;i++)Assert.That(ui.Items("Skill")[i].rarity,Is.EqualTo(i/5));
             foreach(string id in new[]{"drone","sword","orbit"})Assert.That(ui.Items("Companion").Any(x=>x.id==id),Is.True);
             UiOpen("Shop");Canvas.ForceUpdateCanvases();
@@ -83,7 +83,7 @@ namespace DoodleIdle.Tests
         public IEnumerator ExpansionEquippedCompanionsFollowAttackAndUnequipRemovesThem()
         {
             var bodies=IsolateSummonTest();for(int i=0;i<8;i++)Place(bodies[i],new Vector2(3+i*.4f,1));
-            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
+            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1), 1);
             var items=game.Ui.Items("Companion");string[] selected={"drone","sword","orbit","companion_frost","companion_bee"};
             foreach(var item in items){item.equipped=selected.Contains(item.id);if(item.equipped){item.discovered=true;item.level=1;item.slot=System.Array.IndexOf(selected,item.id);}}
             game.companionsEnabled=true;

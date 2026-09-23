@@ -90,14 +90,15 @@ namespace DoodleIdle.Tests
                 Assert.That(item.explosionRadius, Is.GreaterThan(0));
                 Assert.That(item.splashDamageMultiplier, added.Contains(index) ? Is.InRange(.3f,.5f) : Is.EqualTo(1));
                 Place(bodies[0],new Vector2(3,0)); Place(bodies[1],new Vector2(3,item.explosionRadius+.5f)); Place(bodies[2],new Vector2(3,item.explosionRadius+.7f));
-                for(int i=0;i<3;i++)health.SetValue(actors[i],100000f);
                 float weight=game.Ui.CompanionHitWeight(item);
                 float damage=game.Ui.ItemHitDamage(item)*(float)game.Ui.ExpectedCriticalMultiplier;
+                float baseline = Mathf.Max(100000, damage * 10), tolerance = Mathf.Max(.03f, baseline * .0000002f);
+                for(int i=0;i<3;i++)health.SetValue(actors[i],baseline);
                 hit.Invoke(game,new object[]{actors[0],weight,Vector2.zero});
                 explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,weight*item.splashDamageMultiplier,actors[0],index});
-                Assert.That(100000-(float)health.GetValue(actors[0]),Is.EqualTo(damage).Within(.03f),item.name);
-                Assert.That(100000-(float)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(.03f),item.name);
-                Assert.That((float)health.GetValue(actors[2]),Is.EqualTo(100000));
+                Assert.That(baseline-(float)health.GetValue(actors[0]),Is.EqualTo(damage).Within(tolerance),item.name);
+                Assert.That(baseline-(float)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(tolerance),item.name);
+                Assert.That((float)health.GetValue(actors[2]),Is.EqualTo(baseline));
                 Assert.That(Particles("Companion impact: "+index).particleCount,Is.GreaterThan(0),item.name);
             }
             UiOpen("Companions");

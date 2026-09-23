@@ -345,7 +345,7 @@ namespace DoodleIdle.Tests
             // DungeonEntryReplacesActualMapAndActorsAndUsesMainStageDifficulty covers stage scaling.
             var baselineTuning=(DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning",ServicePrivate).GetValue(game.Ui);
             baselineTuning.enemyHealthStageGrowth=baselineTuning.enemyDamageStageGrowth=0;
-            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6), 1);
+            game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1), 1);
             game.companionsEnabled=true;
             foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
             game.summonSkillsEnabled = true;
