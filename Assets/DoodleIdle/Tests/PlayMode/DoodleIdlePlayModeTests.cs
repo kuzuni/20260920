@@ -384,6 +384,26 @@ namespace DoodleIdle.Tests
                     if (1.12f - Vector2.Distance(bodies[i].position, bodies[j].position) > worstPenetration) {
                         worstPenetration = 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position);
                         deepestContact = " Group " + group + " at " + game.Elapsed + "s, velocities " + bodies[i].linearVelocity + " / " + bodies[j].linearVelocity;
+                        if (worstPenetration >= .09f) {
+                            var a = bodies[i]; var b = bodies[j];
+                            var ca = a.GetComponent<CircleCollider2D>(); var cb = b.GetComponent<CircleCollider2D>();
+                            var distance = ca.Distance(cb);
+                            deepestContact += "\nIDs " + a.GetInstanceID() + "/" + b.GetInstanceID()
+                                + " positions " + a.position.ToString("F4") + "/" + b.position.ToString("F4")
+                                + " scales " + a.transform.lossyScale + "/" + b.transform.lossyScale
+                                + " radii " + ca.radius + "/" + cb.radius
+                                + " simulated " + a.simulated + "/" + b.simulated
+                                + " triggers " + ca.isTrigger + "/" + cb.isTrigger
+                                + " enabled " + ca.enabled + "/" + cb.enabled
+                                + " native separation " + distance.distance + " valid " + distance.isValid
+                                + " ignored " + Physics2D.GetIgnoreCollision(ca, cb)
+                                + " health " + game.PlayerHealth + " stage " + game.Ui.MainStage;
+                            var camera = Camera.main; Vector3 priorPosition = camera.transform.position; float priorSize = camera.orthographicSize;
+                            try { Object.Destroy(CaptureFrame("ascension-contact-diagnostic.png", 1000, 1000, false,
+                                () => { camera.orthographicSize = 3; camera.transform.position = new Vector3(a.position.x, a.position.y, priorPosition.z); })); }
+                            finally { camera.orthographicSize = priorSize; camera.transform.position = priorPosition; }
+                            Assert.That(worstPenetration, Is.LessThan(.09f), deepestContact);
+                        }
                     }
             }
             Assert.That(game.Kills, Is.GreaterThanOrEqualTo(181));
