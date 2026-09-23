@@ -185,7 +185,7 @@ namespace DoodleIdle
 
         public List<UiItem> EquippedSkills => EquippedItems("Skill");
         public List<UiItem> EquippedCompanions => EquippedItems("Companion");
-        static readonly int[] skillSlotStages = { 1, 50, 100, 200, 350, 500, 800, 1200 };
+        static readonly int[] skillSlotStages = { 1, 10, 30, 60, 120, 180, 300, 800 };
         public int SkillSlotUnlockStage(int slot) => skillSlotStages[slot];
         public int UnlockedSkillSlots {
             get {
