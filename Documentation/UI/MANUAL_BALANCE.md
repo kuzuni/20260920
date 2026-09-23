@@ -2,7 +2,13 @@
 
 The user canceled the eight-hour/stage-300 target. Earlier campaign timings are historical and do not describe this balance revision. No automatic player-strength or projected first-day correction drives enemy health/damage.
 
-## Odin window
+## Latest: numeric controls and separate currency debug window
+
+Graph editing was canceled. **Doodle Idle → 밸런스 조절** now contains only numeric starting values, increase rates, the early-damage target, formulas, numeric comparisons, Apply/Save/Reload. Old serialized correction points are retained for compatibility but are ignored by gold, enemy HP/damage and all stat-cost calculations. The exponential baseline and early linear damage ramp remain. Historical graph details below no longer describe the current editor.
+
+**Doodle Idle → 화폐 지급 디버그** is a separate Odin window. Select Gold or Diamonds, enter an amount and press the currency grant button during play. Grants update the wallet, save immediately and refresh the HUD/current popup. Gold saturates at long.MaxValue, diamonds at int.MaxValue; negative API requests grant nothing. Grants do not change balance settings or consume free reward attempts. There are no currency grant controls in the balance window.
+
+## Odin window (historical graph revision)
 
 Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas; the graph shows base gold before relic/buff bonuses. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
 

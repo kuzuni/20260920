@@ -29,9 +29,8 @@ namespace DoodleIdle
         {
             int cost = id == "crit2Chance" ? tuning.critical2BaseCost : id == "crit4Chance" ? tuning.critical4BaseCost : tuning.commonBaseCost;
             float growth = id == "crit2Chance" ? tuning.critical2Growth : id == "crit4Chance" ? tuning.critical4Growth : tuning.commonGrowth;
-            var curve = id == "crit2Chance" ? tuning.critical2Curve : id == "crit4Chance" ? tuning.critical4Curve : tuning.commonCurve;
-            double raw = DoodleGrowthCurve.Exponential(Math.Max(1, cost), BalanceValue(growth, 0, .004f), currentLevel, curve?.Evaluate(currentLevel, 0) ?? 1);
-            // Exact graph targets can land a few double-precision ULPs above an integer.
+            double raw = DoodleGrowthCurve.Exponential(Math.Max(1, cost), BalanceValue(growth, 0, .004f), currentLevel);
+            // Exponentiation can land a few double-precision ULPs above an integer.
             double nearest = Math.Round(raw);
             if (Math.Abs(raw - nearest) <= Math.Max(1, Math.Abs(raw)) * 8.881784197001252e-16) raw = nearest;
             return double.IsInfinity(raw) || raw >= long.MaxValue ? long.MaxValue : Math.Max(1, (long)Math.Ceiling(raw));
@@ -74,12 +73,23 @@ namespace DoodleIdle
             Save(); RefreshHud();
         }
 
+        public long GrantDebugGold(long amount)
+        {
+            long granted = Math.Min(Math.Max(0, amount), long.MaxValue - Math.Max(0, Gold));
+            if (granted == 0) return 0;
+            Gold = Math.Max(0, Gold) + granted;
+            Save(); RefreshHud();
+            if (!string.IsNullOrEmpty(ActivePage)) RefreshPage();
+            return granted;
+        }
+
         public int GrantDebugDiamonds(int amount)
         {
             int granted = (int)Math.Min(Math.Max(0L, amount), Math.Max(0L, (long)int.MaxValue - Diamonds));
             if (granted == 0) return 0;
             Diamonds += granted;
             Save(); RefreshHud();
+            if (!string.IsNullOrEmpty(ActivePage)) RefreshPage();
             return granted;
         }
     }

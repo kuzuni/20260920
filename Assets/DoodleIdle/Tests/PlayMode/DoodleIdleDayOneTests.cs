@@ -13,121 +13,41 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
-        public IEnumerator SmoothGrowthTangentsPreserveKnotsAndDriveActualGold()
+        public IEnumerator NumericBalanceIgnoresLegacyGraphOverrides()
         {
             game.TogglePause(); var ui = game.Ui;
-            var curve = new DoodleGrowthCurve();
-            curve.SetPoint(10, 3, 0); curve.SetPoint(20, 4, 0);
-            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2));
-            curve.SetInterpolation(DoodleCurveInterpolation.Smooth,0);
-            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2.0833333333).Within(.000001));
-            double previous = 1;
-            for (double x=0;x<=20;x+=.5) {
-                double value = curve.Evaluate(x,0);
-                Assert.That(value, Is.InRange(previous,4d)); previous=value;
+            var clean = ui.ReadBalanceTuning();
+            clean.goldPerEnemy = 25; clean.enemyStartingHealth = 136;
+            clean.enemyStartingDamage = 12; clean.earlyEnemyDamageMax = 100;
+            var legacy = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(clean));
+            legacy.goldCurve.SetPoint(51, 0, 1);
+            legacy.enemyHealthCurve.SetPoint(51, 1000, 1);
+            legacy.enemyDamageCurve.SetPoint(70, 0, 1);
+            legacy.goldCurve.SetTangentAngle(1,1,false,80);
+            legacy = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(legacy));
+            ui.ApplyBalanceTuning(legacy);
+            foreach (int stage in new[] { 1, 25, 51, 70, 71, 100 }) {
+                Assert.That(DoodleUi.GoldForMainKills(legacy,stage,1), Is.EqualTo(DoodleUi.GoldForMainKills(clean,stage,1)));
+                Assert.That(ui.EnemyHealthMultiplier(stage), Is.EqualTo(DoodleUi.EnemyHealthMultiplier(clean,stage)));
+                Assert.That(ui.EnemyDamageMultiplier(stage), Is.EqualTo(DoodleUi.EnemyDamageMultiplier(clean,stage)));
             }
-            double smoothMidpoint = curve.Evaluate(5,0);
-            curve.SetInterpolation(DoodleCurveInterpolation.Manual,0);
-            Assert.That(curve.Evaluate(5,0), Is.EqualTo(smoothMidpoint).Within(.000001), "Enabling handles must preserve the automatic curve initially.");
-            curve.SetTangent(10,0,true,0);
-            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2.25).Within(.000001));
-            Assert.That(curve.Evaluate(10,0), Is.EqualTo(3), "Handles change the curve, not the knot value.");
-            curve.SetTangent(10,0,false,-.5);
-            Assert.That(curve.Evaluate(15,0), Is.EqualTo(2.75).Within(.000001));
-            curve.SetPoint(10,3,0);
-            Assert.That(curve.FindPoint(10).outTangent, Is.EqualTo(-.5));
-            curve.MovePoint(10,12,3,0);
-            Assert.That(curve.FindPoint(12).inTangent, Is.Zero);
-            Assert.That(curve.FindPoint(12).outTangent, Is.EqualTo(-.5));
-            var copy = curve.Copy(); copy.SetTangent(12,0,false,2);
-            Assert.That(curve.FindPoint(12).outTangent, Is.EqualTo(-.5), "Snapshots must own independent handles.");
-            var restored = JsonUtility.FromJson<DoodleGrowthCurve>(JsonUtility.ToJson(curve));
-            Assert.That(restored.interpolation, Is.EqualTo(DoodleCurveInterpolation.Manual));
-            Assert.That(restored.Evaluate(15,0), Is.EqualTo(curve.Evaluate(15,0)).Within(.000001));
-            var oldData = JsonUtility.FromJson<DoodleGrowthCurve>("{\"points\":[{\"position\":10,\"factor\":3}]}");
-            Assert.That(oldData.Evaluate(5,0), Is.EqualTo(2), "Existing saved linear curves retain their shape.");
-            var angles = new DoodleGrowthCurve(); angles.SetPoint(10,3,0);
-            angles.SetTangentAngle(0,0,false,45);
-            angles.SetTangentAngle(10,0,true,-45);
-            Assert.That(angles.interpolation, Is.EqualTo(DoodleCurveInterpolation.Manual));
-            Assert.That(angles.GetTangent(0,0,false), Is.EqualTo(1).Within(.000001));
-            Assert.That(angles.GetTangent(10,0,true), Is.EqualTo(-1).Within(.000001));
-            Assert.That(angles.Evaluate(5,0), Is.EqualTo(4.5).Within(.000001), "Angles must change interpolated rewards while keeping endpoint values.");
-            Assert.That(angles.Evaluate(0,0), Is.EqualTo(1));
-            Assert.That(angles.Evaluate(10,0), Is.EqualTo(3));
-            angles.SetTangentAngle(10,0,true,0);
-            Assert.That(angles.GetTangent(10,0,true), Is.Zero);
-            angles.SetTangentAngle(10,0,true,-180);
-            Assert.That(angles.GetTangentAngle(10,0,true), Is.EqualTo(-89.9).Within(.000001));
-            angles.SetTangentAngle(0,0,false,180);
-            angles.SetTangentAngle(0,0,false,double.NaN);
-            angles.SetTangentAngle(0,0,false,double.PositiveInfinity);
-            var restoredAngles = JsonUtility.FromJson<DoodleGrowthCurve>(JsonUtility.ToJson(angles));
-            Assert.That(restoredAngles.GetTangentAngle(0,0,false), Is.EqualTo(89.9).Within(.000001));
-            Assert.That(restoredAngles.GetTangentAngle(10,0,true), Is.EqualTo(-89.9).Within(.000001));
-            curve.SetTangentAngle(12,0,false,-20);
-            var tuning = ui.ReadBalanceTuning(); tuning.goldStageGrowth = 0; tuning.goldCurve = curve;
-            ui.ApplyBalanceTuning(tuning);
-            for (int stage=1;stage<=30;stage++)
-                Assert.That(ui.GoldForMainKills(stage,1), Is.EqualTo((int)Math.Round(tuning.goldPerEnemy*curve.Evaluate(stage,1)*ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
-            curve.SetTangent(12,0,false,-1000);
-            Assert.That(curve.Evaluate(15,0), Is.Zero, "An extreme handle cannot create negative rewards.");
-            yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator EditableGrowthCurvesDriveRewardsEnemiesAndSharedStatCosts()
-        {
-            game.TogglePause(); var ui = game.Ui;
-            var original = ui.ReadBalanceTuning();
-            var tuning = ui.ReadBalanceTuning();
-            double normalGold = 10 * Math.Pow(1d + tuning.goldStageGrowth, 50);
-            Assert.That(DoodleUi.GoldForMainKills(tuning, 51, 1), Is.EqualTo((int)Math.Round(normalGold)));
-            Assert.That(DoodleUi.EnemyHealthMultiplier(tuning, 51) * 68, Is.EqualTo(68*Math.Pow(1d+tuning.enemyHealthStageGrowth,50)).Within(.01));
-            tuning.goldCurve.SetPoint(51, 3, 1);
-            Assert.That(tuning.goldCurve.Evaluate(26, 1), Is.EqualTo(2));
-            Assert.That(tuning.goldCurve.Evaluate(80, 1), Is.EqualTo(3));
-            Assert.That(DoodleUi.GoldForMainKills(tuning, 51, 1), Is.EqualTo((int)Math.Round(normalGold*3)));
-            Assert.That(ui.GoldForMainKills(51, 1), Is.EqualTo(DoodleUi.GoldForMainKills(original,51,1,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
-            tuning.enemyHealthCurve.SetPoint(51, 2, 1);
-            tuning.enemyDamageCurve.SetPoint(70, .5, 1);
-            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,1), Is.Zero);
-            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,70)*64, Is.EqualTo(50).Within(.001));
-            Assert.That(DoodleUi.EnemyDamageMultiplier(tuning,71)*64, Is.EqualTo(51).Within(.001));
-            ui.ApplyBalanceTuning(tuning);
-            Assert.That(ui.EnemyHealthMultiplier(51)*68, Is.EqualTo(136*Math.Pow(1d+tuning.enemyHealthStageGrowth,50)).Within(.01));
-            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(DoodleUi.GoldForMainKills(tuning,50,500,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
-            var copied = ui.ReadBalanceTuning();
-            copied.goldCurve.SetPoint(51, 9, 1);
-            Assert.That(ui.ReadBalanceTuning().goldCurve.Evaluate(51,1), Is.EqualTo(3), "Editing a snapshot must not change the live curve.");
-            copied.goldCurve.SetPoint(21, 2, 1);
-            copied.goldCurve.SetPoint(51, 4, 1);
-            Assert.That(copied.goldCurve.points.Length, Is.EqualTo(2), "Adding at the same step replaces rather than duplicates the point.");
-            Assert.That(copied.goldCurve.points[0].position, Is.EqualTo(21));
-            copied.goldCurve.RemovePoint(21);
-            Assert.That(copied.goldCurve.points.Length, Is.EqualTo(1));
-            var roundTrip = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(tuning));
-            Assert.That(DoodleUi.GoldForMainKills(roundTrip,51,500), Is.EqualTo(DoodleUi.GoldForMainKills(tuning,51,500)));
-            var costs = ui.ReadStatCostTuning();
-            costs.commonCurve.SetPoint(10, 3, 0); costs.critical2Curve.SetPoint(10, 2, 0);
-            costs.critical4Curve.SetPoint(10, 5, 0);
-            ui.ApplyStatCostTuning(costs);
-            foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance" }) {
+            Assert.That(ui.GoldForMainKills(51,1), Is.EqualTo(DoodleUi.GoldForMainKills(clean,51,1,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
+            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(DoodleUi.GoldForMainKills(clean,50,500,(double)ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
+            var cleanCosts = ui.ReadStatCostTuning();
+            cleanCosts.commonBaseCost = 10; cleanCosts.critical2BaseCost = 30; cleanCosts.critical4BaseCost = 50;
+            var legacyCosts = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(cleanCosts));
+            legacyCosts.commonCurve.SetPoint(10, 1000, 0);
+            legacyCosts.critical2Curve.SetPoint(10, 0, 0);
+            legacyCosts.critical4Curve.SetPoint(10, 1000, 0);
+            ui.ApplyStatCostTuning(legacyCosts);
+            foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance", "crit4Chance" }) {
+                Assert.That(DoodleUi.StatUpgradePrice(legacyCosts,id,10), Is.EqualTo(DoodleUi.StatUpgradePrice(cleanCosts,id,10)));
+                if (id == "crit4Chance") continue; // Its unlock condition is tested separately.
                 GrowthLevels[id] = 10;
-                Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(DoodleUi.StatUpgradePrice(costs,id,10)));
+                Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(DoodleUi.StatUpgradePrice(cleanCosts,id,10)));
             }
-            Assert.That(ui.StatUpgradeQuote("attack",1,out _), Is.EqualTo(ui.StatUpgradeQuote("healthRegen",1,out _)));
-            Assert.That(ui.StatUpgradeQuote("crit2Chance",1,out _), Is.LessThan(ui.StatUpgradeQuote("attack",1,out _)));
-            var restoredCosts = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(costs));
-            Assert.That(DoodleUi.StatUpgradePrice(restoredCosts,"crit4Chance",10), Is.EqualTo(DoodleUi.StatUpgradePrice(costs,"crit4Chance",10)));
-            costs.commonCurve.SetPoint(10, 100d/DoodleGrowthCurve.Exponential(costs.commonBaseCost,costs.commonGrowth,10), 0);
-            Assert.That(DoodleUi.StatUpgradePrice(costs,"attack",10), Is.EqualTo(100), "A graph target of 100 must not round floating point dust up to 101.");
-            tuning.goldCurve.SetPoint(int.MaxValue, 0, 1);
-            Assert.That(DoodleUi.GoldForMainKills(tuning,int.MaxValue,500), Is.Zero);
-            tuning.goldCurve.RemovePoint(int.MaxValue);
-            Assert.That(DoodleUi.GoldForMainKills(tuning,int.MaxValue,500), Is.EqualTo(int.MaxValue));
-            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit4Chance",int.MaxValue), Is.EqualTo(long.MaxValue));
-            ui.ApplyBalanceTuning(original);
+            Assert.That(DoodleUi.GoldForMainKills(legacy,int.MaxValue,500), Is.EqualTo(int.MaxValue));
+            Assert.That(DoodleUi.StatUpgradePrice(legacyCosts,"attack",int.MaxValue), Is.EqualTo(long.MaxValue));
             yield return null;
         }
 
@@ -199,6 +119,17 @@ namespace DoodleIdle.Tests
             ui.Diamonds = int.MaxValue - 3;
             Assert.That(ui.GrantDebugDiamonds(10000), Is.EqualTo(3));
             Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue));
+            long goldWallet = ui.Gold;
+            string balanceBefore = JsonUtility.ToJson(ui.ReadBalanceTuning());
+            Assert.That(ui.GrantDebugGold(25000), Is.EqualTo(25000));
+            Assert.That(ui.Gold, Is.EqualTo(goldWallet + 25000));
+            Assert.That(PlayerPrefs.GetString("DoodleUi.Gold"), Is.EqualTo(ui.Gold.ToString()));
+            Assert.That(ui.GrantDebugGold(-1), Is.Zero);
+            ui.Gold = long.MaxValue - 3;
+            Assert.That(ui.GrantDebugGold(long.MaxValue), Is.EqualTo(3));
+            Assert.That(ui.Gold, Is.EqualTo(long.MaxValue));
+            Assert.That(ui.GrantDebugGold(1), Is.Zero);
+            Assert.That(JsonUtility.ToJson(ui.ReadBalanceTuning()), Is.EqualTo(balanceBefore));
             yield return null;
         }
 

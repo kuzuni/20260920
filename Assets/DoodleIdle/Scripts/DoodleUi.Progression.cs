@@ -74,7 +74,7 @@ namespace DoodleIdle
         public float EnemyHealthMultiplier(int displayStage) => EnemyHealthMultiplier(serviceTuning, displayStage);
         public static float EnemyHealthMultiplier(ServiceTuning tuning, int displayStage)
         {
-            return (float)(Math.Max(.001, DoodleGrowthCurve.Exponential(Math.Max(.001,tuning.enemyStartingHealth), Math.Max(0,tuning.enemyHealthStageGrowth), Math.Max(1,displayStage)-1, tuning.enemyHealthCurve?.Evaluate(displayStage,1) ?? 1))/68);
+            return (float)(Math.Max(.001, DoodleGrowthCurve.Exponential(Math.Max(.001,tuning.enemyStartingHealth), Math.Max(0,tuning.enemyHealthStageGrowth), Math.Max(1,displayStage)-1))/68);
         }
         public float EnemyDamageMultiplier(int displayStage) => EnemyDamageMultiplier(serviceTuning, displayStage);
         public static float EnemyDamageMultiplier(ServiceTuning tuning, int displayStage)
@@ -83,7 +83,7 @@ namespace DoodleIdle
             double start=Math.Max(0,tuning.enemyStartingDamage), earlyMax=Math.Max(0,tuning.earlyEnemyDamageMax);
             double damage=displayStage<=earlyEnd ? start+(earlyMax-start)*Math.Max(0L,(long)displayStage-1)/(earlyEnd-1)
                 : DoodleGrowthCurve.Exponential(earlyMax,Math.Max(0,tuning.enemyDamageStageGrowth),displayStage-earlyEnd);
-            return (float)(Math.Min(1e30,damage*(tuning.enemyDamageCurve?.Evaluate(displayStage,1) ?? 1))/64);
+            return (float)(Math.Min(1e30,damage)/64);
         }
         public void HandlePlayerDefeat()
         {
@@ -98,7 +98,7 @@ namespace DoodleIdle
         public static int GoldForMainKills(ServiceTuning tuning, int displayStage, int count, double bonusMultiplier = 1)
         {
             if(count<=0)return 0;
-            double unit=DoodleGrowthCurve.Exponential(Math.Max(0,tuning.goldPerEnemy),Math.Max(0,tuning.goldStageGrowth),Math.Max(1,displayStage)-1,tuning.goldCurve?.Evaluate(displayStage,1) ?? 1);
+            double unit=DoodleGrowthCurve.Exponential(Math.Max(0,tuning.goldPerEnemy),Math.Max(0,tuning.goldStageGrowth),Math.Max(1,displayStage)-1);
             return (int)Math.Min(int.MaxValue,Math.Max(0,Math.Round(unit*count*bonusMultiplier)));
         }
         public int DungeonGoldReward(int stage) => GoldForMainKills(DungeonDifficultyStage(stage),Math.Max(1,serviceTuning.goldDungeonEnemyCount));

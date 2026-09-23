@@ -11,6 +11,11 @@ Only `Documentation/UI/FinalDesign/01..25 *.png` is the visual reference. Text r
 
 ## Shared code contract
 
+### 2026-09-23 numeric balance and currency debug (latest)
+
+- Graph editing is canceled. The balance window exposes numeric starts/growth, early-damage settings, formulas and numeric comparisons only. Legacy serialized curve overrides no longer affect gameplay calculations.
+- Currency grants live in the separate Odin **Doodle Idle/화폐 지급 디버그** window, with selectable Gold/Diamonds and an amount. See the latest section of MANUAL_BALANCE.md; historical graph notes below are superseded.
+
 ### 2026-09-23 manual balance and opacity revision (latest)
 
 - `MANUAL_BALANCE.md` supersedes the eight-hour target and earlier numeric damage/stat rules. Odin's **Doodle Idle/밸런스 조절** exposes gold/HP/damage starting values and stage increases (redundant overall multipliers removed), session apply, persistent defaults and debug diamonds. Enemy curves no longer depend on projected first-day stats. The latest graph editor uses exponential baselines plus editable per-step corrections, with an early damage ramp. Six independent curves cover gold, enemy HP/damage, common basic-stat upgrade costs and separate x2/x4 costs. It displays the actual formula beside draggable graphs with right-click point editing; see MANUAL_BALANCE.md.
