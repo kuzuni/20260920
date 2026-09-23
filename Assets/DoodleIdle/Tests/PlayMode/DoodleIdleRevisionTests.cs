@@ -109,6 +109,7 @@ namespace DoodleIdle.Tests
                     var weights=ui.SummonWeights(category,level);
                     var defaults=(int[])new DoodleUi.CommerceTuning().rates[level-1].basisPoints.Clone();
                     if(level<35 && (category=="Skill"||category=="Companion")) { defaults[5]+=defaults[6];defaults[6]=0; }
+                    if(category=="Skill"||category=="Companion") { defaults[7]+=defaults[8];defaults[8]=0; }
                     CollectionAssert.AreEqual(defaults,weights,"Resource tuning and fallback defaults must agree at every level.");
                     Assert.That(weights.Sum(),Is.EqualTo(100000));
                     int boundary=0;
@@ -131,7 +132,7 @@ namespace DoodleIdle.Tests
                 }
                 int[] draws=new int[DoodleUi.GradeNames.Length];
                 for(int ticket=0;ticket<100000;ticket++)draws[ui.GrantItem(category,new RevisionRoll(ticket)).rarity]++;
-                CollectionAssert.AreEqual(new[]{15000,20000,20000,20000,18000,1900,3000,2000,100},draws,"All level 50 intervals match the displayed nine-grade probabilities.");
+                CollectionAssert.AreEqual(new[]{15000,20000,20000,20000,18000,1900,3000,category=="Skill"||category=="Companion"?2100:2000,category=="Skill"||category=="Companion"?0:100},draws,"All level 50 intervals match the category probabilities.");
                 states[category].level=1;
                 for(int ticket=0;ticket<100000;ticket++)Assert.That(ui.GrantItem(category,new RevisionRoll(ticket)).rarity,Is.LessThan(4));
                 states[category].level=49;states[category].experience=9999;
@@ -370,7 +371,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator RevisionPopulationRefillsBelow100AndBossStartsAfter100CreditedKills()
+        public IEnumerator RevisionPopulationRefillsBelow100AndBossStartsAfterStageKillGoal()
         {
             game.TogglePause(); var ui = game.Ui;
             var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
@@ -391,8 +392,9 @@ namespace DoodleIdle.Tests
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(1), "Population refill must not clear credited kills.");
             Assert.That(game.BossActive, Is.False);
             ui.ToggleBreakthroughMode();
-            DefeatActualServiceEnemies(99);
-            Assert.That(game.EnemyCount, Is.EqualTo(101), "Boss eligibility occurs with surviving ordinary enemies.");
+            int remaining = ui.MainStageRemaining;
+            DefeatActualServiceEnemies(remaining);
+            Assert.That(game.EnemyCount, Is.EqualTo(200 - remaining), "Boss eligibility occurs with surviving ordinary enemies.");
             Assert.That(ui.MainStage, Is.Zero);
             int kills = game.Kills;
             refill.Invoke(game, null);

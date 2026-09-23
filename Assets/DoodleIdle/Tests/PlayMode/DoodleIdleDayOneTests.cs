@@ -324,7 +324,7 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Skill", "Companion" }) {
                 var items = ui.Items(category);
                 foreach (var item in items) { item.discovered = true; item.level = 1; item.equipped = false; }
-                for (int grade = 0; grade < DoodleUi.GradeNames.Length - 1; grade++) {
+                for (int grade = 0; grade < items.Max(x => x.rarity); grade++) {
                     var lower = items.Where(x => x.rarity == grade).ToArray();
                     var higher = items.Where(x => x.rarity == grade + 1).ToArray();
                     foreach (var item in lower) item.level = ui.ItemMaxLevel(item);
@@ -474,13 +474,13 @@ namespace DoodleIdle.Tests
             ui.RecordMissionAction("attendance");ui.RecordMissionAction("relicAttempt");ui.RecordMissionAction("equip:Companion");
             DayOneState("mainStage",1199);DayOneState("highestMainStage",1199);DayOneState("mainStageKillProgress",70);
             int slots=ui.UnlockedSkillSlots;ui.HandlePlayerDefeat();
-            Assert.That(ui.MainStage,Is.EqualTo(1198));Assert.That(ui.MainStageKillProgress,Is.Zero);
+            Assert.That(ui.MainStage,Is.EqualTo(1199));Assert.That(ui.MainStageKillProgress,Is.EqualTo(70));
             Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(slots));Assert.That(ui.MissionProgress("stage"),Is.EqualTo(1199));
             DayOneState("day","2000-01-01");ui.Save();ReloadPersistedServices();
             Assert.That(ui.CareerProgress("attendance"),Is.GreaterThanOrEqualTo(1));
             Assert.That(ui.CareerProgress("relicAttempt"),Is.GreaterThanOrEqualTo(1));
             Assert.That(ui.CareerProgress("equip:Companion"),Is.GreaterThanOrEqualTo(1));
-            Assert.That(ui.MainStage,Is.EqualTo(1198));
+            Assert.That(ui.MainStage,Is.EqualTo(1199));
             DayOneState("mainStage",0);ui.HandlePlayerDefeat();Assert.That(ui.MainStage,Is.Zero);
             DayOneState("mainMissionIndex",20);Assert.That(ui.MainMissionGoal,Is.EqualTo(35));
             DayOneState("mainMissionIndex",119);Assert.That(ui.MainMissionText,Does.Contain("골드 동굴"));

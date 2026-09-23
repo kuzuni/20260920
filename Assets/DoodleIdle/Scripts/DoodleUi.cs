@@ -55,12 +55,12 @@ namespace DoodleIdle
             InitCollections(); InitSkins(); InitCommerce(); InitServices();
             CameraMode=Mathf.Clamp(PlayerPrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
             safe=UiKit.Rect(root,"Safe area"); UiKit.Stretch(safe);
-            BuildMain();
+            BuildMain(); BuildBossHud();
             pageLayer=UiKit.Rect(root,"Primary modal layer"); UiKit.Stretch(pageLayer);
             BuildNavigation();
             overlayLayer=UiKit.Rect(root,"Detail and fullscreen layer"); UiKit.Stretch(overlayLayer);
-            toast=BuildToast("Toast",24,-115,70);
-            powerToast=BuildToast("Power change toast",27,-195,76);
+            toast=BuildToast("Toast",24,0,70);
+            powerToast=BuildToast("Power change toast",27,-86,76);
             Relayout(true); RefreshHud();
         }
         void BuildMain()
@@ -286,6 +286,9 @@ namespace DoodleIdle
             ConsumeGesture(); var dim=Dim(overlayLayer,"Reward dim",CloseDetail,.77f); overlayStack.Add(dim.gameObject);
             var area=UiKit.Column(dim,"Floating rewards",30,4); Anchor(area,new Vector2(.5f,.5f),new Vector2(0,40),new Vector2(670,400));
             var reflow=area.gameObject.AddComponent<DoodleUiRewardLayout>(); reflow.safe=safe;reflow.Reflow();
+            var celebration=UiKit.Rect(area,"Reward celebration particles"); UiKit.Stretch(celebration,-70,-80,-70,-80);
+            celebration.gameObject.AddComponent<LayoutElement>().ignoreLayout=true;
+            celebration.gameObject.AddComponent<DoodleRewardCelebration>().raycastTarget=false;
             var text=UiKit.Text(area,title,64,TextAnchor.MiddleCenter,86); text.color=Color.white; text.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
             var row=UiKit.Row(area,"Individual rewards",206,16);
             System.Action onClose = null;
@@ -305,7 +308,7 @@ namespace DoodleIdle
         Text BuildToast(string name,int size,float offset,float height)
         {
             var panel=UiKit.Box(root,name+" frame",new Color(.24f,.24f,.24f,.9f));
-            Anchor(panel,new Vector2(.5f,1),new Vector2(0,offset),new Vector2(620,height));
+            Anchor(panel,new Vector2(.5f,.7f),new Vector2(0,offset),new Vector2(620,height));
             panel.GetComponent<Image>().raycastTarget=false;
             var label=UiKit.Text(panel,"",size,TextAnchor.MiddleCenter,height-12);label.name=name;label.color=Color.white;
             UiKit.Stretch(label.rectTransform,14,6,14,6);
@@ -350,6 +353,7 @@ namespace DoodleIdle
             missionDiamonds.text=MainMissionReward.ToString();
             var reward=CurrentMainMission;missionTicketCount.gameObject.SetActive(reward.ticketCount>0);missionTicketIcon.gameObject.SetActive(reward.ticketCount>0);
             if(reward.ticketCount>0){missionTicketCount.text="+"+reward.ticketCount;missionTicketIcon.sprite=UiKit.Art(TicketIcon(reward.ticket));}
+            RefreshBossHud();
             stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
@@ -415,17 +419,23 @@ namespace DoodleIdle
     {
         protected override void OnPopulateMesh(VertexHelper vh)
         {
-            vh.Clear(); var rect=rectTransform.rect; Vector2 center=rect.center; float radius=Mathf.Min(rect.width,rect.height)*.5f;
-            for(int i=0;i<16;i++) {
-                float a=i*Mathf.PI/8; Vector2 dir=new Vector2(Mathf.Cos(a),Mathf.Sin(a)),side=new Vector2(-dir.y,dir.x); float inner=radius*.62f,outer=radius*(i%3==0?1:.9f); int start=vh.currentVertCount;
-                Add(vh,center+dir*inner-side*2,color); Add(vh,center+dir*outer-side*4,color); Add(vh,center+dir*outer+side*4,color); Add(vh,center+dir*inner+side*2,color); vh.AddTriangle(start,start+1,start+2); vh.AddTriangle(start,start+2,start+3);
+            vh.Clear(); var rect=rectTransform.rect; Vector2 center=rect.center;
+            Vector2 radius=rect.size*.5f;
+            // A single continuous glow avoids the detached flecks around each card.
+            for(int i=0;i<64;i++) {
+                float a=i*Mathf.PI/32,b=(i+1)*Mathf.PI/32; int start=vh.currentVertCount;
+                Add(vh,center,new Color(1,.79f,.2f,.5f));
+                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a),Mathf.Sin(a)),radius),new Color(1,.85f,.3f,0));
+                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(b),Mathf.Sin(b)),radius),new Color(1,.85f,.3f,0));
+                vh.AddTriangle(start,start+1,start+2);
             }
-            for(int i=0;i<4;i++) {
-                float a=(i+.35f)*Mathf.PI/2; Vector2 p=center+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius*.93f; int start=vh.currentVertCount;
-                Add(vh,p+Vector2.up*12,color); Add(vh,p+Vector2.right*5,color); Add(vh,p+Vector2.down*12,color); Add(vh,p+Vector2.left*5,color); vh.AddTriangle(start,start+1,start+2); vh.AddTriangle(start,start+2,start+3);
+            for(int i=0;i<8;i++) {
+                float a=(i+.5f)*Mathf.PI/4; int start=vh.currentVertCount;
+                Add(vh,center,new Color(1,.89f,.4f,.25f));
+                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a-.16f),Mathf.Sin(a-.16f)),radius)*1.12f,new Color(1,.87f,.3f,0));
+                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a+.16f),Mathf.Sin(a+.16f)),radius)*1.12f,new Color(1,.87f,.3f,0));
+                vh.AddTriangle(start,start+1,start+2);
             }
-            // Soft yellow radial backdrop is independent of the item frames.
-            for(int i=0;i<32;i++) { int start=vh.currentVertCount; Add(vh,center,new Color(1,.8f,.12f,.5f)); float a=i*Mathf.PI/16,b=(i+1)*Mathf.PI/16; Add(vh,center+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius,new Color(1,.8f,.12f,0)); Add(vh,center+new Vector2(Mathf.Cos(b),Mathf.Sin(b))*radius,new Color(1,.8f,.12f,0)); vh.AddTriangle(start,start+1,start+2); }
         }
         static void Add(VertexHelper vh,Vector2 pos,Color c) { var v=UIVertex.simpleVert; v.position=pos; v.color=c; vh.AddVert(v); }
     }

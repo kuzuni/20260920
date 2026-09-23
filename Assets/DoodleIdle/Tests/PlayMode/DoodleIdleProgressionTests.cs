@@ -82,7 +82,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(ui.MainStageKillGoal - 1));
             DefeatActualServiceEnemies(1);
             yield return null;
-            Assert.That(ui.MainStage, Is.EqualTo(initialStage), "Clearing 100 ordinary enemies must still require a boss.");
+            Assert.That(ui.MainStage, Is.EqualTo(initialStage), "Clearing the stage kill goal must still require a boss.");
             Assert.That(ui.MainBossPending, Is.True);
             typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
             Assert.That(game.BossActive, Is.True);

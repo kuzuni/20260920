@@ -283,7 +283,7 @@ namespace DoodleIdle
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
             {
                 if (BossActive) return;
-                // A hundred credited kills starts the challenge, regardless of surviving field enemies.
+                // The stage's credited kill goal starts the challenge, regardless of surviving field enemies.
                 foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
@@ -291,7 +291,7 @@ namespace DoodleIdle
                 boss.root.name = "Stage boss";
                 boss.root.transform.localScale = Vector3.one * 3;
                 boss.body.mass = 9;
-                RefreshHealthBar(boss); enemies.Add(boss);
+                RefreshHealthBar(boss); enemies.Add(boss); bossTimeRemaining = BossTimeLimit;
                 return;
             }
             if (BossActive) return;
@@ -354,6 +354,7 @@ namespace DoodleIdle
             }
             float dt = Time.fixedDeltaTime;
             Elapsed += dt;
+            if (TickBossChallenge(dt)) return;
             var target = Closest(player.Position);
             if (target == null) { Refill(); return; }
             Vector2 delta = target.Position - player.Position;
@@ -387,6 +388,7 @@ namespace DoodleIdle
             }
             TickEnemyMovement(dt);
             TickPlayerContactDamage(dt);
+            if (combatWaveResetRequested) return;
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
             TickEquippedSkills(dt);

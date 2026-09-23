@@ -26,7 +26,7 @@ namespace DoodleIdle
                 case "CactusRage": case "RazorShuriken": return 6;
                 case "FireTornado": case "GodHand": return 10;
                 case "MightyDragon": return 11;
-                case "ChimeraBrothers": return 9;
+                case "SawSnakes": return 9;
                 default: return 0;
             }
         }
@@ -43,24 +43,25 @@ namespace DoodleIdle
                 case "FireTornado": CastPursuer(false, ability); break;
                 case "GodHand": CastMeteor(true); break;
                 case "MightyDragon": SpawnSnake(SummonSkill.Dragon, direction, false, ability, 1.7f, 5); break;
-                case "ChimeraBrothers":
-                    for (int i = 0; i < 3; i++) SpawnSnake(SummonSkill.TetherSnake, Rotate(direction, (i - 1) * 50), true, ability, 1.1f, 8 + i);
+                case "SawSnakes":
+                    for (int i = 0; i < 5; i++) SpawnSnake(SummonSkill.TetherSnake, Rotate(direction, (i - 2) * 36), true, ability, 1.1f, 8);
                     break;
                 case "CactusRage": case "RazorShuriken":
-                    int count = ability == "CactusRage" ? 4 : 8;
+                    int count = ability == "CactusRage" ? 4 : 18;
                     for (int i = 0; i < count; i++) {
                         bool cactus = ability == "CactusRage";
-                        var aim = Rotate(direction, cactus ? (i - 1.5f) * 24 : i * 45);
+                        var aim = Rotate(direction, cactus ? (i - 1.5f) * 24 : i * 20);
                         var shot = VariantProjectile(cactus ? "Ascension_2" : "Ascension_4", player.Position, aim,
                             cactus ? 4.6f : 1.8f, cactus ? 6 : SoundWaveSpeed, cactus ? 3.2f : SoundWaveLifetime,
                             cactus ? 42 : 45, cactus ? 1.3f : .95f, cactus ? 0 : 900);
                         shot.ability = ability; shot.rolling = cactus; shot.afterimage = !cactus;
+                        if (cactus) UpdateRollingVegetable(shot.art, shot.direction, 0, shot.size);
                         RecordAscensionLaunch(ability, aim);
                     }
                     break;
                 default:
                     var volley = new AscensionVolley { ability = ability, direction = direction,
-                        remaining = ability == "BladeRing" ? 12 : ability == "MissileRage" ? 13 : 3,
+                        remaining = ability == "BladeRing" ? 22 : ability == "MissileRage" ? 13 : 3,
                         requiresEquipment = castingEquippedSkill };
                     FireAscensionVolley(volley); ascensionVolleys.Add(volley); break;
             }
@@ -68,7 +69,7 @@ namespace DoodleIdle
         void FireAscensionVolley(AscensionVolley volley)
         {
             if (volley.ability == "BladeRing") {
-                var direction = Rotate(volley.direction, volley.index * 30);
+                var direction = Rotate(volley.direction, volley.index * (360f / 22));
                 var shot = VariantProjectile("Ascension_0", player.Position, direction, 1.6f, 7, 2.2f, 30, .65f);
                 shot.ability = volley.ability; shot.afterimage = true;
                 RecordAscensionLaunch(volley.ability, direction);
@@ -79,14 +80,14 @@ namespace DoodleIdle
                     bool solar = volley.ability == "SolarVolley";
                     Launch(solar ? ProjectileKind.Ball : ProjectileKind.Fire, target, player.Position, volley.index);
                     var shot = extraShots[extraShots.Count - 1]; shot.ability = volley.ability;
-                    shot.size = solar ? 2.4f : 1.2f;
+                    shot.size = solar ? 2.4f : 1.8f;
                     SetSpriteArt(shot.art, DoodleAscensionArt.Cell(solar ? 11 : 7));
-                    shot.art.transform.localScale = Vector3.one * (solar ? 2.1f : 1.3f);
+                    shot.art.transform.localScale = Vector3.one * (solar ? 2.1f : 1.95f);
                     shot.art.name = volley.ability + " projectile";
                     RecordAscensionLaunch(volley.ability, (target.Position - player.Position).normalized);
                 }
             }
-            volley.index++; volley.remaining--; volley.clock += volley.ability == "SolarVolley" ? .2f : .1f;
+            volley.index++; volley.remaining--; volley.clock += volley.ability == "SolarVolley" ? .2f : volley.ability == "BladeRing" ? .04f : .1f;
         }
         void TickAscension(float dt)
         {

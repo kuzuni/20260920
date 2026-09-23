@@ -46,15 +46,15 @@ namespace DoodleIdle
         {
             switch (ability)
             {
-                case "BladeRing": return new Estimate(30, 12, "칼날 12개 순차 원형 발사");
+                case "BladeRing": return new Estimate(30, 22, "보라색 칼날 22개 · 0.04초 간격 원형 발사");
                 case "FireGolem": return new Estimate(32, 160, "불골렘 10마리 · 10초 공격");
                 case "CactusRage": return new Estimate(42, 4, "선인장 4개 관통");
                 case "FireTornado": return new Estimate(18, 39, "7초 동안 범위 지속 피해");
-                case "RazorShuriken": return new Estimate(45, 8, "칼바람 표창 8개 관통");
+                case "RazorShuriken": return new Estimate(45, 18, "칼바람 표창 18개 관통");
                 case "MightyDragon": return new Estimate(13, 18, "큰 용 6초 접촉 + 불꽃 공격") { totalWeight = 13 * 18 + 12 * 3 * 19 };
                 case "GodHand": return new Estimate(150, 3, "손바닥 3개 · 넓은 범위 타격");
                 case "MissileRage": return new Estimate(55, 13, "미사일 13발 · 폭발당 적 1명");
-                case "ChimeraBrothers": return new Estimate(8, 102, "키메라 3마리 · 각각 6초 접촉");
+                case "SawSnakes": return new Estimate(8, 170, "톱날뱀 5마리 · 각각 6초 접촉");
                 case "SolarVolley": return new Estimate(57.6f, 21, "태양 3개 × 7회 튕김");
                 case "Banana": return new Estimate(19, 23, "적 1명에게 8초 접촉 · 약 23타");
                 case "Stone": return new Estimate(42, 3, "돌 3개 모두 명중");

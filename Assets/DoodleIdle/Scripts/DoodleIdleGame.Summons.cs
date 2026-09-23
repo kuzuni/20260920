@@ -300,7 +300,7 @@ namespace DoodleIdle
                 var part = Visual((ability ?? (ice?"IceSnakes":kind.ToString())) + (i == 0 ? " head" : " segment " + i), art, snake.origin, Vector2.one * (dragon ? .7f : .47f)*(ice?2:1)*size, (tether ? -500 : 445) - i);
                 part.enabled = false; snake.parts.Add(part);
             }
-            if (dragon) snake.wings = Visual("Animated dragon wings", ability == "MightyDragon" ? DoodleAscensionArt.Cell(34) : summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f * size, 450);
+            if (dragon) snake.wings = Visual(ability == "MightyDragon" ? "MightyDragon wings" : "Animated dragon wings", ability == "MightyDragon" ? DoodleAscensionArt.Cell(34) : summonArt["DragonWingUp"], snake.origin, Vector2.one * 2.1f * size, 450);
             snakes.Add(snake);
         }
 
@@ -534,7 +534,9 @@ namespace DoodleIdle
                 if (dragon)
                 {
                     snake.wings.transform.position = snake.parts[3].transform.position;
-                    snake.wings.transform.rotation = snake.parts[3].transform.rotation * Quaternion.Euler(0, 0, 90);
+                    // The ascension atlas wing tips face up, so rotate them toward
+                    // the head; the original dragon sheet uses the opposite axis.
+                    snake.wings.transform.rotation = snake.parts[3].transform.rotation * Quaternion.Euler(0, 0, snake.ability == "MightyDragon" ? -90 : 90);
                     if (snake.ability == "MightyDragon") snake.wings.transform.localScale = new Vector3(2.1f * snake.size, 2.1f * snake.size * (.75f + .25f * Mathf.Cos(snake.age * 15)), 1);
                     else SetSpriteArt(snake.wings, summonArt[(int)(snake.age * 8) % 2 == 0 ? "DragonWingUp" : "DragonWingDown"]);
                     snake.flameClock -= dt;

@@ -8,15 +8,15 @@ namespace DoodleIdle
         public bool enemyDashEnabled = true;
         [Min(0)] public float enemyDashSpeed = 8;
         public const float EnemyDashWindup = .35f;
-        public const float EnemyDashDuration = .3f;
-        public const int EnemyDashStartStage = 1000;
+        public const float EnemyDashDuration = .9f;
+        public const int EnemyDashStartStage = 100;
         public int EnemyDashCasts { get; private set; }
 
         void TickEnemyMovement(float dt)
         {
-            // A cave uses its equivalent main-stage difficulty, including dash unlocks.
-            bool canDash = enemyDashEnabled && Ui && Ui.CombatDifficultyStage >= EnemyDashStartStage;
+            bool bossDashUnlocked = enemyDashEnabled && Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainStage + 1 >= EnemyDashStartStage;
             foreach (var enemy in enemies) {
+                bool canDash = bossDashUnlocked && enemy.isBoss;
                 Vector2 toPlayer = player.Position - enemy.Position;
                 if (!canDash) enemy.dashWindup = enemy.enemyDashRemaining = 0;
                 if (canDash && enemy.enemyDashRemaining > 0) {

@@ -14,9 +14,9 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();var ui=game.Ui;
             foreach(string category in new[]{"Skill","Companion"}) {
-                var items=ui.Items(category);Assert.That(items.Count,Is.EqualTo(category=="Skill"?40:34));
-                for(int grade=0;grade<6;grade++)Assert.That(items.Count(x=>x.rarity==grade),Is.EqualTo(category=="Skill"?5:4));
-                CollectionAssert.AreEquivalent(Enumerable.Range(0,9), items.Select(x=>x.rarity).Distinct());
+                var items=ui.Items(category);Assert.That(items.Count,Is.EqualTo(category=="Skill"?40:32));
+                for(int grade=0;grade<8;grade++)Assert.That(items.Count(x=>x.rarity==grade),Is.EqualTo(category=="Skill"?5:4));
+                CollectionAssert.AreEquivalent(Enumerable.Range(0,8), items.Select(x=>x.rarity).Distinct());
                 foreach(var item in items)Assert.That(UiKit.Art(item.icon),Is.Not.Null,item.id);
                 UiOpen(category=="Skill"?"Skills":"Companions");
                 var first=items.First(x=>x.discovered);

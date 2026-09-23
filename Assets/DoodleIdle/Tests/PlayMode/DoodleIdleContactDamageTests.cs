@@ -186,75 +186,52 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator EnemyDashPreparesChargesWithFacingTrailsThenReturnsToMovement()
         {
-            var bodies = DurableSkillTargets(); game.enemyDashEnabled = true;
-            // Stage 1000 enables the dash; this movement fixture retains baseline
-            // contact damage so defeat does not replace its observed actors.
-            var liveTuning = (DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning", ServicePrivate).GetValue(game.Ui);
-            liveTuning.enemyDamageStageGrowth = 0;
-            liveTuning.earlyEnemyDamageMax = 64;
-            Assert.That(game.Ui.EnemyDamageMultiplier(1000), Is.EqualTo(1));
+            game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.companionsEnabled = false;
+            game.autoPlay = false; game.enemyContactDamage = 0; game.enemyDashEnabled = true;
+            var movement = typeof(DoodleIdleGame).GetMethod("TickEnemyMovement", GrowthPrivate);
+            foreach (int stage in new[] { 1,99,100,1000,1200 }) {
+                game.Ui.DebugSetMainStage(stage);
+                var field = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+                foreach (var actor in field) actor.GetType().GetField("dashCooldown").SetValue(actor, 0f);
+                yield return PhysicsTicks(40);
+                Assert.That(game.EnemyDashCasts, Is.Zero, "Ordinary enemies never dash at any stage.");
+            }
+            AscensionSpawnBoss(99);
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
-            var representatives = actors.Cast<object>().GroupBy(a => (int)a.GetType().GetField("kind").GetValue(a)).Select(g => g.First()).ToArray();
-            var moving = new System.Collections.Generic.List<Rigidbody2D>();
-            for (int i = 0; i < representatives.Length; i++) {
-                var actor = representatives[i];
-                actor.GetType().GetField("dashCooldown").SetValue(actor, 0f);
-                var body = (Rigidbody2D)actor.GetType().GetField("body").GetValue(actor);
-                Place(body, i == 0 ? new Vector2(3, 0) : i == 1 ? new Vector2(-3, 0) : new Vector2(0, 3));
-                body.simulated = true; moving.Add(body);
-            }
-            var starts = moving.Select(b => b.position).ToArray();
-            foreach (int displayedStage in new[] { 1, 999 }) {
-                ServiceSetSavedField(ServiceStateObject, "mainStage", displayedStage - 1);
-                yield return PhysicsTicks(24);
-                Assert.That(game.EnemyDashCasts, Is.Zero, "No dash before displayed stage 1000.");
-                Assert.That(NamedArt("Enemy dash afterimage"), Is.Empty);
-                Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True);
-            }
-            ServiceSetSavedField(ServiceStateObject, "mainStage", 999); // Displayed stage 1000.
-            for (int i = 0; i < moving.Count; i++) Place(moving[i], starts[i]);
+            actors[0].GetType().GetField("dashCooldown").SetValue(actors[0],0f);
+            yield return PhysicsTicks(40);
+            Assert.That(game.EnemyDashCasts, Is.Zero, "Boss 99 cannot dash.");
+            AscensionSpawnBoss(100);
+            var boss = actors[0]; var type = boss.GetType();
+            var body = (Rigidbody2D)type.GetField("body").GetValue(boss);
+            type.GetField("hp").SetValue(boss,1e15f); type.GetField("maxHp").SetValue(boss,1e15f);
+            Place(PlayerBody(), Vector2.zero); Place(body,new Vector2(5,0));
+            type.GetField("dashCooldown").SetValue(boss,0f);
             yield return PhysicsTicks(12);
-            Assert.That(game.EnemyDashCasts, Is.Zero);
-            for (int i = 0; i < moving.Count; i++) Assert.That(Vector2.Distance(moving[i].position, starts[i]), Is.LessThan(.02));
+            Assert.That(game.EnemyDashCasts,Is.Zero);
+            Assert.That(Vector2.Distance(body.position,new Vector2(5,0)),Is.LessThan(.03));
             yield return PhysicsTicks(12);
-            Assert.That(game.EnemyDashCasts, Is.EqualTo(representatives.Length));
-            var trails = NamedArt("Enemy dash afterimage");
-            Assert.That(trails.Length, Is.GreaterThanOrEqualTo(representatives.Length));
-            Assert.That(trails.All(t => t.color.a > 0 && t.color.a <= .28f), Is.True);
-            Assert.That(trails.Any(t => t.flipX) && trails.Any(t => !t.flipX), Is.True);
-            Assert.That(moving.Any(b => b.linearVelocity.magnitude > 5), Is.True);
-            Object.Destroy(CaptureFrame("enemy-dash-facing-trails.png", 1000, 1000, false));
-            yield return PhysicsTicks(14);
-            Assert.That(game.PlayerContactHits, Is.GreaterThan(0));
-            Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True);
-            int casts = game.EnemyDashCasts;
+            Assert.That(game.EnemyDashCasts,Is.EqualTo(1));
+            Assert.That(body.linearVelocity.magnitude,Is.GreaterThan(5));
+            Assert.That(NamedArt("Enemy dash afterimage").Any(t=>t.flipX),Is.True);
+            Object.Destroy(CaptureFrame("boss-dash-facing-trails.png",1000,1000,false));
+            yield return PhysicsTicks(44);
+            Assert.That(body.linearVelocity.magnitude,Is.LessThan(2));
             yield return PhysicsTicks(55);
-            Assert.That(game.EnemyDashCasts, Is.EqualTo(casts), "The attack respects its cooldown.");
-            Assert.That(NamedArt("Enemy dash afterimage"), Is.Empty);
-            ServiceSetSavedField(ServiceStateObject, "mainStage", 1000); // Still enabled at stage 1001.
-            for (int i = 0; i < moving.Count; i++) {
-                Place(moving[i], starts[i]);
-                representatives[i].GetType().GetField("dashCooldown").SetValue(representatives[i], 0f);
-            }
+            Assert.That(game.EnemyDashCasts,Is.EqualTo(1));
+            Assert.That(NamedArt("Enemy dash afterimage"),Is.Empty);
+            Place(body,new Vector2(-5,0)); type.GetField("dashCooldown").SetValue(boss,0f);
             yield return PhysicsTicks(24);
-            Assert.That(game.EnemyDashCasts, Is.EqualTo(casts + representatives.Length));
-            ServiceSetSavedField(ServiceStateObject, "mainStage", 998);
+            Assert.That(game.EnemyDashCasts,Is.EqualTo(2));
+            Assert.That(NamedArt("Enemy dash afterimage").Any(t=>!t.flipX),Is.True);
+            ServiceSetSavedField(ServiceStateObject,"mainStage",98);
             yield return PhysicsTicks(1);
-            Assert.That(moving.All(b => b.linearVelocity.magnitude < 2), Is.True, "Returning below the threshold cancels an active dash.");
-            ServiceSetSavedField(ServiceStateObject,"activeDungeon",0);
-            ServiceSetSavedField(ServiceStateObject,"dungeonStages",new[]{19,0,0});
-            ServiceSetSavedField(ServiceStateObject,"mainStage",0);
-            int beforeCave=game.EnemyDashCasts;
-            for(int i=0;i<moving.Count;i++) {
-                Place(moving[i],starts[i]);
-                representatives[i].GetType().GetField("dashCooldown").SetValue(representatives[i],0f);
-            }
-            yield return PhysicsTicks(24);
-            Assert.That(game.EnemyDashCasts,Is.EqualTo(beforeCave+representatives.Length),"Cave stage 20 has main stage 1000 dash behavior.");
-            ServiceSetSavedField(ServiceStateObject,"dungeonStages",new[]{0,0,0});
+            Assert.That(body.linearVelocity.magnitude,Is.LessThan(2),"Dropping below stage 100 cancels a boss dash.");
             ServiceSetSavedField(ServiceStateObject,"mainStage",1199);
-            yield return PhysicsTicks(1);
-            Assert.That(moving.All(b=>b.linearVelocity.magnitude<2),Is.True,"Cave stage 1 stays at stage 50 difficulty even for a veteran profile.");
+            ServiceSetSavedField(ServiceStateObject,"activeDungeon",0);
+            type.GetField("dashCooldown").SetValue(boss,0f);
+            movement.Invoke(game,new object[]{.02f});
+            Assert.That((float)type.GetField("dashWindup").GetValue(boss),Is.Zero,"Dungeons do not inherit boss dashes.");
         }
     }
 }

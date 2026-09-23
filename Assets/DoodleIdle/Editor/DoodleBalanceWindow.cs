@@ -16,6 +16,7 @@ namespace DoodleIdle.Editor
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning draft = new DoodleUi.ServiceTuning(), loaded = new DoodleUi.ServiceTuning();
         [SerializeField, HideInInspector] UiStatCostTuning statDraft = new UiStatCostTuning(), statLoaded = new UiStatCostTuning();
         [SerializeField, HideInInspector] int selected, previewPosition = 70;
+        string savedDraft, savedStatDraft;
         Vector2 workspaceScroll;
         DoodleIdleGame Game => UnityEngine.Object.FindFirstObjectByType<DoodleIdleGame>();
         DoodleUi Ui => EditorApplication.isPlaying && Game && Game.Ready ? Game.Ui : null;
@@ -33,11 +34,18 @@ namespace DoodleIdle.Editor
         protected override void OnEnable()
         {
             base.OnEnable(); UseScrollView = false; minSize = new Vector2(340, 300);
-            Undo.undoRedoPerformed -= Repaint; Undo.undoRedoPerformed += Repaint;
+            Undo.undoRedoPerformed -= OnUndoRedo; Undo.undoRedoPerformed += OnUndoRedo;
             LoadCurrent();
         }
-        protected override void OnDestroy() { Undo.undoRedoPerformed -= Repaint; base.OnDestroy(); }
+        protected override void OnDestroy() { Undo.undoRedoPerformed -= OnUndoRedo; base.OnDestroy(); }
         void OnInspectorUpdate() => Repaint();
+        void OnUndoRedo() { AutoSaveChanges(); Repaint(); }
+        public void AutoSaveChanges()
+        {
+            if (!EditorApplication.isPlaying) return;
+            if (JsonUtility.ToJson(draft) == savedDraft && JsonUtility.ToJson(statDraft) == savedStatDraft) return;
+            SaveDefaults(false);
+        }
         void Record(string action) => Undo.RecordObject(this, action);
 
         DoodleGrowthStep[] GrowthSteps
@@ -136,7 +144,7 @@ namespace DoodleIdle.Editor
             WrappedLabel("설정 항목");
             int choice = EditorGUILayout.Popup(selected, Names);
             if (choice != selected) { selected = choice; previewPosition = Math.Max(Origin, previewPosition); GUIUtility.hotControl = 0; }
-            EditorGUILayout.HelpBox("시작값과 증가율로 밸런스를 설정합니다. 수정값은 미리보기이며 적용/저장 버튼을 눌러 반영합니다.", MessageType.Info);
+            EditorGUILayout.HelpBox("시작값과 증가율로 밸런스를 설정합니다. 플레이 중 수정값은 즉시 적용되고 자동 저장됩니다. 플레이 종료 후에도 유지됩니다.", MessageType.Info);
             EditorGUI.BeginChangeCheck();
             double start = DoubleInput(selected >= 3 ? "시작 강화 비용" : selected == 0 ? "시작 골드 / 1마리" : "시작값", StartValue);
             float growth = FloatInput(selected == 2 ? "초반 목표 이후 증가율 (%)" : "단계당 증가율 (%)", Growth * 100);
@@ -177,7 +185,8 @@ namespace DoodleIdle.Editor
             using (new EditorGUI.DisabledScope(!Ui)) if (GUILayout.Button("실행 중인 게임에 적용", GUILayout.Height(34))) Apply();
             if (GUILayout.Button("기본값으로 저장", GUILayout.Height(34))) SaveDefaults();
             if (GUILayout.Button("현재 값 다시 불러오기")) LoadCurrent();
-            EditorGUILayout.HelpBox("실행 중 적용은 이번 플레이에만 반영됩니다. 기본값 저장은 다음 실행에도 유지됩니다. 모든 밸런스 수치와 자동 이동 거리를 함께 저장합니다.", MessageType.None);
+            EditorGUILayout.HelpBox("플레이 중에는 모든 밸런스 수치와 자동 이동 거리를 자동 저장합니다. 편집 모드에서는 기본값 저장 버튼으로 저장합니다.", MessageType.None);
+            AutoSaveChanges();
         }
         void DrawGrowthSteps()
         {
@@ -215,14 +224,9 @@ namespace DoodleIdle.Editor
                 GrowthSteps = steps.ToArray();
             }
         }
-        public void Apply()
-        {
-            if (!Ui) return;
-            Ui.ApplyBalanceTuning(draft); Ui.ApplyStatCostTuning(statDraft);
-            draft = Ui.ReadBalanceTuning(); statDraft = Ui.ReadStatCostTuning();
-            ShowNotification(new GUIContent("수치를 적용했습니다. 현재 레벨과 적의 남은 체력 비율은 유지됩니다."));
-        }
-        public void SaveDefaults()
+        public void Apply() => SaveDefaults();
+        public void SaveDefaults() => SaveDefaults(true);
+        void SaveDefaults(bool notify)
         {
             var services = JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath));
             var collections = JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath));
@@ -234,7 +238,8 @@ namespace DoodleIdle.Editor
             draft = services; statDraft = collections.statCosts;
             loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(services));
             statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
-            ShowNotification(new GUIContent("모든 수치를 기본값으로 저장했습니다."));
+            savedDraft = JsonUtility.ToJson(draft); savedStatDraft = JsonUtility.ToJson(statDraft);
+            if (notify) ShowNotification(new GUIContent("모든 수치를 적용하고 기본값으로 저장했습니다."));
         }
         public void LoadCurrent()
         {
@@ -242,6 +247,7 @@ namespace DoodleIdle.Editor
             statDraft = Ui ? Ui.ReadStatCostTuning() : File.Exists(CollectionPath) ? JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath)).statCosts : new UiStatCostTuning();
             loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(draft));
             statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
+            savedDraft = JsonUtility.ToJson(draft); savedStatDraft = JsonUtility.ToJson(statDraft);
         }
     }
 }

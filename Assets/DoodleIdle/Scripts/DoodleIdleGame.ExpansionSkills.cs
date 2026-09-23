@@ -148,8 +148,7 @@ namespace DoodleIdle
                 {
                     if (Alive(unit.target)) position = Vector2.MoveTowards(position, unit.target.Position, dt * 12);
                     if (unit.ability == "FireTornado") {
-                        unit.art.transform.localScale = new Vector3(2.5f + Mathf.Sin(unit.age * 15) * .25f, 2.5f, 1);
-                        EmitMeteorFlame(position + Vector2.down * .8f, Vector2.up);
+                        SetSpriteArt(unit.art, DoodleAscensionArt.FireTornado((int)(unit.age * 10) % 2));
                     } else SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillTornado", (int)(unit.age * 10) % 2));
                     for (int e = enemies.Count - 1; e >= 0; e--)
                     {
@@ -173,20 +172,28 @@ namespace DoodleIdle
                 meteor.art.transform.position = position;
                 meteor.art.transform.rotation = Quaternion.Euler(0, 0, meteor.hand ? 0 : meteor.age * 720);
                 // Emit by travelled distance, so acceleration leaves an unbroken world-space trail.
-                float distance = Vector2.Distance(previous, position);
-                for (float step = .15f - meteor.trail; step <= distance; step += .15f)
-                    EmitMeteorFlame(previous + direction * step, direction);
-                meteor.trail = (meteor.trail + distance) % .15f;
+                if (!meteor.hand) {
+                    float distance = Vector2.Distance(previous, position);
+                    for (float step = .15f - meteor.trail; step <= distance; step += .15f)
+                        EmitMeteorFlame(previous + direction * step, direction);
+                    meteor.trail = (meteor.trail + distance) % .15f;
+                }
                 if (meteor.echo <= 0)
                 {
-                    Echo("Meteor rock afterimage", meteor.art.sprite, position, Vector2.one * (meteor.hand ? 3.8f : 2.3f), meteor.art.transform.rotation, .22f, .28f, 638);
+                    Echo(meteor.hand ? "Divine palm afterimage" : "Meteor rock afterimage", meteor.art.sprite, position, Vector2.one * (meteor.hand ? 3.8f : 2.3f), meteor.art.transform.rotation, meteor.hand ? .35f : .22f, meteor.hand ? .4f : .28f, 638);
                     meteor.echo += .05f;
                 }
                 if (t < 1) continue;
-                EmitBurst(meteorExplosionParticles, meteor.end, Color.white, 1, 5, 5, 0, .4f, .4f);
-                EmitBurst(meteorExplosionParticles, meteor.end, new Color(1, .65f, .35f), 20, .45f, 1, 5, .3f, .7f);
-                EmitBurst(dustParticles, meteor.end, new Color(.65f, .5f, .38f), 16, .5f, 1.1f, 3, .5f, .9f);
-                Echo("Meteor impact crater", DoodleExpansionArt.Get("SkillMeteorCrater"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, 7, .9f, -890);
+                if (meteor.hand) {
+                    Echo("Divine palm impact echo", meteor.art.sprite, meteor.end, Vector2.one * 4.5f, Quaternion.identity, .45f, .6f, 638);
+                    var imprint = Echo("Divine palm ground imprint", meteor.art.sprite, meteor.end, new Vector2(4.5f, 3.5f), Quaternion.identity, 7, .55f, -890);
+                    imprint.color = new Color(.35f, .28f, .22f, .55f);
+                } else {
+                    EmitBurst(meteorExplosionParticles, meteor.end, Color.white, 1, 5, 5, 0, .4f, .4f);
+                    EmitBurst(meteorExplosionParticles, meteor.end, new Color(1, .65f, .35f), 20, .45f, 1, 5, .3f, .7f);
+                    EmitBurst(dustParticles, meteor.end, new Color(.65f, .5f, .38f), 16, .5f, 1.1f, 3, .5f, .9f);
+                    Echo("Meteor impact crater", DoodleExpansionArt.Get("SkillMeteorCrater"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, 7, .9f, -890);
+                }
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if ((enemies[e].Position - meteor.end).sqrMagnitude <= (meteor.hand ? 4.2f * 4.2f : 3.2f * 3.2f))
                     { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized, meteor.hand ? "GodHand" : "Meteor"); MeteorHits++; }

@@ -24,10 +24,10 @@ namespace DoodleIdle
         };
         static readonly Dictionary<int, Sprite> cache = new Dictionary<int, Sprite>();
         [Serializable] sealed class CompanionLayout { public CompanionRegion[] frames; }
-        [Serializable] sealed class CompanionRegion { public float x, y, width, height, pixelsPerUnit; }
-        static CompanionLayout companionLayout, revisionLayout;
+        [Serializable] sealed class CompanionRegion { public float x, y, width, height, pixelsPerUnit; public string texture; }
+        static CompanionLayout companionLayout, revisionLayout, refinementLayout;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetCache() { cache.Clear(); companionLayout = revisionLayout = null; }
+        static void ResetCache() { cache.Clear(); companionLayout = revisionLayout = refinementLayout = null; }
         public static Sprite Get(string key)
         {
             if (key == "SkillFireGolem") return FireGolem(0);
@@ -91,9 +91,29 @@ namespace DoodleIdle
                 Vector2.one * .5f, width);
             sprite.name = "SkillFireGolem_" + (key - 100); cache[key] = sprite; return sprite;
         }
+        public static Sprite FireTornado(int frame) => Refined(2 + frame % 2);
+        static Sprite Refined(int cell)
+        {
+            int key = 500 + cell;
+            if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
+            if (refinementLayout == null) refinementLayout = JsonUtility.FromJson<CompanionLayout>(Resources.Load<TextAsset>("DoodleIdle/AscensionSkillRefinementsLayout").text);
+            var region = refinementLayout.frames[cell];
+            var texture = Resources.Load<Texture2D>("DoodleIdle/" + region.texture);
+            sprite = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height), Vector2.one * .5f, region.pixelsPerUnit);
+            sprite.name = "AscensionRefined_" + cell; cache[key] = sprite; return sprite;
+        }
         public static Sprite Cell(int cell)
         {
             if (cell < 0 || cell >= 36) throw new ArgumentOutOfRangeException(nameof(cell));
+            switch (cell) {
+                case 0: return Refined(6);
+                case 2: return Refined(0);
+                case 3: return FireTornado(0);
+                case 4: return Refined(1);
+                case 8: return DoodleCollectionArt.Get("AscensionSkillArt_10");
+                case 33: return DoodleCollectionArt.Get("AscensionSkillArt_11");
+                case 11: return Refined(4);
+            }
             if (cache.TryGetValue(cell, out var sprite) && sprite && sprite.texture) return sprite;
             var texture = Resources.Load<Texture2D>("DoodleIdle/AscensionAtlas");
             if (!texture) throw new InvalidOperationException("Missing ascension atlas.");

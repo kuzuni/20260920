@@ -200,6 +200,8 @@ namespace DoodleIdle
                 weights[grade]=value;sum+=value;
             }
             weights[0]+=SummonWeightTotal-sum;
+            // Skills and companions stop at Transcendent. Equipment keeps God.
+            if(category=="Skill" || category=="Companion") { weights[7]+=weights[8];weights[8]=0; }
             if(level<35 && (category=="Skill" || category=="Companion")) { weights[5]+=weights[6];weights[6]=0; }
             return weights;
         }

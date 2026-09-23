@@ -41,8 +41,8 @@ namespace DoodleIdle
         public UiStatCostTuning statCosts = new UiStatCostTuning();
         public int maxStatLevel = 10000, maxItemLevel = 1000, copiesPerUpgrade = 5;
         public float relicStepPercent = 1;
-        public float[] skillDpsPercentByGrade = { 25.0f, 91.506248f, 334.93576f, 1225.948608f, 4487.27832f, 16424.560547f, 60117.997875f, 220046.901722f, 732206.06548f };
-        public float[] companionDpsPercentByGrade = { 22.0f, 73.205002f, 243.589645f, 810.544495f, 2697.086914f, 8974.556641f, 29862.836558f, 109305.447511f, 363713.876593f };
+        public float[] skillDpsPercentByGrade = { 25.0f, 91.506248f, 334.93576f, 1225.948608f, 4487.27832f, 16424.560547f, 60117.997875f, 220046.901722f };
+        public float[] companionDpsPercentByGrade = { 22.0f, 73.205002f, 243.589645f, 810.544495f, 2697.086914f, 8974.556641f, 29862.836558f, 99368.588647f };
         public float abilityMaxEnhancementBonus = .99f;
         public UiStatDefinition[] stats;
         public UiItem[] items;

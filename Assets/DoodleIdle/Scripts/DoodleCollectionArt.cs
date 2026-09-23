@@ -19,13 +19,15 @@ namespace DoodleIdle
             if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
             cache.Remove(key);
             if (key.StartsWith("EquipmentArmor_", StringComparison.Ordinal) && int.TryParse(key.Substring(15), out int armor))
-                value = EquipmentCell("UI/EquipmentArmor", armor);
+                value = LayoutCell("UI/EquipmentArmor", armor);
             else if (key.StartsWith("EquipmentClub_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int club))
-                value = EquipmentCell("UI/EquipmentClub", club);
+                value = LayoutCell("UI/EquipmentClub", club);
             else if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
                 value = Cell("RelicAttackArtifacts", relic, 3, 1);
             else if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))
-                value = skill >= 24 ? Cell("SkillThumbsExpansion", skill - 24, 3, 2) : Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
+                value = skill >= 30 ? LayoutCell("SkillThumbsAscension", skill - 30) : skill >= 24 ? Cell("SkillThumbsExpansion", skill - 24, 3, 2) : Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
+            else if (key.StartsWith("AscensionSkillArt_", StringComparison.Ordinal) && int.TryParse(key.Substring(18), out int ascension))
+                value = LayoutCell("SkillThumbsAscension", ascension);
             else if (key.StartsWith("CompanionMon_", StringComparison.Ordinal) && int.TryParse(key.Substring(13), out int companion))
                 return CompanionFrame(companion, 0);
             else if (key.StartsWith("CompanionImpact_", StringComparison.Ordinal) && int.TryParse(key.Substring(16), out int impact))
@@ -38,13 +40,13 @@ namespace DoodleIdle
             if (value) { value.name = key; cache[key] = value; }
             return value;
         }
-        static Sprite EquipmentCell(string resource, int index)
+        static Sprite LayoutCell(string resource, int index)
         {
             var texture = Resources.Load<Texture2D>("DoodleIdle/" + resource);
-            if (!texture) throw new InvalidOperationException("Missing equipment artwork: " + resource);
+            if (!texture) throw new InvalidOperationException("Missing collection artwork: " + resource);
             if (!layouts.TryGetValue(resource, out var layout)) {
                 var asset = Resources.Load<TextAsset>("DoodleIdle/" + resource + "Layout");
-                if (!asset) throw new InvalidOperationException("Missing equipment artwork layout: " + resource);
+                if (!asset) throw new InvalidOperationException("Missing collection artwork layout: " + resource);
                 layout = JsonUtility.FromJson<AnimationLayout>(asset.text);
                 layouts[resource] = layout;
             }

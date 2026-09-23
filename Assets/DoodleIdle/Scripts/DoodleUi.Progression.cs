@@ -10,18 +10,21 @@ namespace DoodleIdle
         // belong only to their active dungeon and cannot also advance the main stage.
         public int MainStage => services == null ? 0 : services.mainStage;
         public int MainStageKillProgress => services == null ? 0 : services.mainStageKillProgress;
-        public int MainStageKillGoal => 100;
+        public int MainStageKillGoal => !BreakthroughMode ? 100 : MainStage < 99 ? 20 : MainStage < 299 ? 50 : 100;
         public int MainStageRemaining => Math.Max(0, MainStageKillGoal - MainStageKillProgress);
         public bool BreakthroughMode => services == null || services.breakthroughMode;
         public bool MainBossPending => MainStageKillProgress >= MainStageKillGoal && BreakthroughMode;
         public void ToggleBreakthroughMode()
         {
+            bool bossWasPending = MainBossPending;
             services.breakthroughMode = !services.breakthroughMode;
-            if (!services.breakthroughMode && MainStageKillProgress >= MainStageKillGoal)
+            if (!services.breakthroughMode && bossWasPending)
             {
                 services.mainStageKillProgress = 0;
                 if (game) game.RequestCombatWaveReset();
             }
+            else if (services.breakthroughMode)
+                services.mainStageKillProgress = Math.Min(MainStageKillGoal, MainStageKillProgress);
             Save(); RefreshHud();
         }
         public void RecordMainCombatKill(bool boss)
@@ -90,7 +93,8 @@ namespace DoodleIdle
             if(services==null)return;
             CreditPendingFieldGold();
             if(ActiveDungeonIndex>=0){services.activeDungeon=-1;services.dungeonProgress=0;Toast("던전 도전에 실패했어요.");}
-            else {services.highestMainStage=Math.Max(HighestMainStage,MainStage);services.mainStage=Math.Max(0,MainStage-1);services.mainStageKillProgress=0;Toast("패배 · 스테이지 "+(MainStage+1)+"에서 다시 시작합니다.");}
+            else if (game && game.BossActive) { FailBossChallenge("플레이어 사망"); return; }
+            else { Save(); RefreshHud(); return; }
             if(game)game.RequestCombatWaveReset();Save();RefreshHud();
         }
         // Field kills and cave rewards share every gold balance value and live bonus.

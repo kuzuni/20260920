@@ -19,10 +19,245 @@ namespace DoodleIdle.Tests
             }
         }
 
+        void AscensionSpawnBoss(int displayedStage)
+        {
+            game.Ui.DebugSetMainStage(displayedStage);
+            if (!game.Ui.BreakthroughMode) game.Ui.ToggleBreakthroughMode();
+            DefeatActualServiceEnemies(game.Ui.MainStageRemaining);
+            typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game, null);
+            Assert.That(game.BossActive, Is.True);
+            Assert.That(game.BossTimeRemaining, Is.EqualTo(10));
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionRewardCelebrationUsesParticlesAndClosesWithoutDuplicateRewards()
+        {
+            game.TogglePause(); var ui=game.Ui;long gold=ui.Gold;int diamonds=ui.Diamonds;
+            ui.ShowRewards("보상 획득!",new List<UiReward>{new UiReward{icon="Gold",amount=500},new UiReward{icon="Diamond",amount=50}});
+            yield return new WaitForSecondsRealtime(.3f);
+            var effect=UiNode("Reward celebration particles").GetComponent<DoodleRewardCelebration>();
+            Assert.That(effect.LiveParticleCount,Is.GreaterThan(100));
+            Assert.That(effect.raycastTarget,Is.False);
+            Assert.That(effect.GetComponent<ParticleSystem>().main.useUnscaledTime,Is.True);
+            Object.Destroy(CaptureFrame("ascension-reward-celebration.png",720,1520));
+            yield return new WaitForSecondsRealtime(2.1f);
+            Assert.That(effect.LiveParticleCount,Is.Zero);
+            Object.Destroy(CaptureFrame("ascension-reward-clean-halo.png",720,1520));
+            ui.CloseDetail(); yield return new WaitForSecondsRealtime(.35f);
+            Assert.That(!effect,Is.True);
+            Assert.That(ui.Gold,Is.EqualTo(gold));Assert.That(ui.Diamonds,Is.EqualTo(diamonds),"Presentation never grants a reward twice.");
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionSkillThumbnailsUseDistinctCompleteArtAndCatalogsEndAtTranscendent()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Skill", "Companion" }) {
+                for (int grade = 6; grade <= 7; grade++)
+                    Assert.That(ui.Items(category).Count(x=>x.rarity==grade),Is.EqualTo(category=="Skill"?5:4));
+                Assert.That(ui.Items(category).Any(x=>x.rarity==8),Is.False);
+                for (int level=1;level<=50;level++) Assert.That(ui.SummonWeights(category,level)[8],Is.Zero);
+                ui.ShowSummonProbabilities(category);
+                Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Transform>().Any(x=>x.name=="Probability_grade_8"),Is.False);
+                ui.CloseDetail();
+            }
+            Assert.That(ui.Items("Companion").Any(x=>x.id=="companion_earth"||x.id=="companion_chimera"),Is.False);
+            Assert.That(ui.Items("Skill").Single(x=>x.id=="chimera_brothers").ability,Is.EqualTo("SawSnakes"));
+            var added=ui.Items("Skill").Where(x=>x.rarity>=6).ToArray();
+            var sheet=UiKit.Rect(UiRoot,"Ascension skill thumbnail reference"); UiKit.Stretch(sheet);
+            sheet.gameObject.AddComponent<Image>().color=new Color(.96f,.95f,.9f);
+            for (int i=0;i<added.Length;i++) {
+                var art=UiKit.Art(added[i].icon);
+                Assert.That(art.texture.name,Is.EqualTo("SkillThumbsAscension"));
+                var rect=art.rect;
+                var pixels=art.texture.GetPixels((int)rect.x,(int)rect.y,(int)rect.width,(int)rect.height);
+                Assert.That(pixels.Count(x=>x.a>.125f),Is.GreaterThan(pixels.Length/10));
+                for(int x=0;x<(int)rect.width;x++) {
+                    Assert.That(pixels[x].a,Is.LessThan(.13f),added[i].name+" bottom edge");
+                    Assert.That(pixels[((int)rect.height-1)*(int)rect.width+x].a,Is.LessThan(.13f),added[i].name+" top edge");
+                }
+                var cell=UiKit.Rect(sheet,added[i].name);int col=i%2,row=i/2;
+                cell.anchorMin=new Vector2(col*.5f+.03f,.02f+(4-row)*.192f);
+                cell.anchorMax=new Vector2((col+1)*.5f-.03f,.02f+(5-row)*.192f);cell.offsetMin=cell.offsetMax=Vector2.zero;
+                var label=UiKit.Text(cell,added[i].name,25,TextAnchor.UpperCenter,35);
+                label.rectTransform.anchorMin=new Vector2(0,.82f);label.rectTransform.anchorMax=Vector2.one;
+                label.rectTransform.offsetMin=label.rectTransform.offsetMax=Vector2.zero;
+                var icon=UiKit.Icon(cell,added[i].icon,160);
+                icon.rectTransform.anchorMin=new Vector2(.2f,.03f);icon.rectTransform.anchorMax=new Vector2(.8f,.79f);
+                icon.rectTransform.offsetMin=icon.rectTransform.offsetMax=Vector2.zero;
+            }
+            Object.Destroy(CaptureFrame("ascension-skill-thumbnails.png",900,1520));Object.Destroy(sheet.gameObject);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionBossTimerHudFailureDeathAndVictoryPreserveStageRules()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.companionsEnabled = false;
+            game.autoPlay = false; game.enemyContactDamage = 0; game.enemyDashEnabled = false;
+            AscensionSpawnBoss(100);
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            var boss = actors[0]; var type = boss.GetType();
+            type.GetField("hp").SetValue(boss,(float)type.GetField("maxHp").GetValue(boss)*.4f);
+            ui.RefreshHud();
+            Assert.That(UiNode("Boss challenge HUD").gameObject.activeInHierarchy, Is.True);
+            Assert.That(((RectTransform)UiNode("Boss health bar fill")).anchorMax.x, Is.EqualTo(.4f).Within(.001));
+            Assert.That(((RectTransform)UiNode("Boss timer bar fill")).anchorMax.x, Is.EqualTo(1));
+            var timerColor=UiNode("Boss timer bar fill").GetComponent<Image>().color;
+            Assert.That(timerColor.b,Is.GreaterThan(timerColor.r));
+            Assert.That(UiNode("Boss challenge HUD").parent.name,Is.EqualTo("Stage progress"));
+            Object.Destroy(CaptureFrame("ascension-boss-health-and-timer.png",720,1520));
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(game.BossTimeRemaining, Is.EqualTo(10), "Pausing also pauses the challenge timer.");
+            game.TogglePause();
+            yield return PhysicsTicks(250);
+            Assert.That(game.BossTimeRemaining,Is.InRange(4.95f,5.05f));
+            ui.RefreshHud(); Assert.That(((RectTransform)UiNode("Boss timer bar fill")).anchorMax.x,Is.InRange(.49f,.51f));
+            yield return PhysicsTicks(251);
+            Assert.That(ui.BreakthroughMode,Is.True); Assert.That(ui.MainStage,Is.EqualTo(99));
+            Assert.That(game.BossActive,Is.False);
+            Assert.That(game.GetComponentsInChildren<RectTransform>(true).Single(x=>x.name=="Boss challenge HUD").gameObject.activeSelf,Is.False);
+            ReloadPersistedServices(); Assert.That(ui.BreakthroughMode,Is.True); Assert.That(ui.MainStage,Is.EqualTo(99));
+            game.TogglePause(); AscensionSpawnBoss(100);
+            typeof(DoodleIdleGame).GetField("bossTimeRemaining",GrowthPrivate).SetValue(game,.02f);
+            DefeatActualServiceEnemies(1); ui.RefreshHud();
+            Assert.That(ui.MainStage,Is.EqualTo(100)); Assert.That(ui.BreakthroughMode,Is.True);
+            Assert.That(game.BossTimeRemaining,Is.Zero);
+            AscensionSpawnBoss(100);
+            boss=actors[0]; type=boss.GetType();
+            Place((Rigidbody2D)type.GetField("body").GetValue(boss), PlayerBody().position);
+            var player=typeof(DoodleIdleGame).GetField("player",GrowthPrivate).GetValue(game);
+            player.GetType().GetField("hp").SetValue(player,1f);
+            typeof(DoodleIdleGame).GetField("contactInvulnerability",GrowthPrivate).SetValue(game,0f);
+            game.enemyContactDamage=1e10f;
+            typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage",GrowthPrivate).Invoke(game,new object[]{.02f});
+            Assert.That(ui.MainStage,Is.EqualTo(99)); Assert.That(ui.BreakthroughMode,Is.True);
+            Assert.That(game.PlayerHealth,Is.EqualTo(game.PlayerMaxHealth));
+            ui.DebugSetMainStage(100);
+            DefeatActualServiceEnemies(7); ui.HandlePlayerDefeat();
+            Assert.That(ui.MainStage,Is.EqualTo(99)); Assert.That(ui.MainStageKillProgress,Is.EqualTo(7));
+            Assert.That(ui.BreakthroughMode,Is.True,"Ordinary defeat preserves the current mode and stage.");
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionBalanceEditsAutoSaveAndReloadFromResources()
+        {
+#if UNITY_EDITOR
+            game.TogglePause();
+            const string tuningPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/ServicesTuning.json";
+            const string collectionPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json";
+            string tuningBefore = System.IO.File.ReadAllText(tuningPath), collectionBefore = System.IO.File.ReadAllText(collectionPath);
+            var type = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleIdle.Editor.DoodleBalanceWindow")).First(t => t != null);
+            var window = ScriptableObject.CreateInstance(type);
+            var draftField = type.GetField("draft", GrowthPrivate);
+            var statField = type.GetField("statDraft", GrowthPrivate);
+            try {
+                var draft = (DoodleUi.ServiceTuning)draftField.GetValue(window);
+                draft.goldPerEnemy = 37; draft.playerKeepDistance = 1.25f;
+                draft.enemyHealthGrowthSteps = new[] { new DoodleGrowthStep { from = 100, growth = .07f } };
+                var stats = (UiStatCostTuning)statField.GetValue(window); stats.commonBaseCost = 123;
+                stats.critical4GrowthSteps = new[] { new DoodleGrowthStep { from = 42, growth = .12f } };
+                type.GetMethod("AutoSaveChanges").Invoke(window, null);
+                Assert.That(game.Ui.ReadBalanceTuning().goldPerEnemy, Is.EqualTo(37));
+                Assert.That(game.Ui.PlayerKeepDistance, Is.EqualTo(1.25f));
+                Assert.That(game.Ui.ReadStatCostTuning().commonBaseCost, Is.EqualTo(123));
+                var saved = JsonUtility.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath));
+                Assert.That(saved.goldPerEnemy, Is.EqualTo(37));
+                Assert.That(saved.enemyHealthGrowthSteps.Single().growth, Is.EqualTo(.07f));
+                var catalog = JsonUtility.FromJson<UiCollectionTuning>(System.IO.File.ReadAllText(collectionPath));
+                Assert.That(catalog.statCosts.critical4GrowthSteps.Single().from, Is.EqualTo(42));
+                Assert.That(catalog.items.Length, Is.EqualTo(JsonUtility.FromJson<UiCollectionTuning>(collectionBefore).items.Length));
+                Object.DestroyImmediate(window); window = null;
+                var host = new GameObject("Balance restart fixture");
+                try {
+                    var reloaded = host.AddComponent<DoodleUi>(); reloaded.InitCollections();
+                    typeof(DoodleUi).GetMethod("InitServices", GrowthPrivate).Invoke(reloaded, null);
+                    Assert.That(reloaded.ReadBalanceTuning().goldPerEnemy, Is.EqualTo(37));
+                    Assert.That(reloaded.PlayerKeepDistance, Is.EqualTo(1.25f));
+                    Assert.That(reloaded.ReadStatCostTuning().commonBaseCost, Is.EqualTo(123));
+                } finally { Object.DestroyImmediate(host); }
+                window = ScriptableObject.CreateInstance(type);
+                var restored = (DoodleUi.ServiceTuning)draftField.GetValue(window); restored.goldPerEnemy = 17;
+                type.GetMethod("AutoSaveChanges").Invoke(window, null);
+                Assert.That(JsonUtility.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath)).goldPerEnemy, Is.EqualTo(17), "Reopening must not disable autosave.");
+                string unchanged = System.IO.File.ReadAllText(tuningPath);
+                var stamp = System.IO.File.GetLastWriteTimeUtc(tuningPath);
+                type.GetMethod("AutoSaveChanges").Invoke(window, null);
+                Assert.That(System.IO.File.GetLastWriteTimeUtc(tuningPath), Is.EqualTo(stamp), "Repaint without edits must not write files.");
+                Assert.That(System.IO.File.ReadAllText(tuningPath), Is.EqualTo(unchanged));
+            } finally {
+                if (window) Object.DestroyImmediate(window);
+                System.IO.File.WriteAllText(tuningPath, tuningBefore); System.IO.File.WriteAllText(collectionPath, collectionBefore);
+                UnityEditor.AssetDatabase.ImportAsset(tuningPath); UnityEditor.AssetDatabase.ImportAsset(collectionPath);
+                game.Ui.ApplyBalanceTuning(JsonUtility.FromJson<DoodleUi.ServiceTuning>(tuningBefore));
+                game.Ui.ApplyStatCostTuning(JsonUtility.FromJson<UiCollectionTuning>(collectionBefore).statCosts);
+            }
+#endif
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionBreakthroughGoalsHonorBoundariesAndModeSwitches()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
+            foreach (var pair in new[] { (1,20), (99,20), (100,50), (299,50), (300,100), (301,100) }) {
+                ui.DebugSetMainStage(pair.Item1);
+                Assert.That(ui.MainStageKillGoal, Is.EqualTo(pair.Item2));
+                DefeatActualServiceEnemies(pair.Item2 - 1);
+                Assert.That(ui.MainBossPending, Is.False);
+                DefeatActualServiceEnemies(1);
+                Assert.That(ui.MainBossPending, Is.True);
+                ReloadPersistedServices();
+                Assert.That(ui.MainStageKillProgress, Is.EqualTo(pair.Item2));
+                refill.Invoke(game, null); Assert.That(game.BossActive, Is.True);
+                DefeatActualServiceEnemies(1);
+                Assert.That(ui.MainStage, Is.EqualTo(pair.Item1));
+                Assert.That(ui.MainStageKillProgress, Is.Zero);
+                refill.Invoke(game, null);
+            }
+            ui.DebugSetMainStage(1); ui.ToggleBreakthroughMode();
+            Assert.That(ui.MainStageKillGoal, Is.EqualTo(100));
+            DefeatActualServiceEnemies(80); ui.ToggleBreakthroughMode();
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(20));
+            Assert.That(ui.MainBossPending, Is.True);
+            refill.Invoke(game, null); Assert.That(game.BossActive, Is.True);
+            ui.ToggleBreakthroughMode();
+            Assert.That(ui.MainStageKillProgress, Is.Zero);
+            Assert.That(ui.MainStage, Is.Zero);
+            Assert.That(ui.MainBossPending, Is.False);
+            ReloadPersistedServices();
+            Assert.That(ui.BreakthroughMode, Is.False);
+            Assert.That(ui.MainStageKillGoal, Is.EqualTo(100));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionFireTornadoAndPalmUseFramesAndPalmImprintsWithoutFireParticles()
+        {
+            AscensionTargets(); CastCatalogSkill("FireTornado");
+            var tornado = NamedArt("FireTornado").Single(); var first = tornado.sprite;
+            yield return PhysicsTicks(6);
+            Assert.That(tornado.sprite, Is.Not.SameAs(first));
+            Assert.That(tornado.sprite.pixelsPerUnit, Is.EqualTo(first.pixelsPerUnit));
+            Assert.That(Particles("Meteor Fire Trail Particle System").particleCount, Is.Zero);
+            CastCatalogSkill("GodHand"); yield return PhysicsTicks(15);
+            Assert.That(NamedArt("Divine palm afterimage"), Is.Not.Empty);
+            Assert.That(Particles("Meteor Fire Trail Particle System").particleCount, Is.Zero);
+            yield return PhysicsTicks(30);
+            var imprints = NamedArt("Divine palm ground imprint");
+            Assert.That(imprints, Is.Not.Empty);
+            Assert.That(imprints.All(x => x.sprite == DoodleAscensionArt.Cell(6)), Is.True);
+            Assert.That(NamedArt("Meteor impact crater"), Is.Empty);
+            Assert.That(Particles("Meteor Explosion Particle System").particleCount, Is.Zero);
+            Object.Destroy(CaptureFrame("ascension-palm-imprint-and-fire-tornado.png", 1200, 1000, false));
+        }
+
         [UnityTest]
         public IEnumerator AscensionSkillsRenderSeparatelyBesideTheExistingPlayer()
         {
-            foreach (var ability in new[] { "BladeRing", "FireGolem", "CactusRage", "FireTornado", "RazorShuriken", "MightyDragon", "GodHand", "MissileRage", "ChimeraBrothers", "SolarVolley" }) {
+            foreach (var ability in new[] { "BladeRing", "FireGolem", "CactusRage", "FireTornado", "RazorShuriken", "MightyDragon", "GodHand", "MissileRage", "SawSnakes", "SolarVolley" }) {
                 game.ResetGame(); yield return null;
                 var bodies = DurableSkillTargets();
                 for (int i = 0; i < 4; i++) {
@@ -40,10 +275,10 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator AscensionRevisedCompanionsUsePoisonSprayBoatGoatAndSingleEarth()
+        public IEnumerator AscensionRevisedCompanionsUsePoisonSprayBoatGoat()
         {
             AscensionTargets(); var ui = game.Ui;
-            CollectionAssert.AreEqual(new[] { "황금톱니바퀴", "빗살무늬토기", "청동검", "전갈", "불나방", "boat", "키메라", "GOAT", "태양", "지구" },
+            CollectionAssert.AreEqual(new[] { "황금톱니바퀴", "빗살무늬토기", "청동검", "전갈", "불나방", "boat", "GOAT", "태양" },
                 ui.Items("Companion").Where(x => x.rarity >= 6).Select(x => x.name));
             foreach (var item in ui.Items("Companion")) item.equipped = false;
             var scorpion = ui.Items("Companion").Single(x => x.id == "companion_scorpion");
@@ -57,7 +292,6 @@ namespace DoodleIdle.Tests
             Assert.That(angles.Distinct().Count(), Is.EqualTo(5), "Poison fans out instead of throwing a tail.");
             Assert.That(NamedArt("Scorpion poison spray"), Is.Not.Empty);
             Object.Destroy(CaptureFrame("ascension-scorpion-poison-spray.png", 1000, 1000, false));
-            Assert.That(UiKit.Art("AscensionShot_9").name, Is.EqualTo("AscensionRevision_5"));
             Assert.That(UiKit.Art("AscensionShot_5").name, Is.EqualTo("AscensionRevision_6"));
             Assert.That(UiKit.Art("AscensionShot_7").name, Is.EqualTo("AscensionRevision_7"));
             for (int pose = 0; pose < 2; pose++) {
@@ -99,6 +333,7 @@ namespace DoodleIdle.Tests
             Place(bodies[0], new Vector2(4, 0)); Place(bodies[1], new Vector2(4, 1.8f));
             SetTargetHealth(bodies[0], baseline); SetTargetHealth(bodies[1], baseline);
             CastCatalogSkill("MissileRage");
+            Assert.That(NamedArt("MissileRage projectile").Single().transform.localScale.x, Is.EqualTo(1.95f).Within(.001));
             for (int i = 0; i < 100 && game.MissileRageExplosions == 0; i++) yield return new WaitForFixedUpdate();
             Assert.That(game.MissileRageExplosions, Is.GreaterThan(0));
             Assert.That((float)hp.GetValue(actors[0]), Is.LessThan(baseline));
@@ -131,13 +366,13 @@ namespace DoodleIdle.Tests
             Assert.That(CastCatalogSkill("BladeRing"), Is.True);
             Assert.That(game.AscensionLaunchCount("BladeRing"), Is.EqualTo(1));
             yield return PhysicsTicks(70);
-            Assert.That(times.Count, Is.EqualTo(12));
+            Assert.That(times.Count, Is.EqualTo(22));
             for (int i = 1; i < times.Count; i++) {
-                Assert.That(times[i] - times[i - 1], Is.InRange(.079f, .121f));
-                Assert.That(Vector2.SignedAngle(directions[i - 1], directions[i]), Is.EqualTo(30).Within(.01));
+                Assert.That(times[i] - times[i - 1], Is.InRange(.019f, .061f));
+                Assert.That(Vector2.SignedAngle(directions[i - 1], directions[i]), Is.EqualTo(360f / 22).Within(.01));
             }
             game.AscensionProjectileLaunched -= launched;
-            foreach (var pair in new[] { ("CactusRage", 4), ("RazorShuriken", 8), ("MissileRage", 13), ("SolarVolley", 3) }) {
+            foreach (var pair in new[] { ("CactusRage", 4), ("RazorShuriken", 18), ("MissileRage", 13), ("SolarVolley", 3) }) {
                 Assert.That(CastCatalogSkill(pair.Item1), Is.True);
                 yield return PhysicsTicks(80);
                 Assert.That(game.AscensionLaunchCount(pair.Item1), Is.EqualTo(pair.Item2), pair.Item1);
@@ -149,20 +384,22 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator AscensionSummonsHaveTenGolemsThreeHeadsLargerDragonAndFallingPalms()
+        public IEnumerator AscensionSummonsHaveTenGolemsFiveHeadsLargerDragonAndFallingPalms()
         {
             AscensionTargets();
             CastCatalogSkill("FireGolem");
             Assert.That(NamedArt("FireGolem").Length, Is.EqualTo(10));
             CastCatalogSkill("FireTornado");
-            CastCatalogSkill("ChimeraBrothers");
-            var heads = NamedArt("ChimeraBrothers head");
-            Assert.That(heads.Length, Is.EqualTo(3));
-            CollectionAssert.AreEquivalent(new[] { "Ascension_8", "Ascension_9", "Ascension_10" }, heads.Select(x => x.sprite.name));
+            CastCatalogSkill("SawSnakes");
+            var heads = NamedArt("SawSnakes head");
+            Assert.That(heads.Length, Is.EqualTo(5));
+            Assert.That(heads.All(x => x.sprite.name == "AscensionSkillArt_10"), Is.True);
             CastCatalogSkill("Dragon"); CastCatalogSkill("MightyDragon");
             yield return PhysicsTicks(3);
             Assert.That(NamedArt("MightyDragon head").Single().transform.localScale.x /
                 NamedArt("Dragon head").Single().transform.localScale.x, Is.EqualTo(1.7f).Within(.01));
+            Assert.That(Mathf.DeltaAngle(NamedArt("MightyDragon segment 3").Single().transform.eulerAngles.z,
+                NamedArt("MightyDragon wings").Single().transform.eulerAngles.z), Is.EqualTo(-90).Within(.01));
             CastCatalogSkill("GodHand");
             var palm = NamedArt("Falling divine palm").Single();
             Vector3 start = palm.transform.position;
@@ -183,7 +420,7 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(400);
             Assert.That(NamedArt("FireGolem"), Is.Empty);
             Assert.That(NamedArt("FireTornado"), Is.Empty);
-            Assert.That(NamedArt("ChimeraBrothers head"), Is.Empty);
+            Assert.That(NamedArt("SawSnakes head"), Is.Empty);
         }
 
         [UnityTest]
@@ -193,10 +430,10 @@ namespace DoodleIdle.Tests
             ui.AddItem(ui.Items("Armor").Single(x => x.id == "armor_grade6_1"), 1);
             game.companionsEnabled = true;
             var added = ui.Items("Companion").Where(x => x.rarity >= 6).ToArray();
-            Assert.That(added.Length, Is.EqualTo(10));
-            for (int start = 0; start < 10; start += 5) {
+            Assert.That(added.Length, Is.EqualTo(8));
+            for (int start = 0; start < added.Length; start += 5) {
                 foreach (var item in ui.Items("Companion")) item.equipped = false;
-                for (int i = 0; i < 5; i++) { var item = added[start + i]; ui.AddItem(item, 1); item.equipped = true; item.slot = i; }
+                for (int i = 0; i < System.Math.Min(5, added.Length - start); i++) { var item = added[start + i]; ui.AddItem(item, 1); item.equipped = true; item.slot = i; }
                 yield return PhysicsTicks(160);
                 foreach (var item in added.Skip(start).Take(5)) Assert.That(game.CompanionShotCount(item.id), Is.GreaterThanOrEqualTo(item.volleyCount), item.name);
                 Object.Destroy(CaptureFrame("ascension-companions-combat-" + start + ".png", 1440, 900, false));
@@ -223,15 +460,15 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < added.Length; i++) {
                 var cell = UiKit.Rect(sheet, added[i].name);
                 int col = i % 2, row = i / 2;
-                cell.anchorMin = new Vector2(col * .5f + .02f, .02f + (4 - row) * .194f);
-                cell.anchorMax = new Vector2((col + 1) * .5f - .02f, .02f + (5 - row) * .194f);
+                cell.anchorMin = new Vector2(col * .5f + .02f, .02f + (3 - row) * .24f);
+                cell.anchorMax = new Vector2((col + 1) * .5f - .02f, .02f + (4 - row) * .24f);
                 cell.offsetMin = cell.offsetMax = Vector2.zero;
                 var name = UiKit.Text(cell, added[i].name, 25, TextAnchor.UpperCenter, 35);
                 name.rectTransform.anchorMin = new Vector2(0, .83f); name.rectTransform.anchorMax = Vector2.one;
                 name.rectTransform.offsetMin = name.rectTransform.offsetMax = Vector2.zero;
                 for (int pose = 0; pose < 2; pose++) {
                     var sprite = UiKit.Icon(cell, added[i].icon, 90);
-                    sprite.sprite = DoodleCollectionArt.CompanionFrame(24 + i, pose);
+                    sprite.sprite = DoodleCollectionArt.CompanionFrame(DoodleCollectionArt.CompanionIndex(added[i].icon), pose);
                     sprite.rectTransform.anchorMin = new Vector2(.03f + pose * .32f, .12f);
                     sprite.rectTransform.anchorMax = new Vector2(.32f + pose * .32f, .8f);
                     sprite.rectTransform.offsetMin = sprite.rectTransform.offsetMax = Vector2.zero;

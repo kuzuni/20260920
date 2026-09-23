@@ -99,7 +99,7 @@ namespace DoodleIdle
             if (spread) direction = Rotate(direction, (shotIndex - (item.volleyCount - 1) * .5f) * 10);
             companion.facingLeft = direction.x < 0; companion.art.flipX = companion.facingLeft;
             float damage = Ui.CompanionHitWeight(item);
-            string projectile = item.id == "companion_chimera" ? "AscensionShot_" + (shotIndex % 3 == 0 ? 6 : shotIndex % 3 == 1 ? 10 : 11) : item.projectile;
+            string projectile = item.projectile;
             var sprite = WorldIcon(projectile);
             if (item.trajectory == "Lightning")
             {
