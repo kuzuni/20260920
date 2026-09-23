@@ -206,7 +206,7 @@ namespace DoodleIdle.Tests
             bool freeAvailable = ui.CanFreeSummon("Relic");
             UiOpen("Shop");
             UiScrollBottom();
-            UiClick("TicketSummon_Relic_1");
+            Assert.That(ui.TrySummonRelicTicket(),Is.True);
             Assert.That(ui.RelicTickets, Is.Zero);
             Assert.That(ui.Items("Relic").Sum(x => x.count), Is.EqualTo(relics + 1));
             Assert.That(new[] { "Armor", "Club", "Skill", "Companion" }.Sum(category => ui.Items(category).Sum(x => x.count)), Is.EqualTo(otherItems));
@@ -222,7 +222,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Gold, Is.EqualTo(gold));
             UiOpen("Shop");
             UiScrollBottom();
-            Assert.That(UiNode("TicketSummon_Relic_1").GetComponent<Button>().interactable, Is.False);
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(x=>x.name=="TicketSummon_Relic_1"),Is.False,"Shared diamond buttons now spend tickets first; there is no separate single-ticket button.");
             LoadServiceSnapshot(_ => { });
             Assert.That(ui.RelicTickets, Is.Zero, "The spent ticket balance must survive save restoration.");
             yield return null;

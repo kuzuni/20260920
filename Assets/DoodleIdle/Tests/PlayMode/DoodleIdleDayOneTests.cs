@@ -188,7 +188,7 @@ namespace DoodleIdle.Tests
                     Assert.That(ui.SummonTickets(category), Is.Zero);
                     ui.GrantSummonTickets(category, 63); ui.Diamonds = 0;
                     int initial = ui.Items(category).Sum(x => x.count);
-                    ui.ShowPage("Shop");
+                    UiOpen("Shop");
                     UiClick("50회 뽑기", UiNode("Summon_" + category));
                     Assert.That(ui.SummonTickets(category), Is.EqualTo(13), category);
                     Assert.That(ui.Diamonds, Is.Zero);
@@ -223,7 +223,7 @@ namespace DoodleIdle.Tests
                     typeof(DoodleUi).GetMethod("InitCommerce", ServicePrivate).Invoke(ui, null);
                     Assert.That(ui.SummonTickets(category), Is.EqualTo(7), "Both relic and category ticket wallets persist.");
                 }
-                ui.ShowPage("Shop");
+                UiOpen("Shop");
                 Object.Destroy(CaptureFrame("ticket-priority-shop.png", 720, 1560));
                 AssertUiGeometry("Ticket and diamond prices");
                 Assert.That(UiRoot.GetComponentsInChildren<UnityEngine.UI.Button>().Any(x => x.name.StartsWith("TicketSummon_")), Is.False);
@@ -252,7 +252,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.MileageCoupons,Is.EqualTo(10));
             Assert.That(ui.GrantConfirmedCurrencyProduct(5,"verified-test-0"),Is.False);
             yield return new WaitForSecondsRealtime(1.5f);
-            ui.ShowPage("Shop"); UiClick("마일리지");
+            UiOpen("Shop"); UiClick("마일리지");
             Object.Destroy(CaptureFrame("dayone-mileage-card.png",720,1560));
             int diamonds=ui.Diamonds;Assert.That(ui.ExchangeMileage(10),Is.True);ui.CloseDetail();
             Assert.That(ui.Diamonds,Is.EqualTo(diamonds+5000000));Assert.That(ui.MileageCoupons,Is.Zero);

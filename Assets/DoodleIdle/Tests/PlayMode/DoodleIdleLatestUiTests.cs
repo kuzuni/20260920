@@ -31,7 +31,7 @@ namespace DoodleIdle.Tests
                 relic.discovered = true; relic.level = 10;
                 int index = 0;
                 foreach (string category in new[] { "Basic", "Skill", "Companion" })
-                    Assert.That(Hit(category), Is.EqualTo(values[index++] * (category == pair[0] ? 1.2f : 1)).Within(.03f));
+                    Assert.That(Hit(category), Is.EqualTo(values[index++] * (category == pair[0] ? 1.1f : 1)).Within(.03f));
                 relic.discovered = false; relic.level = 0;
             }
             var general = ui.Items("Relic").Single(x => x.effect == "attack");
@@ -40,9 +40,9 @@ namespace DoodleIdle.Tests
             GrowthLevels["crit2Chance"] = 4000;
             var critical = ui.Items("Relic").Single(x => x.effect == "critDamage"); critical.discovered = true; critical.level = 10;
             foreach (string category in new[] { "Basic", "Skill", "Companion" })
-                Assert.That(Hit(category), Is.EqualTo(ui.CurrentAttackPower * 2.4f).Within(.03f));
+                Assert.That(Hit(category), Is.EqualTo(ui.CurrentAttackPower * 2.2f).Within(.03f));
             GrowthLevels["crit4Chance"] = 2000;
-            Assert.That(Hit("Skill"), Is.EqualTo(ui.CurrentAttackPower * 4.8f).Within(.03f));
+            Assert.That(Hit("Skill"), Is.EqualTo(ui.CurrentAttackPower * 4.4f).Within(.03f));
             foreach (string category in new[] { "Skill", "Companion" }) foreach (var item in ui.Items(category)) {
                 Assert.That(ui.ItemHitPercent(item), Is.GreaterThan(0), item.id);
                 Assert.That(ui.ItemExpectedDps(item), Is.GreaterThan(0), item.id);

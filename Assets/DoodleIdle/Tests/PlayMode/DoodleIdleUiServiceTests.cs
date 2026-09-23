@@ -69,7 +69,7 @@ namespace DoodleIdle.Tests
                 ServiceSetSavedField(saved, "dungeonUsed", new[] { 3, 2, 1 });
                 ServiceSetSavedField(saved, "daily", Enumerable.Repeat(100, 8).ToArray());
                 ServiceSetSavedField(saved, "weekly", Enumerable.Repeat(200, 8).ToArray());
-                ServiceSetSavedField(saved, "repeat", Enumerable.Repeat(17, 8).ToArray());
+                ServiceSetSavedField(saved, "repeat", Enumerable.Repeat(17, ServiceStateValue<int[]>("repeat").Length).ToArray());
                 ServiceSetSavedField(saved, "dailyClaimed", Enumerable.Repeat(true, 4).ToArray());
                 ServiceSetSavedField(saved, "weeklyClaimed", Enumerable.Repeat(true, 4).ToArray());
             });

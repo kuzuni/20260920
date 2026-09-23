@@ -142,12 +142,14 @@ namespace DoodleIdle.Tests
         {
             var bodies = IsolateSummonTest();
             Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(3, 1.3f)); Place(bodies[2], new Vector2(4.3f, 0));
+            float hit=game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(46),"Skill")*game.Ui.SkillPowerMultiplier("Cannon");
+            float targetHealth=hit*1.5f;
+            for(int i=0;i<3;i++)SetTargetHealth(bodies[i],targetHealth);
             var fill = bodies[0].GetComponentsInChildren<SpriteRenderer>().Single(r => r.name == "Enemy HP fill");
             Assert.That(fill.sprite.name, Is.EqualTo("HealthBarFill"));
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Cannon);
             yield return PhysicsTicks(45);
-            float hit=game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(46),"Skill")*game.Ui.SkillPowerMultiplier("Cannon");
-            Assert.That(fill.transform.localScale.x / .9f, Is.EqualTo((68-hit) / 68).Within(.01f));
+            Assert.That(fill.transform.localScale.x / .9f, Is.EqualTo((targetHealth-hit) / targetHealth).Within(.01f));
             Assert.That(game.ActiveDamageNumbers, Is.GreaterThan(0));
             var text = game.GetComponentsInChildren<Text>().First(t => t.name == "Enemy damage number");
             Assert.That(text.text, Is.EqualTo(UiNumber.Format(System.Math.Ceiling(hit))));

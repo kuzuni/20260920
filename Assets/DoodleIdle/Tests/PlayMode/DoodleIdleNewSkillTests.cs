@@ -37,15 +37,16 @@ namespace DoodleIdle.Tests
                 GrowthLevels["crit2Chance"] = critical ? 4000 : 0;
                 foreach (string ability in abilities) {
                     var profile = DoodleAttackPower.SkillSplash(ability);
-                    for (int i = 0; i < 3; i++) health.SetValue(actors[i], 100000f);
                     Place(bodies[0], new Vector2(3,0));
                     Place(bodies[1], new Vector2(3,profile.radius + .5f));
                     Place(bodies[2], new Vector2(3,profile.radius + .7f));
                     float damage = game.Ui.AttackPercentDamage(DoodleAttackPower.Percent(100),"Skill") * (float)game.Ui.ExpectedCriticalMultiplier * game.Ui.SkillPowerMultiplier(ability);
+                    float baseline=Mathf.Max(10000,damage*10), tolerance=Mathf.Max(.03f,baseline*.0000002f);
+                    for(int i=0;i<3;i++)SetTargetHealth(bodies[i],baseline);
                     impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,ability });
-                    Assert.That(100000 - (float)health.GetValue(actors[0]), Is.EqualTo(damage).Within(.03f), ability + " direct hit is never doubled");
-                    Assert.That(100000 - (float)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(.03f), ability + " splash keeps attack/relic/critical scaling");
-                    Assert.That((float)health.GetValue(actors[2]), Is.EqualTo(100000f), ability + " outside radius");
+                    Assert.That(baseline - (float)health.GetValue(actors[0]), Is.EqualTo(damage).Within(tolerance), ability + " direct hit is never doubled");
+                    Assert.That(baseline - (float)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(tolerance), ability + " splash keeps attack/relic/critical scaling");
+                    Assert.That((float)health.GetValue(actors[2]), Is.EqualTo(baseline), ability + " outside radius");
                 }
             }
             // Death removes the direct target from the population before the secondary pass.

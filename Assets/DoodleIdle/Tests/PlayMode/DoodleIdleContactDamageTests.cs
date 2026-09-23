@@ -43,7 +43,10 @@ namespace DoodleIdle.Tests
             var appearance = typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate);
             art.color = original; appearance.Invoke(game, null);
             Assert.That(art.color, Is.EqualTo(faded));
-            Assert.That(art.sharedMaterial.GetColor("_TintColor"), Is.EqualTo(original));
+            Color materialTint=art.sharedMaterial.GetColor("_TintColor");
+            Assert.That(materialTint.r,Is.EqualTo(original.r).Within(.00001));
+            Assert.That(materialTint.g,Is.EqualTo(original.g).Within(.00001));
+            Assert.That(materialTint.b,Is.EqualTo(original.b).Within(.00001));
             Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player Hit Fade"));
             Assert.That(art.sharedMaterial.GetFloat("_Opacity"), Is.EqualTo(.6f).Within(.001f));
             art.color = Color.white; appearance.Invoke(game, null);

@@ -332,7 +332,9 @@ namespace DoodleIdle
             var level=transform.Find("Enhancement level") as RectTransform;
             if(level)
             {
-                grade.rectTransform.anchorMax=new Vector2(.38f,1);
+                float headerSplit=size.x<85?.18f:.38f;
+                grade.rectTransform.anchorMax=new Vector2(headerSplit,1);
+                level.anchorMin=new Vector2(headerSplit,1);
                 // Keep the enhancement number readable beside the shared corner notification.
                 float notificationInset=GetComponent<DoodleNotificationBadge>()?18:0;
                 level.offsetMin=new Vector2(0,-top);level.offsetMax=new Vector2(-pad-notificationInset,-2*scale);

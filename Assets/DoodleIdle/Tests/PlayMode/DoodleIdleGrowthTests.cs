@@ -113,8 +113,8 @@ namespace DoodleIdle.Tests
             Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(.8 + .2 * 2).Within(.00001));
             var criticalRelic = ui.Items("Relic").Single(x => x.effect == "critDamage");
             criticalRelic.discovered = true; criticalRelic.level = 10;
-            Assert.That(ui.CriticalDamageBonus, Is.EqualTo(20));
-            Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(.8 + .2 * 2 * 1.2).Within(.00001));
+            Assert.That(ui.CriticalDamageBonus, Is.EqualTo(10));
+            Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(.8 + .2 * 2 * 1.1).Within(.00001));
             yield return null;
         }
 

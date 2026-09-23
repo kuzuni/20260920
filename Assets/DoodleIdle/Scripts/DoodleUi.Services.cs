@@ -439,7 +439,7 @@ namespace DoodleIdle
         {
             int tab = questTab, metric = QuestMetrics[tab][index], goal = QuestGoal(tab, index);
             var card = ServiceCard(parent, "Quest " + tab + " " + index, UiKit.Paper);
-            var row = UiKit.Row(card, "Quest summary", 102,8);
+            var row = UiKit.Row(card, "Quest summary", tab == 1 ? 126 : 102,8);
             UiKit.Icon(row, QuestIcons[metric], 64);
             var text = UiKit.Column(row, "Quest text", 3, 0); UiKit.Flexible(text, 1);
             UiKit.Text(text, string.Format(QuestLabels[metric], UiNumber.Format(goal)), 22, TextAnchor.MiddleLeft, 42);

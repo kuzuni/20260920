@@ -14,6 +14,8 @@ namespace DoodleIdle.Tests
         {
             var bodies = IsolateSummonTest();
             Place(bodies[0], new Vector2(3, 0)); Place(bodies[1], new Vector2(3, 1.5f));
+            float burnTargetHealth=game.Ui.ItemHitDamage(game.Ui.Items("Skill").Single(x=>x.ability=="Molotov"))*100;
+            SetTargetHealth(bodies[0],burnTargetHealth);SetTargetHealth(bodies[1],burnTargetHealth);
             var hits = new List<int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.Molotov) hits.Add(id); };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.Molotov);
@@ -61,6 +63,8 @@ namespace DoodleIdle.Tests
             for (int i = 0; i < bodies.Length; i++) Place(bodies[i], new Vector2(14 + i % 4, 15 + i / 4));
             Place(bodies[0], new Vector2(4, 0)); Place(bodies[1], new Vector2(-5, 0));
             Place(bodies[2], new Vector2(7, 1));
+            float ringHit=game.Ui.ItemHitDamage(game.Ui.Items("Skill").Single(x=>x.ability=="Sound"));
+            for(int i=0;i<3;i++)SetTargetHealth(bodies[i],ringHit*2.5f);
             int frontId = bodies[0].gameObject.GetInstanceID(), behindId = bodies[1].gameObject.GetInstanceID();
             int distantId = bodies[2].gameObject.GetInstanceID();
             var hits = new List<int>();

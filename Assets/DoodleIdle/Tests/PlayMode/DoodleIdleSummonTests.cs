@@ -33,6 +33,13 @@ namespace DoodleIdle.Tests
             return bodies;
         }
         IEnumerator PhysicsTicks(int count) { for (int i = 0; i < count; i++) yield return new WaitForFixedUpdate(); }
+        void SetTargetHealth(Rigidbody2D body, float health)
+        {
+            var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
+            var actor=actors.Cast<object>().Single(x=>(Rigidbody2D)x.GetType().GetField("body").GetValue(x)==body);
+            actor.GetType().GetField("hp").SetValue(actor,health);
+            actor.GetType().GetField("maxHp").SetValue(actor,health);
+        }
         SpriteRenderer[] NamedArt(string name) => game.GetComponentsInChildren<SpriteRenderer>().Where(r => r.name == name).ToArray();
 
         [UnityTest]
@@ -248,9 +255,10 @@ namespace DoodleIdle.Tests
             Assert.That(NamedArt("WaveSnakes head").Select(r => r.transform.position).Distinct().Count(), Is.EqualTo(5));
             game.ResetGame(); yield return null;
             bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(2.5f, 0)); Place(bodies[1], new Vector2(4.1f, .5f));
-            // Keep the target's original nine-hit lifetime while testing motion;
-            // catalog damage coefficients have separate actual-hit coverage.
-            game.Ui.Items("Skill").Single(x=>x.ability=="TetherSnake").damageMultiplier=1;
+            // Preserve a nine-hit lifetime at the live rarity coefficient so the
+            // motion test can observe repeated hits followed by retargeting.
+            float snakeHit=game.Ui.ItemHitDamage(game.Ui.Items("Skill").Single(x=>x.ability=="TetherSnake"));
+            SetTargetHealth(bodies[0],snakeHit*8.5f);SetTargetHealth(bodies[1],snakeHit*8.5f);
             var impacts = new Dictionary<int, int>();
             game.SummonImpact += (skill, id) => { if (skill == DoodleIdleGame.SummonSkill.TetherSnake) impacts[id] = impacts.TryGetValue(id, out int count) ? count + 1 : 1; };
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.TetherSnake);
@@ -269,6 +277,7 @@ namespace DoodleIdle.Tests
         public IEnumerator GuardianOnlyAttacksInRangeAndRequiredTrailsAreVisible()
         {
             var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(8, 0));
+            foreach(var body in bodies)SetTargetHealth(body,10000000);
             game.CastSummonSkill(DoodleIdleGame.SummonSkill.GuardianSword);
             Assert.That(game.SummonCasts(DoodleIdleGame.SummonSkill.GuardianSword), Is.Zero);
             Place(bodies[0], new Vector2(4, 0));
