@@ -19,6 +19,9 @@ namespace DoodleIdle
             destination.commonGrowth = BalanceValue(source.commonGrowth, 0, .004f);
             destination.critical2Growth = BalanceValue(source.critical2Growth, 0, .004f);
             destination.critical4Growth = BalanceValue(source.critical4Growth, 0, .004f);
+            destination.commonGrowthSteps = DoodleGrowthStep.Copy(source.commonGrowthSteps);
+            destination.critical2GrowthSteps = DoodleGrowthStep.Copy(source.critical2GrowthSteps);
+            destination.critical4GrowthSteps = DoodleGrowthStep.Copy(source.critical4GrowthSteps);
             destination.commonCurve = source.commonCurve?.Copy() ?? new DoodleGrowthCurve();
             destination.critical2Curve = source.critical2Curve?.Copy() ?? new DoodleGrowthCurve();
             destination.critical4Curve = source.critical4Curve?.Copy() ?? new DoodleGrowthCurve();
@@ -29,7 +32,8 @@ namespace DoodleIdle
         {
             int cost = id == "crit2Chance" ? tuning.critical2BaseCost : id == "crit4Chance" ? tuning.critical4BaseCost : tuning.commonBaseCost;
             float growth = id == "crit2Chance" ? tuning.critical2Growth : id == "crit4Chance" ? tuning.critical4Growth : tuning.commonGrowth;
-            double raw = DoodleGrowthCurve.Exponential(Math.Max(1, cost), BalanceValue(growth, 0, .004f), currentLevel);
+            var steps = id == "crit2Chance" ? tuning.critical2GrowthSteps : id == "crit4Chance" ? tuning.critical4GrowthSteps : tuning.commonGrowthSteps;
+            double raw = DoodleGrowthStep.Evaluate(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
             // Exponentiation can land a few double-precision ULPs above an integer.
             double nearest = Math.Round(raw);
             if (Math.Abs(raw - nearest) <= Math.Max(1, Math.Abs(raw)) * 8.881784197001252e-16) raw = nearest;
@@ -58,6 +62,9 @@ namespace DoodleIdle
             destination.goldStageGrowth = BalanceValue(source.goldStageGrowth, 0, .02f);
             destination.enemyHealthStageGrowth = BalanceValue(source.enemyHealthStageGrowth, 0, .02f);
             destination.enemyDamageStageGrowth = BalanceValue(source.enemyDamageStageGrowth, 0, .02f);
+            destination.goldGrowthSteps = DoodleGrowthStep.Copy(source.goldGrowthSteps);
+            destination.enemyHealthGrowthSteps = DoodleGrowthStep.Copy(source.enemyHealthGrowthSteps);
+            destination.enemyDamageGrowthSteps = DoodleGrowthStep.Copy(source.enemyDamageGrowthSteps);
             destination.goldCurve = source.goldCurve?.Copy() ?? new DoodleGrowthCurve();
             destination.enemyHealthCurve = source.enemyHealthCurve?.Copy() ?? new DoodleGrowthCurve();
             destination.enemyDamageCurve = source.enemyDamageCurve?.Copy() ?? new DoodleGrowthCurve();

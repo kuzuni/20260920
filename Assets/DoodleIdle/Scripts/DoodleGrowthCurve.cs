@@ -3,6 +3,43 @@ using System.Collections.Generic;
 
 namespace DoodleIdle
 {
+    [Serializable]
+    public sealed class DoodleGrowthStep
+    {
+        public int from;
+        public float growth;
+
+        public static DoodleGrowthStep[] Copy(DoodleGrowthStep[] source)
+        {
+            var copy = new List<DoodleGrowthStep>();
+            foreach (var step in source ?? Array.Empty<DoodleGrowthStep>()) if (step != null)
+                copy.Add(new DoodleGrowthStep { from = step.from, growth = CleanRate(step.growth) });
+            return copy.ToArray();
+        }
+
+        static float CleanRate(float rate) => float.IsNaN(rate) || float.IsInfinity(rate) ? 0 : Math.Max(0, Math.Min(1000000, rate));
+
+        // A threshold N selects the rate for the transition N-1 -> N; values never reset.
+        public static double Evaluate(double start, float initialRate, int origin, int target, DoodleGrowthStep[] steps)
+        {
+            double value = DoodleGrowthCurve.Exponential(start, 0, 0);
+            long cursor = (long)origin + 1;
+            while (cursor <= target) {
+                float rate = CleanRate(initialRate);
+                int latest = int.MinValue;
+                long next = (long)target + 1;
+                foreach (var step in steps ?? Array.Empty<DoodleGrowthStep>()) {
+                    if (step == null) continue;
+                    if (step.from <= cursor && step.from >= latest) { latest = step.from; rate = CleanRate(step.growth); }
+                    else if (step.from > cursor && step.from < next) next = step.from;
+                }
+                value = DoodleGrowthCurve.Exponential(value, rate, (int)(next - cursor));
+                cursor = next;
+            }
+            return value;
+        }
+    }
+
     public enum DoodleCurveInterpolation { Linear, Smooth, Manual }
 
     [Serializable]

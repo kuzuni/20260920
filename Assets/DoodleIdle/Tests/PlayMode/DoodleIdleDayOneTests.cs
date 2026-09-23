@@ -13,6 +13,58 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
+        public IEnumerator NumericGrowthSegmentsChangeRatesAtBoundariesAndPersist()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var steps = new[] { new DoodleGrowthStep { from = 3, growth = 1 }, new DoodleGrowthStep { from = 5, growth = 0 } };
+            double[] expected = { 10, 15, 30, 60, 60, 60 };
+            for (int i = 0; i < expected.Length; i++)
+                Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,i+1,steps), Is.EqualTo(expected[i]), "Threshold transitions must use the new rate without resetting the value.");
+            var unordered = new[] { steps[1], new DoodleGrowthStep { from = 3, growth = 8 }, steps[0] };
+            Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,5,unordered), Is.EqualTo(60), "Unsorted data uses the last rate at duplicate thresholds.");
+            Assert.That(DoodleGrowthStep.Evaluate(0,.5f,1,int.MaxValue,steps), Is.Zero);
+            Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,int.MaxValue,null), Is.EqualTo(1e30));
+            var tuning = ui.ReadBalanceTuning();
+            tuning.goldPerEnemy = 10; tuning.goldStageGrowth = .5f; tuning.goldGrowthSteps = steps;
+            tuning.enemyStartingHealth = 68; tuning.enemyHealthStageGrowth = .5f; tuning.enemyHealthGrowthSteps = steps;
+            tuning.earlyEnemyDamageEndStage = 70; tuning.earlyEnemyDamageMax = 100; tuning.enemyDamageStageGrowth = .5f;
+            tuning.enemyDamageGrowthSteps = new[] { new DoodleGrowthStep { from = 72, growth = 1 }, new DoodleGrowthStep { from = 73, growth = 0 } };
+            tuning = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(tuning));
+            ui.ApplyBalanceTuning(tuning);
+            Assert.That(DoodleUi.GoldForMainKills(tuning,3,1), Is.EqualTo(30));
+            Assert.That(ui.GoldForMainKills(5,1), Is.EqualTo((int)Math.Round(60 * (double)ui.GoldGainMultiplier * ui.GoldBuffMultiplier)));
+            Assert.That(ui.EnemyHealthMultiplier(3)*68, Is.EqualTo(204).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(70)*64, Is.EqualTo(100).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(71)*64, Is.EqualTo(150).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(72)*64, Is.EqualTo(300).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(73)*64, Is.EqualTo(300).Within(.001));
+            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(ui.GoldForMainKills(50,500)));
+            tuning.goldGrowthSteps[0].growth = 99;
+            Assert.That(ui.ReadBalanceTuning().goldGrowthSteps[0].growth, Is.EqualTo(1), "Applying must copy the editable arrays.");
+            var costs = ui.ReadStatCostTuning(); costs.commonBaseCost = 10; costs.commonGrowth = .5f;
+            costs.commonGrowthSteps = DoodleGrowthStep.Copy(steps);
+            costs.critical2BaseCost = 20; costs.critical2Growth = 0;
+            costs.critical2GrowthSteps = new[] { new DoodleGrowthStep { from = 2, growth = .5f } };
+            costs.critical4BaseCost = 40; costs.critical4Growth = 0;
+            costs.critical4GrowthSteps = new[] { new DoodleGrowthStep { from = 2, growth = 1 } };
+            costs = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(costs));
+            ui.ApplyStatCostTuning(costs);
+            foreach (string id in new[] { "attack", "health", "healthRegen" }) {
+                GrowthLevels[id] = 2;
+                Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(23));
+                GrowthLevels[id] = 3;
+                Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(45));
+            }
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit2Chance",3), Is.EqualTo(45));
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit4Chance",3), Is.EqualTo(160));
+            costs.commonGrowthSteps[0].growth = 99;
+            Assert.That(ui.ReadStatCostTuning().commonGrowthSteps[0].growth, Is.EqualTo(1));
+            costs.commonGrowthSteps = Array.Empty<DoodleGrowthStep>();
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"attack",3), Is.EqualTo(34), "Removing all sections restores the baseline growth rate.");
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator NumericBalanceIgnoresLegacyGraphOverrides()
         {
             game.TogglePause(); var ui = game.Ui;

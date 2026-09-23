@@ -8,6 +8,12 @@ Graph editing was canceled. **Doodle Idle → 밸런스 조절** now contains on
 
 **Doodle Idle → 화폐 지급 디버그** is a separate Odin window. Select Gold or Diamonds, enter an amount and press the currency grant button during play. Grants update the wallet, save immediately and refresh the HUD/current popup. Gold saturates at long.MaxValue, diamonds at int.MaxValue; negative API requests grant nothing. Grants do not change balance settings or consume free reward attempts. There are no currency grant controls in the balance window.
 
+### Numeric growth sections
+
+Each of the six balance groups now supports any number of numeric growth sections: **+ 증가율 변경 구간 추가**, starting stage/level, rate %, and per-row deletion. Each row previews the values immediately before and at its threshold. A threshold N changes the multiplier for N-1 → N; it does not reset the starting value. Example start 10, initial 50%, from stage 3 use 100%, from stage 5 use 0% gives 10, 15, 30, 60, 60. With no sections the single exponential baseline is unchanged. The same section model applies independently to common basic-stat costs, x2 costs and x4 costs.
+
+The damage early ramp stays linear through its target stage; growth sections only affect later stages. Thresholds earlier than that ramp end select the rate already active when exponential growth begins. Last section continues indefinitely. Rates are nonnegative; 0% creates a flat section. Evaluation walks section boundaries rather than every stage and retains the 1e30 cap. Apply/save use deep copies and JSON persistence; cave rewards and real stat quotes use the same section calculation as the preview.
+
 ## Odin window (historical graph revision)
 
 Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas; the graph shows base gold before relic/buff bonuses. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
