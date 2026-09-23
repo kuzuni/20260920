@@ -38,3 +38,5 @@ Final generated sources:
 - Club: `exec-4adc7d35-d29b-4b64-bb3a-400fd75ba488.png`
 
 Each PNG is 1060×1484 RGBA. The native doodle artwork is preserved in the repository assets.
+
+Hosted validation: run 35887971104 on cabdae0 passed 2/2 PlayMode tests. All 62 catalog keys resolve to distinct complete sprites with transparent crop borders; inventory, selected-item and summon-result images share the correct sprites. Existing enhancement/synthesis/God-limit checks also passed. Armor/Club inventory and summon-result screenshots were visually inspected. No local Unity execution was performed.
