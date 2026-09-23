@@ -422,7 +422,8 @@ namespace DoodleIdle
             string[] names = { "일일", "반복", "주간" };
             for (int i = 0; i < 3; i++) { int tab = i; var button=UiKit.Button(tabs, names[i], () => { questTab = tab; RefreshPage(); }, questTab == i ? UiKit.Green : new Color(.92f,.92f,.92f),60); Notify(button.transform,()=>QuestTabHasReward(tab)); }
             for (int i = 0; i < QuestCount(questTab); i++) QuestCard(body, i);
-            var bulk=UiKit.Button(body, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);Notify(bulk.transform,()=>QuestTabHasReward(questTab));
+            var footer = UiKit.Footer(body, "Quest footer", 72);
+            var bulk=UiKit.Button(footer, "일괄받기", () => ClaimQuests(-1), UiKit.Blue, 68);Notify(bulk.transform,()=>QuestTabHasReward(questTab));
         }
 
         string QuestResetLabel()
