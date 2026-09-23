@@ -33,6 +33,13 @@ Default formulas, where S is the displayed stage:
 
 Validation must run in GitHub-hosted Unity Actions, never local Unity/play mode.
 
+### Validation evidence
+
+- [Full run 35800146301](https://github.com/kuzuni/20260920/actions/runs/35800146301): 106 passed, 12 failed, 1 optional campaign skipped. Failures exposed old fixed-HP/fixed-reward/button fixtures and overly strict float comparisons; all were investigated.
+- [Affected checks 35801993171](https://github.com/kuzuni/20260920/actions/runs/35801993171): 33/34 passed on runtime revision `7182916`. This covers the complete quest rules/migration/action hooks, ticket-priority and mixed payment, manual balance controls, tier ratios, skill levels, free buffs/notifications and opacity-only player feedback. The remaining comparison differed by 0.017 DPS out of 167,533 because the two equivalent formulas use float intermediates.
+- [Final damage checks 35802737286](https://github.com/kuzuni/20260920/actions/runs/35802737286): 2/2 passed on `319f93c` after changing only that test's tolerance and CI scope. This closes all 12 failures from the broad run; the 34 distinct affected checks are covered across the follow-ups. The full suite was not redundantly rerun after the test-only tolerance fix.
+- Hosted screenshots were inspected for mixed ticket/diamond prices, skill enhancement labels, expanded quest rows and preserved player color during the 0.6-alpha phase. Artifacts are retained under `C:/Users/user/.codex/artifacts/progression-themes/run35801993171` and `run35802737286`.
+
 ## Quest revision
 
 - Daily: 11 separate objectives, 1,000 diamonds each. Kill 500 enemies; spin once; claim attendance once; enter each of gold/relic caves once; draw 10 from each of Armor, Club, Skill, Companion, Relic and DungeonRelic.
