@@ -340,6 +340,7 @@ namespace DoodleIdle.Tests
         public IEnumerator AutomaticCombatCastsEquippedLoadoutsAndRefills()
         {
             ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
+            if (game.Ui.BreakthroughMode) game.Ui.ToggleBreakthroughMode();
             game.enemyDashEnabled = false; // This fixture isolates the player's full loadout.
             // The high saved stage opens all slots; this cast/refill fixture still uses baseline enemies.
             // DungeonEntryReplacesActualMapAndActorsAndUsesMainStageDifficulty covers stage scaling.
@@ -366,9 +367,10 @@ namespace DoodleIdle.Tests
             Assert.That(game.DashCasts, Is.EqualTo(1));
             Assert.That(game.FirstDashTime, Is.InRange(4.98f, 5.05f), "Dash must first activate after five seconds of physics simulation.");
             float worstPenetration = 0;
-            while (game.Elapsed < 160)
+            int groupCount = Mathf.CeilToInt(skills.Count / 8f);
+            while (game.Elapsed < groupCount * 40)
             {
-                int nextGroup = Mathf.Min(3, (int)(game.Elapsed / 40));
+                int nextGroup = Mathf.Min(groupCount - 1, (int)(game.Elapsed / 40));
                 if (nextGroup != group) equipGroup(nextGroup);
                 yield return new WaitForFixedUpdate();
                 Assert.That(game.EnemyCount, Is.InRange(0, 200), "The field replenishes below 100 and the breakthrough boss spawns alone.");
@@ -397,7 +399,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
-            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(34));
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(44));
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());

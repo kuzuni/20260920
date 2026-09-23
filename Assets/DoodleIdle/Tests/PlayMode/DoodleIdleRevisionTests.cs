@@ -276,6 +276,7 @@ namespace DoodleIdle.Tests
                     Assert.That(ui.SynthesizeItem(item), Is.Zero);
                     Assert.That(ui.UpgradeItem(item), Is.True);
                     Assert.That(item.level, Is.EqualTo(100));
+                    item.count = ui.CopiesNeeded(item);
                     Assert.That(ui.UpgradeItem(item), item.rarity == 6 && item.tier == 1 ? Is.True : Is.False);
                     item.level = 100; item.count = 14; int before = next.count;
                     Assert.That(ui.SynthesizeItem(item, true), Is.EqualTo(2));
