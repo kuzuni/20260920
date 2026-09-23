@@ -18,7 +18,11 @@ namespace DoodleIdle
             if (string.IsNullOrEmpty(key)) return null;
             if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
             cache.Remove(key);
-            if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
+            if (key.StartsWith("EquipmentArmor_", StringComparison.Ordinal) && int.TryParse(key.Substring(15), out int armor))
+                value = EquipmentCell("UI/EquipmentArmor", armor);
+            else if (key.StartsWith("EquipmentClub_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int club))
+                value = EquipmentCell("UI/EquipmentClub", club);
+            else if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
                 value = Cell("RelicAttackArtifacts", relic, 3, 1);
             else if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))
                 value = skill >= 24 ? Cell("SkillThumbsExpansion", skill - 24, 3, 2) : Cell("SkillThumbs" + grades[skill / 4], skill % 4, 2, 2);
@@ -33,6 +37,23 @@ namespace DoodleIdle
             }
             if (value) { value.name = key; cache[key] = value; }
             return value;
+        }
+        static Sprite EquipmentCell(string resource, int index)
+        {
+            var texture = Resources.Load<Texture2D>("DoodleIdle/" + resource);
+            if (!texture) throw new InvalidOperationException("Missing equipment artwork: " + resource);
+            if (!layouts.TryGetValue(resource, out var layout)) {
+                var asset = Resources.Load<TextAsset>("DoodleIdle/" + resource + "Layout");
+                if (!asset) throw new InvalidOperationException("Missing equipment artwork layout: " + resource);
+                layout = JsonUtility.FromJson<AnimationLayout>(asset.text);
+                layouts[resource] = layout;
+            }
+            if (index < 0 || index >= layout.frames.Length) throw new ArgumentOutOfRangeException(nameof(index));
+            // Generated atlas rows are not exact grid cells. Explicit whole-icon bounds avoid clipping
+            // tall shoulder plates and accidentally including a neighboring weapon.
+            var region = layout.frames[index];
+            return Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
+                Vector2.one * .5f, Mathf.Max(region.width, region.height));
         }
         public static Sprite CompanionFrame(int index, int frame)
         {

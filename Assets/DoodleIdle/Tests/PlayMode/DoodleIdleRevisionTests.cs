@@ -24,6 +24,53 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator EquipmentArtworkHasSixtyTwoDistinctCompleteIconsAcrossViews()
+        {
+            game.TogglePause(); var ui=game.Ui;
+            foreach(string category in new[]{"Armor","Club"}) {
+                var items=ui.Items(category);
+                Assert.That(items.Select(x=>x.icon).Distinct().Count(),Is.EqualTo(31));
+                var sprites=items.Select(x=>UiKit.Art(x.icon)).ToArray();
+                Assert.That(sprites.Select(x=>x.rect).Distinct().Count(),Is.EqualTo(31));
+                for(int i=0;i<items.Count;i++) {
+                    var sprite=sprites[i];
+                    Assert.That(sprite.name,Is.EqualTo(items[i].icon));
+                    Assert.That(sprite.texture.name,Is.EqualTo("Equipment"+category));
+                    var rect=sprite.rect;
+                    int width=(int)rect.width,height=(int)rect.height;
+                    Assert.That(width,Is.GreaterThan(120)); Assert.That(height,Is.GreaterThan(120));
+                    var pixels=sprite.texture.GetPixels((int)rect.x,(int)rect.y,width,height);
+                    Assert.That(pixels.Count(p=>p.a>.125f),Is.InRange(width*height/5,width*height*95/100));
+                    for(int x=0;x<width;x++) {
+                        Assert.That(pixels[x].a,Is.LessThan(.13f),items[i].name+" bottom cropped");
+                        Assert.That(pixels[(height-1)*width+x].a,Is.LessThan(.13f),items[i].name+" top cropped");
+                    }
+                    for(int y=0;y<height;y++) {
+                        Assert.That(pixels[y*width].a,Is.LessThan(.13f),items[i].name+" left cropped");
+                        Assert.That(pixels[y*width+width-1].a,Is.LessThan(.13f),items[i].name+" right cropped");
+                    }
+                    ui.AddItem(items[i],1);
+                }
+                typeof(DoodleUi).GetField("equipmentCategory",GrowthPrivate).SetValue(ui,category);
+                UiOpen("Equipment"); yield return null;
+                var inventory=UiNode("Collection inventory");
+                foreach(var item in items) {
+                    var card=inventory.GetComponentsInChildren<Button>().Single(b=>b.name=="Slot: "+item.name);
+                    Assert.That(card.GetComponentsInChildren<Image>().Any(im=>im.sprite==UiKit.Art(item.icon)),Is.True);
+                }
+                Object.Destroy(CaptureFrame("equipment-unique-"+category.ToLowerInvariant()+".png",720,1520));
+                inventory.GetComponentsInChildren<Button>().Single(b=>b.name=="Slot: "+items.Last().name).onClick.Invoke();
+                Assert.That(UiNode("Selected equipment").GetComponentsInChildren<Image>().Any(im=>im.sprite==sprites.Last()),Is.True);
+                ui.SkipSummonAnimations=true;
+                typeof(DoodleUi).GetMethod("ShowSummonResults",GrowthPrivate).Invoke(ui,new object[]{category,items.Take(5).ToList()});
+                yield return null;
+                foreach(var sprite in sprites.Take(5)) Assert.That(game.GetComponentsInChildren<Image>().Any(im=>im.gameObject.activeInHierarchy&&im.sprite==sprite),Is.True);
+                Object.Destroy(CaptureFrame("equipment-unique-"+category.ToLowerInvariant()+"-summon.png",720,1520));
+                ui.CloseFullscreen();
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SummonTierWeightsMatchTenNineEightSevenSixAndDisplayedPercentages()
         {
             game.TogglePause(); var ui = game.Ui;

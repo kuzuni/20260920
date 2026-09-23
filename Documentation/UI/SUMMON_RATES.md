@@ -1,5 +1,7 @@
 # Summon rates — 2026-09-24
 
+Hosted validation on 6070dda: run 35886527443 passed 2/2 tests, covering every level/category's lottery interval boundaries, total probabilities, fallback/resource agreement, tier proportions, relic uniformity and popup percentages. The level-30 probability screenshot was visually inspected.
+
 Requested non-Normal percentages are preserved. Normal is the remainder: 100% minus Advanced, Rare, Epic, Legendary, Mythic and God. All weights use integer 0.001% units (total 100000). Resource tuning and C# fallback defaults match.
 
 Armor/Club use this table directly. Skill/Companion add the God share to Mythic because those catalogs have no God entries. This can make their combined Mythic share fall from 2.019% at level 30 to 2% at level 31; it follows the supplied table without changing its non-Normal values. Relic and dungeon-relic pools remain uniform and have no summon level. Within-rarity tier ratios are unchanged.
