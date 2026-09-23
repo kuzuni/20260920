@@ -342,6 +342,10 @@ namespace DoodleIdle.Tests
             ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
             if (game.Ui.BreakthroughMode) game.Ui.ToggleBreakthroughMode();
             game.enemyDashEnabled = false; // This fixture isolates the player's full loadout.
+            // Keep the 200-second loadout/refill fixture in one continuous living wave.
+            // ContactDamageUsesSharedOneSecondImmunityBlinkAndAllEnemyKinds covers damage;
+            // defeat progression has its own fixture. Teleporting on defeat is not a contact sweep.
+            game.enemyContactDamage = 0;
             // The high saved stage opens all slots; this cast/refill fixture still uses baseline enemies.
             // DungeonEntryReplacesActualMapAndActorsAndUsesMainStageDifficulty covers stage scaling.
             var baselineTuning=(DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning",ServicePrivate).GetValue(game.Ui);

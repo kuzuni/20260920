@@ -56,9 +56,6 @@ namespace DoodleIdle
             public CircleCollider2D collider;
             public float hp = 68, maxHp = 68, flash, phase;
             public float walkClock;
-            public float knockbackTime = -1, knockbackImpulse;
-            public Vector2 crowdPosition;
-            public float crowdRadius;
             public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
             public Vector2 enemyDashDirection;
             public bool isPlayer, isBoss;
@@ -564,17 +561,7 @@ namespace DoodleIdle
             enemy.hp -= amount; enemy.flash = .14f;
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
-            // Ten golems and overlapping splash hits can strike the same actor in one
-            // physics tick. Preserve every hit's damage without stacking enough impulse
-            // to drive that actor through the surrounding solid bodies.
-            if (enemy.knockbackTime != Time.fixedTime) {
-                enemy.knockbackTime = Time.fixedTime; enemy.knockbackImpulse = 0;
-            }
-            float impulse = Mathf.Min(push.magnitude * 2, Mathf.Max(0, 2 - enemy.knockbackImpulse));
-            if (impulse > 0) {
-                enemy.body.AddForce(push.normalized * impulse, ForceMode2D.Impulse);
-                enemy.knockbackImpulse += impulse;
-            }
+            enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
             if (enemy.hp > 0) return;
             Kills++;
