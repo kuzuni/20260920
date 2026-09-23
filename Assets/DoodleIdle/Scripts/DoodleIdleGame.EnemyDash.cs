@@ -55,29 +55,44 @@ namespace DoodleIdle
             }
         }
 
+        Vector2[] crowdPositions = new Vector2[256];
+        float[] crowdRadii = new float[256];
         void LimitEnemyCrowdMotion(float dt)
         {
             // Movement and simultaneous skill impulses must not keep compressing a
             // packed crowd against the arena walls. Share the available clearance
             // between both bodies; leave actual contact resolution to Physics2D.
-            foreach (var enemy in enemies) {
+            int count = enemies.Count;
+            if (crowdPositions.Length < count) {
+                System.Array.Resize(ref crowdPositions, count * 2);
+                System.Array.Resize(ref crowdRadii, count * 2);
+            }
+            // Cache native body/transform reads once per actor, not once per pair.
+            for (int i = 0; i < count; i++) {
+                crowdPositions[i] = enemies[i].Position;
+                crowdRadii[i] = enemies[i].body.simulated && enemies[i].collider.enabled ? ActorRadius(enemies[i]) : 0;
+            }
+            for (int i = 0; i < count; i++) {
+                var enemy = enemies[i];
+                if (crowdRadii[i] <= 0) continue;
                 Vector2 velocity = enemy.body.linearVelocity;
                 float speed = velocity.magnitude;
                 if (speed < .0001f) continue;
                 Vector2 direction = velocity / speed;
-                Vector2 position = enemy.Position;
-                float radius = ActorRadius(enemy);
+                Vector2 position = crowdPositions[i];
+                float radius = crowdRadii[i];
                 float travel = speed * dt;
-                foreach (var other in enemies) {
-                    if (other == enemy) continue;
-                    Vector2 delta = other.Position - position;
-                    float reach = radius + ActorRadius(other) + .025f;
+                for (int j = 0; j < count; j++) {
+                    if (i == j || crowdRadii[j] <= 0) continue;
+                    Vector2 delta = crowdPositions[j] - position;
+                    float reach = radius + crowdRadii[j] + .025f;
                     if (delta.sqrMagnitude > (reach + travel * 2) * (reach + travel * 2)) continue;
                     float distance = delta.magnitude;
                     if (distance < .0001f) continue;
                     float closing = Vector2.Dot(direction, delta / distance);
                     if (closing <= 0) continue;
                     travel = Mathf.Min(travel, Mathf.Max(0, distance - reach) * .5f / closing);
+                    if (travel <= .000001f) break;
                 }
                 Vector2 limit = arenaHalfSize - Vector2.one * (radius + .025f);
                 if (Mathf.Abs(direction.x) > .0001f)
