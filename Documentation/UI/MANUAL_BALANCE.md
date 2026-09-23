@@ -78,3 +78,5 @@ Each curve offers Linear, Automatic Smooth and Manual Handles modes. Automatic u
 Manual handles also expose independent incoming/outgoing angle inputs in degrees. The angle is atan(dC/dstep), where C is the stored correction factor; 0 degrees keeps the correction slope flat while the exponential baseline still grows. It is independent of viewport size/log scaling, so it is not the literal screen angle. Inputs clamp to -89.9..89.9 degrees, ignore non-finite values, and update the same tangents as height edits and drags. Undo, Apply and JSON persistence therefore include angle changes without a duplicate angle field.
 
 Hosted validation for responsive layout/smooth tangents: run 35825716339 passed. Native editor resize/drag interactions were not exercised locally, per repository policy.
+
+Angle validation: GitHub-hosted run 35826473237 on 2c7377d passed 9/9 tests. Coverage includes signed/zero angles, finite limits, endpoint preservation, JSON restoration and live gold payouts after angle edits, plus the existing enemy and stat-cost regressions.
