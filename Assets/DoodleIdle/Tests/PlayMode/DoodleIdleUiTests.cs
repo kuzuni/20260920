@@ -292,7 +292,7 @@ namespace DoodleIdle.Tests
             scroll = UiTopScroll();
             yield return null;
             Assert.That(detail.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("Probability_grade_")), Is.EqualTo(DoodleUi.GradeNames.Length));
-            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("같은 등급 안에서는 낮은 번호")), Is.True);
+            Assert.That(detail.GetComponentsInChildren<Text>().Any(t => t.text.Contains("10:9:8:7:6")), Is.True);
             for(int grade=0;grade<DoodleUi.GradeNames.Length;grade++) {
                 var rate=UiNode("Probability_grade_"+grade).GetComponentsInChildren<Text>().Single(t=>t.name=="Grade probability rate");
                 Assert.That(rate.text,Is.EqualTo(game.Ui.GradeProbability("Armor",grade).ToString("0.###")+"%"));

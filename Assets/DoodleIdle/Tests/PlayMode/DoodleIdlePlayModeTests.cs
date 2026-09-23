@@ -367,6 +367,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.DashCasts, Is.EqualTo(1));
             Assert.That(game.FirstDashTime, Is.InRange(4.98f, 5.05f), "Dash must first activate after five seconds of physics simulation.");
             float worstPenetration = 0;
+            string deepestContact = "";
             int groupCount = Mathf.CeilToInt(skills.Count / 8f);
             while (game.Elapsed < groupCount * 40)
             {
@@ -376,7 +377,10 @@ namespace DoodleIdle.Tests
                 Assert.That(game.EnemyCount, Is.InRange(0, 200), "The field replenishes below 100 and the breakthrough boss spawns alone.");
                 var bodies = EnemyBodies();
                 for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
-                    worstPenetration = Mathf.Max(worstPenetration, 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position));
+                    if (1.12f - Vector2.Distance(bodies[i].position, bodies[j].position) > worstPenetration) {
+                        worstPenetration = 1.12f - Vector2.Distance(bodies[i].position, bodies[j].position);
+                        deepestContact = " Group " + group + " at " + game.Elapsed + "s, velocities " + bodies[i].linearVelocity + " / " + bodies[j].linearVelocity;
+                    }
             }
             Assert.That(game.Kills, Is.GreaterThanOrEqualTo(181));
             Assert.That(game.Refills, Is.GreaterThan(0));
@@ -401,7 +405,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
             Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(44));
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
-            Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance.");
+            Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance." + deepestContact);
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());
         }
     }
