@@ -10,6 +10,7 @@ namespace DoodleIdle.Editor
     {
         const string TuningPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/ServicesTuning.json";
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning draft = new DoodleUi.ServiceTuning();
+        [SerializeField, HideInInspector] DoodleUi.ServiceTuning loaded = new DoodleUi.ServiceTuning();
         [MenuItem("Doodle Idle/밸런스 조절")]
         public static void Open() => GetWindow<DoodleBalanceWindow>("밸런스 조절").Show();
         DoodleIdleGame Game => Object.FindFirstObjectByType<DoodleIdleGame>();
@@ -17,22 +18,73 @@ namespace DoodleIdle.Editor
         bool CanApply => Ui;
         protected override void OnEnable() { base.OnEnable(); LoadCurrent(); }
 
-        [InfoBox("8시간 목표 보정 없이 아래 값으로 계산합니다. 증가량은 매 스테이지 기본값에 더하는 비율(%)입니다. 예: 2%이면 51스테이지에 기본값의 2배. 적 데미지는 1스테이지 0에서 70스테이지 100까지 증가하고, 이후 증가량을 적용합니다.")]
+        [InfoBox("시작값은 1스테이지 일반 적 기준입니다. 시작값 × 전체 배수에 스테이지 증가량을 적용합니다. 적 데미지는 시작값부터 초반 목표값까지 선형으로 변합니다. 아래 미리보기는 입력 즉시 갱신되며, 적용/저장을 눌러야 게임에 반영됩니다.")]
         [ShowInInspector, ReadOnly, LabelText("현재 스테이지")]
         int Stage => Ui ? Ui.CombatDifficultyStage : 1;
 
+        [ShowInInspector, BoxGroup("골드"), LabelText("시작 골드 (적 1마리)"), MinValue(0)]
+        float StartingGold { get => draft.goldPerEnemy; set => draft.goldPerEnemy = value; }
         [ShowInInspector, BoxGroup("골드"), LabelText("획득 배수"), MinValue(0)]
         float GoldMultiplier { get => draft.goldRewardMultiplier; set => draft.goldRewardMultiplier = value; }
         [ShowInInspector, BoxGroup("골드"), LabelText("스테이지당 증가량 (%)"), MinValue(0)]
         float GoldGrowth { get => draft.goldStageGrowth * 100; set => draft.goldStageGrowth = value / 100; }
+        [ShowInInspector, BoxGroup("적 체력"), LabelText("시작 체력"), MinValue(.001)]
+        float StartingHealth { get => draft.enemyStartingHealth; set => draft.enemyStartingHealth = value; }
         [ShowInInspector, BoxGroup("적 체력"), LabelText("체력 배수"), MinValue(.001)]
         float HealthMultiplier { get => draft.enemyHealthBaseMultiplier; set => draft.enemyHealthBaseMultiplier = value; }
         [ShowInInspector, BoxGroup("적 체력"), LabelText("스테이지당 증가량 (%)"), MinValue(0)]
         float HealthGrowth { get => draft.enemyHealthStageGrowth * 100; set => draft.enemyHealthStageGrowth = value / 100; }
+        [ShowInInspector, BoxGroup("적 데미지"), LabelText("시작 데미지"), MinValue(0)]
+        float StartingDamage { get => draft.enemyStartingDamage; set => draft.enemyStartingDamage = value; }
+        [ShowInInspector, BoxGroup("적 데미지"), LabelText("초반 목표 스테이지"), MinValue(2)]
+        int EarlyEnd { get => draft.earlyEnemyDamageEndStage; set => draft.earlyEnemyDamageEndStage = value; }
+        [ShowInInspector, BoxGroup("적 데미지"), LabelText("초반 목표 데미지"), MinValue(0)]
+        float EarlyDamage { get => draft.earlyEnemyDamageMax; set => draft.earlyEnemyDamageMax = value; }
         [ShowInInspector, BoxGroup("적 데미지"), LabelText("데미지 배수"), MinValue(0)]
         float DamageMultiplier { get => draft.enemyDamageBaseMultiplier; set => draft.enemyDamageBaseMultiplier = value; }
-        [ShowInInspector, BoxGroup("적 데미지"), LabelText("70 이후 스테이지당 증가량 (%)"), MinValue(0)]
+        [ShowInInspector, BoxGroup("적 데미지"), LabelText("목표 이후 증가량 (%)"), MinValue(0)]
         float DamageGrowth { get => draft.enemyDamageStageGrowth * 100; set => draft.enemyDamageStageGrowth = value / 100; }
+
+        [BoxGroup("실제 수치 미리보기"), LabelText("비교할 스테이지"), MinValue(1)]
+        public int previewStage = 70;
+        [Button("현재 스테이지로 비교"), BoxGroup("실제 수치 미리보기")]
+        public void PreviewCurrentStage() => previewStage = Stage;
+
+        [System.Serializable]
+        public sealed class PreviewRow
+        {
+            [ReadOnly, LabelText("기준")] public string label;
+            [ReadOnly, LabelText("스테이지")] public int stage;
+            [ReadOnly, LabelText("골드 / 1마리")] public string gold;
+            [ReadOnly, LabelText("적 체력")] public string health;
+            [ReadOnly, LabelText("접촉 데미지")] public string damage;
+        }
+
+        PreviewRow Preview(string label, DoodleUi.ServiceTuning tuning, int stage)
+        {
+            // Same formulas as spawning, contact hits and gold payouts. Normalize invalid draft input as Apply does.
+            var values = new DoodleUi.ServiceTuning();
+            DoodleUi.CopyBalanceTuning(tuning, values);
+            double goldBonus = Ui ? (double)Ui.GoldGainMultiplier * Ui.GoldBuffMultiplier : 1;
+            return new PreviewRow {
+                label = label, stage = stage,
+                gold = DoodleUi.GoldForMainKills(values, stage, 1, goldBonus).ToString("N0"),
+                health = (68 * DoodleUi.EnemyHealthMultiplier(values, stage)).ToString("N2"),
+                damage = ((Game ? Game.enemyContactDamage : 64) * DoodleUi.EnemyDamageMultiplier(values, stage)).ToString("N2")
+            };
+        }
+
+        [InfoBox("일반 적 기준 · 보스 체력은 ×20. 실행 중 골드는 현재 유물·버프 보너스 포함, 정지 중에는 보너스 제외. 기존=현재 게임 값(정지 중 저장값), 수정=위 입력값. 골드는 정수 반올림됩니다.")]
+        [ShowInInspector, BoxGroup("실제 수치 미리보기"), TableList(IsReadOnly = true, AlwaysExpanded = true), HideLabel]
+        PreviewRow[] PreviewValues
+        {
+            get {
+                var current = Ui ? Ui.ReadBalanceTuning() : loaded;
+                int stage = Mathf.Max(1, previewStage);
+                return new[] { Preview("기존", current, 1), Preview("수정", draft, 1),
+                    Preview("기존", current, stage), Preview("수정", draft, stage) };
+            }
+        }
 
         [Button("실행 중인 게임에 적용", ButtonSizes.Large), EnableIf(nameof(CanApply))]
         public void Apply()
@@ -52,6 +104,7 @@ namespace DoodleIdle.Editor
             AssetDatabase.ImportAsset(TuningPath);
             if (Ui) Ui.ApplyBalanceTuning(defaults);
             draft = defaults;
+            loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(defaults));
             ShowNotification(new GUIContent("밸런스 기본값 저장 완료"));
         }
 
@@ -60,6 +113,7 @@ namespace DoodleIdle.Editor
         {
             draft = Ui ? Ui.ReadBalanceTuning() : File.Exists(TuningPath)
                 ? JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath)) : new DoodleUi.ServiceTuning();
+            loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(draft));
         }
 
         [BoxGroup("다이아 디버그"), LabelText("지급량"), MinValue(1)]

@@ -22,6 +22,7 @@ namespace DoodleIdle
             public float goldPerEnemy = 10, goldStageGrowth = .02f, goldRewardMultiplier = 1;
             public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .02f;
             public float enemyHealthBaseMultiplier = 1, enemyDamageBaseMultiplier = 1;
+            public float enemyStartingHealth = 68, enemyStartingDamage = 0;
             public int earlyEnemyDamageEndStage = 70;
             public float earlyEnemyDamageMax = 100;
             public float projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;

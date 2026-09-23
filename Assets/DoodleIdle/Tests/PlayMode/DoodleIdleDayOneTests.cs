@@ -45,6 +45,32 @@ namespace DoodleIdle.Tests
             Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
             draft.enemyDamageBaseMultiplier = 0; ui.ApplyBalanceTuning(draft);
             Assert.That(ui.EnemyDamageMultiplier(1000), Is.Zero);
+            // Start values must affect live actors/payouts, not just an editor-only preview.
+            draft = ui.ReadBalanceTuning();
+            draft.goldPerEnemy = 25; draft.goldRewardMultiplier = 1;
+            draft.enemyStartingHealth = 136; draft.enemyHealthBaseMultiplier = 1;
+            draft.enemyStartingDamage = 12; draft.enemyDamageBaseMultiplier = 1;
+            draft.earlyEnemyDamageEndStage = 11; draft.earlyEnemyDamageMax = 32;
+            ui.ApplyBalanceTuning(draft);
+            Assert.That(ui.EnemyHealthMultiplier(1) * 68, Is.EqualTo(136).Within(.001));
+            Assert.That((float)maxHp.GetValue(actor), Is.EqualTo(68 * DoodleUi.EnemyHealthMultiplier(draft, stage)).Within(.01));
+            Assert.That((float)hp.GetValue(actor) / (float)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
+            Assert.That(ui.EnemyDamageMultiplier(0) * 64, Is.EqualTo(12).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(1) * 64, Is.EqualTo(12).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(6) * 64, Is.EqualTo(22).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(11) * 64, Is.EqualTo(32).Within(.001));
+            Assert.That(ui.EnemyDamageMultiplier(12) * 64, Is.EqualTo(41.6).Within(.001));
+            Assert.That(ui.ReadBalanceTuning().goldPerEnemy, Is.EqualTo(25));
+            foreach (int previewStage in new[] { 1, 6, 11, 12, 70, 300 }) {
+                Assert.That(ui.GoldForMainKills(previewStage, 1), Is.EqualTo(DoodleUi.GoldForMainKills(draft, previewStage, 1, (double)ui.GoldGainMultiplier * ui.GoldBuffMultiplier)));
+                Assert.That(ui.EnemyDamageMultiplier(previewStage), Is.EqualTo(DoodleUi.EnemyDamageMultiplier(draft, previewStage)));
+            }
+            Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(DoodleUi.GoldForMainKills(draft, 50, 500, (double)ui.GoldGainMultiplier * ui.GoldBuffMultiplier)));
+            var roundTrip = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(ui.ReadBalanceTuning()));
+            Assert.That(roundTrip.enemyStartingHealth, Is.EqualTo(136));
+            Assert.That(roundTrip.enemyStartingDamage, Is.EqualTo(12));
+            Assert.That(roundTrip.earlyEnemyDamageEndStage, Is.EqualTo(11));
+            Assert.That(roundTrip.earlyEnemyDamageMax, Is.EqualTo(32));
             ui.ApplyBalanceTuning(original);
             int wallet = ui.Diamonds;
             Assert.That(ui.GrantDebugDiamonds(10000), Is.EqualTo(10000));

@@ -14,6 +14,11 @@ namespace DoodleIdle
         public static void CopyBalanceTuning(ServiceTuning source, ServiceTuning destination)
         {
             if (source == null || destination == null) return;
+            destination.goldPerEnemy = BalanceValue(source.goldPerEnemy, 0, 10);
+            destination.enemyStartingHealth = BalanceValue(source.enemyStartingHealth, .001f, 68);
+            destination.enemyStartingDamage = BalanceValue(source.enemyStartingDamage, 0, 0);
+            destination.earlyEnemyDamageEndStage = Math.Max(2, source.earlyEnemyDamageEndStage);
+            destination.earlyEnemyDamageMax = BalanceValue(source.earlyEnemyDamageMax, 0, 100);
             destination.goldRewardMultiplier = BalanceValue(source.goldRewardMultiplier, 0, 1);
             destination.goldStageGrowth = BalanceValue(source.goldStageGrowth, 0, .02f);
             destination.enemyHealthBaseMultiplier = BalanceValue(source.enemyHealthBaseMultiplier, .001f, 1);
