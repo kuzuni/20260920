@@ -13,6 +13,49 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
+        public IEnumerator SmoothGrowthTangentsPreserveKnotsAndDriveActualGold()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var curve = new DoodleGrowthCurve();
+            curve.SetPoint(10, 3, 0); curve.SetPoint(20, 4, 0);
+            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2));
+            curve.SetInterpolation(DoodleCurveInterpolation.Smooth,0);
+            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2.0833333333).Within(.000001));
+            double previous = 1;
+            for (double x=0;x<=20;x+=.5) {
+                double value = curve.Evaluate(x,0);
+                Assert.That(value, Is.InRange(previous,4d)); previous=value;
+            }
+            double smoothMidpoint = curve.Evaluate(5,0);
+            curve.SetInterpolation(DoodleCurveInterpolation.Manual,0);
+            Assert.That(curve.Evaluate(5,0), Is.EqualTo(smoothMidpoint).Within(.000001), "Enabling handles must preserve the automatic curve initially.");
+            curve.SetTangent(10,0,true,0);
+            Assert.That(curve.Evaluate(5,0), Is.EqualTo(2.25).Within(.000001));
+            Assert.That(curve.Evaluate(10,0), Is.EqualTo(3), "Handles change the curve, not the knot value.");
+            curve.SetTangent(10,0,false,-.5);
+            Assert.That(curve.Evaluate(15,0), Is.EqualTo(2.75).Within(.000001));
+            curve.SetPoint(10,3,0);
+            Assert.That(curve.FindPoint(10).outTangent, Is.EqualTo(-.5));
+            curve.MovePoint(10,12,3,0);
+            Assert.That(curve.FindPoint(12).inTangent, Is.Zero);
+            Assert.That(curve.FindPoint(12).outTangent, Is.EqualTo(-.5));
+            var copy = curve.Copy(); copy.SetTangent(12,0,false,2);
+            Assert.That(curve.FindPoint(12).outTangent, Is.EqualTo(-.5), "Snapshots must own independent handles.");
+            var restored = JsonUtility.FromJson<DoodleGrowthCurve>(JsonUtility.ToJson(curve));
+            Assert.That(restored.interpolation, Is.EqualTo(DoodleCurveInterpolation.Manual));
+            Assert.That(restored.Evaluate(15,0), Is.EqualTo(curve.Evaluate(15,0)).Within(.000001));
+            var oldData = JsonUtility.FromJson<DoodleGrowthCurve>("{\"points\":[{\"position\":10,\"factor\":3}]}");
+            Assert.That(oldData.Evaluate(5,0), Is.EqualTo(2), "Existing saved linear curves retain their shape.");
+            var tuning = ui.ReadBalanceTuning(); tuning.goldStageGrowth = 0; tuning.goldCurve = curve;
+            ui.ApplyBalanceTuning(tuning);
+            for (int stage=1;stage<=30;stage++)
+                Assert.That(ui.GoldForMainKills(stage,1), Is.EqualTo((int)Math.Round(tuning.goldPerEnemy*curve.Evaluate(stage,1)*ui.GoldGainMultiplier*ui.GoldBuffMultiplier)));
+            curve.SetTangent(12,0,false,-1000);
+            Assert.That(curve.Evaluate(15,0), Is.Zero, "An extreme handle cannot create negative rewards.");
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator EditableGrowthCurvesDriveRewardsEnemiesAndSharedStatCosts()
         {
             game.TogglePause(); var ui = game.Ui;
