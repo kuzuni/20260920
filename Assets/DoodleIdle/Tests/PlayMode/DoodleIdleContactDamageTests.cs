@@ -10,6 +10,55 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator AutoMovementKeepsConfigurableBodyClearanceAndStopsDashes()
+        {
+            var bodies = DurableSkillTargets();
+            game.autoPlay = true; game.moveSpeed = 3.1f;
+            var tuning = game.Ui.ReadBalanceTuning(); tuning.playerKeepDistance = .6f;
+            game.Ui.ApplyBalanceTuning(tuning);
+            var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
+            object target = actors.Cast<object>().Single(a => (Rigidbody2D)a.GetType().GetField("body").GetValue(a) == bodies[0]);
+            var move = typeof(DoodleIdleGame).GetMethod("AutomaticMoveVelocity", GrowthPrivate);
+            var sweep = typeof(DoodleIdleGame).GetMethod("LimitAutomaticStep", GrowthPrivate);
+            Vector2 Velocity() => (Vector2)move.Invoke(game, new object[] { target, .02f });
+            Vector2 Sweep(Vector2 step) => (Vector2)sweep.Invoke(game, new object[] { step });
+            float radii = PlayerBody().GetComponent<CircleCollider2D>().radius + bodies[0].GetComponent<CircleCollider2D>().radius;
+            Place(PlayerBody(), Vector2.zero); Place(bodies[0], new Vector2(4, 0));
+            Assert.That(Velocity().x, Is.GreaterThan(3));
+            Place(bodies[0], new Vector2(radii + .2f, 0));
+            Assert.That(Velocity().x, Is.LessThan(-1), "Retreat before bodies touch.");
+            Place(bodies[0], new Vector2(radii + .6f, 0));
+            Assert.That(Velocity().magnitude, Is.LessThan(.001));
+            Place(bodies[0], new Vector2(radii + .9f, 0));
+            tuning.playerKeepDistance = 1.2f; game.Ui.ApplyBalanceTuning(tuning);
+            Assert.That(Velocity().x, Is.LessThan(-1), "Applying a larger distance changes the current movement immediately.");
+            var copy = new DoodleUi.ServiceTuning(); DoodleUi.CopyBalanceTuning(tuning, copy);
+            Assert.That(JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(copy)).playerKeepDistance, Is.EqualTo(1.2f));
+            tuning.playerKeepDistance = .6f; game.Ui.ApplyBalanceTuning(tuning);
+            Place(bodies[0], new Vector2(4, 0));
+            Assert.That(Sweep(Vector2.right * 8).x, Is.EqualTo(4 - radii - .61f).Within(.001), "The entire dash stops outside the collision body.");
+            bodies[0].transform.localScale = Vector3.one * 3;
+            float bossRadii = PlayerBody().GetComponent<CircleCollider2D>().radius + bodies[0].GetComponent<CircleCollider2D>().radius * 3;
+            Assert.That(Sweep(Vector2.right * 8).x, Is.EqualTo(4 - bossRadii - .61f).Within(.001));
+            bodies[0].transform.localScale = Vector3.one;
+            game.autoPlay = false;
+            Assert.That(Sweep(Vector2.right * 8), Is.EqualTo(Vector2.right * 8), "Manual movement bypasses avoidance.");
+            game.autoPlay = true;
+            tuning.playerKeepDistance = 0; game.Ui.ApplyBalanceTuning(tuning);
+            Assert.That(Sweep(Vector2.right * 8), Is.EqualTo(Vector2.right * 8));
+            tuning.playerKeepDistance = .6f; game.Ui.ApplyBalanceTuning(tuning);
+            DayOneState("mainStage", 1);
+            Place(bodies[0], new Vector2(radii + .6f, 0)); bodies[0].simulated = true;
+            int hits = game.PlayerContactHits;
+            for (int i = 0; i < 150; i++) {
+                yield return new WaitForFixedUpdate();
+                Assert.That(Vector2.Distance(PlayerBody().position, bodies[0].position), Is.GreaterThan(radii + .15f));
+            }
+            Assert.That(PlayerBody().position.x, Is.LessThan(-.5f), "The player backs away as the enemy follows.");
+            Assert.That(game.PlayerContactHits, Is.EqualTo(hits));
+        }
+
+        [UnityTest]
         public IEnumerator ContactDamageUsesSharedOneSecondImmunityBlinkAndAllEnemyKinds()
         {
             var bodies = DurableSkillTargets(); game.TogglePause();

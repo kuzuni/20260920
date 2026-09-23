@@ -13,6 +13,78 @@ namespace DoodleIdle.Tests
         void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
 
         [UnityTest]
+        public IEnumerator StageDebugImmediatelyReplacesPausedCombatAndPreservesProgress()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            float oldScale = Time.timeScale; Time.timeScale = 0;
+            try {
+                int diamonds = ui.Diamonds;
+                long gold = ui.Gold;
+                float health = game.PlayerHealth;
+                int oldDifficulty = ui.CombatDifficultyStage;
+                DefeatActualServiceEnemies(1);
+                int kills = game.Kills;
+                long expectedGold = gold + ui.GoldForMainKills(oldDifficulty,1);
+                ServiceSetSavedField(ServiceStateObject,"mainStageKillProgress",100);
+                typeof(DoodleIdleGame).GetMethod("Refill",GrowthPrivate).Invoke(game,null);
+                Assert.That(game.BossActive,Is.True);
+                typeof(DoodleIdleGame).GetMethod("FireSlash",GrowthPrivate).Invoke(game,new object[] { Vector2.right });
+                UiOpen("Skills");
+                Assert.That(ui.DebugSetMainStage(101),Is.True);
+                Assert.That(ui.MainStage,Is.EqualTo(100));
+                Assert.That(ui.MainStageKillProgress,Is.Zero);
+                Assert.That(ui.Gold,Is.EqualTo(expectedGold),"Pending gold uses the source stage, not the debug destination.");
+                Assert.That(ui.Diamonds,Is.EqualTo(diamonds));
+                Assert.That(game.Kills,Is.EqualTo(kills),"Clearing a debug wave must not count as kills.");
+                Assert.That(game.paused,Is.True);
+                Assert.That(Time.timeScale,Is.Zero);
+                Assert.That(game.PlayerHealth,Is.EqualTo(health));
+                Assert.That(game.BossActive,Is.False);
+                Assert.That(game.EnemyCount,Is.EqualTo(game.targetPopulation));
+                Assert.That(game.CurrentThemeIndex,Is.EqualTo(1));
+                Assert.That((int)typeof(DoodleIdleGame).GetField("activeTheme",GrowthPrivate).GetValue(game),Is.EqualTo(1));
+                Assert.That(((IList)typeof(DoodleIdleGame).GetField("shots",GrowthPrivate).GetValue(game)).Count,Is.Zero);
+                var enemies = (IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
+                foreach (var enemy in enemies) {
+                    var type = enemy.GetType();
+                    Assert.That(((SpriteRenderer)type.GetField("art").GetValue(enemy)).sprite.name,Does.StartWith("Desert"));
+                    Assert.That((float)type.GetField("maxHp").GetValue(enemy),Is.EqualTo(68 * ui.EnemyHealthMultiplier(101)).Within(.1));
+                }
+                Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(4));
+                Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<DoodleUiPadlock>().Length,Is.EqualTo(4));
+                Assert.That(ui.DebugSetMainStage(800),Is.True);
+                Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(8));
+                Assert.That(ui.DebugSetMainStage(1),Is.True);
+                Assert.That(ui.MainStage,Is.Zero);
+                Assert.That(ui.HighestMainStage,Is.EqualTo(799));
+                Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(8));
+                ui.EnterDungeon(2);
+                int used = ServiceStateValue<int[]>("dungeonUsed")[2];
+                int tickets = ui.DungeonRelicTickets;
+                ServiceSetSavedField(ServiceStateObject,"dungeonProgress",5);
+                Assert.That(ui.DebugSetMainStage(301),Is.True);
+                Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));
+                Assert.That(ServiceStateValue<int>("dungeonProgress"),Is.Zero);
+                Assert.That(ServiceStateValue<int[]>("dungeonUsed")[2],Is.EqualTo(used));
+                Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets));
+                Assert.That(game.CurrentThemeIndex,Is.EqualTo(3));
+                Assert.That((int)typeof(DoodleIdleGame).GetField("activeTheme",GrowthPrivate).GetValue(game),Is.EqualTo(3));
+                ReloadPersistedServices();
+                Assert.That(ui.MainStage,Is.EqualTo(300));
+                Assert.That(ui.HighestMainStage,Is.EqualTo(799));
+                Assert.That(ui.DebugSetMainStage(0),Is.True);
+                Assert.That(ui.MainStage,Is.Zero);
+                Assert.That(ui.DebugSetMainStage(int.MaxValue),Is.True);
+                ServiceSetSavedField(ServiceStateObject,"mainStageKillProgress",100);
+                ui.RecordMainCombatKill(true);
+                Assert.That(ui.MainStage+1,Is.EqualTo(int.MaxValue),"Maximum display stage must not overflow after a boss.");
+                ui.DebugSetMainStage(101);
+                yield return null;
+                Object.Destroy(CaptureFrame("stage-debug-desert.png",720,1520));
+            } finally { Time.timeScale = oldScale; }
+        }
+
+        [UnityTest]
         public IEnumerator NumericGrowthSegmentsChangeRatesAtBoundariesAndPersist()
         {
             game.TogglePause(); var ui = game.Ui;

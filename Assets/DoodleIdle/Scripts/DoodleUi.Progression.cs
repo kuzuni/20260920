@@ -32,7 +32,7 @@ namespace DoodleIdle
             {
                 int previousSkillSlots = UnlockedSkillSlots;
                 if (MainBossPending)
-                    services.mainStage = (int)Math.Min(int.MaxValue, (long)services.mainStage + 1);
+                    services.mainStage = (int)Math.Min(int.MaxValue - 1L, (long)services.mainStage + 1);
                 services.highestMainStage=Math.Max(services.highestMainStage,services.mainStage);
                 services.mainStageKillProgress = 0;
                 Save();

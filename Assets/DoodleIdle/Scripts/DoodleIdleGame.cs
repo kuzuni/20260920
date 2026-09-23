@@ -365,20 +365,24 @@ namespace DoodleIdle
                 dashRemaining -= dt;
                 Vector2 from = player.Position;
                 Vector2 step = dashDirection * (25 * dt);
+                Vector2 safeStep = LimitAutomaticStep(step);
+                if (safeStep.sqrMagnitude < step.sqrMagnitude - .000001f) dashRemaining = 0;
+                step = safeStep;
                 // Sweep damage before the solid body advances: enemies in the path never get tunneled through.
                 for (int i = enemies.Count - 1; i >= 0; i--)
                 {
                     var enemy = enemies[i];
-                    if (!dashVictims.Contains(enemy) && SegmentDistance(enemy.Position, from, from + step) < 1.12f)
+                    float reach = KeepsEnemyDistance ? ActorRadius(player) + ActorRadius(enemy) + .75f : 1.12f;
+                    if (!dashVictims.Contains(enemy) && SegmentDistance(enemy.Position, from, from + step) < reach)
                     { dashVictims.Add(enemy); DashHits++; Damage(enemy, 90, dashDirection); }
                 }
-                player.body.linearVelocity = dashDirection * 25;
+                player.body.linearVelocity = step / dt;
                 trailTimer -= dt;
                 if (trailTimer <= 0) { Trail(); trailTimer = .035f; }
             }
             else
             {
-                Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f) : manualInput * moveSpeed;
+                Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
                 player.body.linearVelocity = desired;
             }
             TickEnemyMovement(dt);

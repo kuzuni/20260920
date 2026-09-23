@@ -166,10 +166,18 @@ namespace DoodleIdle.Editor
             WrappedLabel("시작 단계 → 수정\n" + Number(Sample(current, currentStats, Origin)) + " → " + Number(DraftValue(Origin)));
             if (Ui && selected < 3 && GUILayout.Button("현재 스테이지 수치 보기")) previewPosition = Ui.CombatDifficultyStage;
             EditorGUILayout.Space(10);
+            WrappedLabel("플레이어 자동 이동", true);
+            EditorGUI.BeginChangeCheck();
+            float keepDistance = FloatInput("적과 유지할 거리 (충돌 영역 바깥 여유 거리)", draft.playerKeepDistance);
+            if (EditorGUI.EndChangeCheck()) {
+                Record("자동 이동 유지 거리 변경");
+                draft.playerKeepDistance = float.IsNaN(keepDistance) || float.IsInfinity(keepDistance) ? .6f : Mathf.Clamp(keepDistance, 0, 1000000);
+            }
+            WrappedLabel("기본 0.6 월드 단위. 커질수록 더 멀리 떨어집니다. 보스 크기도 반영하며 자동 대시도 접근을 멈춥니다. 0이면 기존 접근 이동입니다. 직접 드래그 조작에는 적용하지 않습니다. 유지 거리에 따라 공격 사거리가 늘어나지는 않으므로 너무 크게 설정하면 공격이 닿지 않을 수 있습니다.");
             using (new EditorGUI.DisabledScope(!Ui)) if (GUILayout.Button("실행 중인 게임에 적용", GUILayout.Height(34))) Apply();
             if (GUILayout.Button("기본값으로 저장", GUILayout.Height(34))) SaveDefaults();
             if (GUILayout.Button("현재 값 다시 불러오기")) LoadCurrent();
-            EditorGUILayout.HelpBox("실행 중 적용은 이번 플레이에만 반영됩니다. 기본값 저장은 다음 실행에도 유지됩니다. 여섯 항목의 수치 설정을 함께 저장합니다.", MessageType.None);
+            EditorGUILayout.HelpBox("실행 중 적용은 이번 플레이에만 반영됩니다. 기본값 저장은 다음 실행에도 유지됩니다. 모든 밸런스 수치와 자동 이동 거리를 함께 저장합니다.", MessageType.None);
         }
         void DrawGrowthSteps()
         {

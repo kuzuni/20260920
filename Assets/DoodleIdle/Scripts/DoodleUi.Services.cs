@@ -23,6 +23,7 @@ namespace DoodleIdle
             public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .02f;
             public DoodleGrowthStep[] goldGrowthSteps = Array.Empty<DoodleGrowthStep>(), enemyHealthGrowthSteps = Array.Empty<DoodleGrowthStep>(), enemyDamageGrowthSteps = Array.Empty<DoodleGrowthStep>();
             public float enemyStartingHealth = 68, enemyStartingDamage = 0;
+            public float playerKeepDistance = .6f;
             public DoodleGrowthCurve goldCurve = new DoodleGrowthCurve(), enemyHealthCurve = new DoodleGrowthCurve(), enemyDamageCurve = new DoodleGrowthCurve();
             public int earlyEnemyDamageEndStage = 70;
             public float earlyEnemyDamageMax = 100;

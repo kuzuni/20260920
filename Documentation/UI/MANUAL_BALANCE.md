@@ -109,3 +109,16 @@ While Stats is open, wallet changes refresh the existing upgrade controls (enabl
 Within a five-item rarity the weights are 10:9:8:7:6, normalized to 25%, 22.5%, 20%, 17.5%, 15%. Companion rarities contain four entries and use 10:9:8:7, normalized to 29.4118%, 26.4706%, 23.5294%, 20.5882% (display rounding only). Actual RNG uses integer weight totals 40/34; actual/preview probabilities use the same helpers and multiply by the rarity probability. Relic pools remain uniform, and the single God equipment entry receives its entire rarity probability.
 
 Validation for the quest footer, live stat affordability and 10:9:8:7:6 ratios: hosted run 35829914738 on 109ef38 passed 6/6 tests. Coverage includes live x1/x10/x100/MAX affordability without popup recreation, exact tier lottery intervals and displayed probabilities, claim-all/duplicate protection, wallet limits and notification badges. Hosted quest and stat screenshots were visually inspected; quest action remains fixed at the bottom and stat availability matches the current wallet.
+
+
+## Stage debug window
+
+**Doodle Idle → 스테이지 디버그** displays the current/highest main stage, current location and destination theme. Enter a one-based target stage and click **스테이지 즉시 이동** during play (including paused combat/timeScale=0). **현재 스테이지 가져오기** copies the current field stage into the input.
+
+`DebugSetMainStage` settles pending real kills using their original reward/dungeon context, exits any active dungeon, clears field/dungeon kill progress, updates the highest reached stage, resets the combat wave synchronously and saves. Existing bosses/projectiles/queued skill attacks are cleared and the destination's terrain, actors and HP are loaded immediately without waiting for physics. Player health, pause state, wallet, ownership and prior unlocks are preserved; real pending rewards are credited but skipping stages awards no extra clear/kill reward. Open pages/HUD refresh. Descending does not revoke higher-stage unlocks. Positive UI stage numbering is clamped at one; boss progression is capped at int.MaxValue-1 internally to avoid overflowing the displayed stage after an extreme debug jump.
+
+## Automatic enemy clearance
+
+The balance window also exposes **플레이어 자동 이동 / 적과 유지할 거리**, default 0.6 world units beyond the sum of both collision radii. The same draft/apply/save controls include this setting. Larger enemies and bosses use their scaled collision radius. Zero restores legacy approach movement; joystick/manual control bypasses avoidance.
+
+Automatic movement approaches distant enemies and retreats from nearby bodies. The complete movement step, including a dash, stops outside the configured clearance. A stopped automatic dash retains a fixed short melee strike reach (collision radii plus 0.75), independent of the configured distance; this prevents distance tuning from turning dashes into unlimited-range damage. Field boundaries constrain movement. Crowding or fast enemy charges can still cause contact; this is movement steering rather than immunity.

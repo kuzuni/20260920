@@ -7,6 +7,7 @@ namespace DoodleIdle
     {
         // Return a copy: editing the Odin form does not alter live combat until Apply.
         public ServiceTuning ReadBalanceTuning() => JsonUtility.FromJson<ServiceTuning>(JsonUtility.ToJson(serviceTuning));
+        public float PlayerKeepDistance => BalanceValue(serviceTuning.playerKeepDistance, 0, .6f);
 
         public UiStatCostTuning ReadStatCostTuning() => JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(collectionTuning.statCosts));
 
@@ -55,6 +56,7 @@ namespace DoodleIdle
         {
             if (source == null || destination == null) return;
             destination.goldPerEnemy = BalanceValue(source.goldPerEnemy, 0, 10);
+            destination.playerKeepDistance = BalanceValue(source.playerKeepDistance, 0, .6f);
             destination.enemyStartingHealth = BalanceValue(source.enemyStartingHealth, .001f, 68);
             destination.enemyStartingDamage = BalanceValue(source.enemyStartingDamage, 0, 0);
             destination.earlyEnemyDamageEndStage = Math.Max(2, source.earlyEnemyDamageEndStage);
@@ -90,6 +92,24 @@ namespace DoodleIdle
             return granted;
         }
 
+        public bool DebugSetMainStage(int displayStage)
+        {
+            if (services == null || !game || !game.Ready) return false;
+            // Settle real kills using the old field/dungeon context before switching.
+            CreditPendingFieldGold(); TickServices();
+            int previousHighest = HighestMainStage;
+            services.activeDungeon = -1;
+            services.dungeonProgress = 0;
+            services.mainStage = Math.Max(1, displayStage) - 1;
+            services.highestMainStage = Math.Max(previousHighest, services.mainStage);
+            services.mainStageKillProgress = 0;
+            lastKills = lastServiceKills = game.Kills;
+            StopRepeating(); ClearOverlays();
+            game.RestartCombatForStageDebug();
+            Save(); RefreshPage();
+            return true;
+        }
+
         public int GrantDebugDiamonds(int amount)
         {
             int granted = (int)Math.Min(Math.Max(0L, amount), Math.Max(0L, (long)int.MaxValue - Diamonds));
@@ -103,6 +123,27 @@ namespace DoodleIdle
 
     public sealed partial class DoodleIdleGame
     {
+        public void RestartCombatForStageDebug()
+        {
+            if (!Ready) return;
+            combatWaveResetRequested = false;
+            ReleaseJoystick();
+            foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+            enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
+            ClearExtraSkills(); ClearParticles(); ClearDamageNumbers();
+            foreach (var shot in shots) if (shot.visual) Destroy(shot.visual.gameObject);
+            shots.Clear(); stoneVolleys.Clear();
+            foreach (var fleck in flecks) if (fleck.visual) Destroy(fleck.visual.gameObject);
+            flecks.Clear();
+            dashRemaining = swing = bananaCycleAge = 0;
+            BananasActive = false;
+            foreach (var banana in bananas) if (banana) banana.gameObject.SetActive(false);
+            if (player != null) player.body.linearVelocity = Vector2.zero;
+            ResetSkillActivation(); ResetExtraSkills();
+            // Do not wait for FixedUpdate: the editor action also works while combat is paused.
+            Refill();
+        }
+
         public void RescaleLivingEnemyHealth(float multiplier)
         {
             foreach (var enemy in enemies)
