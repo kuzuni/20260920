@@ -422,21 +422,25 @@ namespace DoodleIdle
         {
             vh.Clear(); var rect=rectTransform.rect; Vector2 center=rect.center;
             Vector2 radius=rect.size*.5f;
-            // A single continuous glow avoids the detached flecks around each card.
-            for(int i=0;i<64;i++) {
-                float a=i*Mathf.PI/32,b=(i+1)*Mathf.PI/32; int start=vh.currentVertCount;
-                Add(vh,center,new Color(1,.79f,.2f,.5f));
-                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a),Mathf.Sin(a)),radius),new Color(1,.85f,.3f,0));
-                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(b),Mathf.Sin(b)),radius),new Color(1,.85f,.3f,0));
-                vh.AddTriangle(start,start+1,start+2);
+            const int count=96;
+            var outside=new Vector2[count]; var inside=new Vector2[count];
+            // One connected, rounded comic sunburst: broad lobes and a chunky ink
+            // outline match the cards instead of leaving disconnected little rays.
+            for(int i=0;i<count;i++) {
+                float angle=i*Mathf.PI*2/count;
+                float wave=.88f+.12f*Mathf.Cos(angle*8)+.012f*Mathf.Sin(angle*13);
+                Vector2 direction=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
+                outside[i]=center+Vector2.Scale(direction,radius)*wave;
+                inside[i]=center+Vector2.Scale(direction,radius-Vector2.one*4)*wave;
             }
-            for(int i=0;i<8;i++) {
-                float a=(i+.5f)*Mathf.PI/4; int start=vh.currentVertCount;
-                Add(vh,center,new Color(1,.89f,.4f,.25f));
-                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a-.16f),Mathf.Sin(a-.16f)),radius)*1.12f,new Color(1,.87f,.3f,0));
-                Add(vh,center+Vector2.Scale(new Vector2(Mathf.Cos(a+.16f),Mathf.Sin(a+.16f)),radius)*1.12f,new Color(1,.87f,.3f,0));
-                vh.AddTriangle(start,start+1,start+2);
-            }
+            Fan(vh,center,outside,new Color(.16f,.13f,.08f,.72f));
+            Fan(vh,center,inside,new Color(1,.83f,.29f,.83f));
+        }
+        static void Fan(VertexHelper vh,Vector2 center,Vector2[] contour,Color tint)
+        {
+            int start=vh.currentVertCount; Add(vh,center,tint);
+            foreach(var point in contour)Add(vh,point,tint);
+            for(int i=0;i<contour.Length;i++)vh.AddTriangle(start,start+1+i,start+1+(i+1)%contour.Length);
         }
         static void Add(VertexHelper vh,Vector2 pos,Color c) { var v=UIVertex.simpleVert; v.position=pos; v.color=c; vh.AddVert(v); }
     }

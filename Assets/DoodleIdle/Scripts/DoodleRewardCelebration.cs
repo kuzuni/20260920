@@ -38,7 +38,7 @@ namespace DoodleIdle
                     velocity=new Vector3(-side*(100+(float)rng.NextDouble()*250),220+(float)rng.NextDouble()*300,0),
                     startLifetime=1.5f+(float)rng.NextDouble()*.8f,
                     startSize=9+(float)rng.NextDouble()*7,
-                    startRotation=(float)rng.NextDouble()*360,
+                    rotation=(float)rng.NextDouble()*360,
                     startColor=colors[i%colors.Length]
                 };
                 particles.Emit(emit,1);
