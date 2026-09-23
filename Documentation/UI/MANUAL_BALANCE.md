@@ -98,3 +98,12 @@ Hosted validation for responsive layout/smooth tangents: run 35825716339 passed.
 Angle validation: GitHub-hosted run 35826473237 on 2c7377d passed 9/9 tests. Coverage includes signed/zero angles, finite limits, endpoint preservation, JSON restoration and live gold payouts after angle edits, plus the existing enemy and stat-cost regressions.
 
 Latest validation: GitHub-hosted run 35828482235 on b99b1c4 passed 12/12 tests. This includes numeric section boundaries/continuity/serialization and live rewards/costs, ignored legacy graph factors, currency grant persistence/saturation, lowered summon prices, ticket-first purchases and dynamic skill refunds. Prior numeric-only and section runs passed 8/8 (35827376387) and 9/9 (35828010258). Native Odin window interaction was not manually exercised; local Unity execution remains prohibited by repository policy.
+
+
+## Live stat controls, quest footer and within-rarity summon ratios
+
+Quest claim-all is fixed to the popup bottom via the shared footer, outside the scrolling quest list. It claims the current daily/repeat/weekly tab and retains its top-right availability dot.
+
+While Stats is open, wallet changes refresh the existing upgrade controls (enabled state, MAX count/cost and projected values). The popup is not rebuilt for incoming gold, preserving scroll and pointer state. Normal purchases still use the shared quote calculation.
+
+Within a five-item rarity the weights are 10:9:8:7:6, normalized to 25%, 22.5%, 20%, 17.5%, 15%. Companion rarities contain four entries and use 10:9:8:7, normalized to 29.4118%, 26.4706%, 23.5294%, 20.5882% (display rounding only). Actual RNG uses integer weight totals 40/34; actual/preview probabilities use the same helpers and multiply by the rarity probability. Relic pools remain uniform, and the single God equipment entry receives its entire rarity probability.

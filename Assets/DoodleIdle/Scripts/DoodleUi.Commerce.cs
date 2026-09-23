@@ -519,8 +519,7 @@ namespace DoodleIdle
             var items = Items(item.dungeonRelic?"DungeonRelic":item.category);
             if(item.category=="Relic")return 100d/items.Count;
             var choices=items.FindAll(x=>x.rarity==item.rarity);int index=choices.IndexOf(item);
-            var weights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
-            return index<0?0:SummonWeights(item.category,level)[item.rarity]/1000d*weights[index]/100;
+            return index<0?0:SummonWeights(item.category,level)[item.rarity]/1000d*SummonTierWeight(index,choices.Count)/SummonTierWeightTotal(choices.Count);
         }
         void ShowSummonProbabilityPage(string category, int level, bool animate=true)
         {
@@ -557,7 +556,7 @@ namespace DoodleIdle
                     rate.name = "Grade probability rate";
                     FixedWidth(rate.transform, 100);
                 }
-                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : "같은 등급 안에서는 낮은 번호가 더 자주 등장합니다.\n"+(category=="Companion"?"1~4번 비중: 64 / 25 / 9 / 2":"1~5번 비중: 60 / 25 / 10 / 4 / 1"), 20, TextAnchor.MiddleCenter, 60);
+                UiKit.Text(body, relic ? "모든 유물은 같은 확률로 등장합니다.\n각 " + (100d / Items(category).Count).ToString("0.##", CultureInfo.InvariantCulture) + "%" : category=="Companion" ? "같은 등급 내 1~4번 확률 (10:9:8:7)\n29.4118% / 26.4706% / 23.5294% / 20.5882%" : "같은 등급 내 1~5번 확률 (10:9:8:7:6)\n25% / 22.5% / 20% / 17.5% / 15%", 20, TextAnchor.MiddleCenter, 60);
                 UiKit.Text(body, relic ? "모든 유물 동일 확률" : level + " / " + MaxSummonLevel + " · 확률 미리보기", 20, TextAnchor.MiddleCenter, 40);
                 var footer = UiKit.Footer(body, "Probability confirmation footer", 64);
                 CommerceButtonText(UiKit.Button(footer, "확인", CloseDetail, UiKit.Yellow, 64), 34);

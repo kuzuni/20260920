@@ -15,6 +15,39 @@ namespace DoodleIdle.Tests
             public RevisionRoll(int value){roll=value;}
             public override int Next(int maxValue)=>roll%maxValue;
         }
+        sealed class TierWeightRoll : System.Random
+        {
+            readonly int tierRoll;
+            int calls;
+            public TierWeightRoll(int value) { tierRoll = value; }
+            public override int Next(int maxValue) => calls++ == 0 ? 0 : tierRoll % maxValue;
+        }
+
+        [UnityTest]
+        public IEnumerator SummonTierWeightsMatchTenNineEightSevenSixAndDisplayedPercentages()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Armor", "Club", "Skill", "Companion" }) {
+                var choices = ui.Items(category).Where(x => x.rarity == 0).ToList();
+                int[] weights = category == "Companion" ? new[] { 10,9,8,7 } : new[] { 10,9,8,7,6 };
+                var drawn = new int[weights.Length];
+                for (int ticket = 0; ticket < weights.Sum(); ticket++) drawn[choices.IndexOf(ui.GrantItem(category,new TierWeightRoll(ticket)))]++;
+                CollectionAssert.AreEqual(weights,drawn,"Every weighted draw interval must match the requested proportions.");
+                for (int i = 0; i < choices.Count; i++) {
+                    Assert.That(ui.ItemProbability(choices[i]), Is.EqualTo(ui.GradeProbability(category,0)*weights[i]/weights.Sum()).Within(.000001));
+                    foreach (int level in new[] { 1, 10, 35 })
+                        Assert.That(ui.PreviewItemProbability(choices[i],level), Is.EqualTo(ui.SummonWeights(category,level)[0]/1000d*weights[i]/weights.Sum()).Within(.000001));
+                }
+                Assert.That(ui.Items(category).Sum(ui.ItemProbability), Is.EqualTo(100).Within(.000001));
+            }
+            foreach (string category in new[] { "Relic", "DungeonRelic" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) Assert.That(ui.ItemProbability(item), Is.EqualTo(100d/items.Count));
+            }
+            UiOpen("Shop"); ui.ShowSummonProbabilities("Skill");
+            Assert.That(UiNode("Detail dim: 뽑기 확률").GetComponentsInChildren<Text>().Any(t=>t.text.Contains("25% / 22.5% / 20% / 17.5% / 15%")),Is.True);
+            yield return null;
+        }
         [UnityTest]
         public IEnumerator RevisionSummonLevelsUnlockGradesAndRelicsStayUniformWithoutLevels()
         {

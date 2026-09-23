@@ -147,10 +147,17 @@ namespace DoodleIdle
             while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
             var choices = items.FindAll(x => x.rarity == grade);
             if (choices.Count == 0) throw new InvalidOperationException("Every draw category must contain every rarity.");
-            int itemRoll=rng.Next(100),choice=0;
-            var tierWeights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
-            while(choice<choices.Count-1&&itemRoll>=tierWeights[choice]){itemRoll-=tierWeights[choice];choice++;}
+            int itemRoll=rng.Next(SummonTierWeightTotal(choices.Count)),choice=0;
+            while(choice<choices.Count-1&&itemRoll>=SummonTierWeight(choice,choices.Count)){itemRoll-=SummonTierWeight(choice,choices.Count);choice++;}
             return choices[choice];
+        }
+
+        static int SummonTierWeight(int index, int count) => count == 1 ? 1 : Math.Max(1, 10 - index);
+        static int SummonTierWeightTotal(int count)
+        {
+            int total = 0;
+            for (int i = 0; i < count; i++) total += SummonTierWeight(i, count);
+            return total;
         }
 
         public double GradeProbability(string category, int rarity)
@@ -165,8 +172,7 @@ namespace DoodleIdle
             if(item.category=="Relic")return 100d/Items(item.dungeonRelic?"DungeonRelic":"Relic").Count;
             var choices=Items(item.category).FindAll(x=>x.rarity==item.rarity);int index=choices.IndexOf(item);
             if(index<0)return 0;
-            var weights=choices.Count==4?new[]{64,25,9,2}:choices.Count==5?new[]{60,25,10,4,1}:new[]{100};
-            return GradeProbability(item.category,item.rarity)*weights[index]/100;
+            return GradeProbability(item.category,item.rarity)*SummonTierWeight(index,choices.Count)/SummonTierWeightTotal(choices.Count);
         }
 
         public void AddItem(UiItem item, int count)

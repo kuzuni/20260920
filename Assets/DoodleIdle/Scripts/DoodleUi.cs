@@ -344,7 +344,7 @@ namespace DoodleIdle
         }
         public void RefreshHud()
         {
-            if(!initialized)return; profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
+            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
             missionDiamonds.text=MainMissionReward.ToString();

@@ -14,6 +14,8 @@ namespace DoodleIdle
         bool collectionBulkRunning;
         UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
+        readonly List<Action> statWalletBindings = new List<Action>();
+        long displayedStatGold;
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
         {
@@ -67,7 +69,7 @@ namespace DoodleIdle
             UiKit.Text(row, value, 24, TextAnchor.MiddleLeft, 32);
         }
 
-        Button CollectionCoinButton(Transform parent, string name, string caption, long cost, Action click, float height, float width)
+        Button CollectionCoinButton(Transform parent, string name, string caption, long cost, Action click, float height, float width, out Text captionText, out Text priceText)
         {
             var button = UiKit.Button(parent, name, click, UiKit.Yellow, height);
             button.GetComponentInChildren<Text>().gameObject.SetActive(false);
@@ -78,10 +80,10 @@ namespace DoodleIdle
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = true; layout.childForceExpandHeight = false; layout.spacing = 1;
-            UiKit.Text(content, caption, 28, TextAnchor.MiddleCenter, 34);
+            captionText = UiKit.Text(content, caption, 28, TextAnchor.MiddleCenter, 34);
             var price = UiKit.Row(content, "Coin price", 34, 5);
             UiKit.Icon(price, "Gold", 30);
-            UiKit.Text(price, UiNumber.Format(cost), 27, TextAnchor.MiddleCenter, 34);
+            priceText = UiKit.Text(price, UiNumber.Format(cost), 27, TextAnchor.MiddleCenter, 34);
             return button;
         }
 
@@ -93,6 +95,7 @@ namespace DoodleIdle
 
         void BuildStats(RectTransform body)
         {
+            statWalletBindings.Clear(); displayedStatGold = Gold;
             body.GetComponent<VerticalLayoutGroup>().spacing = 12;
             var power = UiKit.Row(body, "Combat power", 126, 16);
             power.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(42, 0, 0, 0);
@@ -123,7 +126,7 @@ namespace DoodleIdle
                 float current = StatValue(stat.id);
                 float next = StatValueAfterUpgrades(stat.id,upgrades);
                 if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
-                UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
+                var valueText = UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
                 if (locked)
                 {
                     var lockButton = UiKit.Button(row, "x2 치명타\nMAX 시 해금", null, Color.gray, 94);
@@ -136,10 +139,28 @@ namespace DoodleIdle
                     if (!UpgradeStat(stat.id, statBatch)) return false;
                     Save(); RefreshPage(); return true;
                 };
-                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () => { if (!purchase()) Toast("강화 골드가 부족하거나 최대 단계입니다."); }, 94, 164);
+                var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () => { if (!purchase()) Toast("강화 골드가 부족하거나 최대 단계입니다."); }, 94, 164, out var captionText, out var priceText);
                 button.interactable = upgrades > 0 && Gold >= cost;
+                statWalletBindings.Add(() => {
+                    if (!button) return;
+                    long liveCost = StatUpgradeQuote(stat.id, statBatch, out int liveUpgrades);
+                    button.interactable = liveUpgrades > 0 && Gold >= liveCost;
+                    button.name = liveUpgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(liveUpgrades) + "\n골드 " + UiNumber.Format(liveCost);
+                    captionText.text = liveUpgrades == 0 ? "최대 단계" : liveUpgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(liveUpgrades);
+                    priceText.text = UiNumber.Format(liveCost);
+                    valueText.text = StatNumber(stat.id, StatValue(stat.id)) + " → <color=#216B20>" + StatNumber(stat.id, StatValueAfterUpgrades(stat.id, liveUpgrades)) + "</color>";
+                });
                 UiKit.Repeat(button, "stat:" + stat.id, purchase);
             }
+        }
+
+        void RefreshStatWallet()
+        {
+            if (ActivePage != "Stats") { statWalletBindings.Clear(); return; }
+            if (displayedStatGold == Gold) return;
+            displayedStatGold = Gold;
+            // Update existing controls without rebuilding the popup or interrupting scrolling/holds.
+            foreach (var refresh in statWalletBindings) refresh();
         }
 
         string StatNumber(string id, float value) => UiNumber.Format(value, IsCriticalChance(id) ? 2 : 1) + (IsCriticalChance(id) ? "%" : id == "healthRegen" ? "/초" : "");

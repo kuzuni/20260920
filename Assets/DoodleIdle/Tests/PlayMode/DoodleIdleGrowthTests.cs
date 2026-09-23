@@ -19,6 +19,47 @@ namespace DoodleIdle.Tests
         bool GrowthBulkRunning => (bool)typeof(DoodleUi).GetField("collectionBulkRunning", GrowthPrivate).GetValue(game.Ui);
 
         [UnityTest]
+        public IEnumerator OpenStatsUpdatesAffordabilityAndMaxQuoteWithoutRebuilding()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            float oldScale = Time.timeScale; Time.timeScale = 0;
+            try {
+                var costs = ui.ReadStatCostTuning(); costs.commonBaseCost = 10; costs.commonGrowth = 0;
+                costs.commonGrowthSteps = Array.Empty<DoodleGrowthStep>(); ui.ApplyStatCostTuning(costs);
+                ui.Gold = 0; UiOpen("Stats");
+                foreach (string batch in new[] { "×1", "×10", "×100" }) {
+                    UiClick(batch);
+                    var row = UiNode("Stat attack"); var button = row.GetComponentInChildren<Button>();
+                    int requested = batch == "×1" ? 1 : batch == "×10" ? 10 : 100;
+                    long cost = ui.StatUpgradeQuote("attack", requested, out _);
+                    ui.Gold = cost - 1; yield return null; yield return null;
+                    Assert.That(button.interactable, Is.False);
+                    ui.Gold = cost; yield return null; yield return null;
+                    Assert.That(button.interactable, Is.True, "An open stat button must enable as soon as gold reaches its price.");
+                    Assert.That(UiNode("Stat attack"), Is.SameAs(row), "Wallet updates must not rebuild the popup.");
+                    Assert.That(UiNode("Stat crit4Chance").GetComponentInChildren<Button>().interactable, Is.False);
+                    ui.Gold = 0; yield return null; yield return null;
+                    Assert.That(button.interactable, Is.False, "Spending gold must disable the same control again.");
+                }
+                UiClick("MAX");
+                var maxRow = UiNode("Stat attack"); var maxButton = maxRow.GetComponentInChildren<Button>();
+                ui.Gold = 35; yield return null; yield return null;
+                Assert.That(maxButton.interactable, Is.True);
+                Assert.That(maxButton.GetComponentsInChildren<Text>().Any(t => t.text == "강화 ×3"), Is.True);
+                Assert.That(maxButton.GetComponentsInChildren<Text>().Any(t => t.text == "30"), Is.True);
+                Assert.That(maxRow.GetComponentsInChildren<Text>().Any(t => t.text == UiNumber.Format(ui.StatValue("attack"),1) + " → <color=#216B20>" + UiNumber.Format(ui.StatValueAfterUpgrades("attack",3),1) + "</color>"), Is.True);
+                ui.Gold = 15; yield return null; yield return null;
+                Assert.That(maxButton.GetComponentsInChildren<Text>().Any(t => t.text == "강화 ×3"), Is.False);
+                Assert.That(maxButton.GetComponentsInChildren<Text>().Any(t => t.text == "10"), Is.True);
+                Assert.That(UiNode("Stat attack"), Is.SameAs(maxRow));
+                Object.Destroy(CaptureFrame("live-stats-affordability.png",720,1520));
+                int before = ui.StatLevel("attack"); maxButton.onClick.Invoke();
+                Assert.That(ui.StatLevel("attack"), Is.EqualTo(before + 1));
+                Assert.That(ui.Gold, Is.EqualTo(5));
+            } finally { Time.timeScale = oldScale; }
+        }
+
+        [UnityTest]
         public IEnumerator StatCostControlsShareBasicStatsAndKeepCriticalCurvesIndependent()
         {
             game.TogglePause(); var ui = game.Ui;
