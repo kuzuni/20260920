@@ -96,3 +96,5 @@ Manual handles also expose independent incoming/outgoing angle inputs in degrees
 Hosted validation for responsive layout/smooth tangents: run 35825716339 passed. Native editor resize/drag interactions were not exercised locally, per repository policy.
 
 Angle validation: GitHub-hosted run 35826473237 on 2c7377d passed 9/9 tests. Coverage includes signed/zero angles, finite limits, endpoint preservation, JSON restoration and live gold payouts after angle edits, plus the existing enemy and stat-cost regressions.
+
+Latest validation: GitHub-hosted run 35828482235 on b99b1c4 passed 12/12 tests. This includes numeric section boundaries/continuity/serialization and live rewards/costs, ignored legacy graph factors, currency grant persistence/saturation, lowered summon prices, ticket-first purchases and dynamic skill refunds. Prior numeric-only and section runs passed 8/8 (35827376387) and 9/9 (35828010258). Native Odin window interaction was not manually exercised; local Unity execution remains prohibited by repository policy.
