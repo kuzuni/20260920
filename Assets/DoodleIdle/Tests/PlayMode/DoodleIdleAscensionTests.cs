@@ -14,7 +14,7 @@ namespace DoodleIdle.Tests
         {
             var bodies = DurableSkillTargets();
             for (int i = 0; i < bodies.Length; i++) {
-                Place(bodies[i], new Vector2(3 + i % 8 * .4f, -1.4f + i / 8 * .4f));
+                if (i < 12) Place(bodies[i], new Vector2(3 + i % 4 * .8f, -1.2f + i / 4 * .8f));
                 SetTargetHealth(bodies[i], 1e15f);
             }
         }
