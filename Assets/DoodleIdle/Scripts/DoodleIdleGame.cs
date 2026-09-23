@@ -403,6 +403,7 @@ namespace DoodleIdle
             // A slow render frame must not extend a slash beyond its intended lifetime/range.
             UpdateShots(dt);
             if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
+            LimitEnemyCrowdMotion(dt);
         }
 
         void LateUpdate()

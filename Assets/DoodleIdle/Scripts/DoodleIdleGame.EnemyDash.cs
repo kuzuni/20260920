@@ -55,6 +55,39 @@ namespace DoodleIdle
             }
         }
 
+        void LimitEnemyCrowdMotion(float dt)
+        {
+            // Movement and simultaneous skill impulses must not keep compressing a
+            // packed crowd against the arena walls. Share the available clearance
+            // between both bodies; leave actual contact resolution to Physics2D.
+            foreach (var enemy in enemies) {
+                Vector2 velocity = enemy.body.linearVelocity;
+                float speed = velocity.magnitude;
+                if (speed < .0001f) continue;
+                Vector2 direction = velocity / speed;
+                Vector2 position = enemy.Position;
+                float radius = ActorRadius(enemy);
+                float travel = speed * dt;
+                foreach (var other in enemies) {
+                    if (other == enemy) continue;
+                    Vector2 delta = other.Position - position;
+                    float reach = radius + ActorRadius(other) + .025f;
+                    if (delta.sqrMagnitude > (reach + travel * 2) * (reach + travel * 2)) continue;
+                    float distance = delta.magnitude;
+                    if (distance < .0001f) continue;
+                    float closing = Vector2.Dot(direction, delta / distance);
+                    if (closing <= 0) continue;
+                    travel = Mathf.Min(travel, Mathf.Max(0, distance - reach) * .5f / closing);
+                }
+                Vector2 limit = arenaHalfSize - Vector2.one * (radius + .025f);
+                if (Mathf.Abs(direction.x) > .0001f)
+                    travel = Mathf.Min(travel, Mathf.Max(0, limit.x - Mathf.Sign(direction.x) * position.x) / Mathf.Abs(direction.x));
+                if (Mathf.Abs(direction.y) > .0001f)
+                    travel = Mathf.Min(travel, Mathf.Max(0, limit.y - Mathf.Sign(direction.y) * position.y) / Mathf.Abs(direction.y));
+                enemy.body.linearVelocity = direction * (travel / dt);
+            }
+        }
+
         void EnemyDashTrail(Actor enemy)
         {
             var afterimage = Visual("Enemy dash afterimage", enemy.art.sprite, enemy.art.transform.position,
