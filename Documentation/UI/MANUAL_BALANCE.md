@@ -41,6 +41,10 @@ At current level L, the next upgrade costs `ceil(starting cost × (1 + increase)
 - Auto-equip and recommendations use rarity, then expected DPS for abilities. Skill and companion cards and equipped slots display `Lv.N`.
 - Attack/health/regen stat increments are +5/+40/+1 per level without exponential value growth. Normal and dungeon relics add one percentage point to their option per level.
 
+## Latest summon prices
+
+Skill and Companion draws cost 20 diamonds per item: 200 for 10 and 1,000 for 50. Relic draws cost 10 per item: 100 for 10 and 500 for 50. Both resource tuning and code fallback use these prices. Equipment pricing is unchanged. Matching tickets still pay before diamonds, dungeon relics remain ticket-only, and max-level skill copy refunds use the same current 20-diamond skill unit price.
+
 ## Payment and UI
 
 - The normal 10/50 summon buttons consume matching tickets before diamonds, with no bulk discount. Three tickets plus seven draws' diamond cost buy ten draws. Both costs appear on the shared shop/result button. Insufficient total payment consumes nothing. Free summons consume neither currency; dungeon relic summons remain exclusive-ticket-only.

@@ -100,11 +100,11 @@ namespace DoodleIdle.Tests
             game.TogglePause(); Time.timeScale = 0; var ui = game.Ui;
             bool oldSkip = ui.SkipSummonAnimations; ui.SkipSummonAnimations = false; ui.Diamonds = 100000;
             try {
-                foreach (var pair in new[] { new[] { "Armor", "10" }, new[] { "Club", "10" }, new[] { "Skill", "200" }, new[] { "Companion", "200" }, new[] { "Relic", "100" } }) {
-                    int unit = int.Parse(pair[1]); Assert.That(ui.SummonCost(pair[0], 10), Is.EqualTo(unit * 10)); Assert.That(ui.SummonCost(pair[0], 50), Is.EqualTo(unit * 50));
+                foreach (var pair in new[] { new[] { "Armor", "10" }, new[] { "Club", "10" }, new[] { "Skill", "20" }, new[] { "Companion", "20" }, new[] { "Relic", "10" } }) {
+                    int unit = int.Parse(pair[1]); Assert.That(ui.SummonCost(pair[0], 1), Is.EqualTo(unit)); Assert.That(ui.SummonCost(pair[0], 10), Is.EqualTo(unit * 10)); Assert.That(ui.SummonCost(pair[0], 50), Is.EqualTo(unit * 50));
                 }
-                Assert.That(ui.SkillRefundUnitPrice, Is.EqualTo(200));
-                Assert.That(ui.TrySummon("Skill", 10, false), Is.True); Assert.That(ui.Diamonds, Is.EqualTo(98000));
+                Assert.That(ui.SkillRefundUnitPrice, Is.EqualTo(20));
+                Assert.That(ui.TrySummon("Skill", 10, false), Is.True); Assert.That(ui.Diamonds, Is.EqualTo(99800));
                 var reveal = UiRoot.GetComponentInChildren<DoodleSummonReveal>();
                 Assert.That(reveal.VisibleCards, Is.Zero);
                 var cards = UiNode("SummonResultCards").GetComponentsInChildren<CanvasGroup>();
@@ -121,7 +121,7 @@ namespace DoodleIdle.Tests
                 Assert.That(UiNode("Fullscreen: 뽑기 결과").GetComponentsInChildren<Text>().Any(x=>x.text.Contains("상세 보기")),Is.False);
                 Object.Destroy(CaptureFrame("summon-large-confetti-and-controls.png",720,1520));
                 UiClick("Summon animation skip"); Assert.That(reveal.VisibleCards, Is.EqualTo(10));
-                UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과")); Assert.That(ui.Diamonds, Is.EqualTo(88000));
+                UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과")); Assert.That(ui.Diamonds, Is.EqualTo(98800));
                 reveal = UiRoot.GetComponentInChildren<DoodleSummonReveal>();
                 Assert.That(reveal.VisibleCards, Is.EqualTo(50)); Assert.That(reveal.transform.localScale, Is.EqualTo(Vector3.one));
                 Object.Destroy(CaptureFrame("latest-summon-no-gauges.png", 720, 1520));

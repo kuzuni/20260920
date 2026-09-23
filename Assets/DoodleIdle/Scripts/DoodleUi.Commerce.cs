@@ -14,7 +14,7 @@ namespace DoodleIdle
             public int freeCount = 5;
             public int tenCost = 100;
             public int fiftyCost = 500;
-            public int relicUnitCost = 100, skillUnitCost = 200, companionUnitCost = 200;
+            public int relicUnitCost = 10, skillUnitCost = 20, companionUnitCost = 20;
             public int[] levelExperience = { 50, 100, 200, 400, 800, 1600, 3200, 6400, 10000 };
             public SummonRateTier[] rates = {
                 new SummonRateTier { level=1, basisPoints=new[]{90000,9000,1000,0,0,0,0} },
