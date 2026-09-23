@@ -21,9 +21,9 @@ namespace DoodleIdle.Tests
             var draft = ui.ReadBalanceTuning();
             float health = ui.EnemyHealthMultiplier(stage), damage = ui.EnemyDamageMultiplier(stage);
             int gold = ui.GoldForMainKills(50, 500);
-            draft.goldRewardMultiplier = 3;
-            draft.enemyHealthBaseMultiplier = 4;
-            draft.enemyDamageBaseMultiplier = 2;
+            draft.goldPerEnemy *= 3;
+            draft.enemyStartingHealth *= 4;
+            draft.enemyStartingDamage *= 2; draft.earlyEnemyDamageMax *= 2;
             Assert.That(ui.EnemyHealthMultiplier(stage), Is.EqualTo(health), "An editable snapshot must not change the live game.");
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var actor = actors[0]; var type = actor.GetType();
@@ -43,13 +43,13 @@ namespace DoodleIdle.Tests
             Assert.That(ui.EnemyHealthMultiplier(51), Is.EqualTo(44).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(71) * 64, Is.EqualTo(260).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
-            draft.enemyDamageBaseMultiplier = 0; ui.ApplyBalanceTuning(draft);
+            draft.enemyStartingDamage = 0; draft.earlyEnemyDamageMax = 0; ui.ApplyBalanceTuning(draft);
             Assert.That(ui.EnemyDamageMultiplier(1000), Is.Zero);
             // Start values must affect live actors/payouts, not just an editor-only preview.
             draft = ui.ReadBalanceTuning();
-            draft.goldPerEnemy = 25; draft.goldRewardMultiplier = 1;
-            draft.enemyStartingHealth = 136; draft.enemyHealthBaseMultiplier = 1;
-            draft.enemyStartingDamage = 12; draft.enemyDamageBaseMultiplier = 1;
+            draft.goldPerEnemy = 25;
+            draft.enemyStartingHealth = 136;
+            draft.enemyStartingDamage = 12;
             draft.earlyEnemyDamageEndStage = 11; draft.earlyEnemyDamageMax = 32;
             ui.ApplyBalanceTuning(draft);
             Assert.That(ui.EnemyHealthMultiplier(1) * 68, Is.EqualTo(136).Within(.001));

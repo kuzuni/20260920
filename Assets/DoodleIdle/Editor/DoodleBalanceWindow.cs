@@ -18,20 +18,16 @@ namespace DoodleIdle.Editor
         bool CanApply => Ui;
         protected override void OnEnable() { base.OnEnable(); LoadCurrent(); }
 
-        [InfoBox("시작값은 1스테이지 일반 적 기준입니다. 시작값 × 전체 배수에 스테이지 증가량을 적용합니다. 적 데미지는 시작값부터 초반 목표값까지 선형으로 변합니다. 아래 미리보기는 입력 즉시 갱신되며, 적용/저장을 눌러야 게임에 반영됩니다.")]
+        [InfoBox("시작값은 1스테이지 일반 적 기준입니다. 골드·체력 = 시작값 × [1 + (스테이지 - 1) × 증가율]. 적 데미지는 시작값부터 초반 목표값까지 선형으로 변하고, 이후 목표값을 기준으로 증가합니다. 아래 미리보기는 입력 즉시 갱신되며, 적용/저장을 눌러야 게임에 반영됩니다.")]
         [ShowInInspector, ReadOnly, LabelText("현재 스테이지")]
         int Stage => Ui ? Ui.CombatDifficultyStage : 1;
 
         [ShowInInspector, BoxGroup("골드"), LabelText("시작 골드 (적 1마리)"), MinValue(0)]
         float StartingGold { get => draft.goldPerEnemy; set => draft.goldPerEnemy = value; }
-        [ShowInInspector, BoxGroup("골드"), LabelText("획득 배수"), MinValue(0)]
-        float GoldMultiplier { get => draft.goldRewardMultiplier; set => draft.goldRewardMultiplier = value; }
         [ShowInInspector, BoxGroup("골드"), LabelText("스테이지당 증가량 (%)"), MinValue(0)]
         float GoldGrowth { get => draft.goldStageGrowth * 100; set => draft.goldStageGrowth = value / 100; }
         [ShowInInspector, BoxGroup("적 체력"), LabelText("시작 체력"), MinValue(.001)]
         float StartingHealth { get => draft.enemyStartingHealth; set => draft.enemyStartingHealth = value; }
-        [ShowInInspector, BoxGroup("적 체력"), LabelText("체력 배수"), MinValue(.001)]
-        float HealthMultiplier { get => draft.enemyHealthBaseMultiplier; set => draft.enemyHealthBaseMultiplier = value; }
         [ShowInInspector, BoxGroup("적 체력"), LabelText("스테이지당 증가량 (%)"), MinValue(0)]
         float HealthGrowth { get => draft.enemyHealthStageGrowth * 100; set => draft.enemyHealthStageGrowth = value / 100; }
         [ShowInInspector, BoxGroup("적 데미지"), LabelText("시작 데미지"), MinValue(0)]
@@ -40,8 +36,6 @@ namespace DoodleIdle.Editor
         int EarlyEnd { get => draft.earlyEnemyDamageEndStage; set => draft.earlyEnemyDamageEndStage = value; }
         [ShowInInspector, BoxGroup("적 데미지"), LabelText("초반 목표 데미지"), MinValue(0)]
         float EarlyDamage { get => draft.earlyEnemyDamageMax; set => draft.earlyEnemyDamageMax = value; }
-        [ShowInInspector, BoxGroup("적 데미지"), LabelText("데미지 배수"), MinValue(0)]
-        float DamageMultiplier { get => draft.enemyDamageBaseMultiplier; set => draft.enemyDamageBaseMultiplier = value; }
         [ShowInInspector, BoxGroup("적 데미지"), LabelText("목표 이후 증가량 (%)"), MinValue(0)]
         float DamageGrowth { get => draft.enemyDamageStageGrowth * 100; set => draft.enemyDamageStageGrowth = value / 100; }
 

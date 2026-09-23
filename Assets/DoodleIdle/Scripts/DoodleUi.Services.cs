@@ -19,9 +19,8 @@ namespace DoodleIdle
             public int mainStageKills = 100, relicDungeonKills = 50;
             public int dungeonRelicTickets = 10;
             public int goldDungeonEnemyCount = 500;
-            public float goldPerEnemy = 10, goldStageGrowth = .02f, goldRewardMultiplier = 1;
+            public float goldPerEnemy = 10, goldStageGrowth = .02f;
             public float enemyHealthStageGrowth = .02f, enemyDamageStageGrowth = .02f;
-            public float enemyHealthBaseMultiplier = 1, enemyDamageBaseMultiplier = 1;
             public float enemyStartingHealth = 68, enemyStartingDamage = 0;
             public int earlyEnemyDamageEndStage = 70;
             public float earlyEnemyDamageMax = 100;

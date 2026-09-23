@@ -19,11 +19,8 @@ namespace DoodleIdle
             destination.enemyStartingDamage = BalanceValue(source.enemyStartingDamage, 0, 0);
             destination.earlyEnemyDamageEndStage = Math.Max(2, source.earlyEnemyDamageEndStage);
             destination.earlyEnemyDamageMax = BalanceValue(source.earlyEnemyDamageMax, 0, 100);
-            destination.goldRewardMultiplier = BalanceValue(source.goldRewardMultiplier, 0, 1);
             destination.goldStageGrowth = BalanceValue(source.goldStageGrowth, 0, .02f);
-            destination.enemyHealthBaseMultiplier = BalanceValue(source.enemyHealthBaseMultiplier, .001f, 1);
             destination.enemyHealthStageGrowth = BalanceValue(source.enemyHealthStageGrowth, 0, .02f);
-            destination.enemyDamageBaseMultiplier = BalanceValue(source.enemyDamageBaseMultiplier, 0, 1);
             destination.enemyDamageStageGrowth = BalanceValue(source.enemyDamageStageGrowth, 0, .02f);
         }
 

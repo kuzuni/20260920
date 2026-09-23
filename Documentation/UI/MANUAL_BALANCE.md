@@ -4,16 +4,16 @@ The user canceled the eight-hour/stage-300 target. Earlier campaign timings are 
 
 ## Odin window
 
-Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value, an overall multiplier and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas and includes current relic/buff gold bonuses during play. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
+Open **Doodle Idle → 밸런스 조절**. Each of gold, enemy health and enemy damage has an editable starting value and a per-stage increase displayed as a percentage. Starting defaults are 10 gold per kill, 68 HP and 0 contact damage at stage 1. The early damage target stage (70) and target damage (100) are also editable. The live preview compares existing and draft values at stage 1 and a selected stage; it shares production formulas and includes current relic/buff gold bonuses during play. Previewing does not mutate the game. **실행 중인 게임에 적용** changes the current session. Living enemies retain their remaining-health fraction; kills, stage and ownership do not reset. **기본값으로 저장** writes only the balance controls into `ServicesTuning.json` while preserving unrelated service settings; it also applies them during play. **현재 값 다시 불러오기** reads live values while playing, otherwise saved defaults.
 
 **다이아 디버그 → 지급량 → 다이아 지급** adds the entered amount directly to the saved wallet, clamped at its integer limit. It does not consume any daily reward allowance.
 
 Default formulas, where S is the displayed stage:
 
-- Gold per kill: `10 × gold multiplier × (1 + max(0,S−1) × gold increase)`, then existing relic and buff multipliers. Gold cave rewards use the same formula for 500 kills at difficulty `cave stage × 50`.
-- Enemy health: `68 × health multiplier × (1 + max(0,S−1) × health increase)`. Boss health retains its existing ×20 factor.
-- Enemy contact damage: stage 0/1 uses the starting damage (default 0); stages 2–70 interpolate from the starting damage to the configurable early target (default 100). After 70: `100 × (1 + (S−70) × damage increase)`. The overall damage multiplier applies to the curve; default 1. No contact immunity or damage numbers trigger for zero damage.
-- Default overall multipliers are 1; default per-stage increases are 2%. These are editable starting values, not a measured stage-300 completion-time promise.
+- Gold per kill: `starting gold (default 10) × (1 + max(0,S−1) × gold increase)`, then existing relic and buff multipliers. Gold cave rewards use the same formula for 500 kills at difficulty `cave stage × 50`.
+- Enemy health: `starting HP (default 68) × (1 + max(0,S−1) × health increase)`. Boss health retains its existing ×20 factor.
+- Enemy contact damage: stage 0/1 uses the starting damage (default 0); stages 2–70 interpolate from the starting damage to the configurable early target (default 100). After 70: `100 × (1 + (S−70) × damage increase)`. No contact immunity or damage numbers trigger for zero damage.
+- Redundant overall multipliers have been removed from the window, tuning data and combat/reward formulas. Default per-stage increases are 2%. These are editable starting values, not a measured stage-300 completion-time promise.
 
 ## Collection/stat rules
 
