@@ -22,7 +22,7 @@ namespace DoodleIdle
                 var parts = key.Split('_');
                 if (parts.Length != 3 || !int.TryParse(parts[1], out int costume) || costume < 0 || costume >= 20 || !int.TryParse(parts[2], out int pose) || pose < 0 || pose > 1)
                     throw new ArgumentException("Invalid costume frame: " + key);
-                value = LayoutCell("UI/SkinAppearances" + (char)('A' + costume / 5), costume % 5 + pose * 5);
+                value = DoodlePlayerCostumeArt.Frame(costume, pose);
             }
             else if (key.StartsWith("SkinWeapon_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int weapon))
                 value = LayoutCell("UI/SkinWeapons", weapon);
@@ -47,7 +47,7 @@ namespace DoodleIdle
                 int special = shot == 2 ? 0 : shot == 3 ? 1 : shot == 10 ? 2 : shot == 18 ? 3 : shot == 19 ? 4 : -1;
                 value = shot == 12 ? Cell("CompanionHoney", 0, 1, 1) : special >= 0 ? Cell("CompanionSpecialAttacks", special, 3, 2) : Cell("CompanionAttacks" + (char)('A' + shot / 8), shot % 8, 4, 2);
             }
-            if (value) { value.name = key; cache[key] = value; }
+            if (value) { value.name = key.StartsWith("SkinAppearance_", StringComparison.Ordinal) ? "Skin " + key : key; cache[key] = value; }
             return value;
         }
         static Sprite LayoutCell(string resource, int index)

@@ -37,8 +37,9 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.EquipSkin(appearances[i].id), Is.True);
                 Assert.That(ui.EquipSkin(weapons[i].id), Is.True);
                 var first = UiKit.Art(appearances[i].icon); var second = UiKit.Art("SkinAppearance_"+i+"_1");
-                Assert.That(first.rect.size, Is.EqualTo(second.rect.size));
-                Assert.That(first.rect, Is.Not.EqualTo(second.rect));
+                Assert.That(first.texture, Is.Not.SameAs(second.texture));
+                Assert.That(first.pixelsPerUnit, Is.EqualTo(384));
+                Assert.That(second.pixelsPerUnit, Is.EqualTo(384));
                 foreach (var sprite in new[] { first, second, UiKit.Art(weapons[i].icon) }) {
                     var r = sprite.rect; int w = (int)r.width, h = (int)r.height;
                     var pixels = sprite.texture.GetPixels((int)r.x, (int)r.y, w, h);
@@ -51,6 +52,7 @@ namespace DoodleIdle.Tests
                     animation.Invoke(game, new object[] { actor, 0f });
                     Assert.That(art.sprite.name, Is.EqualTo("Skin SkinAppearance_"+i+"_"+frame));
                     Assert.That(art.sharedMaterial.mainTexture, Is.SameAs(art.sprite.texture));
+                    Assert.That(art.sprite, Is.SameAs(UiKit.Art("SkinAppearance_"+i+"_"+frame)), "Do not renormalize the body by the hat bounds.");
                 }
                 weaponUpdate.Invoke(game, new object[] { club });
                 Assert.That(club.sprite.texture.name, Is.EqualTo("SkinWeapons"));
@@ -80,6 +82,72 @@ namespace DoodleIdle.Tests
             Object.Destroy(CaptureFrame("skins-ice-staff.png", 720, 1520));
             SelectSkinForTest(weapons[13]); yield return null;
             Object.Destroy(CaptureFrame("skins-fire-staff.png", 720, 1520));
+        }
+
+        [UnityTest]
+        public IEnumerator AllCostumesKeepOriginalBodyScaleFaceAndAnimationTimeline()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 2000); ServiceSetSavedField(saved, "highestMainStage", 2000); });
+            var appearances = ui.Skins("Appearance").Where(s => !s.initiallyOwned).ToArray();
+            var basic = ui.Skins("Appearance").Single(s => s.initiallyOwned);
+            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var type = actor.GetType();
+            var art = (SpriteRenderer)type.GetField("art").GetValue(actor);
+            var body = (Rigidbody2D)type.GetField("body").GetValue(actor);
+            var animate = typeof(DoodleIdleGame).GetMethod("AnimateActorFrames", GrowthPrivate);
+            Vector3 originalScale = art.transform.localScale;
+            var timeline = new System.Collections.Generic.List<int>();
+            float[] ticks = { .02f, .10f, .08f, .09f, .07f, .12f, .14f, .03f };
+            for (int costume = -1; costume < 20; costume++) {
+                if (costume >= 0) ui.TryAcquireSkin(appearances[costume].id);
+                ui.EquipSkin(costume < 0 ? basic.id : appearances[costume].id);
+                type.GetField("walkClock").SetValue(actor, 0f); type.GetField("phase").SetValue(actor, 0f);
+                body.simulated = true; body.linearVelocity = Vector2.right;
+                var seen = new System.Collections.Generic.HashSet<int>();
+                for (int step = 0; step < ticks.Length; step++) {
+                    animate.Invoke(game, new object[] { actor, ticks[step] });
+                    int pose = art.sprite.name == "PlayerWalkB" || art.sprite.name.EndsWith("_1") ? 1 : 0;
+                    seen.Add(pose);
+                    if (costume < 0) timeline.Add(pose); else Assert.That(pose, Is.EqualTo(timeline[step]), appearances[costume].name);
+                    Assert.That(art.transform.localScale, Is.EqualTo(originalScale));
+                    if (costume < 0) continue;
+                    Assert.That(art.sprite, Is.SameAs(DoodlePlayerCostumeArt.Frame(costume, pose)));
+                    // Eye pixels are from the original player at the same body-space positions.
+                    var reference = DoodlePlayerCostumeArt.BodyFrame(pose);
+                    var eyes = pose == 0 ? new[] { new Vector2(199, 1026.5f), new Vector2(280.5f, 1001) }
+                        : new[] { new Vector2(555, 631), new Vector2(765.5f, 570) };
+                    foreach (var eye in eyes) {
+                        Vector2 unit = (eye - reference.rect.center) / reference.pixelsPerUnit;
+                        Vector2 pixel = unit * art.sprite.pixelsPerUnit + art.sprite.pivot;
+                        var color = art.sprite.texture.GetPixelBilinear(pixel.x / art.sprite.texture.width, pixel.y / art.sprite.texture.height);
+                        Assert.That(color.a, Is.GreaterThan(.9f));
+                        Assert.That(Mathf.Max(color.r, color.g, color.b), Is.LessThan(.25f), appearances[costume].name + " original eye position");
+                    }
+                }
+                Assert.That(seen.Count, Is.EqualTo(2));
+                body.linearVelocity = Vector2.zero;
+                animate.Invoke(game, new object[] { actor, .3f });
+                Assert.That(art.sprite.name, Is.EqualTo(costume < 0 ? "PlayerWalkA" : "Skin SkinAppearance_" + costume + "_0"));
+                Assert.That((float)type.GetField("walkClock").GetValue(actor), Is.Zero);
+            }
+            foreach (var renderer in game.GetComponentsInChildren<SpriteRenderer>()) renderer.enabled = false;
+            var proof = new GameObject("Costume body comparison"); proof.transform.SetParent(game.transform);
+            var camera = Camera.main; camera.transform.position = new Vector3(0, 0, -10); camera.orthographicSize = 6.3f;
+            var setters = typeof(DoodleIdleGame).GetMethod("SetSpriteArt", GrowthPrivate);
+            var portraits = new SpriteRenderer[21];
+            for (int i = 0; i <= 20; i++) {
+                var go = new GameObject("Costume comparison " + i); go.transform.SetParent(proof.transform);
+                go.transform.position = new Vector3(-4.4f + (i % 5) * 2.2f, 4.4f - (i / 5) * 2.2f, 0);
+                go.transform.localScale = originalScale;
+                portraits[i] = go.AddComponent<SpriteRenderer>();
+            }
+            for (int pose = 0; pose < 2; pose++) {
+                for (int i = 0; i <= 20; i++) setters.Invoke(game, new object[] { portraits[i], i == 0 ? DoodlePlayerCostumeArt.BodyFrame(pose) : DoodlePlayerCostumeArt.Frame(i-1, pose) });
+                Object.Destroy(CaptureFrame("costume-body-comparison-" + pose + ".png", 1440, 1440, false));
+            }
+            Object.Destroy(proof);
+            yield return null;
         }
 
         [UnityTest]

@@ -13,7 +13,7 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
-        public IEnumerator NecklaceRecoveryMatchesArmorAndGoldRemainsAnOwnedEffect()
+        public IEnumerator NecklaceRecoveryMatchesArmorAndNeitherEquipmentGrantsGold()
         {
             game.TogglePause(); var ui = game.Ui;
             var necklaces = ui.Items("Necklace"); var armors = ui.Items("Armor");
@@ -22,7 +22,8 @@ namespace DoodleIdle.Tests
             foreach (var armor in armors) { armor.discovered = armor.equipped = false; armor.level = armor.count = 0; }
             float startingGold = ui.GoldGainMultiplier;
             ui.AddItem(armors[0], 20); ui.AddItem(necklaces[0], 20);
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(startingGold * 1.02f).Within(.00001));
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(startingGold));
+            Assert.That(armors.Concat(necklaces).All(x => x.ownedGoldPercent == 0), Is.True);
             float ownedGold = ui.GoldGainMultiplier;
             ui.AutoEquip("Armor"); ui.AutoEquip("Necklace");
             Assert.That(ui.GoldGainMultiplier, Is.EqualTo(ownedGold));
@@ -37,15 +38,15 @@ namespace DoodleIdle.Tests
                 float recoveryMultiplier = baseRegen / ui.StatValue("healthRegen");
                 necklace.equipped = true;
                 Assert.That((ui.HealthRegen - baseRegen) / recoveryMultiplier / addedHealth, Is.EqualTo(.05f).Within(.00001), necklace.name);
-                Assert.That(ui.GoldGainMultiplier, Is.GreaterThanOrEqualTo(ownedGold));
+                Assert.That(ui.GoldGainMultiplier, Is.EqualTo(ownedGold));
             }
             foreach (var item in armors.Concat(necklaces)) item.equipped = false;
             var first = necklaces[0]; first.level = 1; first.count = 20;
             float beforeGold = ui.GoldGainMultiplier;
             Assert.That(ui.UpgradeItem(first), Is.True);
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + startingGold * .001f).Within(.0001));
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold));
             first.count = 0;
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + startingGold * .001f).Within(.0001), "Consumed copies do not remove discovered ownership effects.");
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold), "Neither ownership nor enhancement adds gold.");
             ui.AutoEquip("Necklace"); ui.SaveCollections();
             var probes = new List<GameObject>();
             try {
@@ -80,7 +81,7 @@ namespace DoodleIdle.Tests
             for (int level = 1; level <= 50; level++) CollectionAssert.AreEqual(ui.SummonWeights("Armor", level), ui.SummonWeights("Necklace", level));
             UiOpen("Equipment"); UiClick("목걸이"); yield return null;
             Assert.That(UiNode("Equipment tabs").GetComponentsInChildren<Button>().Length, Is.EqualTo(3));
-            Assert.That(UiNode("Selected equipment").GetComponentsInChildren<Text>().Any(t => t.text.Contains("골드 +")), Is.True);
+            Assert.That(UiNode("Selected equipment").GetComponentsInChildren<Text>().Any(t => t.text.Contains("골드 +")), Is.False);
             UiClick("자동장착");
             Assert.That(necklaces.Last().equipped, Is.True);
             Object.Destroy(CaptureFrame("necklace-equipment.png", 720, 1520));

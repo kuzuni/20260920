@@ -216,7 +216,7 @@ namespace DoodleIdle
             var info = UiKit.Column(row, "Item information", 4, 1);
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
-            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%" + (selected.ownedGoldPercent > 0 ? " · 골드 +" + UiNumber.Format(ItemOwnedGoldValue(selected)) + "%" : ""));
+            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%" + (ItemOwnedGoldValue(selected) > 0 ? " · 골드 +" + UiNumber.Format(ItemOwnedGoldValue(selected)) + "%" : ""));
             CollectionEffectRow(info, "장착 효과", selected.category == "Necklace" ? "체력 회복 +" + UiNumber.Format(NecklaceRecovery(ItemEquipValue(selected)), 2) + "/초" : (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)) + "%");
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)

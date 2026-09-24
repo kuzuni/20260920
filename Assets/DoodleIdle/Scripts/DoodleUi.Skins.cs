@@ -167,6 +167,8 @@ namespace DoodleIdle
             UiKit.Stretch(specification, 8, 8, 8, 8);
             var preview = SkinSlot(specification, selected, () => { }, 128f * 4 / 3);
             preview.name = "Selected skin preview";
+            var animatedPortrait = preview.GetComponentInChildren<DoodleSkinPortrait>();
+            if (animatedPortrait) animatedPortrait.Animate = true;
             var previewSize = preview.GetComponent<LayoutElement>();
             previewSize.minWidth = previewSize.preferredWidth = 128; previewSize.flexibleWidth = 0;
             var info = UiKit.Column(specification, "Skin information", 3, 0);
@@ -242,6 +244,16 @@ namespace DoodleIdle
             slot.name = "SkinSlot_" + skin.id;
             var icon = slot.transform.Find("Icon: " + skin.icon);
             if (icon && skin.owned) icon.GetComponent<Image>().color = skin.tint;
+            if (icon && skin.category == "Appearance") {
+                var image = icon.GetComponent<Image>();
+                image.enabled = false;
+                var portraitRect = UiKit.Rect(icon, "Body scale portrait");
+                UiKit.Stretch(portraitRect, 0, 0, 0, 0);
+                var portrait = portraitRect.gameObject.AddComponent<DoodleSkinPortrait>();
+                portrait.color = image.color;
+                int costume = skin.icon.StartsWith("SkinAppearance_", StringComparison.Ordinal) ? int.Parse(skin.icon.Split('_')[1]) : -1;
+                portrait.Configure(costume);
+            }
             var state = slot.transform.Find("Quantity gauge");
             if (state) state.GetComponentInChildren<Text>().text = skin.owned ? "보유" : "미획득";
             return slot;

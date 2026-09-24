@@ -23,6 +23,9 @@ namespace DoodleIdle
         }
         Sprite WorldSkinSprite(string key,bool grip)
         {
+            // Appearance sprites already use the original body origin and pixels per unit.
+            // Re-cropping by the entire costume would shrink the body under tall hats.
+            if (!grip) return UiKit.Art(key);
             string cacheKey=(grip?"weapon:":"appearance:")+key;
             if(worldSkinSprites.TryGetValue(cacheKey,out var cached))return cached;
             var source=UiKit.Art(key);

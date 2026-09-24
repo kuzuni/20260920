@@ -73,6 +73,7 @@ namespace DoodleIdle
             collectionItems.AddRange(collectionTuning.items);
             // Catalog entries describe items; only a saved profile or an actual grant owns them.
             foreach (var item in collectionItems) {
+                if (item.category == "Armor" || item.category == "Necklace") item.ownedGoldPercent = 0;
                 item.count = item.level = item.slot = 0;
                 item.discovered = item.equipped = false;
             }
@@ -342,7 +343,7 @@ namespace DoodleIdle
         public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
         public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
         public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
-        float ItemOwnedGoldValue(UiItem item) => item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
+        float ItemOwnedGoldValue(UiItem item) => item.category == "Armor" || item.category == "Necklace" ? 0 : item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
         public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? ((item.rarity == 6 && item.tier == 1 || item.rarity == 8) ? int.MaxValue : 100) : item.category == "Skill" ? 100 : collectionTuning.maxItemLevel;
         long UpgradeCopiesBetween(int from, int to)
         {
