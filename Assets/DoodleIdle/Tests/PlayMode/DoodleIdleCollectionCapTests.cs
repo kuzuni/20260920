@@ -111,11 +111,11 @@ namespace DoodleIdle.Tests
         public IEnumerator CollectionLevelsShowFullNumbersInRelicsStatsInventoryAndSummonDetails()
         {
             game.TogglePause(); var ui = game.Ui;
-            foreach (var relic in ui.AllRelics) { relic.discovered = true; relic.level = 1000; }
+            foreach (var relic in ui.AllRelics) { relic.discovered = true; relic.level = 100000000; }
             UiOpen("Relics"); yield return null;
             var labels = ui.GetComponentsInChildren<Text>().Where(x => x.text.StartsWith("Lv. ")).ToArray();
             Assert.That(labels.Length, Is.GreaterThan(0));
-            Assert.That(labels.All(x => x.text == "Lv. 1,000"), Is.True);
+            Assert.That(labels.All(x => x.text == "Lv. 100,000,000"), Is.True);
             Object.Destroy(CaptureFrame("relic-full-level-numbers.png", 720, 1520));
             GrowthLevels["attack"] = 10000;
             UiOpen("Stats");
@@ -127,6 +127,36 @@ namespace DoodleIdle.Tests
             Assert.That(ui.GetComponentsInChildren<Text>().Any(x => x.text.Contains("· Lv. 10,000")), Is.True);
             ui.CloseDetail();
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator AllRelicsUpgradeBeyond1000AndStopAtOneHundredMillion()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (var relic in ui.AllRelics) {
+                Assert.That(ui.ItemMaxLevel(relic), Is.EqualTo(100000000));
+                relic.discovered = true; relic.level = 1000; relic.count = 100;
+                while (relic.level == 1000 && relic.count > 0)
+                    Assert.That(ui.TryUpgradeRelic(relic, out _, false), Is.True);
+                Assert.That(relic.level, Is.EqualTo(1001), relic.id);
+                relic.level = 99999999; relic.count = 100;
+                while (relic.level < 100000000 && relic.count > 0)
+                    Assert.That(ui.TryUpgradeRelic(relic, out _, false), Is.True);
+                Assert.That(relic.level, Is.EqualTo(100000000), relic.id);
+                int before = relic.count;
+                Assert.That(ui.TryUpgradeRelic(relic, out _, false), Is.False);
+                Assert.That(ui.CanUpgradeItem(relic), Is.False);
+                Assert.That(relic.count, Is.EqualTo(before));
+            }
+            ui.SaveCollections();
+            var host = new GameObject("Relic high level reload");
+            try {
+                var restored = host.AddComponent<DoodleUi>(); restored.InitCollections();
+                Assert.That(restored.AllRelics.All(x => x.level == 100000000), Is.True);
+            }
+            finally { Object.DestroyImmediate(host); }
+            yield return (IEnumerator)typeof(DoodleUi).GetMethod("UpgradeCollectionBulk", GrowthPrivate).Invoke(ui, new object[] { "Relic" });
+            Assert.That(ui.AllRelics.All(x => x.level == 100000000), Is.True);
         }
     }
 }
