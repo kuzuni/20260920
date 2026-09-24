@@ -30,6 +30,23 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator AscensionBreakthroughButtonPulsesOnlyWhenEnabled()
+        {
+            game.TogglePause(); var ui=game.Ui;
+            if(!ui.BreakthroughMode)ui.ToggleBreakthroughMode();
+            var pulse=game.GetComponentInChildren<DoodleBreakthroughPulse>(true);
+            var surface=pulse.GetComponent<Image>(); var samples=new List<float>();
+            for(int i=0;i<6;i++) { yield return new WaitForSecondsRealtime(.2f);samples.Add(surface.color.r); }
+            Assert.That(samples.Max()-samples.Min(),Is.GreaterThan(.04f));
+            ui.ToggleBreakthroughMode();yield return null;
+            Color off=surface.color;
+            yield return new WaitForSecondsRealtime(.35f);
+            Assert.That(surface.color,Is.EqualTo(off));Assert.That(off,Is.EqualTo(Color.gray));
+            ui.ToggleBreakthroughMode();yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(surface.color.g,Is.GreaterThan(off.g));
+        }
+
+        [UnityTest]
         public IEnumerator AscensionRewardCelebrationUsesParticlesAndClosesWithoutDuplicateRewards()
         {
             game.TogglePause(); var ui=game.Ui;long gold=ui.Gold;int diamonds=ui.Diamonds;
@@ -76,7 +93,8 @@ namespace DoodleIdle.Tests
             sheet.gameObject.AddComponent<Image>().color=new Color(.96f,.95f,.9f);
             for (int i=0;i<added.Length;i++) {
                 var art=UiKit.Art(added[i].icon);
-                Assert.That(art.texture.name,Is.EqualTo(added[i].ability=="CactusRage"||added[i].ability=="MissileRage" ? "SkillThumbsCactusMissile" : "SkillThumbsAscension"));
+                string expectedTexture=added[i].ability=="CactusRage"?"SkillThumbFoamRoller":added[i].ability=="RazorShuriken"?"SkillThumbCherryShuriken":added[i].ability=="GodHand"?"SkillThumbSkyPalm":added[i].ability=="MissileRage"?"SkillThumbsCactusMissile":"SkillThumbsAscension";
+                Assert.That(art.texture.name,Is.EqualTo(expectedTexture));
                 var rect=art.rect;
                 var pixels=art.texture.GetPixels((int)rect.x,(int)rect.y,(int)rect.width,(int)rect.height);
                 Assert.That(pixels.Count(x=>x.a>.125f),Is.GreaterThan(pixels.Length/10));
@@ -115,6 +133,8 @@ namespace DoodleIdle.Tests
             var timerColor=UiNode("Boss timer bar fill").GetComponent<Image>().color;
             Assert.That(timerColor.b,Is.GreaterThan(timerColor.r));
             Assert.That(UiNode("Boss challenge HUD").parent.name,Is.EqualTo("Stage progress"));
+            Assert.That(UiNode("Boss health bar").GetComponent<Image>().sprite.texture.name,Is.EqualTo("HealthBarFrame"));
+            Assert.That(UiNode("Boss timer bar fill").GetComponent<Image>().sprite.texture.name,Is.EqualTo("BossGaugeFill"));
             Object.Destroy(CaptureFrame("ascension-boss-health-and-timer.png",720,1520));
             yield return new WaitForSecondsRealtime(.1f);
             Assert.That(game.BossTimeRemaining, Is.EqualTo(10), "Pausing also pauses the challenge timer.");
@@ -252,6 +272,8 @@ namespace DoodleIdle.Tests
             Assert.That(Particles("Meteor Fire Trail Particle System").particleCount, Is.Zero);
             CastCatalogSkill("GodHand"); yield return PhysicsTicks(15);
             Assert.That(NamedArt("Divine palm afterimage"), Is.Not.Empty);
+            Assert.That(NamedArt("Divine palm afterimage").All(x=>x.sprite.texture.name=="SkillSkyPalm"),Is.True);
+            Object.Destroy(CaptureFrame("ascension-sky-palm-afterimages.png",1200,1000,false));
             Assert.That(Particles("Meteor Fire Trail Particle System").particleCount, Is.Zero);
             yield return PhysicsTicks(30);
             var imprints = NamedArt("Divine palm ground imprint");
@@ -273,16 +295,20 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator AscensionCactusesRollBroadsideWithConstantLength()
+        public IEnumerator AscensionFoamRollersRollBroadsideWithConstantLength()
         {
             var bodies = DurableSkillTargets();
             foreach (var body in bodies) Place(body,new Vector2(20,20));
             Place(bodies[0],new Vector2(8,0));
             CastCatalogSkill("CactusRage");
+            Assert.That(game.Ui.Items("Skill").Single(x=>x.ability=="CactusRage").name,Is.EqualTo("폼롤러의 분노"));
             var plants = NamedArt("Ascension_2 variant projectile");
             Assert.That(plants.Length,Is.EqualTo(4));
             var initial = plants.Select(x=>x.transform.position).ToArray();
-            foreach (var plant in plants) Assert.That(plant.sprite.rect.height,Is.GreaterThan(plant.sprite.rect.width*2));
+            foreach (var plant in plants) {
+                Assert.That(plant.sprite.texture.name,Is.EqualTo("SkillFoamRoller"));
+                Assert.That(plant.sprite.rect.height,Is.GreaterThan(plant.sprite.rect.width*2));
+            }
             yield return PhysicsTicks(8);
             for (int frame=0;frame<2;frame++) {
                 for (int i=0;i<plants.Length;i++) {
@@ -292,7 +318,7 @@ namespace DoodleIdle.Tests
                     Assert.That(plants[i].transform.localScale.y,Is.EqualTo(4.6f).Within(.001));
                     Assert.That(plants[i].transform.localScale.x,Is.LessThan(4.5f),"Only the short axis compresses while rolling.");
                 }
-                Object.Destroy(CaptureFrame("ascension-cactus-broadside-"+frame+".png",1200,1000,false));
+                Object.Destroy(CaptureFrame("ascension-foam-roller-broadside-"+frame+".png",1200,1000,false));
                 yield return PhysicsTicks(20);
             }
         }
@@ -301,8 +327,10 @@ namespace DoodleIdle.Tests
         public IEnumerator AscensionRazorShurikensRotateOncePerSecond()
         {
             DurableSkillTargets(); CastCatalogSkill("RazorShuriken");
+            Assert.That(game.Ui.Items("Skill").Single(x=>x.ability=="RazorShuriken").name,Is.EqualTo("벚꽃 표창"));
             var blades=NamedArt("Ascension_4 variant projectile");
             Assert.That(blades.Length,Is.EqualTo(18));
+            Assert.That(blades.All(x=>x.sprite.texture.name=="SkillCherryShuriken"),Is.True);
             var rotations=blades.Select(x=>x.transform.rotation).ToArray();
             yield return PhysicsTicks(10);
             for(int i=0;i<blades.Length;i++)
@@ -420,11 +448,15 @@ namespace DoodleIdle.Tests
             game.AscensionProjectileLaunched += launched;
             Assert.That(CastCatalogSkill("BladeRing"), Is.True);
             Assert.That(game.AscensionLaunchCount("BladeRing"), Is.EqualTo(1));
-            yield return PhysicsTicks(70);
-            Assert.That(times.Count, Is.EqualTo(22));
+            yield return PhysicsTicks(100);
+            Assert.That(times.Count, Is.EqualTo(44));
             for (int i = 1; i < times.Count; i++) {
                 Assert.That(times[i] - times[i - 1], Is.InRange(.019f, .061f));
                 Assert.That(Vector2.SignedAngle(directions[i - 1], directions[i]), Is.EqualTo(360f / 22).Within(.01));
+            }
+            for(int i=0;i<22;i++) {
+                Assert.That(Vector2.Distance(directions[i],directions[i+22]),Is.LessThan(.001));
+                Assert.That(times[i+22]-times[i],Is.EqualTo(.88f).Within(.025f));
             }
             game.AscensionProjectileLaunched -= launched;
             foreach (var pair in new[] { ("CactusRage", 4), ("RazorShuriken", 18), ("MissileRage", 13), ("SolarVolley", 3) }) {

@@ -18,6 +18,8 @@ namespace DoodleIdle
                 case "SkillGolem": count = 4; break;
                 case "SkillDumbbell": case "SkillMeteorRock": case "SkillMeteor": case "SkillMeteorCrater": case "SkillPalmCrater":
                 case "SkillSpikyCactus": case "SkillWhiteMissile":
+                case "SkillCherryShuriken": case "SkillSkyPalm": case "SkillFoamRoller":
+                case "HealthBarFrame": case "BossGaugeFill":
                 case "NavPottery": case "NavColosseum": case "DungeonPottery": count = 1; break;
                 default: return null;
             }

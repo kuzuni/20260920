@@ -24,6 +24,7 @@ namespace DoodleIdle
         Image missionTicketIcon;
         Text powerToast,cameraLabel,stageLabel;
         Button missionClaim, breakthroughButton;
+        DoodleBreakthroughPulse breakthroughPulse;
         RectTransform cameraControl,stageInfo;
         public int CameraMode { get; private set; } = 1;
         float powerToastUntil;
@@ -96,6 +97,7 @@ namespace DoodleIdle
             stageInfo=UiKit.Rect(safe,"Stage progress");stageLabel=UiKit.Text(stageInfo,"",28,TextAnchor.MiddleCenter,68);UiKit.Stretch(stageLabel.rectTransform,0,44,0,0);
             stageLabel.supportRichText=false;stageLabel.color=UiKit.Ink;stageLabel.gameObject.AddComponent<Outline>().effectColor=UiKit.Paper;
             breakthroughButton=UiKit.Button(stageInfo,"돌파 모드",ToggleBreakthroughMode,UiKit.Green,36);
+            breakthroughPulse=breakthroughButton.gameObject.AddComponent<DoodleBreakthroughPulse>();
             var modeRect=(RectTransform)breakthroughButton.transform;modeRect.anchorMin=new Vector2(.12f,0);modeRect.anchorMax=new Vector2(.88f,0);modeRect.offsetMin=Vector2.zero;modeRect.offsetMax=new Vector2(0,36);
             breakthroughButton.GetComponentInChildren<Text>().resizeTextMaxSize=23;
             skillDock=UiKit.Row(safe,"Eight equipped cooldowns",84,8); Anchor(skillDock,new Vector2(.5f,0),new Vector2(0,249),new Vector2(696,84));
@@ -359,7 +361,8 @@ namespace DoodleIdle
             if(reward.ticketCount>0){missionTicketCount.text="+"+reward.ticketCount;missionTicketIcon.sprite=UiKit.Art(TicketIcon(reward.ticket));}
             RefreshBossHud();
             stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
-            breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";breakthroughButton.GetComponent<Image>().color=BreakthroughMode?UiKit.Green:Color.gray;
+            breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";
+            breakthroughPulse.SetActive(BreakthroughMode && ActiveDungeonIndex<0);
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
             var skills=EquippedSkills; for(int i=0;i<8;i++) { bool locked=i>=UnlockedSkillSlots; bool found=i<skills.Count; hudIcons[i].enabled=!locked; hudLocks[i].gameObject.SetActive(locked); hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }

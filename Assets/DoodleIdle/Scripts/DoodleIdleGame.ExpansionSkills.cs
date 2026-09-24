@@ -180,12 +180,12 @@ namespace DoodleIdle
                 }
                 if (meteor.echo <= 0)
                 {
-                    Echo(meteor.hand ? "Divine palm afterimage" : "Meteor rock afterimage", meteor.art.sprite, position, Vector2.one * (meteor.hand ? 3.8f : 2.3f), meteor.art.transform.rotation, meteor.hand ? .35f : .22f, meteor.hand ? .4f : .28f, 638);
+                    Echo(meteor.hand ? "Divine palm afterimage" : "Meteor rock afterimage", meteor.hand ? DoodleExpansionArt.Get("SkillSkyPalm") : meteor.art.sprite, position, Vector2.one * (meteor.hand ? 3.8f : 2.3f), meteor.art.transform.rotation, meteor.hand ? .35f : .22f, meteor.hand ? .5f : .28f, 638);
                     meteor.echo += .05f;
                 }
                 if (t < 1) continue;
                 if (meteor.hand) {
-                    Echo("Divine palm impact echo", meteor.art.sprite, meteor.end, Vector2.one * 4.5f, Quaternion.identity, .45f, .6f, 638);
+                    Echo("Divine palm impact echo", DoodleExpansionArt.Get("SkillSkyPalm"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, .45f, .6f, 638);
                     Echo("Divine palm ground imprint", DoodleExpansionArt.Get("SkillPalmCrater"), meteor.end, new Vector2(4.5f, 3.5f), Quaternion.identity, 7, 1, -890);
                 } else {
                     EmitBurst(meteorExplosionParticles, meteor.end, Color.white, 1, 5, 5, 0, .4f, .4f);

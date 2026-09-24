@@ -61,7 +61,7 @@ namespace DoodleIdle
                     break;
                 default:
                     var volley = new AscensionVolley { ability = ability, direction = direction,
-                        remaining = ability == "BladeRing" ? 22 : ability == "MissileRage" ? 13 : 3,
+                        remaining = ability == "BladeRing" ? 44 : ability == "MissileRage" ? 13 : 3,
                         requiresEquipment = castingEquippedSkill };
                     FireAscensionVolley(volley); ascensionVolleys.Add(volley); break;
             }

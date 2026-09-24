@@ -1,0 +1,41 @@
+{
+  "tool": "built-in image_gen",
+  "prompts": [
+    {
+      "key": "cherryShuriken",
+      "prompt": "Use case: style-transfer. Create ONE standalone 2D game projectile sprite: CHERRY BLOSSOM SHURIKEN. The attached game atlas is STYLE reference: thick slightly wobbly BLACK outlines, very simple flat colors, friendly doodle art. Design a five-bladed throwing star whose blades form a clear FIVE-PETAL pink sakura blossom. Exactly five tapered broad blade-petals arranged evenly radially, each with a little V notch at its outer tip characteristic of cherry blossom petals and a crisp pale pink cutting bevel. Rich pink inner faces, light blush edges, small dark circular hub with pale central hole. Looks like a pink flower-shaped throwing weapon, not a botanical flower with stamens. No stem, no face, no leaves, no ornament, no sparks, no motion strokes, no text, no glow. Front-on symmetric flat sprite centered, complete silhouette and generous fully transparent margins, true alpha background. Match the atlas line weight and uncomplicated style."
+    },
+    {
+      "key": "cherryShurikenThumb",
+      "prompt": "Use case: compositing. Create a square transparent skill thumbnail for a 2D doodle game, using attached image 1 as exact throwing star design. Exactly THREE pink cherry-blossom shurikens, one larger at upper center and two smaller below left and right, each complete and separately visible. Each shuriken has exactly five V-notched pink blade-petals, light pink cutting edges, dark hub with pale center, thick slightly wobbly black outlines. A few simple black curved motion strokes suggest rotation. Same uncomplicated hand-drawn style. No text, frames, border, sparkle, glow, face, stem or background. Generous empty alpha-transparent margins on every side. True transparent PNG."
+    },
+    {
+      "key": "skyPalm",
+      "prompt": "Use case: style-transfer. Create one standalone SKY BLUE PALM silhouette for a ghost afterimage in a hand-drawn 2D game. Attached atlas reference: reproduce the open palm in ROW 2 COLUMN 1, preserving its simple rounded shape, thumb on LEFT, FOUR raised fingers plus one thumb = FIVE digits total, thick wobbly black outline, same simple two palm crease lines, no arm or wrist. Change its peach skin fill to clean LIGHT SKY BLUE (#89D6F5), with a very subtle darker blue accent only. Keep line art near black. No actual skin color, no glow, no cloud, no particles, no motion strokes, no white background, no text. One front-facing open palm, centered entire silhouette with generous transparent margin. Fully opaque blue inside palm; true alpha transparent outside. The game supplies translucency."
+    },
+    {
+      "key": "skyPalmThumb",
+      "prompt": "Use case: compositing. Transparent square game skill thumbnail, thick black doodle outlines, simple flat colors matching reference atlas. ONE peach-colored open palm in the foreground slightly upper-left, and ONE LIGHT SKY BLUE open-palm afterimage offset down-right behind it, plus two simple black diagonal speed strokes. Use the same rounded five-digit hand shape as reference 1 (blue hand), thumb on left. The FOREGROUND palm must retain peach skin fill and near-black outline matching atlas row 2 column 1. The rear afterimage must be sky blue, not gray, no fire. Both palms complete, recognizable and fully visible inside generous margins; front palm partly overlaps the blue palm. No text, frames, glow, clouds or other elements. True transparent background."
+    },
+    {
+      "key": "foamRoller",
+      "prompt": "Use case: style-transfer. Create ONE transparent game projectile sprite: a PURPLE bumpy FOAM ROLLER. Reference image 1 is the user's exact OBJECT reference, take its hollow tube with rows of raised rounded cone massage knobs and ribbed bands. Reference image 2 is the mandatory STYLE reference: thick black wobbly doodle outline, simple flat colors matching this cute 2D game, NOT photorealistic.\nOne long narrow purple massage foam roller, major axis VERTICAL, length about 4 times its diameter. Rich violet body, lavender highlights, clearly visible rows of rounded conical knobs and rings; one round hollow opening at lower end with dark purple inner cavity. Use a mild three-quarter view only to show that opening, keeping body long and nearly vertical. No handle, no loaf/bread/cactus, no face, limbs, characters, text, logos, stickers or tiny labels. No detached particles or motion strokes. Complete silhouette, bold readable knobs at small size, no microtexture. Generous transparent margins, true alpha transparent background."
+    },
+    {
+      "key": "foamRollerSide",
+      "prompt": "Use case: precise-object-edit. Edit this purple bumpy foam roller game sprite. Change ONLY viewing angle to a perfect flat SIDE VIEW, so NEITHER circular end, hollow opening, hole nor elliptical end-cap is visible at all. The long cylinder axis stays exactly vertical in the image plane, camera perpendicular to that axis. Its top and bottom terminate as short nearly horizontal rounded edges, the same width as the purple cylinder body. NO round ring at bottom, NO dark oval. Keep its elongated purple body, lavender highlights, rows of raised rounded cone knobs, thick black doodle outlines and simple flat style. Preserve length and size. No handle, face, letters, motion, glow or new details. One complete centered side-on cylinder with generous transparent margins, true alpha background."
+    },
+    {
+      "key": "foamRollerThumb",
+      "prompt": "Use case: compositing. Make a transparent square game skill icon using exactly FOUR copies of the reference PURPLE bumpy hollow foam roller, all fully visible, two larger and two smaller at varied heights with their long axes diagonally angled. Each has the same violet tube, lavender knobs, and dark hollow end. Thick wobbly black outline, simple flat colors, no faces. Add a few simple black speed strokes for a volley. No bread, plants, green, extra objects, labels, frames or text. Exactly FOUR rollers, separate readable silhouettes, generous empty transparent margin all sides, true alpha transparent background."
+    },
+    {
+      "key": "foamRollerSideThumb",
+      "prompt": "Use case: precise-object-edit. Edit this four-foam-roller skill thumbnail. Keep EXACTLY FOUR purple bumpy rollers, current sizes, positions, diagonally arranged long axes, thick black doodle outline and colors. Change EACH roller to a FLAT SIDE VIEW: no circular end, no hollow opening, no dark oval hole and no elliptical end-cap may be visible on ANY roller. Axes are all within the flat image plane, as if seen perpendicular to the sides; each end terminates in a short rounded edge same width as cylinder, with bumps around it. Remove all large purple rings and dark cavities. Keep the long bumpy rectangular cylinder bodies. Four fully visible side-on rollers only, wide transparent margins, true alpha background. No text, faces, added objects or glow."
+    },
+    {
+      "key": "bossGaugeFill",
+      "prompt": "Use case: precise-object-edit. Recreate this existing hand-drawn game gauge FILL stripe in neutral white/light gray instead of green so the game can tint it red or blue. Preserve its very wide low capsule shape, subtly wobbly hand-drawn top/bottom edges, softly rounded ends, and simple lighter top highlight. Only change color to neutral white/light gray, with absolutely no green/brown/color tint. No outline, no frame, no text, no icons, no shadow outside stripe, no extra objects. ONE continuous opaque stripe centered on a true alpha transparent background with generous margins. Wide landscape image."
+    }
+  ]
+}
