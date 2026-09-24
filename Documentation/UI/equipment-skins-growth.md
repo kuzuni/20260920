@@ -113,3 +113,5 @@
 - 첨부된 오류는 저장 공간 부족이 아닌 메모리 할당 실패. `Editor-prev.log`에서 1,560,359,378바이트 요청이 `GUIStyle.DrawContent → EditorGUILayout.TextField → Odin StringDrawer → DoodleSkillTestWindow.SkillRow` 표시 경로에서 실패한 것을 확인. 검사 당시 C 드라이브 약 153GiB 및 물리 메모리 약 34GiB 여유. 당시 메모리 상태나 최초 손상 원인을 확정한 것은 아님.
 - 스킬 테스트 창의 Odin 속성 트리를 기본 EditorWindow로 교체. 캐시한 길이 제한 이름과 썸네일을 사용하고 보이는 행만 그림. 반복 새로고침/스크롤/리페인트, 긴 이름과 잘못된 등급, 기존 발동 및 기본 공격 버튼을 회귀 검증. 기존 메모리 오류 자체를 재현한 검증은 아님.
 - 기존 저장 파일 및 밸런스 편집은 보존. 오류 후 로그에서 새 에셋 재임포트와 컴파일 완료를 확인.
+
+- 수정 코드 `6686de3`: [CI 36041551727](https://github.com/kuzuni/20260920/actions/runs/36041551727), **5/5 통과** (42.948초). 36종 연결 검사, 장비 효과, 전체 스킬 테스트 발동, 기본 공격 토글 및 창 리페인트 확인. 최신 [게임 화면](equipment-skins/necklace-equipment.png)으로 교체하고 시각 검토 완료.
