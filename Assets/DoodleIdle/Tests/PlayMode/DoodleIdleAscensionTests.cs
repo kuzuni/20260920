@@ -230,7 +230,7 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause(); var ui = game.Ui;
             var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
-            foreach (var pair in new[] { (1,20), (99,20), (100,50), (299,50), (300,100), (301,100) }) {
+            foreach (var pair in new[] { (1,20), (99,20), (100,50), (299,50), (300,50), (301,50) }) {
                 ui.DebugSetMainStage(pair.Item1);
                 Assert.That(ui.MainStageKillGoal, Is.EqualTo(pair.Item2));
                 DefeatActualServiceEnemies(pair.Item2 - 1);
@@ -246,8 +246,14 @@ namespace DoodleIdle.Tests
                 refill.Invoke(game, null);
             }
             ui.DebugSetMainStage(1); ui.ToggleBreakthroughMode();
-            Assert.That(ui.MainStageKillGoal, Is.EqualTo(100));
-            DefeatActualServiceEnemies(80); ui.ToggleBreakthroughMode();
+            Assert.That(ui.MainStageKillGoal, Is.EqualTo(50));
+            DefeatActualServiceEnemies(49);
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(49));
+            Assert.That(ui.MainBossPending, Is.False);
+            DefeatActualServiceEnemies(1);
+            Assert.That(ui.MainStageKillProgress, Is.Zero);
+            Assert.That(ui.MainStage, Is.Zero);
+            DefeatActualServiceEnemies(40); ui.ToggleBreakthroughMode();
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(20));
             Assert.That(ui.MainBossPending, Is.True);
             refill.Invoke(game, null); Assert.That(game.BossActive, Is.True);
@@ -257,7 +263,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.MainBossPending, Is.False);
             ReloadPersistedServices();
             Assert.That(ui.BreakthroughMode, Is.False);
-            Assert.That(ui.MainStageKillGoal, Is.EqualTo(100));
+            Assert.That(ui.MainStageKillGoal, Is.EqualTo(50));
             yield return null;
         }
 

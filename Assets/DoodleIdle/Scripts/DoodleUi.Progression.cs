@@ -10,7 +10,7 @@ namespace DoodleIdle
         // belong only to their active dungeon and cannot also advance the main stage.
         public int MainStage => services == null ? 0 : services.mainStage;
         public int MainStageKillProgress => services == null ? 0 : services.mainStageKillProgress;
-        public int MainStageKillGoal => !BreakthroughMode ? 100 : MainStage < 99 ? 20 : MainStage < 299 ? 50 : 100;
+        public int MainStageKillGoal => BreakthroughMode && MainStage < 99 ? 20 : 50;
         public int MainStageRemaining => Math.Max(0, MainStageKillGoal - MainStageKillProgress);
         public bool BreakthroughMode => services == null || services.breakthroughMode;
         public bool MainBossPending => MainStageKillProgress >= MainStageKillGoal && BreakthroughMode;
