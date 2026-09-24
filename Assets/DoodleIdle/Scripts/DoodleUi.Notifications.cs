@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -34,16 +35,17 @@ namespace DoodleIdle
         static void Notify(Transform target, Func<bool> condition) => DoodleNotificationBadge.Bind(target,condition);
         public bool CanUpgradeItem(UiItem item) => item!=null && item.discovered && item.level<ItemMaxLevel(item) && item.count>=CopiesNeeded(item);
         public bool CanSynthesize(UiItem item) { var target=SynthesisTarget(item);return target!=null&&item.discovered&&item.level>=100&&item.count>=5&&target.count<int.MaxValue; }
+        readonly List<UiItem> notificationEquipped = new List<UiItem>(8);
         public bool CanImproveLoadout(UiItem item)
         {
             if(item==null||!item.discovered||item.equipped||EquipLimit(item.category)<=0)return false;
             if(IsEquipment(item)) {
                 UiItem best=null;
-                foreach(var candidate in Items(item.category))
-                    if(candidate.discovered&&(best==null||ItemEquipValue(candidate)>ItemEquipValue(best)))best=candidate;
+                foreach(var candidate in collectionItems)
+                    if(candidate.category == item.category && candidate.discovered&&(best==null||ItemEquipAmount(candidate)>ItemEquipAmount(best)))best=candidate;
                 if(item!=best)return false;
             }
-            var equipped=EquippedItems(item.category);
+            var equipped=notificationEquipped; FillEquippedItems(item.category,equipped);
             if(equipped.Count<EquipLimit(item.category))return true;
             UiItem weakest=null;foreach(var current in equipped)if(weakest==null||CompareEquipPriority(current,weakest)<0)weakest=current;
             return weakest!=null&&CompareEquipPriority(item,weakest)>0;

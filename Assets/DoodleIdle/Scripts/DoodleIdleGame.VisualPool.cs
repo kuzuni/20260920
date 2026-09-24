@@ -66,7 +66,8 @@ namespace DoodleIdle
         }
         static CircleCollider2D VisualTrigger(SpriteRenderer art)
         {
-            var collider = art.GetComponent<CircleCollider2D>() ?? art.gameObject.AddComponent<CircleCollider2D>();
+            var collider = art.GetComponent<CircleCollider2D>();
+            if (!collider) collider = art.gameObject.AddComponent<CircleCollider2D>();
             collider.enabled = true; collider.isTrigger = true; collider.offset = Vector2.zero;
             return collider;
         }

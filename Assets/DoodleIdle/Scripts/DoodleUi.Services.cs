@@ -144,9 +144,12 @@ namespace DoodleIdle
             SaveServices();
         }
 
+        bool serviceProgressDirty;
+        float nextProgressSnapshot;
         void SaveServices()
         {
             if (services != null) PlayerPrefs.SetString(ServicesSaveKey, JsonUtility.ToJson(services));
+            serviceProgressDirty = false; nextProgressSnapshot = Time.unscaledTime + 1;
         }
 
         bool ResetServicePeriods()
@@ -182,14 +185,15 @@ namespace DoodleIdle
                 RecordServiceProgress("kills", delta);
                 if (services.activeDungeon >= 0)
                 {
-                    services.dungeonProgress += delta;
+                    services.dungeonProgress = (int)Math.Min(int.MaxValue,(long)services.dungeonProgress + delta);
                     if (services.dungeonProgress >= DungeonKillGoal) CompleteDungeon();
                 }
-                // Persist the whole frame's kill progress, including kills after a boss changed the stage.
-                SaveServices();
+                // Coalesce rapid kill updates; explicit saves, pause and quit still flush immediately.
+                serviceProgressDirty = true;
             }
             if (Time.unscaledTime < nextServiceTick) return;
             nextServiceTick = Time.unscaledTime + .25f;
+            if (serviceProgressDirty && Time.unscaledTime >= nextProgressSnapshot) SaveServices();
             if (ResetServicePeriods()) { Save(); if (!string.IsNullOrEmpty(ActivePage)) RefreshPage(); }
             for (int i = serviceBindings.Count - 1; i >= 0; i--)
             {
@@ -545,7 +549,7 @@ namespace DoodleIdle
             if(index==0) {
                 int amount=DungeonGoldReward(stage);
                 GoldAmount += DungeonGoldAmount(stage);RecordServiceProgress("gold",amount);
-                rewards.Add(new UiReward { name="",icon="Gold",amount=amount,rarity=0 });
+                rewards.Add(new UiReward { name="",icon="Gold",amount=amount,displayAmount=DungeonGoldAmount(stage),rarity=0 });
             } else {
                 int amount=DungeonRelicReward(stage);GrantDungeonRelicTickets(amount);
                 rewards.Add(new UiReward { name="던전 유물 뽑기권",icon="DungeonRelicTicket",amount=amount,rarity=0 });

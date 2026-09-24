@@ -276,7 +276,8 @@ namespace DoodleIdle
         {
             if(a.category=="Skill"||a.category=="Companion") {
                 int grade=a.rarity.CompareTo(b.rarity);
-                return grade!=0?grade:ItemDpsAmount(a).CompareTo(ItemDpsAmount(b));
+                // Attack, category bonus and critical expectation are shared within a category.
+                return grade!=0?grade:AbilityDpsPercent(a).CompareTo(AbilityDpsPercent(b));
             }
             return ItemEquipAmount(a).CompareTo(ItemEquipAmount(b));
         }
@@ -299,7 +300,8 @@ namespace DoodleIdle
         {
             if (item == null || !CanSynthesizeCategory(item.category) || !collectionItems.Contains(item)) return null;
             UiItem next = null;
-            foreach (var candidate in Items(item.category)) {
+            foreach (var candidate in collectionItems) {
+                if (candidate.category != item.category) continue;
                 if (candidate.rarity < item.rarity || candidate.rarity == item.rarity && candidate.tier <= item.tier) continue;
                 if (next == null || candidate.rarity < next.rarity || candidate.rarity == next.rarity && candidate.tier < next.tier) next = candidate;
             }

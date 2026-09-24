@@ -401,5 +401,5 @@ namespace DoodleIdle
         }
         static void Quad(VertexHelper vh,float l,float b,float r,float t,Color c) { int s=vh.currentVertCount;vh.AddVert(new Vector2(l,b),c,Vector2.zero);vh.AddVert(new Vector2(l,t),c,Vector2.zero);vh.AddVert(new Vector2(r,t),c,Vector2.zero);vh.AddVert(new Vector2(r,b),c,Vector2.zero);vh.AddTriangle(s,s+1,s+2);vh.AddTriangle(s,s+2,s+3); }
     }
-    [Serializable] public sealed class UiReward { public string name,icon; public int amount,rarity; }
+    [Serializable] public sealed class UiReward { public string name,icon; public int amount,rarity; [NonSerialized] public GameNumber displayAmount; public GameNumber DisplayAmount => displayAmount > 0 ? displayAmount : amount; }
 }

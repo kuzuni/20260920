@@ -110,6 +110,36 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator LateGameCombatReusesEffectsAcrossSustainedKills()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            ServiceSetSavedField(ServiceStateObject, "mainStage", 1199);
+            if (ui.BreakthroughMode) ui.ToggleBreakthroughMode();
+            var tuning = (DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning", GrowthPrivate).GetValue(ui);
+            tuning.enemyHealthStageGrowth = 0; tuning.enemyHealthGrowthSteps = Array.Empty<DoodleGrowthStep>();
+            foreach (string category in new[] { "Club", "Armor", "Necklace", "Skill", "Companion", "Relic" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) { item.discovered = true; item.level = category == "Relic" ? 15000 : 100; item.equipped = false; }
+                int slots = category == "Skill" ? 8 : category == "Companion" ? ui.UnlockedCompanionSlots : category == "Relic" ? 0 : 1;
+                int slot = 0;
+                foreach (var item in items.OrderByDescending(x => x.rarity).Take(slots)) { item.equipped = true; item.slot = slot++; }
+            }
+            game.enemyContactDamage = 0; game.companionsEnabled = true; game.summonSkillsEnabled = true;
+            int roots = game.EnemyObjectsCreated;
+            game.TogglePause(); Time.timeScale = 4;
+            yield return PhysicsTicks(1200);
+            Assert.That(game.Kills, Is.GreaterThan(200));
+            Assert.That(game.EnemyObjectsReused, Is.GreaterThan(100));
+            Assert.That(game.EnemyObjectsCreated, Is.LessThanOrEqualTo(roots + 20), "Refills must reuse the 200 physical enemies after kills.");
+            Assert.That(game.VisualObjectsReused, Is.GreaterThan(100));
+            Assert.That(game.PooledVisualCount, Is.LessThanOrEqualTo(2048));
+            Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
+            Assert.That(ui.PowerAmount > 0, Is.True);
+            Debug.Log("Late-game live battle: kills=" + game.Kills + ", enemy created/reused=" + game.EnemyObjectsCreated + "/" + game.EnemyObjectsReused + ", visuals created/reused=" + game.VisualObjectsCreated + "/" + game.VisualObjectsReused);
+            Object.Destroy(CaptureFrame("late-game-pooled-combat.png", 720, 1520));
+        }
+
+        [UnityTest]
         public IEnumerator CombatPoolsReuseObjectsWithoutRetainingOldTargetsOrVisualState()
         {
             game.TogglePause();

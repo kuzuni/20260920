@@ -501,7 +501,7 @@ namespace DoodleIdle
                     dps.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
                     UiKit.Text(dps, "예상 총 DPS", 17, TextAnchor.MiddleLeft, 22);
                     UiKit.Text(dps, UiNumber.Format(ItemDpsAmount(item), 2), 23, TextAnchor.MiddleLeft, 26);
-                    UiKit.Text(body, "1타 = 공격력의 " + UiNumber.Format(ItemHitPercent(item), 2) + "% · 재사용 " + UiNumber.Format(interval, 2) + "초", 16, TextAnchor.MiddleCenter, 24);
+                    UiKit.Text(body, "1타 = 공격력의 " + UiNumber.Format(ItemHitPercentAmount(item), 2) + "% · 재사용 " + UiNumber.Format(interval, 2) + "초", 16, TextAnchor.MiddleCenter, 24);
                     if (item.ability == "Molotov" || item.ability == "BlueMolotov")
                         UiKit.Text(body, "화상 1타 = 공격력의 " + UiNumber.Format(DoodleAttackPower.Percent(8), 2) + "%", 16, TextAnchor.MiddleCenter, 22);
                     float splashFraction = ItemSplashFraction(item);

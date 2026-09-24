@@ -141,11 +141,23 @@ namespace DoodleIdle
             }
             return best;
         }
+        readonly float[] nearbyDistances = new float[10];
         Actor NearbyTarget(Vector2 origin, int index)
         {
-            skillTargets.Clear(); skillTargets.AddRange(enemies);
-            skillTargets.Sort((a, b) => (a.Position - origin).sqrMagnitude.CompareTo((b.Position - origin).sqrMagnitude));
-            return skillTargets.Count == 0 ? null : skillTargets[index % Mathf.Min(10, skillTargets.Count)];
+            // Only the nearest ten can be selected. Do not sort the whole crowd for every shot.
+            skillTargets.Clear();
+            foreach (var enemy in enemies) {
+                if (!Alive(enemy)) continue;
+                float distance = (enemy.Position - origin).sqrMagnitude;
+                int insert = skillTargets.Count;
+                while (insert > 0 && distance < nearbyDistances[insert - 1]) insert--;
+                if (insert >= 10) continue;
+                if (skillTargets.Count == 10) skillTargets.RemoveAt(9);
+                skillTargets.Insert(insert, enemy);
+                for (int i = skillTargets.Count - 1; i > insert; i--) nearbyDistances[i] = nearbyDistances[i - 1];
+                nearbyDistances[insert] = distance;
+            }
+            return skillTargets.Count == 0 ? null : skillTargets[Mathf.Abs(index % skillTargets.Count)];
         }
 
         // Also usable by a debug button or server-side tests; automatic casts use the same path.

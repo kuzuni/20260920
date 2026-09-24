@@ -15,7 +15,8 @@ namespace DoodleIdle
         static GameNumber StatAmountAt(UiStatDefinition stat, int level)
         {
             var value = ((GameNumber)stat.initial + (GameNumber)stat.increment * Math.Max(0, level)) * GameNumber.Pow(Math.Max(1, stat.valueGrowth), Math.Max(0, level));
-            return GameNumber.Clamp(value, 0, IsCriticalChance(stat.id) ? (GameNumber)100 : value);
+            value = GameNumber.Max(0, value);
+            return IsCriticalChance(stat.id) ? GameNumber.Min(100, value) : value;
         }
         public GameNumber StatAmountAfterUpgrades(string id, int count)
         {
