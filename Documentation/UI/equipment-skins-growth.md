@@ -93,3 +93,14 @@
 - 50마리 목표 변경: CI [36028565205](https://github.com/kuzuni/20260920/actions/runs/36028565205), 7/7 통과.
 - 아트: 외형 40컷 + 무기 20개의 알파 외곽, 프레임 범위 및 두 컷 크기 확인.
 - Unity PlayMode: `equipment-growth-summon` 범위에서 장비/치명/뽑기/스킨/분류별 스탯 회귀 검증.
+- 최종 코드 `df8a0fb`: CI [36035066601](https://github.com/kuzuni/20260920/actions/runs/36035066601), **29/29 통과** (226.324초). 로컬 Unity 조작 없이 GitHub CI로 실행.
+
+## CI 화면 캡처
+
+- [skins-pig-costume.png](equipment-skins/skins-pig-costume.png)
+- [skins-pig-world-frame-0.png](equipment-skins/skins-pig-world-frame-0.png)
+- [skins-pig-world-frame-1.png](equipment-skins/skins-pig-world-frame-1.png)
+- [skins-ice-staff.png](equipment-skins/skins-ice-staff.png)
+- [skins-fire-staff.png](equipment-skins/skins-fire-staff.png)
+- [bulk-summon-50000-results.png](equipment-skins/bulk-summon-50000-results.png)
+- [necklace-equipment.png](equipment-skins/necklace-equipment.png)
