@@ -427,7 +427,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
-            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(44));
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(45), "Includes the shared palm explosion particle system.");
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance." + deepestContact);
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());

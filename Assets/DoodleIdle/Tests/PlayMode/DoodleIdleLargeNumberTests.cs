@@ -34,6 +34,7 @@ namespace DoodleIdle.Tests
             Assert.That(huge.Exponent > long.MaxValue, Is.True);
             Assert.That(GameNumber.TryParse(huge.ToString(), out restored), Is.True);
             Assert.That(restored, Is.EqualTo(huge));
+            Assert.That(DoodleUi.StatUpgradePrice(new UiStatCostTuning(), "attack", 7254), Is.EqualTo(75402076886277L), "Preserve ordinary price rounding before conversion.");
             var chance = GrowthTuning.stats.First(x => x.id == "crit2Chance");
             chance.initial = 0; chance.increment = 1e-12f; GrowthLevels[chance.id] = 0;
             game.Ui.StatUpgradeQuoteAmount(chance.id, 1, out int available);
@@ -105,7 +106,10 @@ namespace DoodleIdle.Tests
                 for (int i = 0; i < 1000; i++) actual = ui.AttackPercentAmount(300, "Skill");
                 long cachedBytes = GC.GetAllocatedBytesForCurrentThread() - allocation, cachedTicks = clock.ElapsedTicks;
                 Assert.That((double)(actual / expected), Is.EqualTo(1).Within(1e-10));
-                Assert.That(cachedBytes, Is.LessThan(uncachedBytes / 2));
+                // Some Unity/Mono runners report zero for this allocation counter.
+                if (uncachedBytes > 0) Assert.That(cachedBytes, Is.LessThan(uncachedBytes / 2));
+                else Assert.That(cachedBytes, Is.Zero);
+                Assert.That(cachedTicks, Is.LessThan(uncachedTicks / 2), "A snapshot must remove repeated inventory aggregation.");
                 Debug.Log("Late-game 1000 damage calculations: allocations " + uncachedBytes + " -> " + cachedBytes + " bytes; ticks " + uncachedTicks + " -> " + cachedTicks);
             } finally { ui.EndCombatSnapshot(); }
             var relic = ui.Items("Relic").First(x => x.effect == "attack"); relic.level *= 2;

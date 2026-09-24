@@ -21,7 +21,23 @@ namespace DoodleIdle
 
         // A threshold N selects the rate for the transition N-1 -> N; values never reset.
         public static double Evaluate(double start, float initialRate, int origin, int target, DoodleGrowthStep[] steps)
-            => (double)EvaluateAmount(start, initialRate, origin, target, steps);
+        {
+            double value = DoodleGrowthCurve.Exponential(start, 0, 0);
+            long cursor = (long)origin + 1;
+            while (cursor <= target) {
+                float rate = CleanRate(initialRate);
+                int latest = int.MinValue;
+                long next = (long)target + 1;
+                foreach (var step in steps ?? Array.Empty<DoodleGrowthStep>()) {
+                    if (step == null) continue;
+                    if (step.from <= cursor && step.from >= latest) { latest = step.from; rate = CleanRate(step.growth); }
+                    else if (step.from > cursor && step.from < next) next = step.from;
+                }
+                value = DoodleGrowthCurve.Exponential(value, rate, (int)(next - cursor));
+                cursor = next;
+            }
+            return value;
+        }
         public static GameNumber EvaluateAmount(GameNumber start, float initialRate, int origin, int target, DoodleGrowthStep[] steps)
         {
             GameNumber value = GameNumber.Max(0, start);
@@ -189,6 +205,9 @@ namespace DoodleIdle
         {
             if (start <= 0 || factor <= 0) return 0;
             if (double.IsNaN(start) || double.IsNaN(growth) || double.IsNaN(factor)) return 0;
+            double result = start * Math.Pow(1 + Math.Max(0, growth), Math.Max(0, steps)) * factor;
+            if (!double.IsInfinity(result)) return result;
+            if (double.IsInfinity(start) || double.IsInfinity(growth) || double.IsInfinity(factor)) return double.MaxValue;
             return (double)((GameNumber)start * GameNumber.Pow(1 + Math.Max(0, growth), Math.Max(0, steps)) * factor);
         }
     }

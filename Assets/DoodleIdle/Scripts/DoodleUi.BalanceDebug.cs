@@ -33,20 +33,27 @@ namespace DoodleIdle
         public static GameNumber StatUpgradePriceAmount(UiStatCostTuning tuning, string id, int currentLevel)
         {
             int tier = Array.IndexOf(CriticalStatIds, id);
-            GameNumber raw;
             if (tier > 0) {
                 GameNumber start = StatUpgradePriceAmount(tuning, CriticalStatIds[0], CriticalLevelCap(0) - 1);
                 float rate = CriticalContinuationGrowth(tuning);
-                for (int i = 1; i < tier; i++)
-                    start = RoundStatPriceAmount(start * GameNumber.Pow(1d + rate, CriticalLevelCap(i) - 1));
-                raw = start * GameNumber.Pow(1d + rate, Math.Max(0, currentLevel));
-            } else {
-                int cost = tier == 0 ? tuning.critical2BaseCost : tuning.commonBaseCost;
-                float growth = tier == 0 ? tuning.critical2Growth : tuning.commonGrowth;
-                var steps = tier == 0 ? tuning.critical2GrowthSteps : tuning.commonGrowthSteps;
-                raw = DoodleGrowthStep.EvaluateAmount(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
+                for (int i = 1; i < tier; i++) start = GrowStatPrice(start, rate, CriticalLevelCap(i) - 1);
+                return GrowStatPrice(start, rate, Math.Max(0, currentLevel));
             }
-            return RoundStatPriceAmount(raw);
+            int cost = tier == 0 ? tuning.critical2BaseCost : tuning.commonBaseCost;
+            float growth = BalanceValue(tier == 0 ? tuning.critical2Growth : tuning.commonGrowth, 0, .004f);
+            var steps = tier == 0 ? tuning.critical2GrowthSteps : tuning.commonGrowthSteps;
+            // Preserve the established integer rounding before normalizing ordinary prices.
+            double ordinary = DoodleGrowthStep.Evaluate(Math.Max(1, cost), growth, 0, currentLevel, steps);
+            if (ordinary < 1e15) return RoundStatPrice(ordinary);
+            return GameNumber.Ceiling(DoodleGrowthStep.EvaluateAmount(Math.Max(1, cost), growth, 0, currentLevel, steps));
+        }
+        static GameNumber GrowStatPrice(GameNumber start, float rate, int levels)
+        {
+            if (start.Exponent < 15) {
+                double ordinary = DoodleGrowthCurve.Exponential((long)start, rate, levels);
+                if (ordinary < 1e15) return RoundStatPrice(ordinary);
+            }
+            return GameNumber.Ceiling(start * GameNumber.Pow(1d + rate, levels));
         }
         public static float CriticalContinuationGrowth(UiStatCostTuning tuning)
         {
@@ -57,7 +64,6 @@ namespace DoodleIdle
                 }
             return rate;
         }
-        static GameNumber RoundStatPriceAmount(GameNumber raw) => raw.Exponent < 15 ? (GameNumber)RoundStatPrice((double)raw) : GameNumber.Ceiling(raw);
         static long RoundStatPrice(double raw)
         {
             // Exponentiation can land a few double-precision ULPs above an integer.

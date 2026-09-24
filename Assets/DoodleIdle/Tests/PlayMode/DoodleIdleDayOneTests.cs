@@ -587,9 +587,9 @@ namespace DoodleIdle.Tests
             var target=enemies[0];var hp=target.GetType().GetField("hp");
             var hit=typeof(DoodleIdleGame).GetMethod("SkillDamage",GrowthPrivate);
             foreach(var item in ui.Items("Skill")) {
-                item.level=10;float before=1000000;hp.SetValue(target, (GameNumber)(before));
+                item.level=10;var expected=ui.ItemHitAmount(item);var before=expected*10;hp.SetValue(target,before);
                 hit.Invoke(game,new object[]{target,DoodleAttackPower.Skill(item.ability).hitWeight,Vector2.zero,item.ability});
-                Assert.That(before-(float)(GameNumber)hp.GetValue(target),Is.EqualTo(ui.ItemHitDamage(item)).Within(.15f),item.ability);
+                Assert.That((double)((before-(GameNumber)hp.GetValue(target))/expected),Is.EqualTo(1).Within(1e-6),item.ability);
                 float damage=ui.ItemHitDamage(item);item.level=11;Assert.That(ui.ItemHitDamage(item),Is.GreaterThan(damage));
             }
             yield return null;
