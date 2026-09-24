@@ -11,6 +11,35 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator GodEquipmentUpgradeCopiesNeverExceedTwenty()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Armor", "Club", "Necklace" }) {
+                var god = ui.Items(category).Single(x => x.rarity == 8 && x.tier == 1);
+                god.discovered = true;
+                foreach (int level in new[] { 1, 100, 150, 151, 160, 161, 500, 1000, 100000000, int.MaxValue - 1 }) {
+                    god.level = level;
+                    int expected = System.Math.Min(20, 5 + (level - 1) / 10);
+                    Assert.That(ui.CopiesNeeded(god), Is.EqualTo(expected));
+                    god.count = expected - 1;
+                    Assert.That(ui.UpgradeItem(god), Is.False);
+                    Assert.That(god.count, Is.EqualTo(expected - 1));
+                    god.count = expected;
+                    Assert.That(ui.UpgradeItem(god), Is.True);
+                    Assert.That(god.level, Is.EqualTo(level + 1));
+                    Assert.That(god.count, Is.Zero);
+                }
+                god.level = 540; god.count = 20;
+                typeof(DoodleUi).GetField("equipmentCategory", GrowthPrivate).SetValue(ui, category);
+                typeof(DoodleUi).GetField("selected" + category, GrowthPrivate).SetValue(ui, god.id);
+                UiOpen("Equipment"); yield return null;
+                var slot = UiNode("Slot: " + god.name, UiNode("Collection inventory"));
+                Assert.That(slot.GetComponentsInChildren<Text>().Any(x => x.text.Contains("/20") || x.text.Contains("/ 20")), Is.True, "Inventory must show the capped copy requirement.");
+                Object.Destroy(CaptureFrame("god-upgrade-cost-" + category.ToLowerInvariant() + ".png", 720, 1520));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator AbilityBulkRefundRequiresEntireCategoryMaxedAndPreservesUnpaidCopies()
         {
             game.TogglePause(); var ui = game.Ui;

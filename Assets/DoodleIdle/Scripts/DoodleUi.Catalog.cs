@@ -340,7 +340,7 @@ namespace DoodleIdle
             }
             return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
         }
-        public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
+        public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : (int)Math.Min(20L, (long)collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10);
         public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
         public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
         float ItemOwnedGoldValue(UiItem item) => item.category == "Armor" || item.category == "Necklace" ? 0 : item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
@@ -348,6 +348,7 @@ namespace DoodleIdle
         public static bool CanSynthesizeCategory(string category) => IsEquipmentCategory(category) || category == "Skill" || category == "Companion";
         long UpgradeCopiesBetween(int from, int to)
         {
+            // Legacy saves paid the uncapped price; return the original investment above a new level cap.
             // Sum floor((level - 1) / 10) without a loop over a potentially old high level.
             long Sum(long n) { long q = n / 10, r = n % 10; return 5 * q * (q - 1) + q * r; }
             return (long)(to - from) * collectionTuning.copiesPerUpgrade + Sum(to - 1L) - Sum(from - 1L);
