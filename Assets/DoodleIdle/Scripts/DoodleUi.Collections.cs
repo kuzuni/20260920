@@ -631,6 +631,7 @@ namespace DoodleIdle
 
         bool UpgradeRelicFromUi(UiItem item, bool showMessage)
         {
+            if (collectionBulkRunning) return false;
             bool success;
             if (!TryUpgradeRelic(item, out success))
             {
@@ -653,31 +654,44 @@ namespace DoodleIdle
             collectionBulkRunning = true;
             long before = Power;
             long attempts = 0, successes = 0;
-            int chunk = 0;
+            long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 250;
+            int frameRolls = 0;
             try
             {
+                if (category == "Relic" && ActivePage == "Relics")
+                    foreach (var button in pageLayer.GetComponentsInChildren<Button>())
+                        if (button.name == "일괄강화" || button.name.StartsWith("강화", StringComparison.Ordinal)) button.interactable = false;
                 foreach (var item in category=="Relic" ? AllRelics : Items(category))
                 {
-                    while (true)
+                    if (category != "Relic") {
+                        int upgraded = UpgradeItemBatch(item);
+                        attempts += upgraded; successes += upgraded;
+                        continue;
+                    }
+                    while (item.discovered && item.count > 0 && item.level < collectionTuning.maxItemLevel)
                     {
-                        bool success = true;
-                        bool attempted = category == "Relic" ? TryUpgradeRelic(item, out success, false) : UpgradeItem(item, false);
-                        if (!attempted) break;
-                        attempts++;
-                        if (success) successes++;
-                        if (++chunk < 64) continue;
-                        chunk = 0;
-                        Save();
-                        RefreshCollectionBulkPage(category);
+                        int rolls = Math.Min(8192, item.count), used = 0, won = 0;
+                        // Preserve the exact per-copy random sequence, failure cost and cap stopping point.
+                        while (used < rolls && item.level < collectionTuning.maxItemLevel) {
+                            used++;
+                            if (collectionRandom.NextDouble() < .5) { item.level++; won++; }
+                        }
+                        item.count -= used;
+                        RecordMissionAction("relicAttempt", used);
+                        RecordServiceProgress("relicUpgrade", won);
+                        attempts += used; successes += won; frameRolls += used;
+                        if (frameRolls < 262144 && System.Diagnostics.Stopwatch.GetTimestamp() < deadline) continue;
                         yield return null;
+                        deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 250;
+                        frameRolls = 0;
                     }
                 }
             }
             finally
             {
                 collectionBulkRunning = false;
-                Save();
-                NotifyPowerChanged(before, "일괄 강화");
+                if (attempts > 0) Save();
+                if (successes > 0) NotifyPowerChanged(before, "일괄 강화");
             }
             RefreshCollectionBulkPage(category);
             Toast(attempts == 0 ? "강화 가능한 수량이 없습니다." : category == "Relic"

@@ -105,6 +105,14 @@ namespace DoodleIdle.Tests
             Assert.That(normal.Count,Is.EqualTo(8));Assert.That(dungeon.Count,Is.EqualTo(8));
             Assert.That(normal.Intersect(dungeon),Is.Empty);Assert.That(dungeon.All(x=>x.dungeonRelic&&x.rarity==0),Is.True);
             CollectionAssert.AreEquivalent(normal.Select(x=>x.effect),dungeon.Select(x=>x.effect));
+            for (int i = 0; i < dungeon.Count; i++) {
+                var art = UiKit.Art(dungeon[i].icon);
+                Assert.That(art, Is.Not.Null);
+                Assert.That(art.texture.name, Is.EqualTo("DungeonRelics"));
+                Assert.That(art.texture, Is.Not.SameAs(UiKit.Art(normal[i].icon).texture));
+                var pixels = art.texture.GetPixels((int)art.rect.x, (int)art.rect.y, (int)art.rect.width, (int)art.rect.height);
+                Assert.That(pixels.Count(x => x.a > .1f), Is.GreaterThan(pixels.Length / 5));
+            }
             var random=new System.Random(71);
             for(int i=0;i<100;i++){Assert.That(ui.GrantItem("Relic",random).dungeonRelic,Is.False);Assert.That(ui.GrantItem("DungeonRelic",random).dungeonRelic,Is.True);}
             foreach(var item in dungeon)Assert.That(ui.ItemProbability(item),Is.EqualTo(12.5));

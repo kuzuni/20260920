@@ -367,20 +367,58 @@ namespace DoodleIdle
         {
             var next = SynthesisTarget(item);
             if (next == null || !item.discovered || item.level < 100 || item.count < 5) return 0;
-            int amount = Math.Min(all ? item.count / 5 : 1, int.MaxValue - next.count);
-            if (amount <= 0) return 0;
             long before = Power;
-            item.count -= amount * 5;
-            AddItem(next, amount);
+            int amount = SynthesizeCopies(item, next, all);
+            if (amount == 0) return 0;
             NotifyPowerChanged(before, CategoryName(item.category) + " 합성");
             Save();
             return amount;
         }
+        int SynthesizeCopies(UiItem item, UiItem next, bool all)
+        {
+            if (next == null || !item.discovered || item.level < 100 || item.count < 5) return 0;
+            int amount = Math.Min(all ? item.count / 5 : 1, int.MaxValue - next.count);
+            if (amount <= 0) return 0;
+            item.count -= amount * 5;
+            AddItem(next, amount);
+            return amount;
+        }
         public int SynthesizeAll(string category)
         {
+            if (!CanSynthesizeCategory(category)) return 0;
+            var items = Items(category);
+            items.Sort((a, b) => a.rarity != b.rarity ? a.rarity.CompareTo(b.rarity) : a.tier.CompareTo(b.tier));
+            long before = Power;
             long total = 0;
-            foreach (var item in Items(category)) total += SynthesizeItem(item, true);
+            for (int i = 0; i + 1 < items.Count; i++) total += SynthesizeCopies(items[i], items[i + 1], true);
+            if (total > 0) {
+                NotifyPowerChanged(before, CategoryName(category) + " 일괄 합성");
+                Save();
+            }
             return (int)Math.Min(int.MaxValue, total);
+        }
+        int UpgradeItemBatch(UiItem item)
+        {
+            if (!item.discovered || item.category == "Relic") return 0;
+            int upgraded = 0, cap = ItemMaxLevel(item);
+            while (item.level < cap) {
+                int price = CopiesNeeded(item);
+                if (price <= 0 || item.count < price) break;
+                // The price only changes every ten levels; after 20 copies it stays fixed.
+                int samePriceLevels = price >= 20 ? cap - item.level : Math.Min(cap - item.level, 10 - (item.level - 1) % 10);
+                int amount = Math.Min(samePriceLevels, item.count / price);
+                item.count -= amount * price;
+                item.level += amount;
+                upgraded += amount;
+            }
+            RecordItemUpgrades(item, upgraded);
+            return upgraded;
+        }
+        void RecordItemUpgrades(UiItem item, int amount)
+        {
+            if (IsEquipment(item)) RecordServiceProgress("equipmentUpgrade", amount);
+            if (item.category == "Skill") RecordServiceProgress("skillUpgrade", amount);
+            if (item.category == "Companion") RecordServiceProgress("companionUpgrade", amount);
         }
         public bool UpgradeItem(UiItem item, bool notifyPower = true)
         {
@@ -388,9 +426,7 @@ namespace DoodleIdle
             long before = notifyPower ? Power : 0;
             item.count -= CopiesNeeded(item);
             item.level++;
-            if (IsEquipment(item)) RecordServiceProgress("equipmentUpgrade", 1);
-            if (item.category == "Skill") RecordServiceProgress("skillUpgrade", 1);
-            if (item.category == "Companion") RecordServiceProgress("companionUpgrade", 1);
+            RecordItemUpgrades(item, 1);
             if (notifyPower) NotifyPowerChanged(before, "강화");
             return true;
         }

@@ -11,6 +11,32 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator BulkEquipmentSkillsAndCompanionsUseExactBatchedCostsAndProgress()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) { item.discovered = true; item.level = 99; item.count = 20; }
+                string metric = DoodleUi.IsEquipmentCategory(category) ? "equipmentUpgrade" : category == "Skill" ? "skillUpgrade" : "companionUpgrade";
+                long before = ui.CareerProgress(metric); long expected = items.Count;
+                if (DoodleUi.IsEquipmentCategory(category)) {
+                    var god = items.Last(); god.level = 151; god.count = 2000000007;
+                    expected += 100000000 - 1;
+                }
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                var routine = (IEnumerator)typeof(DoodleUi).GetMethod("UpgradeCollectionBulk", GrowthPrivate).Invoke(ui, new object[] { category });
+                Assert.That(routine.MoveNext(), Is.False, "Deterministic upgrades must finish without one iteration or yield per level.");
+                foreach (var item in items) {
+                    Assert.That(item.level, Is.EqualTo(item.rarity == 8 ? 100000151 : 100));
+                    Assert.That(item.count, Is.EqualTo(item.rarity == 8 ? 7 : 6));
+                }
+                Assert.That(ui.CareerProgress(metric), Is.EqualTo(before + expected));
+                Debug.Log("Bulk " + category + " benchmark: " + expected + " upgrades, " + timer.ElapsedMilliseconds + " ms including save.");
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator GodEquipmentUpgradeCopiesNeverExceedTwenty()
         {
             game.TogglePause(); var ui = game.Ui;
