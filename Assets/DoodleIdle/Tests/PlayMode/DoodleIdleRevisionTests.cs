@@ -294,6 +294,10 @@ namespace DoodleIdle.Tests
             }
             UiOpen("Equipment");
             Assert.That(UiNode("Collection actions").GetChild(0).name, Is.EqualTo("일괄 합성"));
+            foreach (var item in ui.Items("Armor")) {
+                var slot = UiNode("Slot: " + item.name, UiNode("Collection inventory"));
+                Assert.That(slot.Find("Quantity gauge/Fill").GetComponent<Image>().color, Is.EqualTo(item.rarity == 8 ? UiKit.Green : UiKit.Purple));
+            }
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Count(x => x.name == "Enhancement level"), Is.EqualTo(36));
             Assert.That(UiNode("Collection inventory").GetComponentsInChildren<Text>().Where(x=>x.name=="Enhancement level").All(x=>x.text.StartsWith("Lv.")),Is.True);
             Object.Destroy(CaptureFrame("revision-equipment-synthesis.png", 720, 1520));

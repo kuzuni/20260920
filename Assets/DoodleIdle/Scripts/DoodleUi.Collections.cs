@@ -322,7 +322,9 @@ namespace DoodleIdle
 
         Button CollectionSlot(Transform parent, UiItem item, Action click, float height = 112)
         {
-            var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, item.level >= 100 && SynthesisTarget(item) != null ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
+            bool synthesisOnly = item.discovered && item.level >= ItemMaxLevel(item) && SynthesisTarget(item) != null;
+            var card = UiKit.Slot(parent, item.name, item.icon, item.rarity, item.count, synthesisOnly ? 5 : CopiesNeeded(item), item.equipped, !item.discovered, click, height);
+            card.transform.Find("Quantity gauge/Fill").GetComponent<Image>().color = synthesisOnly ? UiKit.Purple : UiKit.Green;
             if (IsEquipment(item) || item.category == "Skill" || item.category == "Companion")
             {
                 card.GetComponentInChildren<Text>().text = GradeNames[item.rarity] + item.tier;
