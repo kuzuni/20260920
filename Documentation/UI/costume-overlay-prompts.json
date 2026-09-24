@@ -3,9 +3,9 @@
   "prompt": "Use case: precise-object-edit. Game costume OVERLAY extraction, NOT a full character. Edit this exact atlas, maintaining canvas dimensions, all 5 column x 2 row cell locations, costume sizes and colors, and existing costume clothing details. Erase EVERY cat face, every exposed white/grey cat body region, ears, hands, feet and black outlines belonging to the CAT to true transparent alpha, keeping ONLY the colored wearable costume parts. In every cell the face opening must become a LARGE clean transparent hole, so the original animated cat can show through when composited beneath. Also erase eyes, eyebrows, noses, mouths, cheek dots and grey face patches entirely. Keep hats/hoods, costume rims, collars, robes, clothing, buttons, decorative wings and tails belonging to the costume. If cat ears poke through hats, erase the cat ears, leaving transparency. No animal face remains in any cell. No reference cat, no guide marks, no checkerboard paint, no background. Preserve the SAME positions and scale of each costume as in input so it aligns with the previous atlas. No new body or anatomy. Thick black doodle outlines around costume edges including inner face opening. True transparent alpha both outside and inside face/body openings. All 10 separate costume overlays, two poses of each of five themes. The output will be layered over an existing cat sprite in code.",
   "selected": [
     "exec-30b3ffde-014f-4c8d-9a81-3bdf3c21d44a.png",
-    "exec-98615f16-46cd-457f-8e80-ff33a5387387.png",
+    "exec-1f23c7af-e6b5-4144-b5e8-af1c3f3fca30.png",
     "exec-afc8c54d-6cc6-4564-8eb9-77f6e1410476.png",
-    "exec-62a349ce-e82b-48f4-8ff8-8ca0147e8757.png"
+    "exec-014e5fa5-b226-4f8a-8474-28e8c74d1a68.png"
   ],
   "output": "Assets/DoodleIdle/Resources/DoodleIdle/UI/SkinAppearancesA.png through SkinAppearancesD.png",
   "rendering": "Original player frames plus clothing-only layers, aligned by eye anchors; no full-costume size normalization."

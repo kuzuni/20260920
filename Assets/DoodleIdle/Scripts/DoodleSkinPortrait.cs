@@ -5,6 +5,7 @@ namespace DoodleIdle
 {
     // All inventory/preview portraits share a body scale. Hats consume extra space
     // instead of changing the size of the face inside the card.
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleSkinPortrait : MaskableGraphic
     {
         public bool Animate;

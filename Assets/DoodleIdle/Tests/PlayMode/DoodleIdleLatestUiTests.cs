@@ -74,11 +74,23 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("Bottom navigation").gameObject.activeInHierarchy, Is.True);
             Object.Destroy(CaptureFrame("latest-chat-window.png", 720, 1520)); ui.ClosePage();
             long gold = ui.Gold; int diamonds = ui.Diamonds;
-            ui.ShowRewards("획득!", new System.Collections.Generic.List<UiReward> { new UiReward { icon="Gold",amount=100 }, new UiReward { icon="Diamond",amount=100 } });
+            string[] ticketCategories = { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic", "DungeonRelic" };
+            var ticketAmounts = ticketCategories.Select(ui.SummonTickets).ToArray();
+            var rewards = new System.Collections.Generic.List<UiReward> { new UiReward { icon="Gold",amount=100 }, new UiReward { icon="Diamond",amount=100 } };
+            foreach (string category in ticketCategories) rewards.Add(new UiReward { icon = DoodleUi.TicketIcon(category), amount = 10 });
+            ui.ShowRewards("획득!", rewards);
             DoodlePopupMotion.CompleteAll(UiRoot); Canvas.ForceUpdateCanvases();
             UiClick("Reward dim");
             Assert.That(UiNode("Reward flight Gold").childCount, Is.EqualTo(8));
             Assert.That(UiNode("Reward flight Diamond").childCount, Is.EqualTo(8));
+            foreach (var reward in rewards) {
+                var particles = UiNode("Reward flight " + reward.icon).GetComponentsInChildren<Image>();
+                Assert.That(particles.Length, Is.EqualTo(8), reward.icon);
+                foreach (var particle in particles) {
+                    Assert.That(particle.rectTransform.sizeDelta, Is.EqualTo(Vector2.one * 108), reward.icon + " matches diamond particle size");
+                    Assert.That(particle.sprite, Is.SameAs(UiKit.Art(reward.icon)));
+                }
+            }
             var flight = UiNode("Flying Diamond"); Vector3 start = flight.position;
             ui.CloseDetail();
             // Capture intermediate motion before a slow CI frame can finish the entire flight.
@@ -89,9 +101,17 @@ namespace DoodleIdle.Tests
             }
             Assert.That(moved || !flight, Is.True);
             Object.Destroy(CaptureFrame("latest-wallet-reward-flight.png", 720, 1520));
-            yield return new WaitForSecondsRealtime(1.1f);
+            yield return new WaitForSecondsRealtime(1.5f);
             Assert.That(UiRoot.GetComponentsInChildren<Transform>().Any(x => x.name.StartsWith("Reward flight")), Is.False);
             Assert.That(ui.Gold, Is.EqualTo(gold)); Assert.That(ui.Diamonds, Is.EqualTo(diamonds));
+            CollectionAssert.AreEqual(ticketAmounts, ticketCategories.Select(ui.SummonTickets).ToArray(), "Closing reward effects never grants the reward a second time.");
+            var destination = typeof(DoodleUi).GetMethod("RewardFlightDestination", GrowthPrivate);
+            UiOpen("Shop"); DoodlePopupMotion.CompleteAll(UiRoot); Canvas.ForceUpdateCanvases();
+            foreach (string category in ticketCategories) {
+                var target = (RectTransform)destination.Invoke(ui, new object[] { DoodleUi.TicketIcon(category) });
+                Assert.That(target, Is.Not.Null);
+                Assert.That(target.gameObject.activeInHierarchy, Is.True);
+            }
         }
 
         [UnityTest]

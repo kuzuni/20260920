@@ -32,6 +32,12 @@ namespace DoodleIdle
         static Rig rig;
         static readonly Sprite[] bodies = new Sprite[2];
         static readonly Dictionary<int, Sprite> frames = new Dictionary<int, Sprite>();
+        static readonly Dictionary<Texture2D, Pixels> sourcePixels = new Dictionary<Texture2D, Pixels>();
+        static Pixels ReadPixels(Texture2D texture)
+        {
+            if (!sourcePixels.TryGetValue(texture, out var pixels)) sourcePixels[texture] = pixels = new Pixels(texture);
+            return pixels;
+        }
         // Source-image pixel anchors, measured on the unchanged original cat frames.
         static readonly Vector2[] leftEyes = { new Vector2(199, 1254 - 227.5f), new Vector2(555, 1254 - 623) };
         static readonly Vector2[] rightEyes = { new Vector2(280.5f, 1254 - 253), new Vector2(765.5f, 1254 - 684) };
@@ -41,6 +47,7 @@ namespace DoodleIdle
         {
             foreach (var sprite in frames.Values) if (sprite) { UnityEngine.Object.Destroy(sprite.texture); UnityEngine.Object.Destroy(sprite); }
             frames.Clear();
+            sourcePixels.Clear();
             for (int i = 0; i < bodies.Length; i++) { if (bodies[i]) UnityEngine.Object.Destroy(bodies[i]); bodies[i] = null; }
             rig = null;
         }
@@ -70,8 +77,8 @@ namespace DoodleIdle
             var placement = rig.poses[key];
             var body = BodyFrame(pose);
             var clothing = Resources.Load<Texture2D>("DoodleIdle/UI/" + placement.sheet);
-            var bodyPixels = new Pixels(body.texture);
-            var coatPixels = new Pixels(clothing);
+            var bodyPixels = ReadPixels(body.texture);
+            var coatPixels = ReadPixels(clothing);
             Rect coatRect = new Rect(placement.x, placement.y, placement.width, placement.height);
             Vector2 eye = (leftEyes[pose] + rightEyes[pose]) * .5f;
             Vector2 origin = (eye - body.rect.center) / body.pixelsPerUnit;
@@ -103,7 +110,7 @@ namespace DoodleIdle
                 result.a = alpha; output[y * width + x] = result;
             }
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "Costume " + costume + " pose " + pose, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
-            texture.SetPixels32(output); texture.Apply(false, false);
+            texture.SetPixels32(output); texture.Apply(false, !Application.isEditor);
             var frame = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(-min.x / (max.x - min.x), -min.y / (max.y - min.y)), ppu, 0, SpriteMeshType.FullRect);
             frame.name = "Skin SkinAppearance_" + costume + "_" + pose;
             frames[key] = frame; return frame;

@@ -11,16 +11,42 @@ namespace DoodleIdle
 
         void FlyReward(Image source, string currency)
         {
-            Text wallet = currency == "Gold" ? walletGold : currency == "Diamond" ? walletDiamond : null;
-            if (!source || !wallet) return;
-            StartCoroutine(FlyRewardToWallet(source.sprite, source.rectTransform.TransformPoint(source.rectTransform.rect.center), wallet.rectTransform, currency));
+            var destination = RewardFlightDestination(currency);
+            if (!source || !destination) return;
+            StartCoroutine(FlyRewardToWallet(source.sprite, source.rectTransform.TransformPoint(source.rectTransform.rect.center), destination, currency));
+        }
+        RectTransform RewardFlightDestination(string currency)
+        {
+            if (currency == "Gold") return walletGold ? walletGold.rectTransform : null;
+            if (currency == "Diamond") return walletDiamond ? walletDiamond.rectTransform : null;
+            if (string.IsNullOrEmpty(currency) || !(currency.StartsWith("Ticket", System.StringComparison.Ordinal) || currency == "DungeonRelicTicket")) return null;
+            // Prefer the visible balance for this exact ticket. Reward cards and
+            // mission reward labels are not wallets and must not absorb tickets.
+            var sprite = UiKit.Art(currency);
+            foreach (var icon in root.GetComponentsInChildren<Image>()) {
+                if (icon.sprite != sprite || !icon.transform.parent || !RewardTargetVisible(icon.rectTransform)) continue;
+                string parent = icon.transform.parent.name;
+                if (parent == "Summon result tickets" || parent.StartsWith("Tickets: ", System.StringComparison.Ordinal)) return icon.rectTransform;
+            }
+            int shop = System.Array.IndexOf(pages, "Shop");
+            return shop >= 0 && shop < navIcons.Count && navIcons[shop] ? navIcons[shop].rectTransform : null;
+        }
+        bool RewardTargetVisible(RectTransform target)
+        {
+            if (!target.gameObject.activeInHierarchy) return false;
+            var camera = Canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : Canvas.worldCamera;
+            Vector2 point = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
+            if (!RectTransformUtility.RectangleContainsScreenPoint(root, point, camera)) return false;
+            foreach (var mask in target.GetComponentsInParent<RectMask2D>())
+                if (mask.isActiveAndEnabled && !RectTransformUtility.RectangleContainsScreenPoint(mask.rectTransform, point, camera)) return false;
+            return true;
         }
         IEnumerator FlyRewardToWallet(Sprite sprite, Vector3 origin, RectTransform destination, string currency)
         {
             var layer = UiKit.Rect(root, "Reward flight " + currency); UiKit.Stretch(layer);
             var icons = new Image[8];
             for (int i = 0; i < icons.Length; i++) {
-                var rect = UiKit.Rect(layer, "Flying " + currency); rect.sizeDelta = Vector2.one * (currency == "Diamond" ? 108 : 36);
+                var rect = UiKit.Rect(layer, "Flying " + currency); rect.sizeDelta = Vector2.one * 108;
                 icons[i] = rect.gameObject.AddComponent<Image>(); icons[i].sprite = sprite;
                 icons[i].preserveAspect = true; icons[i].raycastTarget = false; rect.position = origin;
             }
