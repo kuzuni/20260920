@@ -104,3 +104,12 @@
 - [skins-fire-staff.png](equipment-skins/skins-fire-staff.png)
 - [bulk-summon-50000-results.png](equipment-skins/bulk-summon-50000-results.png)
 - [necklace-equipment.png](equipment-skins/necklace-equipment.png)
+
+## 목걸이 그림체 통일 및 에디터 메모리 오류 조사 (2026-09-25)
+
+- 플레이어, 기존 갑옷·몽둥이를 참고하여 목걸이 36종을 굵은 검은 선, 단순한 색면, 두꺼운 연결부로 수정. 이름과 순서는 유지.
+- 줄, 구슬, 펜던트 및 부속 장식이 한 물체로 이어지도록 수정. 각각의 연결된 알파 픽셀 비율 99.5% 초과 및 투명 외곽 검사 추가. PNG 원본을 그대로 복사하고 JSON 스프라이트 범위만 다시 기록.
+- 내장 이미지 생성 도구 사용. [최종 프롬프트 기록](necklace-style-prompts.json). 최종 파일: `Assets/DoodleIdle/Resources/DoodleIdle/UI/EquipmentNecklace.png`.
+- 첨부된 오류는 저장 공간 부족이 아닌 메모리 할당 실패. `Editor-prev.log`에서 1,560,359,378바이트 요청이 `GUIStyle.DrawContent → EditorGUILayout.TextField → Odin StringDrawer → DoodleSkillTestWindow.SkillRow` 표시 경로에서 실패한 것을 확인. 검사 당시 C 드라이브 약 153GiB 및 물리 메모리 약 34GiB 여유. 당시 메모리 상태나 최초 손상 원인을 확정한 것은 아님.
+- 스킬 테스트 창의 Odin 속성 트리를 기본 EditorWindow로 교체. 캐시한 길이 제한 이름과 썸네일을 사용하고 보이는 행만 그림. 반복 새로고침/스크롤/리페인트, 긴 이름과 잘못된 등급, 기존 발동 및 기본 공격 버튼을 회귀 검증. 기존 메모리 오류 자체를 재현한 검증은 아님.
+- 기존 저장 파일 및 밸런스 편집은 보존. 오류 후 로그에서 새 에셋 재임포트와 컴파일 완료를 확인.

@@ -63,6 +63,46 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator SkillDebugWindowRefreshesAndRepaintsWithBoundedReadOnlyLabels()
+        {
+#if UNITY_EDITOR
+            var type = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleIdle.Editor.DoodleSkillTestWindow")).First(t => t != null);
+            var window = (UnityEditor.EditorWindow)ScriptableObject.CreateInstance(type);
+            try {
+                window.position = new Rect(0, 0, 480, 600);
+                window.Show();
+                var refresh = type.GetMethod("RefreshSkills");
+                var rowsField = type.GetField("skills", GrowthPrivate);
+                for (int i = 0; i < 8; i++) {
+                    refresh.Invoke(window, null);
+                    var rows = (IList)rowsField.GetValue(window);
+                    Assert.That(rows.Count, Is.EqualTo(40), "Refresh must replace, not accumulate catalog rows.");
+                    foreach (var row in rows) {
+                        var label = (GUIContent)row.GetType().GetField("Label").GetValue(row);
+                        Assert.That(label.text.Length, Is.InRange(1, 112));
+                        Assert.That(row.GetType().GetProperty("Thumbnail").GetValue(row), Is.Not.Null);
+                    }
+                    type.GetField("scroll", GrowthPrivate).SetValue(window, new Vector2(0, i % 2 == 0 ? 0 : 1800));
+                    window.Repaint();
+                    yield return null;
+                }
+                var rowType = type.GetNestedType("SkillRow");
+                var item = new UiItem { id = "bounded-test", name = new string('x', 10000), rarity = int.MaxValue };
+                var longRow = System.Activator.CreateInstance(rowType, new object[] { item });
+                var bounded = (GUIContent)rowType.GetField("Label").GetValue(longRow);
+                Assert.That(bounded.text.Length, Is.LessThanOrEqualTo(112));
+                item.name = "changed after caching";
+                Assert.That(bounded.text, Does.Not.Contain(item.name));
+                item.name = null; item.rarity = -1;
+                Assert.DoesNotThrow(() => System.Activator.CreateInstance(rowType, new object[] { item }));
+            }
+            finally { window.Close(); }
+#else
+            yield return null;
+#endif
+        }
+
+        [UnityTest]
         public IEnumerator FullLoadoutsReplaceThroughTheirExistingSlotsAndEmptySlotsShowPlus()
         {
             game.TogglePause();

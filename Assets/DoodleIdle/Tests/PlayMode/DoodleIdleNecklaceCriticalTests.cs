@@ -72,6 +72,7 @@ namespace DoodleIdle.Tests
                 var rect = sprite.rect; int w = (int)rect.width, h = (int)rect.height;
                 var pixels = sprite.texture.GetPixels((int)rect.x, (int)rect.y, w, h);
                 Assert.That(pixels.Count(p => p.a > .125f), Is.GreaterThan(w * h / 10));
+                Assert.That(NecklaceConnectedPixelFraction(pixels, w, h), Is.GreaterThan(.995f), item.name + " must be one connected necklace, without floating ornaments.");
                 for (int x = 0; x < w; x++) { Assert.That(pixels[x].a, Is.LessThan(.13f)); Assert.That(pixels[(h-1)*w+x].a, Is.LessThan(.13f)); }
                 for (int y = 0; y < h; y++) { Assert.That(pixels[y*w].a, Is.LessThan(.13f)); Assert.That(pixels[y*w+w-1].a, Is.LessThan(.13f)); }
                 ui.AddItem(item, 6);
@@ -98,6 +99,34 @@ namespace DoodleIdle.Tests
             Object.Destroy(CaptureFrame("necklace-summon-wallet.png", 720, 1520));
             Assert.That(PlayerPrefs.GetString("DoodleUi.Commerce.Necklace"), Does.Contain("\"tickets\":2"));
             Assert.That(DoodleGameData.SaveKeys, Does.Contain("DoodleUi.Commerce.Necklace"));
+        }
+
+        static float NecklaceConnectedPixelFraction(Color[] pixels, int width, int height)
+        {
+            var seen = new bool[pixels.Length];
+            var pending = new Queue<int>();
+            int total = 0, largest = 0;
+            for (int i = 0; i < pixels.Length; i++) {
+                if (seen[i] || pixels[i].a <= 32f / 255f) continue;
+                int count = 0;
+                seen[i] = true; pending.Enqueue(i);
+                while (pending.Count > 0) {
+                    int p = pending.Dequeue(); count++;
+                    int x = p % width, y = p / width;
+                    if (x > 0) Visit(p - 1);
+                    if (x + 1 < width) Visit(p + 1);
+                    if (y > 0) Visit(p - width);
+                    if (y + 1 < height) Visit(p + width);
+                }
+                total += count; largest = Mathf.Max(largest, count);
+            }
+            return total == 0 ? 0 : (float)largest / total;
+
+            void Visit(int p)
+            {
+                if (seen[p] || pixels[p].a <= 32f / 255f) return;
+                seen[p] = true; pending.Enqueue(p);
+            }
         }
 
         [UnityTest]
