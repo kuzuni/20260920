@@ -107,9 +107,10 @@ namespace DoodleIdle
             if (cell < 0 || cell >= 36) throw new ArgumentOutOfRangeException(nameof(cell));
             switch (cell) {
                 case 0: return Refined(6);
-                case 2: return Refined(0);
+                case 2: return DoodleExpansionArt.Get("SkillSpikyCactus");
                 case 3: return FireTornado(0);
                 case 4: return Refined(1);
+                case 7: return DoodleExpansionArt.Get("SkillWhiteMissile");
                 case 8: return DoodleCollectionArt.Get("AscensionSkillArt_10");
                 case 33: return DoodleCollectionArt.Get("AscensionSkillArt_11");
                 case 11: return Refined(4);

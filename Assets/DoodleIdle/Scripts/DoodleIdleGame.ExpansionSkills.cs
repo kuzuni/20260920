@@ -186,8 +186,7 @@ namespace DoodleIdle
                 if (t < 1) continue;
                 if (meteor.hand) {
                     Echo("Divine palm impact echo", meteor.art.sprite, meteor.end, Vector2.one * 4.5f, Quaternion.identity, .45f, .6f, 638);
-                    var imprint = Echo("Divine palm ground imprint", meteor.art.sprite, meteor.end, new Vector2(4.5f, 3.5f), Quaternion.identity, 7, .55f, -890);
-                    imprint.color = new Color(.35f, .28f, .22f, .55f);
+                    Echo("Divine palm ground imprint", DoodleExpansionArt.Get("SkillPalmCrater"), meteor.end, new Vector2(4.5f, 3.5f), Quaternion.identity, 7, 1, -890);
                 } else {
                     EmitBurst(meteorExplosionParticles, meteor.end, Color.white, 1, 5, 5, 0, .4f, .4f);
                     EmitBurst(meteorExplosionParticles, meteor.end, new Color(1, .65f, .35f), 20, .45f, 1, 5, .3f, .7f);

@@ -283,8 +283,11 @@ namespace DoodleIdle
         }
         static void UpdateRollingVegetable(SpriteRenderer art,Vector2 direction,float age,float size)
         {
-            art.transform.rotation=Aim(direction)*Quaternion.Euler(0,0,90+Mathf.Sin(age*15)*12);
-            art.transform.localScale=new Vector3(size,size*(.72f+.28f*Mathf.Abs(Mathf.Cos(age*10))),1);
+            // Roll across the long side of the vegetable, regardless of the source art's axis.
+            bool vertical = art.sprite.rect.height > art.sprite.rect.width;
+            float thickness = size * (.72f + .28f * Mathf.Abs(Mathf.Cos(age * 10)));
+            art.transform.rotation = Aim(direction) * Quaternion.Euler(0,0,(vertical ? 0 : 90) + Mathf.Sin(age * 15) * 12);
+            art.transform.localScale = vertical ? new Vector3(thickness,size,1) : new Vector3(size,thickness,1);
         }
         void SpawnSnake(SummonSkill kind, Vector2 direction, bool ice=false, string ability=null, float size=1, int headCell=-1)
         {

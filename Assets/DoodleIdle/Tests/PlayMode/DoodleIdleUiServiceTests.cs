@@ -134,7 +134,10 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             var tuning = ServiceTestTuning;
+            Assert.That(tuning.attackBuff,Is.EqualTo(1)); Assert.That(tuning.goldBuff,Is.EqualTo(1));
             UiOpen("Buffs");
+            Assert.That(UiNode("Panel: 버프").GetComponentsInChildren<Text>().Any(x=>x.text=="공격력 +100%"),Is.True);
+            Assert.That(UiNode("Panel: 버프").GetComponentsInChildren<Text>().Any(x=>x.text=="골드 획득 +100%"),Is.True);
             int wallet = ui.Diamonds;
             float baseDamage = ui.UiDamageMultiplier;
             ui.ExtendBuff(true);

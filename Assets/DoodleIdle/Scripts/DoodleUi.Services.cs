@@ -28,7 +28,7 @@ namespace DoodleIdle
             public int earlyEnemyDamageEndStage = 70;
             public float earlyEnemyDamageMax = 100;
             public float projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;
-            public float goldBuff = .5f, attackBuff = .3f;
+            public float goldBuff = 1, attackBuff = 1;
             public int[] dailyGoals = { 500, 1, 1, 1, 1, 10, 10, 10, 10, 10, 10 };
             public int[] repeatGoals = { 500, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 1, 5, 1 };
             public int[] weeklyGoals = { 5000, 7, 5, 5, 5, 100, 100, 100, 100, 100, 100 };

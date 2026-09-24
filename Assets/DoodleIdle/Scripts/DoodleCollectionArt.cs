@@ -9,7 +9,7 @@ namespace DoodleIdle
         static readonly string[] grades = { "Normal", "Advanced", "Rare", "Epic", "Legendary", "Mythic" };
         static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
         [Serializable] sealed class AnimationLayout { public FrameRegion[] frames; }
-        [Serializable] sealed class FrameRegion { public float x, y, width, height, bodyOffsetY; }
+        [Serializable] sealed class FrameRegion { public float x, y, width, height, bodyOffsetY; public string texture; }
         static readonly Dictionary<string, AnimationLayout> layouts = new Dictionary<string, AnimationLayout>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetCache() { cache.Clear(); layouts.Clear(); }
@@ -54,6 +54,10 @@ namespace DoodleIdle
             // Generated atlas rows are not exact grid cells. Explicit whole-icon bounds avoid clipping
             // tall shoulder plates and accidentally including a neighboring weapon.
             var region = layout.frames[index];
+            if (!string.IsNullOrEmpty(region.texture)) {
+                texture = Resources.Load<Texture2D>("DoodleIdle/" + region.texture);
+                if (!texture) throw new InvalidOperationException("Missing collection artwork: " + region.texture);
+            }
             return Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
                 Vector2.one * .5f, Mathf.Max(region.width, region.height));
         }

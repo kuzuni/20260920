@@ -16,9 +16,9 @@ namespace DoodleIdle
             base.Start(); Canvas.ForceUpdateCanvases();
             particles = gameObject.AddComponent<ParticleSystem>();
             particles.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main=particles.main; main.playOnAwake=false; main.loop=false; main.duration=2.4f;
+            var main=particles.main; main.playOnAwake=false; main.loop=false; main.duration=3;
             main.maxParticles=160; main.simulationSpace=ParticleSystemSimulationSpace.Local;
-            main.useUnscaledTime=true; main.gravityModifier=40; main.startSpeed=0;
+            main.useUnscaledTime=true; main.gravityModifier=60; main.startSpeed=0;
             var emission=particles.emission; emission.enabled=false;
             var shape=particles.shape; shape.enabled=false;
             var fade=particles.colorOverLifetime; fade.enabled=true;
@@ -35,9 +35,9 @@ namespace DoodleIdle
                 float side=i%2==0?-1:1;
                 var emit=new ParticleSystem.EmitParams {
                     position=new Vector3(r.center.x+side*r.width*.44f,r.center.y-r.height*.26f,0),
-                    velocity=new Vector3(-side*(100+(float)rng.NextDouble()*250),220+(float)rng.NextDouble()*300,0),
-                    startLifetime=1.5f+(float)rng.NextDouble()*.8f,
-                    startSize=9+(float)rng.NextDouble()*7,
+                    velocity=new Vector3(-side*(180+(float)rng.NextDouble()*350),330+(float)rng.NextDouble()*360,0),
+                    startLifetime=2+(float)rng.NextDouble()*.8f,
+                    startSize=18+(float)rng.NextDouble()*14,
                     rotation=(float)rng.NextDouble()*360,
                     startColor=colors[i%colors.Length]
                 };

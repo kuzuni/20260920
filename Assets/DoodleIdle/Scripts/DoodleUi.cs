@@ -292,10 +292,13 @@ namespace DoodleIdle
             celebration.gameObject.AddComponent<DoodleRewardCelebration>().raycastTarget=false;
             var text=UiKit.Text(area,title,64,TextAnchor.MiddleCenter,86); text.color=Color.white; text.gameObject.AddComponent<Outline>().effectColor=UiKit.Ink;
             var row=UiKit.Row(area,"Individual rewards",206,16);
+            var halo=UiKit.Rect(row,"Rotating reward sunburst");
+            Anchor(halo,new Vector2(.5f,.5f),Vector2.zero,new Vector2(650,650));
+            halo.gameObject.AddComponent<LayoutElement>().ignoreLayout=true;
+            var rays=halo.gameObject.AddComponent<DoodleRewardRays>(); rays.color=new Color(1,.87f,.48f,.25f); rays.raycastTarget=false;
             System.Action onClose = null;
             foreach(var reward in rewards) {
                 var host=UiKit.Rect(row,"Reward "+reward.name); FixedWidth(host,Mathf.Min(158,630f/Mathf.Max(1,rewards.Count))); UiKit.Height(host,200);
-                var halo=UiKit.Rect(host,"Golden hand drawn rays"); UiKit.Stretch(halo,-24,-24,-24,-24); var rays=halo.gameObject.AddComponent<DoodleRewardRays>(); rays.color=new Color(1,.84f,.21f,.92f); rays.raycastTarget=false;
                 var card=UiKit.Box(host,"Reward frame",UiKit.Rarity(reward.rarity)); UiKit.Stretch(card,3,3,3,3); card.GetComponent<Image>().raycastTarget=false;
                 var icon=UiKit.Icon(card,reward.icon,100); UiKit.Stretch(icon.rectTransform,13,57,13,18);
                 string currency = reward.icon;
@@ -418,29 +421,23 @@ namespace DoodleIdle
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class DoodleRewardRays : MaskableGraphic
     {
+        void Update() => rectTransform.Rotate(0,0,-18 * Time.unscaledDeltaTime);
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); var rect=rectTransform.rect; Vector2 center=rect.center;
-            Vector2 radius=rect.size*.5f;
-            const int count=96;
-            var outside=new Vector2[count]; var inside=new Vector2[count];
-            // One connected, rounded comic sunburst: broad lobes and a chunky ink
-            // outline match the cards instead of leaving disconnected little rays.
-            for(int i=0;i<count;i++) {
-                float angle=i*Mathf.PI*2/count;
-                float wave=.88f+.12f*Mathf.Cos(angle*8)+.012f*Mathf.Sin(angle*13);
-                Vector2 direction=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
-                outside[i]=center+Vector2.Scale(direction,radius)*wave;
-                inside[i]=center+Vector2.Scale(direction,radius-Vector2.one*4)*wave;
+            float radius=Mathf.Min(rect.width,rect.height)*.5f;
+            Color edge=color; edge.a=0;
+            for(int i=0;i<12;i++) {
+                float angle=i*Mathf.PI/6, halfWidth=Mathf.PI/30;
+                Vector2 left=new Vector2(Mathf.Cos(angle-halfWidth),Mathf.Sin(angle-halfWidth));
+                Vector2 right=new Vector2(Mathf.Cos(angle+halfWidth),Mathf.Sin(angle+halfWidth));
+                int start=vh.currentVertCount;
+                Add(vh,center,color);
+                Add(vh,center+left*radius*.78f,color); Add(vh,center+right*radius*.78f,color);
+                Add(vh,center+left*radius,edge); Add(vh,center+right*radius,edge);
+                vh.AddTriangle(start,start+1,start+2);
+                vh.AddTriangle(start+1,start+3,start+4); vh.AddTriangle(start+1,start+4,start+2);
             }
-            Fan(vh,center,outside,new Color(.16f,.13f,.08f,.72f));
-            Fan(vh,center,inside,new Color(1,.83f,.29f,.83f));
-        }
-        static void Fan(VertexHelper vh,Vector2 center,Vector2[] contour,Color tint)
-        {
-            int start=vh.currentVertCount; Add(vh,center,tint);
-            foreach(var point in contour)Add(vh,point,tint);
-            for(int i=0;i<contour.Length;i++)vh.AddTriangle(start,start+1+i,start+1+(i+1)%contour.Length);
         }
         static void Add(VertexHelper vh,Vector2 pos,Color c) { var v=UIVertex.simpleVert; v.position=pos; v.color=c; vh.AddVert(v); }
     }

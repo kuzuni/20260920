@@ -53,7 +53,7 @@ namespace DoodleIdle
                         var aim = Rotate(direction, cactus ? (i - 1.5f) * 24 : i * 20);
                         var shot = VariantProjectile(cactus ? "Ascension_2" : "Ascension_4", player.Position, aim,
                             cactus ? 4.6f : 1.8f, cactus ? 6 : SoundWaveSpeed, cactus ? 3.2f : SoundWaveLifetime,
-                            cactus ? 42 : 45, cactus ? 1.3f : .95f, cactus ? 0 : 900);
+                            cactus ? 42 : 45, cactus ? 1.3f : .95f, cactus ? 0 : 360);
                         shot.ability = ability; shot.rolling = cactus; shot.afterimage = !cactus;
                         if (cactus) UpdateRollingVegetable(shot.art, shot.direction, 0, shot.size);
                         RecordAscensionLaunch(ability, aim);

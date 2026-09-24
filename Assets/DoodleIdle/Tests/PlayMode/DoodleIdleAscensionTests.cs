@@ -39,9 +39,16 @@ namespace DoodleIdle.Tests
             Assert.That(effect.LiveParticleCount,Is.GreaterThan(100));
             Assert.That(effect.raycastTarget,Is.False);
             Assert.That(effect.GetComponent<ParticleSystem>().main.useUnscaledTime,Is.True);
+            var particles = new ParticleSystem.Particle[160];
+            int particleCount=effect.GetComponent<ParticleSystem>().GetParticles(particles);
+            Assert.That(particles.Take(particleCount).All(x=>x.startSize>=18),Is.True);
+            var rays=UiNode("Rotating reward sunburst").GetComponent<DoodleRewardRays>();
+            Assert.That(rays.color.a,Is.InRange(.15f,.35f));
+            float angle=rays.transform.eulerAngles.z;
             yield return new WaitForSecondsRealtime(.35f);
+            Assert.That(Mathf.DeltaAngle(angle,rays.transform.eulerAngles.z),Is.InRange(-10f,-3f),"The translucent rays turn clockwise while gameplay is paused.");
             Object.Destroy(CaptureFrame("ascension-reward-celebration.png",720,1520));
-            yield return new WaitForSecondsRealtime(2.1f);
+            yield return new WaitForSecondsRealtime(3.2f);
             Assert.That(effect.LiveParticleCount,Is.Zero);
             Object.Destroy(CaptureFrame("ascension-reward-clean-halo.png",720,1520));
             ui.CloseDetail(); yield return new WaitForSecondsRealtime(.35f);
@@ -69,7 +76,7 @@ namespace DoodleIdle.Tests
             sheet.gameObject.AddComponent<Image>().color=new Color(.96f,.95f,.9f);
             for (int i=0;i<added.Length;i++) {
                 var art=UiKit.Art(added[i].icon);
-                Assert.That(art.texture.name,Is.EqualTo("SkillThumbsAscension"));
+                Assert.That(art.texture.name,Is.EqualTo(added[i].ability=="CactusRage"||added[i].ability=="MissileRage" ? "SkillThumbsCactusMissile" : "SkillThumbsAscension"));
                 var rect=art.rect;
                 var pixels=art.texture.GetPixels((int)rect.x,(int)rect.y,(int)rect.width,(int)rect.height);
                 Assert.That(pixels.Count(x=>x.a>.125f),Is.GreaterThan(pixels.Length/10));
@@ -249,10 +256,57 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(30);
             var imprints = NamedArt("Divine palm ground imprint");
             Assert.That(imprints, Is.Not.Empty);
-            Assert.That(imprints.All(x => x.sprite == DoodleAscensionArt.Cell(6)), Is.True);
+            Assert.That(imprints.All(x => x.sprite == DoodleExpansionArt.Get("SkillPalmCrater")), Is.True);
+            Assert.That(imprints.All(x => x.color.r == 1 && x.color.g == 1 && x.color.b == 1 && x.sortingOrder < 0), Is.True,
+                "The ground uses the recessed earth artwork in its original colors below actors.");
             Assert.That(NamedArt("Meteor impact crater"), Is.Empty);
             Assert.That(Particles("Meteor Explosion Particle System").particleCount, Is.Zero);
             Object.Destroy(CaptureFrame("ascension-palm-imprint-and-fire-tornado.png", 1200, 1000, false));
+            yield return PhysicsTicks(115);
+            var ground = NamedArt("Divine palm ground imprint");
+            Assert.That(ground.Length, Is.EqualTo(3));
+            var positions = ground.Select(x => x.transform.position).ToArray();
+            foreach (var body in EnemyBodies()) Place(body,new Vector2(20,20));
+            yield return PhysicsTicks(15);
+            for (int i=0;i<ground.Length;i++) Assert.That(ground[i].transform.position,Is.EqualTo(positions[i]));
+            Object.Destroy(CaptureFrame("ascension-palm-shaped-crater.png",1200,1000,false));
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionCactusesRollBroadsideWithConstantLength()
+        {
+            var bodies = DurableSkillTargets();
+            foreach (var body in bodies) Place(body,new Vector2(20,20));
+            Place(bodies[0],new Vector2(8,0));
+            CastCatalogSkill("CactusRage");
+            var plants = NamedArt("Ascension_2 variant projectile");
+            Assert.That(plants.Length,Is.EqualTo(4));
+            var initial = plants.Select(x=>x.transform.position).ToArray();
+            foreach (var plant in plants) Assert.That(plant.sprite.rect.height,Is.GreaterThan(plant.sprite.rect.width*2));
+            yield return PhysicsTicks(8);
+            for (int frame=0;frame<2;frame++) {
+                for (int i=0;i<plants.Length;i++) {
+                    Vector2 travel = plants[i].transform.position-initial[i];
+                    Assert.That(Mathf.Abs(Vector2.Dot(travel.normalized,plants[i].transform.up)),Is.LessThan(.22f),
+                        "The long body stays broadside to travel instead of flying tip-first.");
+                    Assert.That(plants[i].transform.localScale.y,Is.EqualTo(4.6f).Within(.001));
+                    Assert.That(plants[i].transform.localScale.x,Is.LessThan(4.5f),"Only the short axis compresses while rolling.");
+                }
+                Object.Destroy(CaptureFrame("ascension-cactus-broadside-"+frame+".png",1200,1000,false));
+                yield return PhysicsTicks(20);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator AscensionRazorShurikensRotateOncePerSecond()
+        {
+            DurableSkillTargets(); CastCatalogSkill("RazorShuriken");
+            var blades=NamedArt("Ascension_4 variant projectile");
+            Assert.That(blades.Length,Is.EqualTo(18));
+            var rotations=blades.Select(x=>x.transform.rotation).ToArray();
+            yield return PhysicsTicks(10);
+            for(int i=0;i<blades.Length;i++)
+                Assert.That(Quaternion.Angle(rotations[i],blades[i].transform.rotation),Is.EqualTo(72).Within(.5f));
         }
 
         [UnityTest]
