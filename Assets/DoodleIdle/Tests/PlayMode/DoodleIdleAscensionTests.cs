@@ -289,6 +289,12 @@ namespace DoodleIdle.Tests
                 "The ground uses the recessed earth artwork in its original colors below actors.");
             Assert.That(NamedArt("Meteor impact crater"), Is.Empty);
             Assert.That(Particles("Meteor Explosion Particle System").particleCount, Is.Zero);
+            var burst = Particles("Divine Palm Explosion Particle System");
+            Assert.That(burst.particleCount, Is.GreaterThan(0), "The falling palm must explode at the actual impact.");
+            var palette = burst.GetComponent<ParticleSystemRenderer>().sharedMaterial.GetColor("_Palette");
+            Assert.That(palette.b, Is.GreaterThan(palette.r), "The explosion matches the sky-blue palm afterimages.");
+            Assert.That(game.MeteorHits, Is.GreaterThan(0), "The impact retains its area damage.");
+            Object.Destroy(CaptureFrame("ascension-palm-explosion.png", 1200, 1000, false));
             Object.Destroy(CaptureFrame("ascension-palm-imprint-and-fire-tornado.png", 1200, 1000, false));
             yield return PhysicsTicks(115);
             var ground = NamedArt("Divine palm ground imprint");

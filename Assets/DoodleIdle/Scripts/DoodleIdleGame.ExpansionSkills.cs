@@ -184,13 +184,11 @@ namespace DoodleIdle
                     meteor.echo += .05f;
                 }
                 if (t < 1) continue;
+                EmitMeteorImpact(meteor.end, meteor.hand);
                 if (meteor.hand) {
                     Echo("Divine palm impact echo", DoodleExpansionArt.Get("SkillSkyPalm"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, .45f, .6f, 638);
                     Echo("Divine palm ground imprint", DoodleExpansionArt.Get("SkillPalmCrater"), meteor.end, new Vector2(4.5f, 3.5f), Quaternion.identity, 7, 1, -890);
                 } else {
-                    EmitBurst(meteorExplosionParticles, meteor.end, Color.white, 1, 5, 5, 0, .4f, .4f);
-                    EmitBurst(meteorExplosionParticles, meteor.end, new Color(1, .65f, .35f), 20, .45f, 1, 5, .3f, .7f);
-                    EmitBurst(dustParticles, meteor.end, new Color(.65f, .5f, .38f), 16, .5f, 1.1f, 3, .5f, .9f);
                     Echo("Meteor impact crater", DoodleExpansionArt.Get("SkillMeteorCrater"), meteor.end, Vector2.one * 4.5f, Quaternion.identity, 7, .9f, -890);
                 }
                 for (int e = enemies.Count - 1; e >= 0; e--)

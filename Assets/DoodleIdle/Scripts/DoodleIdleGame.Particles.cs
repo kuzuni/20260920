@@ -6,7 +6,7 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles, purpleFireParticles,blueFireParticles;
-        ParticleSystem meteorTrailParticles, meteorExplosionParticles, golemSlamParticles;
+        ParticleSystem meteorTrailParticles, meteorExplosionParticles, divinePalmExplosionParticles, golemSlamParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -27,8 +27,10 @@ namespace DoodleIdle
             meteorTrailParticles = MakeParticles("Meteor Fire Trail Particle System", summonArt["GroundFlame"], 640, 512, false);
             SetFlamePalette(meteorTrailParticles, new Color(1, .18f, .06f));
             meteorExplosionParticles = MakeParticles("Meteor Explosion Particle System", summonArt["Explosion"], 655, 256, false);
+            divinePalmExplosionParticles = MakeParticles("Divine Palm Explosion Particle System", summonArt["Explosion"], 655, 256, false);
+            SetFlamePalette(divinePalmExplosionParticles, new Color(.4f, .78f, 1));
             golemSlamParticles = MakeParticles("Golem Ground Slam Dust Particle System", summonArt["SandPuff"], 515, 512, false);
-            var all = new List<ParticleSystem> { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,golemSlamParticles };
+            var all = new List<ParticleSystem> { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,divinePalmExplosionParticles,golemSlamParticles };
             BuildCompanionImpactParticles(all);
             particleSystems = all.ToArray();
         }
@@ -125,6 +127,14 @@ namespace DoodleIdle
                 startSize = ParticleRandom(1.25f, 1.75f), startLifetime = .42f,
                 rotation = -(Mathf.Atan2(tail.y, tail.x) * Mathf.Rad2Deg - 90), randomSeed = ++particleSeed
             }, 1);
+        }
+        void EmitMeteorImpact(Vector2 position, bool hand)
+        {
+            var system = hand ? divinePalmExplosionParticles : meteorExplosionParticles;
+            float size = hand ? 6.2f : 5;
+            EmitBurst(system, position, Color.white, 1, size, size, 0, .4f, .4f);
+            EmitBurst(system, position, hand ? Color.white : new Color(1, .65f, .35f), 20, .45f, 1, hand ? 6 : 5, .3f, .7f);
+            EmitBurst(dustParticles, position, new Color(.65f, .5f, .38f), 16, .5f, 1.1f, 3, .5f, .9f);
         }
         void EmitGold(Vector2 position)
         {
