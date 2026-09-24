@@ -230,7 +230,7 @@ namespace DoodleIdle
                 Notify(equip.transform,()=>CanImproveLoadout(selected));CollectionButtonText(equip,28);
             }
             else UiKit.Text(actions, "미획득", 24, TextAnchor.MiddleCenter, 32);
-            OwnershipStrip(body, "Equipment");
+            OwnershipStrip(body, equipmentCategory);
             BuildInventory(body, items, item =>
             {
                 if (equipmentCategory == "Armor") selectedArmor = item.id; else if (equipmentCategory == "Club") selectedClub = item.id; else selectedNecklace = item.id;
@@ -304,10 +304,11 @@ namespace DoodleIdle
             string effect = "공격력 +" + UiNumber.Format(EffectBonus("attack", category)) + "%";
             float health = EffectBonus("health", category);
             if (health > 0) effect += " · 체력 +" + UiNumber.Format(health) + "%";
-            if (category == "Equipment")
+            if (IsEquipmentCategory(category))
             {
                 var row = UiKit.Row(parent, "Total ownership", 42, 0);
-                effect += " · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", category)) + "% · 골드 +" + UiNumber.Format(EffectBonus("gold", category)) + "%";
+                string equipmentEffect = category == "Club" ? "attack" : category == "Armor" ? "health" : "healthRegen";
+                effect = EffectName(equipmentEffect) + " +" + UiNumber.Format(EffectBonus(equipmentEffect, category)) + "%";
                 UiKit.Text(row, "총 보유 효과   " + effect, 23, TextAnchor.MiddleCenter, 42);
                 return;
             }
@@ -407,6 +408,16 @@ namespace DoodleIdle
             }
             var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
             upgrade.interactable = !collectionBulkRunning;
+            if (CollectionFullyMaxed(category)) {
+                var refund = UiKit.Button(row, "일괄 환불", () => {
+                    int paid = RefundCollection(category);
+                    RefreshPage();
+                    Toast(paid > 0 ? paid.ToString("N0") + " 다이아 환불 완료" : "환불 가능한 조각 또는 지갑 공간이 없습니다.");
+                }, UiKit.Purple, 68);
+                refund.interactable = !collectionBulkRunning && CollectionRefundQuote(category) > 0;
+                Notify(refund.transform, () => !collectionBulkRunning && CollectionRefundQuote(category) > 0);
+                CollectionButtonText(refund, 28);
+            }
             var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast((category == "Skill" || category == "Companion" ? "높은 등급의 " : "강한 ") + CategoryName(category) + "부터 장착했습니다."); }, IsEquipmentCategory(category) ? UiKit.Green : UiKit.Yellow, 68);
             Notify(upgrade.transform,()=>!collectionBulkRunning&&CategoryCanUpgrade(category));
             Notify(auto.transform,()=>CategoryCanEquip(category));

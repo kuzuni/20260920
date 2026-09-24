@@ -91,6 +91,7 @@ namespace DoodleIdle.Tests
                     Assert.That(particle.sprite, Is.SameAs(UiKit.Art(reward.icon)));
                 }
             }
+            Object.Destroy(CaptureFrame("latest-wallet-reward-flight.png", 720, 1520));
             var flight = UiNode("Flying Diamond"); Vector3 start = flight.position;
             ui.CloseDetail();
             // Capture intermediate motion before a slow CI frame can finish the entire flight.
@@ -100,7 +101,6 @@ namespace DoodleIdle.Tests
                 if (flight && Vector3.Distance(start, flight.position) > 5) { moved = true; break; }
             }
             Assert.That(moved || !flight, Is.True);
-            Object.Destroy(CaptureFrame("latest-wallet-reward-flight.png", 720, 1520));
             yield return new WaitForSecondsRealtime(1.5f);
             Assert.That(UiRoot.GetComponentsInChildren<Transform>().Any(x => x.name.StartsWith("Reward flight")), Is.False);
             Assert.That(ui.Gold, Is.EqualTo(gold)); Assert.That(ui.Diamonds, Is.EqualTo(diamonds));

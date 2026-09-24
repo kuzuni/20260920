@@ -11,6 +11,69 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator AbilityBulkRefundRequiresEntireCategoryMaxedAndPreservesUnpaidCopies()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            foreach (string category in new[] { "Skill", "Companion" }) {
+                var items = ui.Items(category);
+                foreach (var item in items) { item.discovered = true; item.level = 100; item.count = 2; }
+                items.Last().level = 99; ui.Diamonds = 100;
+                Assert.That(ui.CollectionFullyMaxed(category), Is.False);
+                Assert.That(ui.CollectionRefundQuote(category), Is.Zero);
+                Assert.That(ui.RefundCollection(category), Is.Zero);
+                Assert.That(items.All(x => x.count == 2), Is.True);
+                UiOpen(category == "Skill" ? "Skills" : "Companions");
+                Assert.That(UiNode("Collection actions").GetComponentsInChildren<Button>().Any(x => x.name == "일괄 환불"), Is.False);
+                items.Last().level = 100; items.Last().discovered = false;
+                Assert.That(ui.RefundCollection(category), Is.Zero, "Unowned entries also prevent bulk refunds.");
+                items.Last().discovered = true;
+                int unit = ui.SummonCost(category, 1), expected = items.Count * 2 * unit;
+                Assert.That(ui.CollectionRefundQuote(category), Is.EqualTo(expected));
+                UiOpen(category == "Skill" ? "Skills" : "Companions"); yield return null;
+                Object.Destroy(CaptureFrame(category.ToLowerInvariant() + "-bulk-refund.png", 720, 1520));
+                UiClick("일괄 환불", UiNode("Collection actions"));
+                Assert.That(ui.Diamonds, Is.EqualTo(100 + expected));
+                Assert.That(items.All(x => x.count == 0 && x.level == 100 && x.discovered), Is.True);
+                Assert.That(UiNode("일괄 환불", UiNode("Collection actions")).GetComponent<Button>().interactable, Is.False);
+                Assert.That(ui.RefundCollection(category), Is.Zero, "A repeated click cannot refund twice.");
+                var host = new GameObject("Refund collection reload");
+                try {
+                    var reload = host.AddComponent<DoodleUi>(); reload.InitCollections();
+                    Assert.That(reload.Items(category).All(x => x.count == 0 && x.level == 100), Is.True);
+                }
+                finally { Object.DestroyImmediate(host); }
+                items[0].count = items[1].count = 5;
+                ui.Diamonds = int.MaxValue - unit * 3 - 1;
+                Assert.That(ui.CollectionRefundQuote(category), Is.EqualTo(unit * 3));
+                Assert.That(ui.RefundCollection(category), Is.EqualTo(unit * 3));
+                Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 1));
+                Assert.That(items.Sum(x => x.count), Is.EqualTo(7), "Only paid copies may be consumed.");
+                Assert.That(ui.RefundCollection(category), Is.Zero);
+                Assert.That(items.Sum(x => x.count), Is.EqualTo(7));
+            }
+            Assert.That(ui.RefundCollection("Armor"), Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator EquipmentOwnershipSummaryShowsOnlyCurrentTabStat()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var categories = new[] { "Armor", "Club", "Necklace" };
+            var labels = new[] { "체력", "공격력", "체력 회복" };
+            for (int i = 0; i < categories.Length; i++) {
+                string category = categories[i];
+                foreach (var item in ui.Items(category)) { item.discovered = true; item.level = 10; }
+                typeof(DoodleUi).GetField("equipmentCategory", GrowthPrivate).SetValue(ui, category);
+                UiOpen("Equipment"); yield return null;
+                string text = UiNode("Total ownership").GetComponentInChildren<Text>().text;
+                Assert.That(text, Does.StartWith("총 보유 효과   " + labels[i] + " +"));
+                Assert.That(text, Does.Not.Contain("골드"));
+                Assert.That(text, Does.Not.Contain(" · "));
+                Object.Destroy(CaptureFrame("equipment-ownership-" + category.ToLowerInvariant() + ".png", 720, 1520));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SkillsAndCompanionsCapAt100AndSynthesizeThroughEveryTier()
         {
             game.TogglePause(); var ui = game.Ui;

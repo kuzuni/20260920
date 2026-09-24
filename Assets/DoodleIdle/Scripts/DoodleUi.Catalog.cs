@@ -344,7 +344,7 @@ namespace DoodleIdle
         public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
         public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
         float ItemOwnedGoldValue(UiItem item) => item.category == "Armor" || item.category == "Necklace" ? 0 : item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
-        public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? ((item.rarity == 6 && item.tier == 1 || item.rarity == 8) ? int.MaxValue : 100) : item.category == "Skill" || item.category == "Companion" ? 100 : collectionTuning.maxItemLevel;
+        public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? (item.rarity == 8 && item.tier == 1 ? int.MaxValue : 100) : item.category == "Skill" || item.category == "Companion" ? 100 : collectionTuning.maxItemLevel;
         public static bool CanSynthesizeCategory(string category) => IsEquipmentCategory(category) || category == "Skill" || category == "Companion";
         long UpgradeCopiesBetween(int from, int to)
         {

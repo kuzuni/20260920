@@ -396,7 +396,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator AscensionOriginSaveKeepsOldGodOwnershipLevelAndEquipment()
+        public IEnumerator AscensionOriginSaveCapsOldGodLevelAndReturnsCopies()
         {
             game.TogglePause();
             string saved = PlayerPrefs.GetString("DoodleUi.Collections.v1", "");
@@ -405,13 +405,25 @@ namespace DoodleIdle.Tests
                 PlayerPrefs.SetString("DoodleUi.Collections.v1", "{\"version\":3,\"items\":[{\"id\":\"armor_grade6_1\",\"count\":27,\"level\":500,\"discovered\":true,\"equipped\":true}],\"stats\":[]}");
                 var ui = host.AddComponent<DoodleUi>(); ui.InitCollections();
                 var origin = ui.Items("Armor").Single(x => x.id == "armor_grade6_1");
-                Assert.That(origin.name, Is.EqualTo("근원1 갑옷"));
+                Assert.That(origin.name, Is.Not.Empty);
                 Assert.That(origin.rarity, Is.EqualTo(6));
-                Assert.That(origin.level, Is.EqualTo(500));
-                Assert.That(origin.count, Is.EqualTo(27));
+                Assert.That(origin.level, Is.EqualTo(100));
+                int returned = 27;
+                for (int level = 100; level < 500; level++) returned += 5 + (level - 1) / 10;
+                Assert.That(origin.count, Is.EqualTo(returned));
                 Assert.That(origin.equipped, Is.True);
                 Assert.That(ui.SynthesisTarget(origin).id, Is.EqualTo("armor_grade6_2"));
                 CollectionAssert.AreEqual(new[] { "신화", "근원", "초월", "갓" }, DoodleUi.GradeNames.Skip(5));
+                ui.SaveCollections();
+                var reload = new GameObject("Origin cap reload");
+                try {
+                    var restored = reload.AddComponent<DoodleUi>(); restored.InitCollections();
+                    var item = restored.Items("Armor").Single(x => x.id == origin.id);
+                    Assert.That(item.level, Is.EqualTo(100));
+                    Assert.That(item.count, Is.EqualTo(returned), "Returning excess upgrade copies happens only once.");
+                    Assert.That(item.equipped, Is.True);
+                }
+                finally { Object.DestroyImmediate(reload); }
             }
             finally { Object.DestroyImmediate(host); PlayerPrefs.SetString("DoodleUi.Collections.v1", saved); }
             yield return null;

@@ -71,7 +71,7 @@ namespace DoodleIdle
                     return false;
                 case "Equipment": return Items("Armor").Exists(ItemNeedsAttention)||Items("Club").Exists(ItemNeedsAttention)||Items("Necklace").Exists(ItemNeedsAttention);
                 case "Skills": return Items("Skill").Exists(ItemNeedsAttention);
-                case "Companions": return Items("Companion").Exists(ItemNeedsAttention);
+                case "Companions": return Items("Companion").Exists(ItemNeedsAttention) || CollectionRefundQuote("Companion") > 0;
                 case "Relics": return AllRelics.Exists(CanUpgradeItem);
                 default:return false;
             }

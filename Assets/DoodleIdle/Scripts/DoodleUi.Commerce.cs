@@ -218,23 +218,51 @@ namespace DoodleIdle
         public int SummonTicketCost(string category, int count) => Math.Min(Math.Max(0, count), SummonTickets(category));
         public int SummonDiamondCost(string category, int count) => SummonCost(category, Math.Max(0, count) - SummonTicketCost(category, count));
         decimal SkillRefundRemainder => decimal.TryParse(PlayerPrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
-        int RefundableSkillCopies(UiItem item)
+        decimal AbilityRefundUnitPrice(string category) => category == "Skill" ? SkillRefundUnitPrice : Math.Max(1, commerceTuning.companionUnitCost);
+        decimal AbilityRefundRemainder(string category) => category == "Skill" ? SkillRefundRemainder : 0;
+        int RefundableAbilityCopies(UiItem item)
         {
-            if (item == null || item.category != "Skill" || !item.discovered || item.level < 100 || item.count <= 0 || !Items("Skill").Contains(item)) return 0;
+            if (item == null || (item.category != "Skill" && item.category != "Companion") || !item.discovered || item.level < ItemMaxLevel(item) || item.count <= 0 || !Items(item.category).Contains(item)) return 0;
             decimal room = Math.Max(0L, (long)int.MaxValue - Diamonds);
-            return (int)Math.Min(item.count, Math.Max(0, decimal.Floor((room - SkillRefundRemainder) / SkillRefundUnitPrice)));
+            return (int)Math.Min(item.count, Math.Max(0, decimal.Floor((room - AbilityRefundRemainder(item.category)) / AbilityRefundUnitPrice(item.category))));
         }
-        public bool CanRefundSkill(UiItem item) => RefundableSkillCopies(item) > 0;
-        public int SkillRefundQuote(UiItem item) => (int)decimal.Floor(RefundableSkillCopies(item) * SkillRefundUnitPrice + SkillRefundRemainder);
-        public int RefundSkill(UiItem item)
+        public bool CanRefundSkill(UiItem item) => item != null && item.category == "Skill" && RefundableAbilityCopies(item) > 0;
+        public int SkillRefundQuote(UiItem item) => CanRefundSkill(item) ? (int)decimal.Floor(RefundableAbilityCopies(item) * SkillRefundUnitPrice + SkillRefundRemainder) : 0;
+        public int RefundSkill(UiItem item) => item != null && item.category == "Skill" ? RefundAbility(item, true) : 0;
+        int RefundAbility(UiItem item, bool save)
         {
-            int copies = RefundableSkillCopies(item);
+            int copies = RefundableAbilityCopies(item);
             if (copies == 0) return 0;
-            decimal amount = copies * SkillRefundUnitPrice + SkillRefundRemainder;
+            decimal amount = copies * AbilityRefundUnitPrice(item.category) + AbilityRefundRemainder(item.category);
             int paid = (int)decimal.Floor(amount);
             item.count -= copies; Diamonds += paid;
-            PlayerPrefs.SetString("DoodleUi.SkillRefundRemainder", (amount - paid).ToString(CultureInfo.InvariantCulture));
-            Save(); return paid;
+            if (item.category == "Skill") PlayerPrefs.SetString("DoodleUi.SkillRefundRemainder", (amount - paid).ToString(CultureInfo.InvariantCulture));
+            if (save) Save();
+            return paid;
+        }
+        public bool CollectionFullyMaxed(string category)
+        {
+            if (category != "Skill" && category != "Companion") return false;
+            var items = Items(category);
+            return items.Count > 0 && items.TrueForAll(x => x.discovered && x.level >= ItemMaxLevel(x));
+        }
+        public int CollectionRefundQuote(string category)
+        {
+            if (!CollectionFullyMaxed(category)) return 0;
+            long copies = 0;
+            foreach (var item in Items(category)) copies += Math.Max(0, item.count);
+            decimal unit = AbilityRefundUnitPrice(category), remainder = AbilityRefundRemainder(category);
+            decimal room = Math.Max(0L, (long)int.MaxValue - Diamonds);
+            decimal refundable = Math.Min(copies, Math.Max(0, decimal.Floor((room - remainder) / unit)));
+            return refundable > 0 ? (int)decimal.Floor(refundable * unit + remainder) : 0;
+        }
+        public int RefundCollection(string category)
+        {
+            if (!CollectionFullyMaxed(category)) return 0;
+            int paid = 0;
+            foreach (var item in Items(category)) paid += RefundAbility(item, false);
+            if (paid > 0) Save();
+            return paid;
         }
 
         void BuildShop(RectTransform body)
