@@ -94,8 +94,8 @@ namespace DoodleIdle.Tests
                 float damage=game.Ui.ItemHitDamage(item)*(float)game.Ui.ExpectedCriticalMultiplier;
                 float baseline = Mathf.Max(100000, damage * 10), tolerance = Mathf.Max(.03f, baseline * .0000002f);
                 for(int i=0;i<3;i++)health.SetValue(actors[i], (GameNumber)(baseline));
-                hit.Invoke(game,new object[]{actors[0],weight,Vector2.zero});
-                explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,weight*item.splashDamageMultiplier,actors[0],index});
+                hit.Invoke(game,new object[]{actors[0],(GameNumber)weight,Vector2.zero});
+                explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,(GameNumber)weight*item.splashDamageMultiplier,actors[0],index});
                 Assert.That(baseline-(float)(GameNumber)health.GetValue(actors[0]),Is.EqualTo(damage).Within(tolerance),item.name);
                 Assert.That(baseline-(float)(GameNumber)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(tolerance),item.name);
                 Assert.That((float)(GameNumber)health.GetValue(actors[2]),Is.EqualTo(baseline));
