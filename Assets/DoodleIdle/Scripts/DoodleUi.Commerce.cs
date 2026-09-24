@@ -545,7 +545,7 @@ namespace DoodleIdle
                 var slot = UiKit.Slot(preview, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, false, null, 128f * 4 / 3);
                 var previewSize = slot.GetComponent<LayoutElement>();
                 previewSize.minWidth = previewSize.preferredWidth = 128; previewSize.flexibleWidth = 0;
-                UiKit.Text(body, "현재 보유 수량 " + UiNumber.Format(item.count) + " · Lv. " + UiNumber.Format(item.level), 24, TextAnchor.MiddleCenter, 46);
+                UiKit.Text(body, "현재 보유 수량 " + UiNumber.Format(item.count) + " · Lv. " + item.level.ToString("N0"), 24, TextAnchor.MiddleCenter, 46);
                 UiKit.Text(body, "획득한 아이템은 " + CommerceLabel(item.category) + " 목록에서 확인할 수 있어요.", 20, TextAnchor.MiddleCenter, 60);
                 UiKit.Button(body, "확인", CloseDetail, UiKit.Yellow);
             });
