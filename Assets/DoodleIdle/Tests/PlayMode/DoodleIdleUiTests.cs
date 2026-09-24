@@ -49,7 +49,7 @@ namespace DoodleIdle.Tests
         }
         static readonly string[] UiProfileKeys = {
             "DoodleUi.CommerceExtras.v1", "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
-            "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Skill",
+            "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Necklace", "DoodleUi.Commerce.Skill",
             "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic", "DoodleUi.Commerce.DungeonRelic", "DoodleUi.SkillRefundRemainder"
         };
 
@@ -186,7 +186,7 @@ namespace DoodleIdle.Tests
             UiClick("무료 5회\n뽑기", UiNode("Summon_Armor"));
             Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 5));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet));
-            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(5));
+            Assert.That(CurrentSummonResultCount(), Is.EqualTo(5));
             Assert.That(ui.FreeSummonsRemaining("Armor"), Is.EqualTo(2));
             Assert.That(ui.CanFreeSummon("Club"), Is.True);
             Assert.That(ui.TrySummon("Armor", 5, true), Is.True);
@@ -199,11 +199,11 @@ namespace DoodleIdle.Tests
             UiClick("10회 뽑기", UiNode("Summon_Armor"));
             Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 25));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet - 100));
-            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(10));
+            Assert.That(CurrentSummonResultCount(), Is.EqualTo(10));
             UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과"));
             Assert.That(ui.Items("Armor").Sum(x => x.count), Is.EqualTo(initial + 75));
             Assert.That(ui.Diamonds, Is.EqualTo(wallet - 600));
-            Assert.That(UiNode("SummonResultCards").childCount, Is.EqualTo(50));
+            Assert.That(CurrentSummonResultCount(), Is.EqualTo(50));
             Assert.That(UiNode("SummonResultCards").GetComponentsInChildren<Text>().Any(t => t.text.Contains("+1")), Is.False);
             ui.CloseFullscreen();
             Assert.That(ui.HasOverlay, Is.False, "Repeated summons replace the result screen; they must not stack obsolete screens.");

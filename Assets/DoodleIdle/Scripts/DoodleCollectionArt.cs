@@ -22,6 +22,8 @@ namespace DoodleIdle
                 value = LayoutCell("UI/EquipmentArmor", armor);
             else if (key.StartsWith("EquipmentClub_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int club))
                 value = LayoutCell("UI/EquipmentClub", club);
+            else if (key.StartsWith("EquipmentNecklace_", StringComparison.Ordinal) && int.TryParse(key.Substring(18), out int necklace))
+                value = LayoutCell("UI/EquipmentNecklace", necklace);
             else if (key.StartsWith("RelicAttack_", StringComparison.Ordinal) && int.TryParse(key.Substring(12), out int relic))
                 value = Cell("RelicAttackArtifacts", relic, 3, 1);
             else if (key.StartsWith("SkillThumb_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int skill))

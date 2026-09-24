@@ -69,7 +69,7 @@ namespace DoodleIdle
                 case "Stats":
                     foreach(var stat in collectionTuning.stats){int count;long cost=StatUpgradeQuote(stat.id,1,out count);if(count>0&&Gold>=cost)return true;}
                     return false;
-                case "Equipment": return Items("Armor").Exists(ItemNeedsAttention)||Items("Club").Exists(ItemNeedsAttention);
+                case "Equipment": return Items("Armor").Exists(ItemNeedsAttention)||Items("Club").Exists(ItemNeedsAttention)||Items("Necklace").Exists(ItemNeedsAttention);
                 case "Skills": return Items("Skill").Exists(ItemNeedsAttention);
                 case "Companions": return Items("Companion").Exists(ItemNeedsAttention);
                 case "Relics": return AllRelics.Exists(CanUpgradeItem);

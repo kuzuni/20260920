@@ -305,7 +305,7 @@ namespace DoodleIdle
                 var icon=UiKit.Icon(card,reward.icon,100); UiKit.Stretch(icon.rectTransform,13,57,13,18);
                 string currency = reward.icon;
                 if (reward.amount > 0) onClose += () => FlyReward(icon, currency);
-                var count=UiKit.Text(card,UiNumber.Format(reward.amount),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
+                var count=UiKit.Text(card,currency == "Diamond" ? reward.amount.ToString("N0") : UiNumber.Format(reward.amount),34,TextAnchor.MiddleCenter,44); UiKit.Stretch(count.rectTransform,5,9,5,144);
             }
             var hint=UiKit.Text(area,"화면을 터치하면 닫힙니다",28,TextAnchor.MiddleCenter,50); hint.color=Color.white;
             area.gameObject.AddComponent<DoodlePopupMotion>().Open();
@@ -353,7 +353,7 @@ namespace DoodleIdle
         }
         public void RefreshHud()
         {
-            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=UiNumber.Format(Diamonds);
+            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=Diamonds.ToString("N0");
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
             missionDiamonds.text=MainMissionReward.ToString();

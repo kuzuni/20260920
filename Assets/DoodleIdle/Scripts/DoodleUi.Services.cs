@@ -269,7 +269,7 @@ namespace DoodleIdle
                 foreach(float side in new[]{-1f,1f}) { var extra = UiKit.Icon(card,"Diamond",50).rectTransform; extra.anchorMin=extra.anchorMax=new Vector2(.5f,.57f);extra.anchoredPosition=new Vector2(side*44,-5);extra.localRotation=Quaternion.Euler(0,0,side*-17); }
                 gem.SetAsLastSibling();
             }
-            var amount = UiKit.Text(card, UiNumber.Format(serviceTuning.attendance[index]), 25, TextAnchor.MiddleCenter, 32);
+            var amount = UiKit.Text(card, serviceTuning.attendance[index].ToString("N0"), 25, TextAnchor.MiddleCenter, 32);
             amount.rectTransform.anchorMin = new Vector2(0,0); amount.rectTransform.anchorMax = new Vector2(1,0); amount.rectTransform.pivot = new Vector2(.5f,0); amount.rectTransform.anchoredPosition = new Vector2(0,40); amount.rectTransform.sizeDelta = new Vector2(-8,32);
             var strip = UiKit.Box(card,"Attendance status",claimed ? new Color(.77f,.88f,.66f) : current ? UiKit.Yellow : new Color(.82f,.82f,.82f));
             strip.anchorMin=Vector2.zero;strip.anchorMax=new Vector2(1,0);strip.pivot=new Vector2(.5f,0);strip.anchoredPosition=new Vector2(0,3);strip.sizeDelta=new Vector2(-6,36);strip.GetComponent<Outline>().enabled=false;
@@ -311,7 +311,7 @@ namespace DoodleIdle
                 reward.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 169;
                 var icon = UiKit.Icon(reward, "Diamond", 54).rectTransform;
                 icon.anchorMin = icon.anchorMax = new Vector2(.5f, .7f); icon.anchoredPosition = Vector2.zero;
-                var number = UiKit.Text(reward, UiNumber.Format(serviceTuning.roulette[i]), 27, TextAnchor.MiddleCenter, 32).rectTransform;
+                var number = UiKit.Text(reward, serviceTuning.roulette[i].ToString("N0"), 27, TextAnchor.MiddleCenter, 32).rectTransform;
                 number.anchorMin = new Vector2(0, 0); number.anchorMax = new Vector2(1, .38f); number.offsetMin = number.offsetMax = Vector2.zero;
             }
             var pointer = new GameObject("Roulette pointer", typeof(RectTransform), typeof(CanvasRenderer), typeof(DoodleRoulettePointer)).GetComponent<RectTransform>();
@@ -452,7 +452,7 @@ namespace DoodleIdle
             ServiceGauge(text, () => tab == 1 ? services.repeat[metric] % goal : QuestCounters(tab)[metric], () => goal, false, true);
             var reward = UiKit.Column(row, "Quest reward", 2, 0); ServiceWidth(reward,52);
             UiKit.Icon(reward, "Diamond", 46);
-            UiKit.Text(reward, UiNumber.Format(QuestReward(tab,index)), 23, TextAnchor.MiddleCenter, 29);
+            UiKit.Text(reward, QuestReward(tab,index).ToString("N0"), 23, TextAnchor.MiddleCenter, 29);
             var claim = UiKit.Button(row, "받기", () => ClaimQuests(index), UiKit.Yellow, 72);
             Notify(claim.transform,()=>CanClaimQuest(tab,index));
             ServiceWidth(claim.transform,94);

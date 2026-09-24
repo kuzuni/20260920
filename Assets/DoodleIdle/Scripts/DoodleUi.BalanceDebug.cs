@@ -31,10 +31,33 @@ namespace DoodleIdle
         // One price function for the Odin preview, UI quote and actual single/bulk/MAX purchases.
         public static long StatUpgradePrice(UiStatCostTuning tuning, string id, int currentLevel)
         {
-            int cost = id == "crit2Chance" ? tuning.critical2BaseCost : id == "crit4Chance" ? tuning.critical4BaseCost : tuning.commonBaseCost;
-            float growth = id == "crit2Chance" ? tuning.critical2Growth : id == "crit4Chance" ? tuning.critical4Growth : tuning.commonGrowth;
-            var steps = id == "crit2Chance" ? tuning.critical2GrowthSteps : id == "crit4Chance" ? tuning.critical4GrowthSteps : tuning.commonGrowthSteps;
-            double raw = DoodleGrowthStep.Evaluate(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
+            int tier = Array.IndexOf(CriticalStatIds, id);
+            double raw;
+            if (tier > 0) {
+                long start = StatUpgradePrice(tuning, CriticalStatIds[0], CriticalLevelCap(0) - 1);
+                float rate = CriticalContinuationGrowth(tuning);
+                for (int i = 1; i < tier; i++)
+                    start = RoundStatPrice(DoodleGrowthCurve.Exponential(start, rate, CriticalLevelCap(i) - 1));
+                raw = DoodleGrowthCurve.Exponential(start, rate, Math.Max(0, currentLevel));
+            } else {
+                int cost = tier == 0 ? tuning.critical2BaseCost : tuning.commonBaseCost;
+                float growth = tier == 0 ? tuning.critical2Growth : tuning.commonGrowth;
+                var steps = tier == 0 ? tuning.critical2GrowthSteps : tuning.commonGrowthSteps;
+                raw = DoodleGrowthStep.Evaluate(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
+            }
+            return RoundStatPrice(raw);
+        }
+        public static float CriticalContinuationGrowth(UiStatCostTuning tuning)
+        {
+            float rate = BalanceValue(tuning.critical2Growth, 0, .004f); int latest = int.MinValue;
+            foreach (var step in tuning.critical2GrowthSteps ?? Array.Empty<DoodleGrowthStep>())
+                if (step != null && step.from <= CriticalLevelCap(0) - 1 && step.from >= latest) {
+                    latest = step.from; rate = BalanceValue(step.growth, 0, .004f);
+                }
+            return rate;
+        }
+        static long RoundStatPrice(double raw)
+        {
             // Exponentiation can land a few double-precision ULPs above an integer.
             double nearest = Math.Round(raw);
             if (Math.Abs(raw - nearest) <= Math.Max(1, Math.Abs(raw)) * 8.881784197001252e-16) raw = nearest;

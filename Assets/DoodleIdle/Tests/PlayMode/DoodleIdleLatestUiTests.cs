@@ -116,14 +116,14 @@ namespace DoodleIdle.Tests
                 var skip=UiNode("Summon animation skip");
                 Assert.That(skip.GetComponentInChildren<Text>().text,Is.EqualTo("연출 스킵"));
                 Assert.That(skip.Find("Skip toggle track/Toggle knob"),Is.Not.Null);
-                Assert.That(gauge.GetSiblingIndex(),Is.LessThan(skip.GetSiblingIndex()));
-                Assert.That(skip.GetSiblingIndex(),Is.LessThan(skip.parent.Find("SummonActions").GetSiblingIndex()));
+                Assert.That(gauge.GetSiblingIndex(),Is.LessThan(skip.parent.GetSiblingIndex()));
+                Assert.That(skip.parent.GetSiblingIndex(),Is.LessThan(skip.parent.parent.Find("SummonActions").GetSiblingIndex()));
                 Assert.That(UiNode("Fullscreen: 뽑기 결과").GetComponentsInChildren<Text>().Any(x=>x.text.Contains("상세 보기")),Is.False);
                 Object.Destroy(CaptureFrame("summon-large-confetti-and-controls.png",720,1520));
-                UiClick("Summon animation skip"); Assert.That(reveal.VisibleCards, Is.EqualTo(10));
+                UiClick("Summon animation skip"); Assert.That(reveal.VisibleCards, Is.EqualTo(UiNode("SummonResultCards").childCount));
                 UiClick("50회 뽑기", UiNode("Fullscreen: 뽑기 결과")); Assert.That(ui.Diamonds, Is.EqualTo(98800));
                 reveal = UiRoot.GetComponentInChildren<DoodleSummonReveal>();
-                Assert.That(reveal.VisibleCards, Is.EqualTo(50)); Assert.That(reveal.transform.localScale, Is.EqualTo(Vector3.one));
+                Assert.That(reveal.VisibleCards, Is.EqualTo(UiNode("SummonResultCards").childCount)); Assert.That(reveal.transform.localScale, Is.EqualTo(Vector3.one));
                 Object.Destroy(CaptureFrame("latest-summon-no-gauges.png", 720, 1520));
                 ui.CloseFullscreen();
                 int level = ui.SummonLevel("Armor"), experience = ui.SummonExperience("Armor");

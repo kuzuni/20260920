@@ -11,10 +11,14 @@ namespace DoodleIdle
         {
             if(!Ui)return 1;
             float multiplier=1;
-            // A 4x result takes priority; the 2x roll applies only when it did not occur.
-            // Do not consume the combat RNG at all for an untouched 0%-critical profile.
-            if(Ui.Critical4Chance>=100 || (Ui.Critical4Chance>0 && Random.value < Ui.Critical4Chance/100f)) multiplier=4;
-            else if(Ui.Critical2Chance>=100 || (Ui.Critical2Chance>0 && Random.value < Ui.Critical2Chance/100f)) multiplier=2;
+            // Only the highest successful unlocked tier applies; never multiply tiers together.
+            // Untouched profiles consume no critical RNG.
+            for (int tier = DoodleUi.CriticalStatIds.Length - 1; tier >= 0; tier--) {
+                float chance = Ui.CriticalChance(tier);
+                if (chance >= 100 || chance > 0 && Random.value < chance / 100f) {
+                    multiplier = DoodleUi.CriticalMultiplierAt(tier); break;
+                }
+            }
             return multiplier>1?multiplier*(1+Ui.CriticalDamageBonus/100f):1;
         }
         Sprite WorldSkinSprite(string key,bool grip)

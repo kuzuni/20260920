@@ -94,8 +94,8 @@ namespace DoodleIdle
             public long lifetimeDraws;
         }
 
-        readonly string[] commerceCategories = { "Armor", "Club", "Skill", "Companion", "Relic", "DungeonRelic" };
-        readonly string[] commerceLabels = { "갑옷", "몽둥이", "스킬", "동료", "유물", "던전 유물" };
+        readonly string[] commerceCategories = { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic", "DungeonRelic" };
+        readonly string[] commerceLabels = { "갑옷", "몽둥이", "목걸이", "스킬", "동료", "유물", "던전 유물" };
         readonly string[] commerceGrades = GradeNames;
         readonly Dictionary<string, SummonState> summonStates = new Dictionary<string, SummonState>();
         readonly System.Random commerceRandom = new System.Random();
@@ -304,7 +304,8 @@ namespace DoodleIdle
         {
             var actions = UiKit.Row(parent, "SummonActions", 68, 5);
             if(category=="DungeonRelic") {
-                foreach(int count in new[]{1,10,50}) {
+                foreach(int baseCount in new[]{1,10,50}) {
+                    int count = baseCount * (result ? summonResultMultiplier : 1);
                     var ticket=UiKit.Button(actions,count+"회 뽑기",()=>TrySummonDungeonRelicTickets(count),UiKit.Yellow,68);
                     ticket.name="DungeonRelicTicketSummon"+count;CommerceButtonText(ticket,22);ticket.interactable=DungeonRelicTickets>=count;
                     var label=ticket.GetComponentInChildren<Text>();
@@ -324,8 +325,8 @@ namespace DoodleIdle
             CommerceButtonText(free, 24);
             free.interactable = CanFreeSummon(category);
             Notify(free.transform, () => CanFreeSummon(category));
-            PaidSummonButton(actions, category, 10, UiKit.Yellow);
-            PaidSummonButton(actions, category, 50, UiKit.Yellow);
+            PaidSummonButton(actions, category, 10 * (result ? summonResultMultiplier : 1), UiKit.Yellow);
+            PaidSummonButton(actions, category, 50 * (result ? summonResultMultiplier : 1), UiKit.Yellow);
         }
 
         void PaidSummonButton(Transform parent, string category, int count, Color color)
@@ -349,7 +350,7 @@ namespace DoodleIdle
                 size.minWidth = 12; size.preferredWidth = width; size.flexibleWidth = 0;
             }
             if (tickets > 0) PricePart(TicketIcon(category), tickets + "장", "SummonTicketCost", 30);
-            if (cost > 0 || tickets == 0) PricePart("Diamond", UiNumber.Format(cost), "SummonDiamondCost", cost >= 1000 ? 42 : 34);
+            if (cost > 0 || tickets == 0) PricePart("Diamond", cost.ToString("N0", CultureInfo.InvariantCulture), "SummonDiamondCost", Math.Max(34, cost.ToString("N0", CultureInfo.InvariantCulture).Length * 11));
         }
 
         static void CommerceButtonText(Button button, int size)
@@ -364,18 +365,12 @@ namespace DoodleIdle
         {
             if (category=="DungeonRelic" || !summonStates.ContainsKey(category)) return false;
             if (free && count != commerceTuning.freeCount) return false;
-            if (!free && count != 10 && count != 50) return false;
+            if (!free && !ValidSummonCount(count)) return false;
             if (free && !CanFreeSummon(category)) { Toast("오늘 무료 뽑기를 모두 사용했어요."); return false; }
             int tickets = free ? 0 : SummonTicketCost(category, count);
             int cost = free ? 0 : SummonDiamondCost(category, count);
             if (Diamonds < cost) { Toast("다이아가 부족해요."); return false; }
-            var rewards = new List<UiItem>(count);
-            for (int i = 0; i < count; i++)
-            {
-                var item = GrantItem(category, commerceRandom);
-                if (item == null) { Toast("뽑기 아이템 데이터를 확인해 주세요."); return false; }
-                rewards.Add(item);
-            }
+            var rewards = RollSummonRewards(category, count, commerceRandom);
             Diamonds -= cost;
             var state = summonStates[category];
             if (category == "Relic") services.relicTickets -= tickets;
@@ -401,9 +396,8 @@ namespace DoodleIdle
         public bool TrySummonDungeonRelicTickets(int count)
         {
             if(summonStates.Count==0)InitCommerce();
-            if((count!=1&&count!=10&&count!=50)||DungeonRelicTickets<count)return false;
-            var rewards=new List<UiItem>();
-            for(int i=0;i<count;i++){var item=GrantItem("DungeonRelic",commerceRandom);if(item==null)return false;rewards.Add(item);}
+            if(!ValidSummonCount(count, true)||DungeonRelicTickets<count)return false;
+            var rewards = RollSummonRewards("DungeonRelic", count, commerceRandom);
             if(!TrySpendDungeonRelicTickets(count))return false;
             long before=Power;CompleteSummon("DungeonRelic",rewards);NotifyPowerChanged(before,"던전 유물 획득");return true;
         }
@@ -414,13 +408,7 @@ namespace DoodleIdle
             foreach (var item in rewards) AddItem(item, 1);
             state.lifetimeDraws=state.lifetimeDraws>long.MaxValue-rewards.Count?long.MaxValue:state.lifetimeDraws+rewards.Count;
             RecordServiceProgress("summon:"+category,rewards.Count);
-            if(!IsRelicSummon(category) && state.level<MaxSummonLevel)state.experience += rewards.Count;
-            while (!IsRelicSummon(category) && state.level<MaxSummonLevel && state.experience >= CommerceExperienceNeeded(state))
-            {
-                state.experience -= CommerceExperienceNeeded(state);
-                state.level++;
-            }
-            if(IsRelicSummon(category)||state.level==MaxSummonLevel)state.experience=0;
+            AdvanceSummonExperience(state, rewards.Count);
             RecordServiceProgress("summon", rewards.Count);
             Save();
             RefreshPage();
@@ -429,19 +417,30 @@ namespace DoodleIdle
 
         void ShowSummonResults(string category, List<UiItem> rewards)
         {
+            var counts = new Dictionary<string, int>(); var unique = new List<UiItem>();
+            foreach (var item in rewards) { if (!counts.ContainsKey(item.id)) { counts[item.id] = 0; unique.Add(item); } counts[item.id]++; }
+            var catalogOrder = Items(category);
+            unique.Sort((a, b) => catalogOrder.IndexOf(a).CompareTo(catalogOrder.IndexOf(b)));
             bool animateWindow = fullscreenTitle != "뽑기 결과" && !SkipSummonAnimations;
             ShowFullscreen("뽑기 결과", body =>
             {
                 var subtitle = UiKit.Text(body, CommerceLabel(category) + " " + rewards.Count + "회 뽑기", 38, TextAnchor.MiddleCenter, 58);
                 var grid = UiKit.Grid(body, "SummonResultCards", 5, 150);
                 UiKit.PortraitGrid(grid);
-                for (int i = 0; i < rewards.Count; i++)
+                for (int i = 0; i < unique.Count; i++)
                 {
-                    var item = rewards[i];
+                    var item = unique[i];
                     var slot = UiKit.Slot(grid, item.name, item.icon, item.rarity, item.count, CopiesNeeded(item), item.equipped, false,
                         () => ShowSummonItem(item), 150);
-                    slot.GetComponent<DoodleUiSlotLayout>().hideQuantity = true;
-                    slot.GetComponent<DoodleUiSlotLayout>().Invalidate();
+                    var layout = slot.GetComponent<DoodleUiSlotLayout>();
+                    layout.grade.text = SummonGradeLabel(item);
+                    layout.gauge.name = "Summon quantity";
+                    layout.gauge.GetComponent<Image>().enabled = false;
+                    layout.gauge.GetComponent<Outline>().enabled = false;
+                    layout.gauge.Find("Fill").gameObject.SetActive(false);
+                    var amount = layout.gauge.GetComponentInChildren<Text>(); amount.name = "Draw quantity";
+                    amount.text = "×" + counts[item.id].ToString("N0", CultureInfo.InvariantCulture);
+                    layout.Invalidate();
                     slot.gameObject.name = "SummonResult_" + i + "_" + item.id;
                 }
                 var footer = UiKit.Footer(body, "Summon result footer", 228);
@@ -458,26 +457,52 @@ namespace DoodleIdle
                 gauge.name="Summon experience gauge"; gauge.gameObject.SetActive(!relic);
                 DoodleSummonReveal reveal = null; DoodleSummonCelebration celebration = null;
                 DoodleSlidingSelection skipMotion = null; Image skipTrack = null;
-                var skip = UiKit.Button(footer, "연출 스킵", () => {
+                var options = UiKit.Row(footer, "Summon result options", 48, 12);
+                var skip = UiKit.Button(options, "연출 스킵", () => {
                     SkipSummonAnimations = !SkipSummonAnimations;
                     skipMotion.Slide(SkipSummonAnimations ? 1 : 0);
                     skipTrack.color=SkipSummonAnimations ? UiKit.Green : new Color(.68f,.68f,.68f);
                     if (SkipSummonAnimations) { if(reveal) reveal.Complete(); if(celebration) celebration.Finish(); }
                 }, Color.clear, 44);
+                CollectionWidth(skip.transform, 188);
                 skip.name = "Summon animation skip"; skip.GetComponent<Outline>().enabled=false; skip.transition=Selectable.Transition.None;
                 var skipLabel=skip.GetComponentInChildren<Text>();
-                skipLabel.rectTransform.anchorMin=new Vector2(.25f,0);skipLabel.rectTransform.anchorMax=new Vector2(.62f,1);
+                skipLabel.rectTransform.anchorMin=new Vector2(0,0);skipLabel.rectTransform.anchorMax=new Vector2(.60f,1);
                 var track=UiKit.Box(skip.transform,"Skip toggle track",SkipSummonAnimations?UiKit.Green:new Color(.68f,.68f,.68f));
-                track.anchorMin=track.anchorMax=new Vector2(.65f,.5f);track.sizeDelta=new Vector2(76,40);track.anchoredPosition=Vector2.zero;
+                track.anchorMin=track.anchorMax=new Vector2(.80f,.5f);track.sizeDelta=new Vector2(62,36);track.anchoredPosition=Vector2.zero;
                 skipTrack=track.GetComponent<Image>();skipTrack.raycastTarget=false;
-                var knob=UiKit.Box(track,"Toggle knob",Color.white);knob.GetComponent<Image>().sprite=UiKit.Circle;knob.GetComponent<Image>().type=Image.Type.Simple;knob.GetComponent<Image>().raycastTarget=false;knob.sizeDelta=Vector2.one*34;
+                var knob=UiKit.Box(track,"Toggle knob",Color.white);knob.GetComponent<Image>().sprite=UiKit.Circle;knob.GetComponent<Image>().type=Image.Type.Simple;knob.GetComponent<Image>().raycastTarget=false;knob.sizeDelta=Vector2.one*30;
                 skipMotion=track.gameObject.AddComponent<DoodleSlidingSelection>();skipMotion.Configure(knob,SkipSummonAnimations?1:0,SkipSummonAnimations?1:0,null,true);
+                var multipliers = UiKit.Row(options, "Summon multipliers", 48, 4);
+                UiKit.Flexible(multipliers);
+                var multiplierButtons = new List<Button>();
+                foreach (int multiplier in summonMultipliers) {
+                    var choice = UiKit.Button(multipliers, "×" + multiplier, () => {
+                        summonResultMultiplier = multiplier;
+                        for (int j = 0; j < multiplierButtons.Count; j++) multiplierButtons[j].GetComponent<Image>().color = summonMultipliers[j] == multiplier ? UiKit.Yellow : UiKit.Paper;
+                        var old = footer.Find("SummonActions"); int position = old.GetSiblingIndex();
+                        old.name = "Previous summon actions"; old.gameObject.SetActive(false); Destroy(old.gameObject);
+                        BuildSummonButtons(footer, category, true);
+                        var actions = footer.Find("SummonActions") as RectTransform; actions.SetSiblingIndex(position);
+                        var responsive = footer.GetComponentInParent<DoodleUiWindow>().inner.GetComponent<DoodleCommerceLayout>();
+                        responsive.actions = actions; responsive.Reflow();
+                    }, summonResultMultiplier == multiplier ? UiKit.Yellow : UiKit.Paper, 48);
+                    choice.name = "Summon multiplier " + multiplier; CommerceButtonText(choice, 21); multiplierButtons.Add(choice);
+                }
                 BuildSummonButtons(footer, category, true);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
                 var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window)
                 {
+                    var wallet = UiKit.Row(window.inner, "Summon result wallet", 44, 12);
+                    var tickets = UiKit.Row(wallet, "Summon result tickets", 44, 5);
+                    UiKit.Icon(tickets, TicketIcon(category), 38);
+                    var ticketAmount = UiKit.Text(tickets, "", 25, TextAnchor.MiddleLeft, 44);
+                    var diamonds = UiKit.Row(wallet, "Summon result diamonds", 44, 5);
+                    UiKit.Icon(diamonds, "Diamond", 34);
+                    var diamondAmount = UiKit.Text(diamonds, "", 25, TextAnchor.MiddleLeft, 44);
+                    wallet.gameObject.AddComponent<DoodleSummonWallet>().Configure(this, category, ticketAmount, diamondAmount);
                     var background = window.inner.GetComponent<Image>();
                     if (background) background.color = new Color(1, .982f, .93f);
                     var paper = window.GetComponent<Image>();
@@ -500,11 +525,11 @@ namespace DoodleIdle
                     var crest = UiKit.Icon(window.inner, "Player", 108);
                     crest.name = "Result player crest";
                     var responsive = window.inner.gameObject.AddComponent<DoodleCommerceLayout>();
-                    responsive.window = window; responsive.resultGrid = grid.GetComponent<GridLayoutGroup>();
-                    responsive.resultCount = rewards.Count; responsive.subtitle = subtitle; responsive.crest = crest.rectTransform;
+                    responsive.window = window; responsive.resultGrid = grid.GetComponent<GridLayoutGroup>(); responsive.wallet = wallet;
+                    responsive.resultCount = unique.Count; responsive.subtitle = subtitle; responsive.crest = crest.rectTransform;
                     responsive.summary = summary; responsive.summaryIcon = summaryIcon.rectTransform; responsive.level = level;
                     responsive.summaryText = summaryText; responsive.experience = experience;
-                    responsive.noSummonProgress=relic; responsive.skipButton=skip;
+                    responsive.noSummonProgress=relic; responsive.skipButton=skip; responsive.options = options;
                     responsive.gauge = gauge; responsive.actions = footer.Find("SummonActions") as RectTransform;
                     responsive.confirm = confirm; responsive.confirmRow = confirmRow;
                     responsive.Reflow();
@@ -692,6 +717,7 @@ namespace DoodleIdle
         public int resultCount;
         public bool noSummonProgress;
         public Button skipButton;
+        public RectTransform wallet, options;
         bool reflowing;
 
         void LateUpdate() { Reflow(); }
@@ -741,13 +767,14 @@ namespace DoodleIdle
                 if (!resultGrid || !window.footer || !viewport) return;
                 // Keep the reference's celebration hierarchy while cards retain a 3:4 ratio.
                 float tall = Mathf.Clamp01((window.inner.rect.height - 720) / 800);
-                float header = Mathf.Lerp(Mathf.Max(82, window.headerHeight), 335, tall);
+                float header = Mathf.Lerp(Mathf.Max(82, window.headerHeight), 335, tall) + 52;
+                if (wallet) PlaceTop(wallet, 28, new Vector2(Mathf.Min(620, window.inner.rect.width - 32), 44));
                 float footerGap = Mathf.Lerp(8, 26, tall);
                 float summaryHeight = Mathf.Lerp(46, 84, tall);
                 float gaugeHeight = noSummonProgress?0:Mathf.Lerp(32, 36, tall);
                 float actionHeight = Mathf.Lerp(68, 106, tall);
                 float confirmHeight = Mathf.Lerp(58, 88, tall);
-                float skipHeight=44;
+                float skipHeight=48;
                 float footerHeight = summaryHeight + gaugeHeight + skipHeight + actionHeight + confirmHeight + footerGap * (noSummonProgress?3:4);
                 float bottom = Mathf.Lerp(12, 100, tall);
                 window.footer.sizeDelta = new Vector2(window.footer.sizeDelta.x, footerHeight);
@@ -796,6 +823,7 @@ namespace DoodleIdle
                 UiKit.Height(confirmRow, confirmHeight); UiKit.Height(confirm.transform, confirmHeight);
                 var confirmSize = confirm.GetComponent<LayoutElement>();
                 confirmSize.minWidth = confirmSize.preferredWidth = window.footer.rect.width * .38f;
+                if (options) UiKit.Height(options, skipHeight);
                 if(skipButton) { UiKit.Height(skipButton.transform, skipHeight);SetTextSize(skipButton.GetComponentInChildren<Text>(), 22); }
                 confirmSize.flexibleWidth = 0;
                 SetTextSize(confirm.GetComponentInChildren<Text>(), Mathf.RoundToInt(Mathf.Lerp(29, 43, tall)));
@@ -823,7 +851,7 @@ namespace DoodleIdle
                     bodyLayout.padding = new RectOffset(bodyLayout.padding.left, bodyLayout.padding.right, topPadding, bodyLayout.padding.bottom);
 
                 var banner = window.inner.Find("Golden result banner") as RectTransform;
-                float bannerCenter = Mathf.Lerp(43, 239, tall), bannerHeight = Mathf.Lerp(62, 132, tall);
+                float bannerCenter = Mathf.Lerp(43, 239, tall) + 52, bannerHeight = Mathf.Lerp(62, 132, tall);
                 if (crest)
                 {
                     float crestSize = Mathf.Lerp(58, 122, tall);

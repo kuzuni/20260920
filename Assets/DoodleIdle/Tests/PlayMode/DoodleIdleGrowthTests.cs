@@ -90,9 +90,10 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Gold, Is.EqualTo(892));
             Assert.That(ui.StatValue("health") - health, Is.EqualTo(120));
             GrowthLevels["crit2Chance"] = 4000;
-            Assert.That(ui.StatUpgradeQuote("crit4Chance", 3, out _), Is.EqualTo(476));
+            draft.critical2Growth = 0; ui.ApplyStatCostTuning(draft);
+            Assert.That(ui.StatUpgradeQuote("crit4Chance", 3, out _), Is.EqualTo(39));
             Assert.That(ui.UpgradeStat("crit4Chance", 3), Is.True);
-            Assert.That(ui.Gold, Is.EqualTo(416));
+            Assert.That(ui.Gold, Is.EqualTo(853));
             ui.Gold = 58;
             Assert.That(ui.StatUpgradeQuote("attack", -1, out int maxCount), Is.EqualTo(57));
             Assert.That(maxCount, Is.EqualTo(2));
@@ -103,10 +104,11 @@ namespace DoodleIdle.Tests
             Assert.That(JsonUtility.ToJson(GrowthTuning.items[0]), Is.EqualTo(itemBefore));
             var restored = JsonUtility.FromJson<UiCollectionTuning>(JsonUtility.ToJson(GrowthTuning));
             Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "healthRegen", 2), Is.EqualTo(23));
-            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit2Chance", 2), Is.EqualTo(21));
-            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit4Chance", 2), Is.EqualTo(68));
+            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit2Chance", 2), Is.EqualTo(13));
+            Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit4Chance", 2), Is.EqualTo(13));
             draft.commonGrowth = 0; ui.ApplyStatCostTuning(draft);
             Assert.That(ui.StatUpgradeQuote("attack", 1, out _), Is.EqualTo(10));
+            draft.critical2Growth = .25f;
             Assert.That(DoodleUi.StatUpgradePrice(draft, "crit4Chance", 10000), Is.EqualTo(long.MaxValue));
             ui.ClosePage();
             yield return null;
@@ -117,7 +119,7 @@ namespace DoodleIdle.Tests
         {
             game.TogglePause();
             var ui = game.Ui;
-            CollectionAssert.AreEqual(new[] { "attack", "health", "healthRegen", "crit2Chance", "crit4Chance" }, GrowthTuning.stats.Select(x => x.id).ToArray());
+            CollectionAssert.AreEqual(new[] { "attack", "health", "healthRegen" }.Concat(DoodleUi.CriticalStatIds).ToArray(), GrowthTuning.stats.Select(x => x.id).ToArray());
             UiOpen("Stats");
             CollectionAssert.AreEquivalent(new[] { "×1", "×10", "×100", "MAX" }, UiNode("Stat quantity").GetComponentsInChildren<Button>().Select(x => x.name).ToArray());
             foreach (var stat in GrowthTuning.stats) Assert.That(UiNode("Stat " + stat.id), Is.Not.Null);
@@ -149,6 +151,7 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             ui.Gold = 1000000;
+            GrowthTuning.statCosts.critical2Growth = 0;
             Assert.That(ui.Critical2Chance, Is.Zero);
             Assert.That(ui.Critical4Chance, Is.Zero);
             Assert.That(ui.CombatAttackSpeedMultiplier, Is.EqualTo(1));
@@ -190,10 +193,10 @@ namespace DoodleIdle.Tests
                 GrowthLevels[id] = cap - 1;
                 long gold = ui.Gold;
                 int count;
-                Assert.That(ui.StatUpgradeQuote(id, 100, out count), Is.EqualTo((id == "crit2Chance" ? GrowthTuning.statCosts.critical2BaseCost : GrowthTuning.statCosts.critical4BaseCost)));
+                Assert.That(ui.StatUpgradeQuote(id, 100, out count), Is.EqualTo(GrowthTuning.statCosts.critical2BaseCost));
                 Assert.That(count, Is.EqualTo(1));
                 Assert.That(ui.UpgradeStat(id, 100), Is.True);
-                Assert.That(ui.Gold, Is.EqualTo(gold - (id == "crit2Chance" ? GrowthTuning.statCosts.critical2BaseCost : GrowthTuning.statCosts.critical4BaseCost)));
+                Assert.That(ui.Gold, Is.EqualTo(gold - GrowthTuning.statCosts.critical2BaseCost));
                 Assert.That(ui.StatValue(id), Is.EqualTo(100));
                 gold = ui.Gold;
                 Assert.That(ui.UpgradeStat(id, -1), Is.False);

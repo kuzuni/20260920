@@ -128,7 +128,7 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.StatUpgradeQuote(id,1,out _), Is.EqualTo(45));
             }
             Assert.That(DoodleUi.StatUpgradePrice(costs,"crit2Chance",3), Is.EqualTo(45));
-            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit4Chance",3), Is.EqualTo(160));
+            Assert.That(DoodleUi.StatUpgradePrice(costs,"crit4Chance",3), Is.EqualTo(long.MaxValue));
             costs.commonGrowthSteps[0].growth = 99;
             Assert.That(ui.ReadStatCostTuning().commonGrowthSteps[0].growth, Is.EqualTo(1));
             costs.commonGrowthSteps = Array.Empty<DoodleGrowthStep>();
@@ -400,7 +400,7 @@ namespace DoodleIdle.Tests
                     var ten = UiNode("PaidSummon10", UiNode("Fullscreen: 뽑기 결과"));
                     Assert.That(UiNode("SummonTicketCost", ten).GetComponent<UnityEngine.UI.Text>().text, Is.EqualTo("3장"));
                     int remainder = ui.SummonCost(category, 7);
-                    Assert.That(UiNode("SummonDiamondCost", ten).GetComponent<UnityEngine.UI.Text>().text, Is.EqualTo(UiNumber.Format(remainder)));
+                    Assert.That(UiNode("SummonDiamondCost", ten).GetComponent<UnityEngine.UI.Text>().text, Is.EqualTo(remainder.ToString("N0")));
                     ui.Diamonds = remainder - 1;
                     long progress = ui.CareerProgress("summon:" + category);
                     Assert.That(ui.TrySummon(category, 10, false), Is.False);

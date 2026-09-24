@@ -13,10 +13,11 @@ namespace DoodleIdle
         Tween tween;
         Action<float> changed;
         bool roundKnob;
+        int tabCount = 2;
         public float Position { get; private set; }
-        public void Configure(RectTransform visual, float start, float target, Action<float> remember = null, bool knob = false)
+        public void Configure(RectTransform visual, float start, float target, Action<float> remember = null, bool knob = false, int tabs = 2)
         {
-            indicator = visual; changed = remember; roundKnob = knob;
+            indicator = visual; changed = remember; roundKnob = knob; tabCount = Mathf.Max(1, tabs);
             Apply(start); Slide(target);
         }
         void Apply(float value)
@@ -26,8 +27,8 @@ namespace DoodleIdle
                 indicator.anchorMin = indicator.anchorMax = new Vector2(value, .5f);
                 indicator.anchoredPosition = new Vector2(Mathf.Lerp(20, -20, value), 0);
             } else {
-                indicator.anchorMin = new Vector2(value * .5f, 0);
-                indicator.anchorMax = new Vector2(value * .5f + .5f, 1);
+                indicator.anchorMin = new Vector2(value / tabCount, 0);
+                indicator.anchorMax = new Vector2((value + 1) / tabCount, 1);
                 indicator.offsetMin = new Vector2(4,4); indicator.offsetMax = new Vector2(-4,-4);
             }
             changed?.Invoke(value);

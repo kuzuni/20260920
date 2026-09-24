@@ -77,18 +77,20 @@ namespace DoodleIdle
         public static void Repeat(Button button,string key,Func<bool> action)
         { button.GetComponent<DoodleButtonMotion>().BindRepeat(key,action); }
         public static void SlidingTabs(Transform parent, string left, string right, int selected, float start, Action<int> choose, Action<float> remember, float height)
+            => SlidingTabs(parent, new[] { left, right }, selected, start, choose, remember, height);
+        public static void SlidingTabs(Transform parent, string[] labels, int selected, float start, Action<int> choose, Action<float> remember, float height)
         {
             var indicator = Box(parent, "Sliding selection", Yellow);
             indicator.GetComponent<Image>().raycastTarget = false;
             var motion = parent.gameObject.AddComponent<DoodleSlidingSelection>();
-            motion.Configure(indicator, start, selected, remember);
-            for (int i = 0; i < 2; i++) {
+            motion.Configure(indicator, start, selected, remember, false, labels.Length);
+            for (int i = 0; i < labels.Length; i++) {
                 int index = i;
-                var button = Button(parent, i == 0 ? left : right, () => { if (index != selected) choose(index); }, Color.clear, height);
+                var button = Button(parent, labels[i], () => { if (index != selected) choose(index); }, Color.clear, height);
                 button.GetComponent<Outline>().enabled = false;
                 button.transition = Selectable.Transition.None;
                 var rect = (RectTransform)button.transform;
-                rect.anchorMin = new Vector2(i * .5f, 0); rect.anchorMax = new Vector2(i * .5f + .5f, 1);
+                rect.anchorMin = new Vector2((float)i / labels.Length, 0); rect.anchorMax = new Vector2((float)(i + 1) / labels.Length, 1);
                 rect.offsetMin = rect.offsetMax = Vector2.zero;
                 button.GetComponentInChildren<Text>().resizeTextMaxSize = 31;
             }
@@ -182,6 +184,7 @@ namespace DoodleIdle
             if(art.TryGetValue(key,out var cached) && cached && cached.texture) return cached;
             art.Remove(key);
             var ascension=DoodleAscensionArt.Get(key);if(ascension){art[key]=ascension;return ascension;}
+            if (key == "Necklace") key = "EquipmentNecklace_10";
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
             var expansion=DoodleExpansionArt.Get(key);if(expansion){art[key]=expansion;return expansion;}
             if(key=="Camera")
@@ -212,6 +215,8 @@ namespace DoodleIdle
             if(variant){art[key]=variant;return variant;}
             string[] progression={"StatAttack","StatHealth","StatRegen","StatCrit2","StatCrit4","RelicStrength","RelicLife","RelicLuck","RelicRegen","RelicCritical","PodiumGold","PodiumSilver","PodiumBronze"};
             int progressionIndex=Array.IndexOf(progression,key);
+            int criticalTier = Array.IndexOf(new[] { "StatCrit8", "StatCrit16", "StatCrit32", "StatCrit64", "StatCrit128" }, key);
+            if (criticalTier >= 0) { var sprite = Cell("UI/CriticalTierIcons", criticalTier, 5, 1); art[key] = sprite; return sprite; }
             if(key=="StatCrit2" || key=="StatCrit4"){var critical=Cell("UI/CriticalIcons",key=="StatCrit2"?0:1,2,1);art[key]=critical;return critical;}
             if(progressionIndex>=0)
             {

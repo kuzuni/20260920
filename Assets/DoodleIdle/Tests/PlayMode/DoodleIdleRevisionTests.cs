@@ -263,7 +263,7 @@ namespace DoodleIdle.Tests
         public IEnumerator RevisionEquipmentCapsSynthesisChainAndGodUpgrades()
         {
             game.TogglePause(); var ui = game.Ui;
-            foreach (string category in new[] { "Armor", "Club" })
+            foreach (string category in new[] { "Armor", "Club", "Necklace" })
             {
                 var items = ui.Items(category);
                 Assert.That(items.Count, Is.EqualTo(36));
@@ -342,7 +342,7 @@ namespace DoodleIdle.Tests
             Assert.That(upgrades, Is.EqualTo(1));
             Assert.That(ui.UpgradeStat("crit2Chance", 100), Is.True);
             Assert.That(ui.Critical4Unlocked, Is.True);
-            ui.Gold = gold;
+            ui.Gold = ui.StatUpgradeQuote("crit4Chance", 1, out _);
             Assert.That(ui.UpgradeStat("crit4Chance", 1), Is.True);
             var skill = ui.Items("Skill")[0]; skill.discovered = true; skill.level = 99; skill.count = 100;
             Assert.That(ui.RefundSkill(skill), Is.Zero);

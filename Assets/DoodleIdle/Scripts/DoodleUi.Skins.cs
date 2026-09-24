@@ -150,7 +150,7 @@ namespace DoodleIdle
         string SkinAcquisitionText(UiSkin skin)
         {
             if (skin.owned) return "보유 중 · 장착 시 외형만 변경";
-            if (skin.acquisition == "Diamond") return "다이아 " + UiNumber.Format(skin.diamondCost) + "개로 구매";
+            if (skin.acquisition == "Diamond") return "다이아 " + skin.diamondCost.ToString("N0") + "개로 구매";
             int progress = skin.acquisition == "MainStage" ? MainStage : HighestDungeonStage;
             return (skin.acquisition == "MainStage" ? "메인" : "최고 던전") + " " + UiNumber.Format(skin.requiredStage) + "단계 완료 시 해방\n진행 " + UiNumber.Format(Mathf.Min(progress, skin.requiredStage)) + "/" + UiNumber.Format(skin.requiredStage);
         }
@@ -190,7 +190,7 @@ namespace DoodleIdle
                 UiKit.Stretch(price, 5, 5, 5, 5);
                 UiKit.Text(price, "구매", 24, TextAnchor.MiddleRight, 36);
                 UiKit.Icon(price, "Diamond", 26);
-                UiKit.Text(price, UiNumber.Format(selected.diamondCost), 24, TextAnchor.MiddleLeft, 36);
+                UiKit.Text(price, selected.diamondCost.ToString("N0"), 24, TextAnchor.MiddleLeft, 36);
                 buy.interactable = Diamonds >= selected.diamondCost;
             }
             else

@@ -12,7 +12,7 @@ namespace DoodleIdle.Editor
     {
         const string TuningPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/ServicesTuning.json";
         const string CollectionPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json";
-        static readonly string[] Names = { "골드 보상", "적 체력", "적 데미지", "공격력 · 체력 · 회복 강화 비용", "x2 치명타 강화 비용", "x4 치명타 강화 비용" };
+        static readonly string[] Names = { "골드 보상", "적 체력", "적 데미지", "공격력 · 체력 · 회복 강화 비용", "x2 치명타 강화 비용", "x4 치명타 강화 비용", "x8 치명타 강화 비용", "x16 치명타 강화 비용", "x32 치명타 강화 비용", "x64 치명타 강화 비용", "x128 치명타 강화 비용" };
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning draft = new DoodleUi.ServiceTuning(), loaded = new DoodleUi.ServiceTuning();
         [SerializeField, HideInInspector] UiStatCostTuning statDraft = new UiStatCostTuning(), statLoaded = new UiStatCostTuning();
         [SerializeField, HideInInspector] int selected, previewPosition = 70;
@@ -22,7 +22,7 @@ namespace DoodleIdle.Editor
         DoodleUi Ui => EditorApplication.isPlaying && Game && Game.Ready ? Game.Ui : null;
         int Origin => selected >= 3 ? 0 : 1;
         string AxisName => selected >= 3 ? "강화 전 레벨" : "스테이지";
-        string StatId => selected == 4 ? "crit2Chance" : selected == 5 ? "crit4Chance" : "attack";
+        string StatId => selected >= 4 ? DoodleUi.CriticalStatIds[selected - 4] : "attack";
 
         [MenuItem("Doodle Idle/밸런스 조절")]
         public static void Open()
@@ -146,8 +146,10 @@ namespace DoodleIdle.Editor
             if (choice != selected) { selected = choice; previewPosition = Math.Max(Origin, previewPosition); GUIUtility.hotControl = 0; }
             EditorGUILayout.HelpBox("시작값과 증가율로 밸런스를 설정합니다. 플레이 중 수정값은 즉시 적용되고 자동 저장됩니다. 플레이 종료 후에도 유지됩니다.", MessageType.Info);
             EditorGUI.BeginChangeCheck();
-            double start = DoubleInput(selected >= 3 ? "시작 강화 비용" : selected == 0 ? "시작 골드 / 1마리" : "시작값", StartValue);
-            float growth = FloatInput(selected == 2 ? "초반 목표 이후 증가율 (%)" : "단계당 증가율 (%)", Growth * 100);
+            EditorGUI.BeginDisabledGroup(selected >= 5);
+            double start = DoubleInput(selected >= 3 ? "시작 강화 비용" : selected == 0 ? "시작 골드 / 1마리" : "시작값", (selected >= 5 ? DoodleUi.StatUpgradePrice(statDraft, StatId, 0) : StartValue));
+            float growth = FloatInput(selected == 2 ? "초반 목표 이후 증가율 (%)" : "단계당 증가율 (%)", (selected >= 5 ? DoodleUi.CriticalContinuationGrowth(statDraft) : Growth) * 100);
+            EditorGUI.EndDisabledGroup();
             if (EditorGUI.EndChangeCheck()) { Record("시작값과 증가율 변경"); StartValue = start; Growth = growth / 100; }
             if (selected == 2) {
                 EditorGUI.BeginChangeCheck();
@@ -155,7 +157,7 @@ namespace DoodleIdle.Editor
                 float earlyDamage = FloatInput("초반 목표 데미지", draft.earlyEnemyDamageMax);
                 if (EditorGUI.EndChangeCheck()) { Record("초반 데미지 변경"); draft.earlyEnemyDamageEndStage = Math.Max(2, earlyStage); draft.earlyEnemyDamageMax = float.IsNaN(earlyDamage) || float.IsInfinity(earlyDamage) ? 100 : Mathf.Clamp(earlyDamage, 0, 1000000); }
             }
-            DrawGrowthSteps();
+            if (selected < 5) DrawGrowthSteps();
             string formula = selected == 2
                 ? "n ≤ E: 기본값 = 시작값 + (목표값 − 시작값) × (n − 1) / (E − 1)\nn > E: 기본값 = 목표값 × (1 + r)^(n − E)\nE = 초반 목표 스테이지"
                 : "기본값 = 시작값 × (1 + r)^(n − " + Origin + ")";
@@ -164,8 +166,9 @@ namespace DoodleIdle.Editor
             if (GrowthSteps.Length > 0) formula += "\n구간 설정 시: 직전 값 × (1 + 해당 단계 증가율)\n구간별 누적 곱으로 계산하며 시작값을 재설정하지 않습니다.";
             formula += "\n기본값·최종값 계산 상한: 1e30";
             formula += selected >= 3 ? "\n강화 비용: 최소 1골드, 소수점 올림" : selected == 0 ? "\n골드: 소수점 반올림, 실제 지급 시 유물·버프 추가" : selected == 1 ? "\n일반 적 기준, 보스 체력 ×20" : "\n일반 적 접촉 데미지 기준 (기본 접촉값 64)";
+            if (selected >= 5) formula = "첫 강화 비용은 앞 치명타 단계의 마지막 강화 비용입니다. 이후 증가율은 x2 만렙 시점의 증가율을 이어받습니다. x2 비용 설정에서 함께 조절합니다.";
             EditorGUILayout.HelpBox(formula, MessageType.None);
-            if (selected >= 3) EditorGUILayout.HelpBox("공격력·체력·회복은 같은 비용 곡선입니다. x2·x4는 각각 독립적입니다. 능력치는 일정 증가, x4 해금 조건은 유지됩니다.", MessageType.None);
+            if (selected >= 3) EditorGUILayout.HelpBox("공격력·체력·회복은 같은 비용 곡선입니다. 치명타는 x2 → x4 → x8 → x16 → x32 → x64 → x128 순서로 해금되며 강화 비용이 이어집니다.", MessageType.None);
             WrappedLabel("정확한 수치 비교", true);
             previewPosition = Math.Max(Origin, IntInput(AxisName, previewPosition));
             var current = Ui ? Ui.ReadBalanceTuning() : loaded;

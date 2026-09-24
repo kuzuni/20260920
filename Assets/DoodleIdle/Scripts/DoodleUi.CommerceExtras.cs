@@ -36,8 +36,8 @@ namespace DoodleIdle
         public bool TrySummonTickets(string category,int count)
         {
             if(category=="DungeonRelic")return TrySummonDungeonRelicTickets(count);
-            if((count!=1&&count!=10&&count!=50)||!summonStates.ContainsKey(category)||SummonTickets(category)<count)return false;
-            var rewards=new List<UiItem>(count);for(int i=0;i<count;i++)rewards.Add(GrantItem(category,commerceRandom));
+            if(!ValidSummonCount(count, true)||!summonStates.ContainsKey(category)||SummonTickets(category)<count)return false;
+            var rewards = RollSummonRewards(category, count, commerceRandom);
             if(category=="Relic")services.relicTickets-=count;else summonStates[category].tickets-=count;
             long before=Power;CompleteSummon(category,rewards);NotifyPowerChanged(before,"뽑기권 사용");return true;
         }

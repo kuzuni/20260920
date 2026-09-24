@@ -8,7 +8,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleUi
     {
-        string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4";
+        string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4", selectedNecklace = "necklace_0";
         float equipmentTabPosition;
         int statBatch = 1;
         bool collectionBulkRunning;
@@ -117,7 +117,7 @@ namespace DoodleIdle
                 var frame = CollectionBox(body, "Stat " + stat.id, UiKit.Paper);
                 CollectionSoftBorder(frame);
                 var row = UiKit.Row(frame, stat.name, 104, 10);
-                bool locked = stat.id == "crit4Chance" && !Critical4Unlocked;
+                bool locked = IsCriticalChance(stat.id) && !CriticalUnlocked(stat.id);
                 var statArt = UiKit.Icon(row, stat.icon, 86);
                 if (locked) statArt.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
@@ -126,10 +126,10 @@ namespace DoodleIdle
                 float current = StatValue(stat.id);
                 float next = StatValueAfterUpgrades(stat.id,upgrades);
                 if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
-                var valueText = UiKit.Text(text, locked ? "2배 치명타 MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
+                var valueText = UiKit.Text(text, locked ? CriticalUnlockText(stat.id) + " MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
                 if (locked)
                 {
-                    var lockButton = UiKit.Button(row, "x2 치명타\nMAX 시 해금", null, Color.gray, 94);
+                    var lockButton = UiKit.Button(row, CriticalUnlockText(stat.id) + "\nMAX 시 해금", null, Color.gray, 94);
                     CollectionButtonText(lockButton,23);
                     CollectionWidth(lockButton.transform, 164); lockButton.interactable = false;
                     continue;
@@ -163,6 +163,7 @@ namespace DoodleIdle
             foreach (var refresh in statWalletBindings) refresh();
         }
 
+        static string CriticalUnlockText(string id) => CriticalMultiplierAt(Math.Max(0, Array.IndexOf(CriticalStatIds, id) - 1)) + "배 치명타";
         string StatNumber(string id, float value) => UiNumber.Format(value, IsCriticalChance(id) ? 2 : 1) + (IsCriticalChance(id) ? "%" : id == "healthRegen" ? "/초" : "");
 
         public long StatUpgradeQuote(string id, int requested, out int upgrades)
@@ -170,7 +171,7 @@ namespace DoodleIdle
             InitCollections();
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
             upgrades = 0;
-            if (stat == null || (id == "crit4Chance" && !Critical4Unlocked)) return 0;
+            if (stat == null || (IsCriticalChance(id) && !CriticalUnlocked(id))) return 0;
             int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));
             int target = requested < 0 ? available : Math.Min(Math.Max(0, requested), available);
             long total = 0;
@@ -204,7 +205,7 @@ namespace DoodleIdle
         void BuildEquipment(RectTransform body)
         {
             body.GetComponent<VerticalLayoutGroup>().spacing = 8;
-            string selectedId = equipmentCategory == "Armor" ? selectedArmor : selectedClub;
+            string selectedId = equipmentCategory == "Armor" ? selectedArmor : equipmentCategory == "Club" ? selectedClub : selectedNecklace;
             var items = Items(equipmentCategory);
             var selected = items.Find(x => x.id == selectedId) ?? items[0];
             var frame = CollectionBox(body, "Selected equipment", UiKit.Paper);
@@ -215,8 +216,8 @@ namespace DoodleIdle
             var info = UiKit.Column(row, "Item information", 4, 1);
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
-            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%");
-            CollectionEffectRow(info, "장착 효과", (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)) + "%");
+            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%" + (selected.ownedGoldPercent > 0 ? " · 골드 +" + UiNumber.Format(ItemOwnedGoldValue(selected)) + "%" : ""));
+            CollectionEffectRow(info, "장착 효과", selected.category == "Necklace" ? "체력 회복 +" + UiNumber.Format(NecklaceRecovery(ItemEquipValue(selected)), 2) + "/초" : (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)) + "%");
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)
             {
@@ -232,14 +233,14 @@ namespace DoodleIdle
             OwnershipStrip(body, "Equipment");
             BuildInventory(body, items, item =>
             {
-                if (equipmentCategory == "Armor") selectedArmor = item.id; else selectedClub = item.id;
+                if (equipmentCategory == "Armor") selectedArmor = item.id; else if (equipmentCategory == "Club") selectedClub = item.id; else selectedNecklace = item.id;
                 RefreshPage();
             }, 5);
             var footer = UiKit.Footer(body, "Equipment footer", 130);
             CollectionActions(footer, equipmentCategory);
             var tabs = UiKit.Box(footer, "Equipment tabs", new Color(.78f,.78f,.76f), 52);
-            UiKit.SlidingTabs(tabs, "갑옷", "몽둥이", equipmentCategory == "Armor" ? 0 : 1, equipmentTabPosition,
-                index => { equipmentCategory = index == 0 ? "Armor" : "Club"; RefreshPage(); }, value => equipmentTabPosition = value, 52);
+            UiKit.SlidingTabs(tabs, new[] { "갑옷", "몽둥이", "목걸이" }, equipmentCategory == "Armor" ? 0 : equipmentCategory == "Club" ? 1 : 2, equipmentTabPosition,
+                index => { equipmentCategory = index == 0 ? "Armor" : index == 1 ? "Club" : "Necklace"; RefreshPage(); }, value => equipmentTabPosition = value, 52);
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
@@ -306,7 +307,8 @@ namespace DoodleIdle
             if (category == "Equipment")
             {
                 var row = UiKit.Row(parent, "Total ownership", 42, 0);
-                UiKit.Text(row, "총 보유 효과   " + effect, 25, TextAnchor.MiddleCenter, 42);
+                effect += " · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", category)) + "% · 골드 +" + UiNumber.Format(EffectBonus("gold", category)) + "%";
+                UiKit.Text(row, "총 보유 효과   " + effect, 23, TextAnchor.MiddleCenter, 42);
                 return;
             }
             var strip = CollectionBox(parent, "Total ownership", new Color(.965f, .943f, .874f));
@@ -366,7 +368,7 @@ namespace DoodleIdle
             {
                 var item = entry;
                 var card = CollectionSlot(grid, item, () => click(item), cellHeight);
-                bool selected = (category == "Armor" && item.id == selectedArmor) || (category == "Club" && item.id == selectedClub);
+                bool selected = (category == "Armor" && item.id == selectedArmor) || (category == "Club" && item.id == selectedClub) || (category == "Necklace" && item.id == selectedNecklace);
                 if (selected)
                 {
                     var outline = card.GetComponent<Outline>();
@@ -394,7 +396,7 @@ namespace DoodleIdle
         void CollectionActions(RectTransform parent, string category)
         {
             var row = UiKit.Row(parent, "Collection actions", 68, 14);
-            if ((category == "Armor" || category == "Club") && Items(category).Exists(x => x.discovered && x.level >= 100 && SynthesisTarget(x) != null))
+            if ((IsEquipmentCategory(category)) && Items(category).Exists(x => x.discovered && x.level >= 100 && SynthesisTarget(x) != null))
             {
                 var synthesis = UiKit.Button(row, "일괄 합성", () => { int made = SynthesizeAll(category); RefreshPage(); Toast(UiNumber.Format(made) + "개 합성했습니다."); }, UiKit.Purple, 68);
                 synthesis.interactable = !collectionBulkRunning;
@@ -403,7 +405,7 @@ namespace DoodleIdle
             }
             var upgrade = UiKit.Button(row, "일괄강화", () => StartCollectionBulk(category), UiKit.Blue, 68);
             upgrade.interactable = !collectionBulkRunning;
-            var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast((category == "Skill" || category == "Companion" ? "높은 등급의 " : "강한 ") + CategoryName(category) + "부터 장착했습니다."); }, category == "Armor" || category == "Club" ? UiKit.Green : UiKit.Yellow, 68);
+            var auto = UiKit.Button(row, "자동장착", () => { AutoEquip(category); Save(); RefreshPage(); Toast((category == "Skill" || category == "Companion" ? "높은 등급의 " : "강한 ") + CategoryName(category) + "부터 장착했습니다."); }, IsEquipmentCategory(category) ? UiKit.Green : UiKit.Yellow, 68);
             Notify(upgrade.transform,()=>!collectionBulkRunning&&CategoryCanUpgrade(category));
             Notify(auto.transform,()=>CategoryCanEquip(category));
             CollectionButtonText(upgrade, 33); CollectionButtonText(auto, 33);
@@ -657,7 +659,7 @@ namespace DoodleIdle
 
         void RefreshCollectionBulkPage(string category)
         {
-            string page = category == "Armor" || category == "Club" ? "Equipment" : category == "Skill" ? "Skills" : category == "Companion" ? "Companions" : "Relics";
+            string page = IsEquipmentCategory(category) ? "Equipment" : category == "Skill" ? "Skills" : category == "Companion" ? "Companions" : "Relics";
             if (ActivePage == page) RefreshPage();
         }
 
@@ -683,7 +685,7 @@ namespace DoodleIdle
         }
         static string CategoryName(string category)
         {
-            switch (category) { case "Armor": return "갑옷"; case "Club": return "몽둥이"; case "Skill": return "스킬"; case "Companion": return "동료"; default: return "유물"; }
+            switch (category) { case "Armor": return "갑옷"; case "Club": return "몽둥이"; case "Necklace": return "목걸이"; case "Skill": return "스킬"; case "Companion": return "동료"; default: return "유물"; }
         }
     }
 
@@ -700,7 +702,7 @@ namespace DoodleIdle
             body = content;
             viewport = body.GetComponentInParent<ScrollRect>().viewport;
             Layout(body.GetComponent<VerticalLayoutGroup>(), 3, new RectOffset(2, 2, 2, 2));
-            bool equipment = category == "Armor" || category == "Club";
+            bool equipment = DoodleUi.IsEquipmentCategory(category);
             if (equipment)
             {
                 var spec = body.Find("Selected equipment/Equipment specification");

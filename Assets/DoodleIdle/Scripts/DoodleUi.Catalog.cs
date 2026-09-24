@@ -10,7 +10,7 @@ namespace DoodleIdle
         public string id, name, icon, category, effect, description, ability;
         public int rarity, count, level, slot, tier;
         public bool equipped, discovered, dungeonRelic;
-        public float ownedPercent, equipValue, cooldown;
+        public float ownedPercent, ownedGoldPercent, equipValue, cooldown;
         public string projectile, trajectory;
         public int volleyCount;
         public float volleyGap, attackInterval, projectileSpeed, explosionRadius;
@@ -114,7 +114,7 @@ namespace DoodleIdle
                 }
                 catch (ArgumentException) { Debug.LogWarning("Collection save could not be read; using local starter data."); }
             }
-            foreach (string category in new[] { "Armor", "Club", "Skill", "Companion" }) NormalizeEquipment(category);
+            foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion" }) NormalizeEquipment(category);
         }
 
         public void SaveCollections()
@@ -239,12 +239,23 @@ namespace DoodleIdle
         public float OwnedBonus => EffectBonus("attack");
         public float HealthBonus => EffectBonus("health");
         public float GoldGainMultiplier => 1 + EffectBonus("gold") / 100;
-        public float Critical2Chance => Mathf.Clamp(StatValue("crit2Chance") + EffectBonus("crit2Chance"), 0, 100);
-        public bool Critical4Unlocked => StatLevel("crit2Chance") >= StatMaxLevel("crit2Chance");
-        public float Critical4Chance => Critical4Unlocked ? Mathf.Clamp(StatValue("crit4Chance") + EffectBonus("crit4Chance"), 0, 100) : 0;
+        public static readonly string[] CriticalStatIds = { "crit2Chance", "crit4Chance", "crit8Chance", "crit16Chance", "crit32Chance", "crit64Chance", "crit128Chance" };
+        public static int CriticalMultiplierAt(int tier) => 1 << (tier + 1);
+        public static int CriticalLevelCap(int tier) => tier == 0 ? 4000 : 2000;
+        public bool CriticalUnlocked(string id)
+        {
+            int tier = Array.IndexOf(CriticalStatIds, id);
+            for (int i = 0; i < tier; i++) if (StatLevel(CriticalStatIds[i]) < StatMaxLevel(CriticalStatIds[i])) return false;
+            return true;
+        }
+        public float CriticalChance(int tier) => CriticalUnlocked(CriticalStatIds[tier]) ? Mathf.Clamp(StatValue(CriticalStatIds[tier]) + EffectBonus(CriticalStatIds[tier]), 0, 100) : 0;
+        public float Critical2Chance => CriticalChance(0);
+        public bool Critical4Unlocked => CriticalUnlocked("crit4Chance");
+        public float Critical4Chance => CriticalChance(1);
         public float CriticalDamageBonus => Mathf.Max(0, EffectBonus("critDamage"));
         public float MaxHealth => Mathf.Max(1, (StatValue("health") * (1 + EquippedValue("Armor") / 100)) * (1 + HealthBonus / 100));
-        public float HealthRegen => Mathf.Max(0, StatValue("healthRegen") * (1 + EffectBonus("healthRegen") / 100));
+        public float HealthRegen => Mathf.Max(0, (StatValue("healthRegen") + NecklaceRecovery(EquippedValue("Necklace"))) * (1 + EffectBonus("healthRegen") / 100));
+        float NecklaceRecovery(float equipPercent) => StatValue("health") * (1 + HealthBonus / 100) * equipPercent / 100 * .05f;
         float CollectionDamageMultiplier(bool includeSkins) => (StatValue("attack") * (1 + EquippedValue("Club") / 100) / BaseStatValue("attack")) * (1 + (EffectBonus("attack", null, includeSkins) + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
         public float CombatDamageMultiplier { get { InitCollections(); return CollectionDamageMultiplier(true) / Mathf.Max(.001f, starterDamageBaseline); } }
         public float CombatAttackSpeedMultiplier => 1;
@@ -252,12 +263,17 @@ namespace DoodleIdle
         {
             get
             {
-                double p2 = Critical2Chance / 100d, p4 = Critical4Chance / 100d, bonus = 1 + CriticalDamageBonus / 100d;
-                return (1 - p4) * (1 - p2) + (1 - p4) * p2 * 2 * bonus + p4 * 4 * bonus;
+                double remaining = 1, expected = 0, bonus = 1 + CriticalDamageBonus / 100d;
+                for (int i = CriticalStatIds.Length - 1; i >= 0; i--) {
+                    double chance = CriticalChance(i) / 100d;
+                    expected += remaining * chance * CriticalMultiplierAt(i) * bonus;
+                    remaining *= 1 - chance;
+                }
+                return expected + remaining;
             }
         }
         public long Power => (long)Math.Min(long.MaxValue, Math.Round(BaseStatValue("attack") * CombatDamageMultiplier * ExpectedCriticalMultiplier * 70d + MaxHealth + HealthRegen * 20d));
-        static bool IsCriticalChance(string id) => id == "crit2Chance" || id == "crit4Chance";
+        static bool IsCriticalChance(string id) => Array.IndexOf(CriticalStatIds, id) >= 0;
         int StatMaxLevel(string id)
         {
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
@@ -302,12 +318,17 @@ namespace DoodleIdle
         {
             InitCollections();
             float value = 0;
-            foreach (var item in collectionItems)
-                if (item.discovered && item.effect == effect && (category == null || item.category == category || (category == "Equipment" && (item.category == "Armor" || item.category == "Club")))) value += ItemOwnedValue(item);
+            foreach (var item in collectionItems) {
+                if (!item.discovered || !(category == null || item.category == category || category == "Equipment" && IsEquipment(item))) continue;
+                if (item.effect == effect) value += ItemOwnedValue(item);
+                if (effect == "gold") value += ItemOwnedGoldValue(item);
+            }
             return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
         }
         public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10;
-        public static bool IsEquipment(UiItem item) => item != null && (item.category == "Armor" || item.category == "Club");
+        public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
+        public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
+        float ItemOwnedGoldValue(UiItem item) => item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
         public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? ((item.rarity == 6 && item.tier == 1 || item.rarity == 8) ? int.MaxValue : 100) : item.category == "Skill" ? 100 : collectionTuning.maxItemLevel;
         long UpgradeCopiesBetween(int from, int to)
         {
@@ -350,7 +371,7 @@ namespace DoodleIdle
             long before = notifyPower ? Power : 0;
             item.count -= CopiesNeeded(item);
             item.level++;
-            if (item.category == "Armor" || item.category == "Club") RecordServiceProgress("equipmentUpgrade", 1);
+            if (IsEquipment(item)) RecordServiceProgress("equipmentUpgrade", 1);
             if (item.category == "Skill") RecordServiceProgress("skillUpgrade", 1);
             if (item.category == "Companion") RecordServiceProgress("companionUpgrade", 1);
             if (notifyPower) NotifyPowerChanged(before, "강화");

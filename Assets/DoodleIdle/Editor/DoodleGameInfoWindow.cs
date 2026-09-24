@@ -24,7 +24,7 @@ namespace DoodleIdle.Editor
         [ShowInInspector, ReadOnly, LabelText("플레이어 체력")]
         string Health => Game && Game.Ready ? UiNumber.Format(Game.PlayerHealth) + " / " + UiNumber.Format(Game.PlayerMaxHealth) : "-";
         [ShowInInspector, ReadOnly, LabelText("발견한 아이템")]
-        int Discovered => Ui ? new[] { "Armor", "Club", "Skill", "Companion", "Relic" }.Sum(c => Ui.Items(c).Count(x => x.discovered)) : 0;
+        int Discovered => Ui ? new[] { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic" }.Sum(c => Ui.Items(c).Count(x => x.discovered)) : 0;
 
         bool CanReset => !EditorApplication.isPlayingOrWillChangePlaymode || (EditorApplication.isPlaying && Game && Game.Ready);
         [InfoBox("초기화하면 골드·다이아 0, 장비·스킬·동료·유물 미보유, 장착 슬롯 비움, 스탯 성장 0, 스테이지 1로 돌아갑니다. 뽑기·출석·미션·게임 설정도 초기화하며 실행 중이면 바로 다시 시작합니다.")]

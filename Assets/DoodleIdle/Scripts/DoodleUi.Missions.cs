@@ -99,7 +99,7 @@ namespace DoodleIdle
             if(Array.Exists(services.dailyClaimed,x=>x)||Array.Exists(services.weeklyClaimed,x=>x))RememberMissionAction("questClaim",1);
             RememberMissionAction("roulette",Math.Max(services.spins,Math.Max(services.weekly[3],services.repeat[3])));
             foreach(int index in new[]{0,2})RememberMissionAction("dungeon:"+index,services.dungeonStages[index]);
-            foreach(string category in new[]{"Armor","Club","Skill","Companion"})if(Items(category).Exists(x=>x.equipped))RememberMissionAction("equip:"+category,1);
+            foreach(string category in new[]{"Armor","Club","Necklace","Skill","Companion"})if(Items(category).Exists(x=>x.equipped))RememberMissionAction("equip:"+category,1);
             if(collectionItems.Exists(x=>IsEquipment(x)&&x.level>1))RememberMissionAction("equipmentUpgrade",1);
             if(AllRelics.Exists(x=>x.level>1))RememberMissionAction("relicAttempt",1);
         }
