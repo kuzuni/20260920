@@ -43,8 +43,8 @@ namespace DoodleIdle.Tests
                     var r = sprite.rect; int w = (int)r.width, h = (int)r.height;
                     var pixels = sprite.texture.GetPixels((int)r.x, (int)r.y, w, h);
                     Assert.That(pixels.Count(p => p.a > .125f), Is.GreaterThan(w*h/12));
-                    for (int x=0; x<w; x++) { Assert.That(pixels[x].a, Is.LessThan(.13f)); Assert.That(pixels[(h-1)*w+x].a, Is.LessThan(.13f)); }
-                    for (int y=0; y<h; y++) { Assert.That(pixels[y*w].a, Is.LessThan(.13f)); Assert.That(pixels[y*w+w-1].a, Is.LessThan(.13f)); }
+                    for (int x=0; x<w; x++) { Assert.That(pixels[x].a, Is.LessThan(.13f),sprite.name+" bottom"); Assert.That(pixels[(h-1)*w+x].a, Is.LessThan(.13f),sprite.name+" top"); }
+                    for (int y=0; y<h; y++) { Assert.That(pixels[y*w].a, Is.LessThan(.13f),sprite.name+" left"); Assert.That(pixels[y*w+w-1].a, Is.LessThan(.13f),sprite.name+" right"); }
                 }
                 for (int frame=0; frame<2; frame++) {
                     actor.GetType().GetField("walkClock").SetValue(actor, frame/6f);
@@ -56,6 +56,14 @@ namespace DoodleIdle.Tests
                 Assert.That(club.sprite.texture.name, Is.EqualTo("SkinWeapons"));
                 Assert.That(club.sprite.rect, Is.EqualTo(UiKit.Art(weapons[i].icon).rect));
                 Assert.That(club.sprite.pivot.x / club.sprite.rect.width, Is.EqualTo(.15f).Within(.001f));
+                if (i==16) {
+                    UiOpen(null);
+                    for(int frame=0;frame<2;frame++) {
+                        actor.GetType().GetField("walkClock").SetValue(actor,frame/6f);
+                        animation.Invoke(game,new object[]{actor,0f});
+                        Object.Destroy(CaptureFrame("skins-pig-world-frame-"+frame+".png",1440,900));
+                    }
+                }
             }
             body.linearVelocity = Vector2.zero;
             foreach (string category in new[] { "Armor", "Club", "Necklace" }) {

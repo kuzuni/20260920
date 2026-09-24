@@ -86,8 +86,8 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Diamonds, Is.EqualTo(diamonds-price));
             Assert.That(CurrentSummonResultCount(), Is.EqualTo(50000));
             Assert.That(UiNode("SummonResultCards").childCount, Is.LessThanOrEqualTo(36));
-            Assert.That(ui.SummonLevel("Necklace"), Is.EqualTo(50));
-            Assert.That(ui.SummonExperience("Necklace"), Is.Zero);
+            Assert.That(ui.SummonLevel("Necklace"), Is.EqualTo(12));
+            Assert.That(ui.SummonExperience("Necklace"), Is.EqualTo(7250));
             yield return null;
             Object.Destroy(CaptureFrame("bulk-summon-50000-results.png", 720, 1520));
             before = items.Sum(x => x.count); diamonds = ui.Diamonds;

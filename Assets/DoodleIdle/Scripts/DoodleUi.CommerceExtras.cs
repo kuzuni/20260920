@@ -80,7 +80,7 @@ namespace DoodleIdle
             foreach(int count in new[]{5,10}) {
                 var card=CollectionBox(body,"Mileage exchange "+count,UiKit.Paper);
                 var row=UiKit.Row(card,"Exchange reward",92,12);UiKit.Icon(row,"DiamondRoyalChest",82);
-                UiKit.Text(row,(count==5?"150만":"500만")+" 다이아",32,TextAnchor.MiddleCenter,80);
+                UiKit.Text(row,(count==5?1500000:5000000).ToString("N0")+" 다이아",32,TextAnchor.MiddleCenter,80);
                 var button=UiKit.Button(card,"쿠폰 "+count+"개로 교환",()=>ExchangeMileage(count),UiKit.Yellow,64);
                 button.interactable=MileageCoupons>=count;
             }
