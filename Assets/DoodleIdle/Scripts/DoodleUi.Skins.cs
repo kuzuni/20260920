@@ -41,9 +41,9 @@ namespace DoodleIdle
                     if (skin.category != "Weapon" && skin.category != "Appearance") continue;
                     if (skin.acquisition != "Diamond" && skin.acquisition != "MainStage" && skin.acquisition != "HighestDungeonStage") continue;
                     skin.name = string.IsNullOrEmpty(skin.name) ? skin.id : skin.name;
-                    skin.icon = skin.category == "Appearance" ? "Player" : string.IsNullOrEmpty(skin.icon) ? "Club" : skin.icon;
+                    if (string.IsNullOrEmpty(skin.icon)) skin.icon = skin.category == "Appearance" ? "Player" : "Club";
                     skin.rarity = Mathf.Clamp(skin.rarity, 0, 4);
-                    skin.diamondCost = Mathf.Max(1, skin.diamondCost);
+                    skin.diamondCost = skin.acquisition == "Diamond" ? Mathf.Max(1, skin.diamondCost) : 0;
                     skin.requiredStage = Mathf.Max(1, skin.requiredStage);
                     skin.ownedBonus = Mathf.Clamp(skin.ownedBonus, 0, 10000);
                     if (skin.tint.a <= 0) skin.tint = Color.white;
@@ -109,7 +109,7 @@ namespace DoodleIdle
             var skin = skinCatalog.Find(x => x.id == id);
             if (skin == null || skin.owned) return false;
             bool available = skin.acquisition == "Diamond" ? Diamonds >= skin.diamondCost
-                : skin.acquisition == "MainStage" ? MainStage >= skin.requiredStage
+                : skin.acquisition == "MainStage" ? HighestMainStage >= skin.requiredStage
                 : skin.acquisition == "HighestDungeonStage" && HighestDungeonStage >= skin.requiredStage;
             if (!available) return false;
             long before = Power;
@@ -151,8 +151,8 @@ namespace DoodleIdle
         {
             if (skin.owned) return "보유 중 · 장착 시 외형만 변경";
             if (skin.acquisition == "Diamond") return "다이아 " + skin.diamondCost.ToString("N0") + "개로 구매";
-            int progress = skin.acquisition == "MainStage" ? MainStage : HighestDungeonStage;
-            return (skin.acquisition == "MainStage" ? "메인" : "최고 던전") + " " + UiNumber.Format(skin.requiredStage) + "단계 완료 시 해방\n진행 " + UiNumber.Format(Mathf.Min(progress, skin.requiredStage)) + "/" + UiNumber.Format(skin.requiredStage);
+            int progress = skin.acquisition == "MainStage" ? HighestMainStage : HighestDungeonStage;
+            return (skin.acquisition == "MainStage" ? "메인" : "최고 던전") + " " + UiNumber.Format(skin.requiredStage) + "스테이지 클리어 후 해금\n진행 " + UiNumber.Format(Mathf.Min(progress, skin.requiredStage)) + "/" + UiNumber.Format(skin.requiredStage);
         }
 
         void BuildSkins(RectTransform body)
@@ -195,8 +195,8 @@ namespace DoodleIdle
             }
             else
             {
-                bool ready = (selected.acquisition == "MainStage" ? MainStage : HighestDungeonStage) >= selected.requiredStage;
-                var unlock = UiKit.Button(info, ready ? "해방" : "조건 미달", () => TryAcquireSkin(selected.id), UiKit.Yellow, 48);
+                bool ready = (selected.acquisition == "MainStage" ? HighestMainStage : HighestDungeonStage) >= selected.requiredStage;
+                var unlock = UiKit.Button(info, ready ? "해금" : "조건 미달", () => TryAcquireSkin(selected.id), UiKit.Yellow, 48);
                 unlock.name = "UnlockSkin_" + selected.id; unlock.interactable = ready;
             }
             var totals = new List<string>();

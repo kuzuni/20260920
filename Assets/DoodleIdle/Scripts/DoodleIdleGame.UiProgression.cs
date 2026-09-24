@@ -32,7 +32,11 @@ namespace DoodleIdle
         }
         Sprite PlayerSkinFrame(Sprite walkingFrame)
         {
-            return !Ui || Ui.EquippedAppearanceIcon=="Player" ? walkingFrame : WorldSkinSprite(Ui.EquippedAppearanceIcon,false);
+            if (!Ui || Ui.EquippedAppearanceIcon == "Player") return walkingFrame;
+            string key = Ui.EquippedAppearanceIcon;
+            if (key.StartsWith("SkinAppearance_", System.StringComparison.Ordinal) && walkingFrame == playerWalkB)
+                key = key.Substring(0, key.Length - 1) + "1";
+            return WorldSkinSprite(key, false);
         }
         void ApplyWeaponSkin(SpriteRenderer art)
         {

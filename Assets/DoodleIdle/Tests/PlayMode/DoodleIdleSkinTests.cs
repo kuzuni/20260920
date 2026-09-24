@@ -38,17 +38,18 @@ namespace DoodleIdle.Tests
             var basic = ui.Skins("Weapon").Single(x => x.initiallyOwned);
             Assert.That(skin.owned, Is.False);
             Assert.That(skin.effect, Is.EqualTo("attack"));
-            ui.Diamonds = skin.diamondCost + 137;
+            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 100); ServiceSetSavedField(saved, "highestMainStage", 100); });
+            ui.Diamonds = 137;
             long gold = ui.Gold, power = ui.Power;
             float ownership = ui.SkinOwnedBonus("attack"), attack = ui.OwnedBonus, damage = ui.CombatDamageMultiplier;
             SelectSkinForTest(skin);
             AssertLockedSkinHasDescriptionAndNoEquip(skin);
-            UiClick("BuySkin_" + skin.id);
+            UiClick("UnlockSkin_" + skin.id);
             Assert.That(ui.Diamonds, Is.EqualTo(137), "The displayed purchase must deduct its exact configured price.");
             Assert.That(ui.Gold, Is.EqualTo(gold));
             Assert.That(ui.IsSkinOwned(skin.id), Is.True);
             Assert.That(ui.SkinOwnedBonus("attack"), Is.EqualTo(ownership + skin.ownedBonus).Within(.0001f));
-            Assert.That(ui.OwnedBonus, Is.EqualTo(attack + skin.ownedBonus).Within(.0001f));
+            Assert.That(ui.OwnedBonus, Is.EqualTo((attack + 100) * 1.5f - 100).Within(.0001f));
             Assert.That(ui.CombatDamageMultiplier, Is.GreaterThan(damage), "The actual combat model must receive ownership effects immediately.");
             Assert.That(ui.Power, Is.GreaterThan(power));
             Assert.That(ui.TryAcquireSkin(skin.id), Is.False, "Buying the same skin twice must be rejected.");
@@ -75,13 +76,13 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             var skin = ui.Skins("Appearance").Single(x => x.id == "appearance_mint");
-            ui.Diamonds = skin.diamondCost - 1;
+            ui.Diamonds = 999999;
             int diamonds = ui.Diamonds;
             long gold = ui.Gold, power = ui.Power;
             float bonus = ui.SkinOwnedBonus(skin.effect);
             SelectSkinForTest(skin);
             AssertLockedSkinHasDescriptionAndNoEquip(skin);
-            Assert.That(UiNode("BuySkin_" + skin.id).GetComponent<Button>().interactable, Is.False);
+            Assert.That(UiNode("UnlockSkin_" + skin.id).GetComponent<Button>().interactable, Is.False);
             Assert.That(ui.TryAcquireSkin(skin.id), Is.False);
             Assert.That(ui.EquipSkin(skin.id), Is.False);
             Assert.That(ui.TryAcquireSkin("missing_skin"), Is.False);
@@ -101,13 +102,16 @@ namespace DoodleIdle.Tests
             var ui = game.Ui;
             var conditions = ui.Skins("Weapon").Concat(ui.Skins("Appearance"))
                 .Where(x => x.acquisition == "MainStage" || x.acquisition == "HighestDungeonStage").ToArray();
-            Assert.That(conditions.Length, Is.EqualTo(4), "Both skin categories must offer each of the two progression unlocks.");
+            Assert.That(conditions.Length, Is.EqualTo(40), "Twenty themes per category, excluding defaults.");
             foreach (var skin in conditions)
             {
-                Assert.That(skin.requiredStage, Is.EqualTo(100));
+                Assert.That(skin.requiredStage % 100, Is.Zero);
+                Assert.That(skin.requiredStage, Is.InRange(100, 2000));
+                Assert.That(skin.ownedBonus, Is.EqualTo(50));
                 LoadServiceSnapshot(saved =>
                 {
-                    ServiceSetSavedField(saved, "mainStage", 99);
+                    ServiceSetSavedField(saved, "mainStage", skin.requiredStage - 1);
+                    ServiceSetSavedField(saved, "highestMainStage", skin.requiredStage - 1);
                     ServiceSetSavedField(saved, "dungeonStages", new[] { 99, 0, 0 });
                 });
                 int diamonds = ui.Diamonds;
@@ -121,9 +125,10 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.IsSkinOwned(skin.id), Is.False);
                 LoadServiceSnapshot(saved =>
                 {
-                    if (skin.acquisition == "MainStage") ServiceSetSavedField(saved, "mainStage", 100);
-                    else ServiceSetSavedField(saved, "dungeonStages", new[] { 0, 100, 0 });
+                    ServiceSetSavedField(saved, "mainStage", skin.requiredStage);
+                    ServiceSetSavedField(saved, "highestMainStage", skin.requiredStage);
                 });
+                Assert.That(skin.owned, Is.False, "Reaching a stage must not automatically grant its skin.");
                 SelectSkinForTest(skin);
                 UiClick("UnlockSkin_" + skin.id);
                 Assert.That(ui.IsSkinOwned(skin.id), Is.True);
@@ -143,13 +148,14 @@ namespace DoodleIdle.Tests
             var ui = game.Ui;
             var weapon = ui.Skins("Weapon").Single(x => x.id == "weapon_vine");
             var appearance = ui.Skins("Appearance").Single(x => x.id == "appearance_mint");
-            ui.Diamonds = weapon.diamondCost + appearance.diamondCost + 83;
+            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 100); ServiceSetSavedField(saved, "highestMainStage", 100); });
+            ui.Diamonds = 83;
             Assert.That(ui.TryAcquireSkin(weapon.id), Is.True);
             Assert.That(ui.TryAcquireSkin(appearance.id), Is.True);
             Assert.That(ui.EquipSkin(weapon.id), Is.True);
             Assert.That(ui.EquipSkin(appearance.id), Is.True);
-            Assert.That(ui.EquippedAppearanceIcon, Is.EqualTo("Player"), "Appearance skins must preserve the player's cat art.");
-            Assert.That(ui.EquippedAppearanceTint, Is.Not.EqualTo(Color.white));
+            Assert.That(ui.EquippedAppearanceIcon, Is.EqualTo(appearance.icon), "Appearance skins use the costumed cat art.");
+            Assert.That(ui.EquippedAppearanceTint, Is.EqualTo(Color.white));
             long power = ui.Power;
             float attack = ui.SkinOwnedBonus("attack"), health = ui.SkinOwnedBonus("health");
             ui.Save();
@@ -184,7 +190,7 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             var skinIds = new HashSet<string>(ui.Skins("Weapon").Concat(ui.Skins("Appearance")).Select(x => x.id));
-            foreach (string category in new[] { "Armor", "Club", "Skill", "Companion", "Relic" })
+            foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic" })
                 Assert.That(ui.Items(category).Any(item => skinIds.Contains(item.id)), Is.False, category + " must not contain skins.");
             foreach (string category in new[] { "Skin", "Weapon", "Appearance" })
                 Assert.Throws<ArgumentException>(() => ui.GrantItem(category, new System.Random(31)), "Skin acquisition must never use the random summon API.");

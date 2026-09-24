@@ -22,7 +22,7 @@ namespace DoodleIdle.Tests
             foreach (var armor in armors) { armor.discovered = armor.equipped = false; armor.level = armor.count = 0; }
             float startingGold = ui.GoldGainMultiplier;
             ui.AddItem(armors[0], 20); ui.AddItem(necklaces[0], 20);
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(startingGold + .02f).Within(.00001));
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(startingGold * 1.02f).Within(.00001));
             float ownedGold = ui.GoldGainMultiplier;
             ui.AutoEquip("Armor"); ui.AutoEquip("Necklace");
             Assert.That(ui.GoldGainMultiplier, Is.EqualTo(ownedGold));
@@ -43,9 +43,9 @@ namespace DoodleIdle.Tests
             var first = necklaces[0]; first.level = 1; first.count = 20;
             float beforeGold = ui.GoldGainMultiplier;
             Assert.That(ui.UpgradeItem(first), Is.True);
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + .001f).Within(.0001));
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + startingGold * .001f).Within(.0001));
             first.count = 0;
-            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + .001f).Within(.0001), "Consumed copies do not remove discovered ownership effects.");
+            Assert.That(ui.GoldGainMultiplier, Is.EqualTo(beforeGold + startingGold * .001f).Within(.0001), "Consumed copies do not remove discovered ownership effects.");
             ui.AutoEquip("Necklace"); ui.SaveCollections();
             var probes = new List<GameObject>();
             try {
@@ -131,7 +131,7 @@ namespace DoodleIdle.Tests
             }
             GrowthLevels["crit128Chance"] = 1000;
             Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(96).Within(.001));
-            int high = 0; for (int i = 0; i < 500; i++) { float value = game.RollUiCriticalMultiplier(); Assert.That(value, Is.AnyOf(64f,128f)); if (value == 128) high++; }
+            int high = 0; for (int i = 0; i < 500; i++) { float value = game.RollUiCriticalMultiplier(); Assert.That(value == 64f || value == 128f, Is.True); if (value == 128) high++; }
             Assert.That(high, Is.InRange(180,320));
             ui.SaveCollections(); var probes = new List<GameObject>();
             try { var restored = GrowthProbe(probes); Assert.That(restored.StatLevel("crit128Chance"), Is.EqualTo(1000)); Assert.That(restored.CriticalChance(6), Is.EqualTo(50)); }

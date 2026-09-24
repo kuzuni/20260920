@@ -1,16 +1,802 @@
 {
   "skins": [
-    { "id": "weapon_basic", "name": "기본 몽둥이", "category": "Weapon", "icon": "Club", "description": "오래 함께한 나무 몽둥이입니다.", "rarity": 0, "effect": "attack", "ownedBonus": 0, "acquisition": "Diamond", "diamondCost": 1, "initiallyOwned": true, "tint": { "r": 1, "g": 1, "b": 1, "a": 1 } },
-    { "id": "weapon_vine", "name": "새싹 몽둥이", "category": "Weapon", "icon": "VineClub", "description": "싱그러운 덩굴이 감긴 몽둥이입니다.", "rarity": 1, "effect": "attack", "ownedBonus": 1, "acquisition": "Diamond", "diamondCost": 500, "tint": { "r": 0.85, "g": 1, "b": 0.78, "a": 1 } },
-    { "id": "weapon_crystal", "name": "새벽 수정봉", "category": "Weapon", "icon": "CrystalClub", "description": "새벽빛을 품은 푸른 수정봉입니다.", "rarity": 2, "effect": "critDamage", "ownedBonus": 2, "acquisition": "Diamond", "diamondCost": 1500, "tint": { "r": 0.76, "g": 0.91, "b": 1, "a": 1 } },
-    { "id": "weapon_explorer", "name": "백전의 몽둥이", "category": "Weapon", "icon": "SpikeClub", "description": "메인 100단계를 돌파한 모험가의 표식입니다.", "rarity": 3, "effect": "attack", "ownedBonus": 3, "acquisition": "MainStage", "requiredStage": 100, "tint": { "r": 1, "g": 0.88, "b": 0.65, "a": 1 } },
-    { "id": "weapon_dungeon", "name": "심연의 뼈몽둥이", "category": "Weapon", "icon": "BoneClub", "description": "던전 최고 완료 단계 100의 증표입니다.", "rarity": 3, "effect": "health", "ownedBonus": 3, "acquisition": "HighestDungeonStage", "requiredStage": 100, "tint": { "r": 0.85, "g": 0.76, "b": 1, "a": 1 } },
-    { "id": "weapon_sunset", "name": "노을 붉은몽둥이", "category": "Weapon", "icon": "RedClub", "description": "따뜻한 노을색 천으로 감싼 몽둥이입니다.", "rarity": 4, "effect": "gold", "ownedBonus": 3, "acquisition": "Diamond", "diamondCost": 3000, "tint": { "r": 1, "g": 0.84, "b": 0.79, "a": 1 } },
-    { "id": "appearance_basic", "name": "먼지고양이", "category": "Appearance", "icon": "Player", "description": "익숙하고 포근한 기본 고양이 모습입니다.", "rarity": 0, "effect": "health", "ownedBonus": 0, "acquisition": "Diamond", "diamondCost": 1, "initiallyOwned": true, "tint": { "r": 1, "g": 1, "b": 1, "a": 1 } },
-    { "id": "appearance_mint", "name": "민트 고양이", "category": "Appearance", "icon": "Player", "description": "산뜻한 민트빛으로 물든 고양이입니다.", "rarity": 1, "effect": "health", "ownedBonus": 1, "acquisition": "Diamond", "diamondCost": 500, "tint": { "r": 0.68, "g": 1, "b": 0.84, "a": 1 } },
-    { "id": "appearance_peach", "name": "복숭아 고양이", "category": "Appearance", "icon": "Player", "description": "부드러운 복숭아빛 털을 가진 고양이입니다.", "rarity": 2, "effect": "healthRegen", "ownedBonus": 2, "acquisition": "Diamond", "diamondCost": 1500, "tint": { "r": 1, "g": 0.76, "b": 0.75, "a": 1 } },
-    { "id": "appearance_explorer", "name": "황금 모험가 고양이", "category": "Appearance", "icon": "Player", "description": "메인 100단계 완료를 기념하는 황금빛 외형입니다.", "rarity": 3, "effect": "gold", "ownedBonus": 3, "acquisition": "MainStage", "requiredStage": 100, "tint": { "r": 1, "g": 0.91, "b": 0.59, "a": 1 } },
-    { "id": "appearance_dungeon", "name": "달빛 고양이", "category": "Appearance", "icon": "Player", "description": "던전 최고 완료 단계 100을 기념하는 달빛 외형입니다.", "rarity": 3, "effect": "health", "ownedBonus": 3, "acquisition": "HighestDungeonStage", "requiredStage": 100, "tint": { "r": 0.78, "g": 0.80, "b": 1, "a": 1 } },
-    { "id": "appearance_sky", "name": "하늘 고양이", "category": "Appearance", "icon": "Player", "description": "맑은 하늘처럼 푸른 고양이 외형입니다.", "rarity": 4, "effect": "attack", "ownedBonus": 3, "acquisition": "Diamond", "diamondCost": 3000, "tint": { "r": 0.66, "g": 0.88, "b": 1, "a": 1 } }
+    {
+      "id": "weapon_basic",
+      "name": "기본 몽둥이",
+      "category": "Weapon",
+      "icon": "Club",
+      "description": "오래 함께한 나무 몽둥이입니다.",
+      "rarity": 0,
+      "effect": "attack",
+      "ownedBonus": 0,
+      "acquisition": "Diamond",
+      "diamondCost": 1,
+      "initiallyOwned": true,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_vine",
+      "name": "와삭 초코쿠키봉",
+      "category": "Weapon",
+      "icon": "SkinWeapon_0",
+      "description": "초코칩 쿠키냥의 손에 어울리는 와삭 초코쿠키봉입니다.",
+      "rarity": 0,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 100,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_crystal",
+      "name": "바나나 껍질봉",
+      "category": "Weapon",
+      "icon": "SkinWeapon_1",
+      "description": "바나나 껍질냥의 손에 어울리는 바나나 껍질봉입니다.",
+      "rarity": 0,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 200,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_explorer",
+      "name": "더블치즈 버거망치",
+      "category": "Weapon",
+      "icon": "SkinWeapon_2",
+      "description": "더블치즈 버거냥의 손에 어울리는 더블치즈 버거망치입니다.",
+      "rarity": 0,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 300,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_dungeon",
+      "name": "서리꽃 지팡이",
+      "category": "Weapon",
+      "icon": "SkinWeapon_3",
+      "description": "서리꽃 마법사의 손에 어울리는 서리꽃 지팡이입니다.",
+      "rarity": 0,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 400,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_sunset",
+      "name": "반장의 쇠망치",
+      "category": "Weapon",
+      "icon": "SkinWeapon_4",
+      "description": "현장의 반장님의 손에 어울리는 반장의 쇠망치입니다.",
+      "rarity": 1,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 500,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_maid",
+      "name": "리본 깃털 먼지털이",
+      "category": "Weapon",
+      "icon": "SkinWeapon_5",
+      "description": "리본 메이드의 손에 어울리는 리본 깃털 먼지털이입니다.",
+      "rarity": 1,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 600,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_school",
+      "name": "모범생 왕연필",
+      "category": "Weapon",
+      "icon": "SkinWeapon_6",
+      "description": "방과 후 모범생의 손에 어울리는 모범생 왕연필입니다.",
+      "rarity": 1,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 700,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_hero",
+      "name": "새벽의 성검",
+      "category": "Weapon",
+      "icon": "SkinWeapon_7",
+      "description": "새벽의 용사의 손에 어울리는 새벽의 성검입니다.",
+      "rarity": 1,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 800,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_cleric",
+      "name": "축복의 십자봉",
+      "category": "Weapon",
+      "icon": "SkinWeapon_8",
+      "description": "빛의 성직자의 손에 어울리는 축복의 십자봉입니다.",
+      "rarity": 2,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 900,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_firefighter",
+      "name": "구조대 불도끼",
+      "category": "Weapon",
+      "icon": "SkinWeapon_9",
+      "description": "불굴의 소방관의 손에 어울리는 구조대 불도끼입니다.",
+      "rarity": 2,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1000,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_dragon_slayer",
+      "name": "흑룡 절단검",
+      "category": "Weapon",
+      "icon": "SkinWeapon_10",
+      "description": "흑룡 사냥꾼의 손에 어울리는 흑룡 절단검입니다.",
+      "rarity": 2,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1100,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_shark",
+      "name": "상어 이빨망치",
+      "category": "Weapon",
+      "icon": "SkinWeapon_11",
+      "description": "통통 상어냥의 손에 어울리는 상어 이빨망치입니다.",
+      "rarity": 2,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1200,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_dracula",
+      "name": "혈월 박쥐홀",
+      "category": "Weapon",
+      "icon": "SkinWeapon_12",
+      "description": "한밤의 드라큘라의 손에 어울리는 혈월 박쥐홀입니다.",
+      "rarity": 3,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1300,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_fire_wizard",
+      "name": "홍염의 지팡이",
+      "category": "Weapon",
+      "icon": "SkinWeapon_13",
+      "description": "홍염의 마법사의 손에 어울리는 홍염의 지팡이입니다.",
+      "rarity": 3,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1400,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_thief",
+      "name": "그림자 단검",
+      "category": "Weapon",
+      "icon": "SkinWeapon_14",
+      "description": "그림자 도둑의 손에 어울리는 그림자 단검입니다.",
+      "rarity": 3,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1500,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_steampunk",
+      "name": "태엽 톱니렌치",
+      "category": "Weapon",
+      "icon": "SkinWeapon_15",
+      "description": "태엽 증기 로봇의 손에 어울리는 태엽 톱니렌치입니다.",
+      "rarity": 3,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1600,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_pig",
+      "name": "꿀꿀 돼지코 망치",
+      "category": "Weapon",
+      "icon": "SkinWeapon_16",
+      "description": "꿀꿀 분홍돼지의 손에 어울리는 꿀꿀 돼지코 망치입니다.",
+      "rarity": 4,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1700,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_astronaut",
+      "name": "달나라 로켓봉",
+      "category": "Weapon",
+      "icon": "SkinWeapon_17",
+      "description": "달나라 우주인의 손에 어울리는 달나라 로켓봉입니다.",
+      "rarity": 4,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1800,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_gym",
+      "name": "득근왕 덤벨",
+      "category": "Weapon",
+      "icon": "SkinWeapon_18",
+      "description": "득근왕의 손에 어울리는 득근왕 덤벨입니다.",
+      "rarity": 4,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1900,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "weapon_origami",
+      "name": "종이학 접이검",
+      "category": "Weapon",
+      "icon": "SkinWeapon_19",
+      "description": "종이학 꿈나래의 손에 어울리는 종이학 접이검입니다.",
+      "rarity": 4,
+      "effect": "attack",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 2000,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_basic",
+      "name": "먼지고양이",
+      "category": "Appearance",
+      "icon": "Player",
+      "description": "익숙하고 포근한 기본 고양이 모습입니다.",
+      "rarity": 0,
+      "effect": "health",
+      "ownedBonus": 0,
+      "acquisition": "Diamond",
+      "diamondCost": 1,
+      "initiallyOwned": true,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_mint",
+      "name": "초코칩 쿠키냥",
+      "category": "Appearance",
+      "icon": "SkinAppearance_0_0",
+      "description": "초코칩 쿠키냥 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 0,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 100,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_peach",
+      "name": "바나나 껍질냥",
+      "category": "Appearance",
+      "icon": "SkinAppearance_1_0",
+      "description": "바나나 껍질냥 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 0,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 200,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_explorer",
+      "name": "더블치즈 버거냥",
+      "category": "Appearance",
+      "icon": "SkinAppearance_2_0",
+      "description": "더블치즈 버거냥 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 0,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 300,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_dungeon",
+      "name": "서리꽃 마법사",
+      "category": "Appearance",
+      "icon": "SkinAppearance_3_0",
+      "description": "서리꽃 마법사 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 0,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 400,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_sky",
+      "name": "현장의 반장님",
+      "category": "Appearance",
+      "icon": "SkinAppearance_4_0",
+      "description": "현장의 반장님 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 1,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 500,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_maid",
+      "name": "리본 메이드",
+      "category": "Appearance",
+      "icon": "SkinAppearance_5_0",
+      "description": "리본 메이드 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 1,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 600,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_school",
+      "name": "방과 후 모범생",
+      "category": "Appearance",
+      "icon": "SkinAppearance_6_0",
+      "description": "방과 후 모범생 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 1,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 700,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_hero",
+      "name": "새벽의 용사",
+      "category": "Appearance",
+      "icon": "SkinAppearance_7_0",
+      "description": "새벽의 용사 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 1,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 800,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_cleric",
+      "name": "빛의 성직자",
+      "category": "Appearance",
+      "icon": "SkinAppearance_8_0",
+      "description": "빛의 성직자 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 2,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 900,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_firefighter",
+      "name": "불굴의 소방관",
+      "category": "Appearance",
+      "icon": "SkinAppearance_9_0",
+      "description": "불굴의 소방관 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 2,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1000,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_dragon_slayer",
+      "name": "흑룡 사냥꾼",
+      "category": "Appearance",
+      "icon": "SkinAppearance_10_0",
+      "description": "흑룡 사냥꾼 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 2,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1100,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_shark",
+      "name": "통통 상어냥",
+      "category": "Appearance",
+      "icon": "SkinAppearance_11_0",
+      "description": "통통 상어냥 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 2,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1200,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_dracula",
+      "name": "한밤의 드라큘라",
+      "category": "Appearance",
+      "icon": "SkinAppearance_12_0",
+      "description": "한밤의 드라큘라 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 3,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1300,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_fire_wizard",
+      "name": "홍염의 마법사",
+      "category": "Appearance",
+      "icon": "SkinAppearance_13_0",
+      "description": "홍염의 마법사 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 3,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1400,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_thief",
+      "name": "그림자 도둑",
+      "category": "Appearance",
+      "icon": "SkinAppearance_14_0",
+      "description": "그림자 도둑 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 3,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1500,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_steampunk",
+      "name": "태엽 증기 로봇",
+      "category": "Appearance",
+      "icon": "SkinAppearance_15_0",
+      "description": "태엽 증기 로봇 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 3,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1600,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_pig",
+      "name": "꿀꿀 분홍돼지",
+      "category": "Appearance",
+      "icon": "SkinAppearance_16_0",
+      "description": "꿀꿀 분홍돼지 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 4,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1700,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_astronaut",
+      "name": "달나라 우주인",
+      "category": "Appearance",
+      "icon": "SkinAppearance_17_0",
+      "description": "달나라 우주인 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 4,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1800,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_gym",
+      "name": "득근왕",
+      "category": "Appearance",
+      "icon": "SkinAppearance_18_0",
+      "description": "득근왕 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 4,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 1900,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "id": "appearance_origami",
+      "name": "종이학 꿈나래",
+      "category": "Appearance",
+      "icon": "SkinAppearance_19_0",
+      "description": "종이학 꿈나래 테마의 먼지고양이 코스튬입니다.",
+      "rarity": 4,
+      "effect": "gold",
+      "ownedBonus": 50,
+      "acquisition": "MainStage",
+      "requiredStage": 2000,
+      "diamondCost": 0,
+      "tint": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    }
   ]
 }

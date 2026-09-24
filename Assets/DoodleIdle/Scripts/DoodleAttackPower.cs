@@ -93,7 +93,7 @@ namespace DoodleIdle
     public sealed partial class DoodleUi
     {
         public float CurrentAttackPower => DoodleAttackPower.ReferenceAttack * UiDamageMultiplier;
-        public float AttackCategoryMultiplier(string category) => 1 + EffectBonus(category == "Skill" ? "skillAttack" : category == "Companion" ? "companionAttack" : "basicAttack") / 100;
+        public float AttackCategoryMultiplier(string category) => OwnedEffectMultiplier(category == "Skill" ? "skillAttack" : category == "Companion" ? "companionAttack" : "basicAttack");
         public float AttackPercentDamage(float percent, string category) => CurrentAttackPower * percent / 100 * AttackCategoryMultiplier(category);
         float AbilityEnhancementMultiplier(UiItem item) => 1 + Mathf.Clamp01(Mathf.Max(0, item.level - 1) / (float)Mathf.Max(1, ItemMaxLevel(item) - 1)) * collectionTuning.abilityMaxEnhancementBonus;
         float AbilityDpsPercent(UiItem item)

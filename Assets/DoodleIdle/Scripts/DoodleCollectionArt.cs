@@ -18,7 +18,15 @@ namespace DoodleIdle
             if (string.IsNullOrEmpty(key)) return null;
             if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
             cache.Remove(key);
-            if (key.StartsWith("EquipmentArmor_", StringComparison.Ordinal) && int.TryParse(key.Substring(15), out int armor))
+            if (key.StartsWith("SkinAppearance_", StringComparison.Ordinal)) {
+                var parts = key.Split('_');
+                if (parts.Length != 3 || !int.TryParse(parts[1], out int costume) || costume < 0 || costume >= 20 || !int.TryParse(parts[2], out int pose) || pose < 0 || pose > 1)
+                    throw new ArgumentException("Invalid costume frame: " + key);
+                value = LayoutCell("UI/SkinAppearances" + (char)('A' + costume / 5), costume % 5 + pose * 5);
+            }
+            else if (key.StartsWith("SkinWeapon_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int weapon))
+                value = LayoutCell("UI/SkinWeapons", weapon);
+            else if (key.StartsWith("EquipmentArmor_", StringComparison.Ordinal) && int.TryParse(key.Substring(15), out int armor))
                 value = LayoutCell("UI/EquipmentArmor", armor);
             else if (key.StartsWith("EquipmentClub_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int club))
                 value = LayoutCell("UI/EquipmentClub", club);

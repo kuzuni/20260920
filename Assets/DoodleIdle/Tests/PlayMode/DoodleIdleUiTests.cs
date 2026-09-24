@@ -420,6 +420,7 @@ namespace DoodleIdle.Tests
                 UiClick("SkinSlot_weapon_crystal"); UiCapture("26-skin-weapon-locked", size);
                 UiClick("외형 스킨", UiNode("Skin tabs")); UiClick("SkinSlot_appearance_peach");
                 UiCapture("27-skin-appearance-locked", size);
+                LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 100); ServiceSetSavedField(saved, "highestMainStage", 100); });
                 if (!game.Ui.IsSkinOwned("weapon_vine")) Assert.That(game.Ui.TryAcquireSkin("weapon_vine"), Is.True);
                 UiClick("무기 스킨", UiNode("Skin tabs")); UiClick("SkinSlot_weapon_vine");
                 UiCapture("28-skin-owned", size);

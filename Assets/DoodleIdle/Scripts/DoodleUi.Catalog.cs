@@ -236,9 +236,9 @@ namespace DoodleIdle
         }
         static float StatValueAtLevel(UiStatDefinition stat,int level) => (float)Math.Min(1e30,(stat.initial+stat.increment*(double)level)*Math.Pow(Math.Max(1,stat.valueGrowth),Math.Max(0,level)));
         public float StatValueAfterUpgrades(string id,int count) { var stat=Array.Find(collectionTuning.stats,x=>x.id==id);return stat==null?0:Mathf.Min(IsCriticalChance(id)?100:1e30f,StatValueAtLevel(stat,(int)Math.Min(int.MaxValue,(long)StatLevel(id)+count))); }
-        public float OwnedBonus => EffectBonus("attack");
-        public float HealthBonus => EffectBonus("health");
-        public float GoldGainMultiplier => 1 + EffectBonus("gold") / 100;
+        public float OwnedBonus => (OwnedEffectMultiplier("attack") - 1) * 100;
+        public float HealthBonus => (OwnedEffectMultiplier("health") - 1) * 100;
+        public float GoldGainMultiplier => OwnedEffectMultiplier("gold");
         public static readonly string[] CriticalStatIds = { "crit2Chance", "crit4Chance", "crit8Chance", "crit16Chance", "crit32Chance", "crit64Chance", "crit128Chance" };
         public static int CriticalMultiplierAt(int tier) => 1 << (tier + 1);
         public static int CriticalLevelCap(int tier) => tier == 0 ? 4000 : 2000;
@@ -248,15 +248,28 @@ namespace DoodleIdle
             for (int i = 0; i < tier; i++) if (StatLevel(CriticalStatIds[i]) < StatMaxLevel(CriticalStatIds[i])) return false;
             return true;
         }
-        public float CriticalChance(int tier) => CriticalUnlocked(CriticalStatIds[tier]) ? Mathf.Clamp(StatValue(CriticalStatIds[tier]) + EffectBonus(CriticalStatIds[tier]), 0, 100) : 0;
+        public float CriticalChance(int tier) => CriticalUnlocked(CriticalStatIds[tier]) ? Mathf.Clamp(StatValue(CriticalStatIds[tier]) * OwnedEffectMultiplier(CriticalStatIds[tier]), 0, 100) : 0;
         public float Critical2Chance => CriticalChance(0);
         public bool Critical4Unlocked => CriticalUnlocked("crit4Chance");
         public float Critical4Chance => CriticalChance(1);
-        public float CriticalDamageBonus => Mathf.Max(0, EffectBonus("critDamage"));
-        public float MaxHealth => Mathf.Max(1, (StatValue("health") * (1 + EquippedValue("Armor") / 100)) * (1 + HealthBonus / 100));
-        public float HealthRegen => Mathf.Max(0, (StatValue("healthRegen") + NecklaceRecovery(EquippedValue("Necklace"))) * (1 + EffectBonus("healthRegen") / 100));
-        float NecklaceRecovery(float equipPercent) => StatValue("health") * (1 + HealthBonus / 100) * equipPercent / 100 * .05f;
-        float CollectionDamageMultiplier(bool includeSkins) => (StatValue("attack") * (1 + EquippedValue("Club") / 100) / BaseStatValue("attack")) * (1 + (EffectBonus("attack", null, includeSkins) + EquippedValue("Companion") + EquippedValue("Skill") * .02f) / 100);
+        public float CriticalDamageBonus => Mathf.Max(0, (OwnedEffectMultiplier("critDamage") - 1) * 100);
+        public float MaxHealth => Mathf.Max(1, LimitedStat((double)StatValue("health") * (1 + EquippedValue("Armor") / 100) * OwnedEffectMultiplier("health")));
+        public float HealthRegen => LimitedStat(((double)StatValue("healthRegen") + NecklaceRecovery(EquippedValue("Necklace"))) * OwnedEffectMultiplier("healthRegen"));
+        float NecklaceRecovery(float equipPercent) => LimitedStat((double)StatValue("health") * OwnedEffectMultiplier("health") * equipPercent / 100 * .05f);
+        float CollectionDamageMultiplier(bool includeSkins) => LimitedStat((double)StatValue("attack") / BaseStatValue("attack")
+            * (1 + EquippedValue("Club") / 100) * (1 + EffectBonus("attack", "Equipment") / 100)
+            * (1 + (EffectBonus("attack", "Skill") + EquippedValue("Skill") * .02f) / 100)
+            * (1 + (EffectBonus("attack", "Companion") + EquippedValue("Companion")) / 100)
+            * (1 + EffectBonus("attack", "Relic") / 100) * (includeSkins ? 1 + SkinOwnedBonus("attack") / 100 : 1));
+        static float LimitedStat(double value) => (float)Math.Max(0, Math.Min(1e30, value));
+        float OwnedEffectMultiplier(string effect, bool includeSkins = true)
+        {
+            double value = 1;
+            foreach (string category in OwnedEffectCategories) value *= 1 + EffectBonus(effect, category) / 100;
+            if (includeSkins) value *= 1 + SkinOwnedBonus(effect) / 100;
+            return LimitedStat(value);
+        }
+        static readonly string[] OwnedEffectCategories = { "Equipment", "Skill", "Companion", "Relic" };
         public float CombatDamageMultiplier { get { InitCollections(); return CollectionDamageMultiplier(true) / Mathf.Max(.001f, starterDamageBaseline); } }
         public float CombatAttackSpeedMultiplier => 1;
         public double ExpectedCriticalMultiplier
