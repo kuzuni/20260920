@@ -51,7 +51,7 @@
 
 플레이 중 밸런스 창의 시작값·증가율·구간·강화 비용·유지 거리를 바꾸면 즉시 적용하고 `ServicesTuning.json`과 `Collections.json`에 저장한다. 실행 중 적용 버튼도 저장을 포함한다. 변경 없는 다시 그리기는 파일을 쓰지 않으며 실행 취소·다시 실행도 자동 저장한다. 편집 모드에서는 저장 버튼을 사용한다.
 
-보상 카드 뒤에는 끊어진 가는 선 대신 굵은 외곽선과 단색 노랑의 둥근 만화식 광채을 표시한다. 보상 창이 열리면 실제 ParticleSystem에서 양쪽 축하 색종이를 발사하고 uGUI로 렌더한다. 게임 일시정지에도 재생되며 팝업 종료 시 함께 제거된다.
+보상 카드 뒤에는 굵은 외곽선과 단색 노랑의 둥근 만화식 광채를 표시한다. 보상 창이 열리면 실제 ParticleSystem에서 양쪽 축하 색종이를 발사하고 uGUI로 렌더한다. 게임 일시정지에도 재생되며 팝업 종료 시 함께 제거된다.
 
 ## 이미지와 CI
 
@@ -61,5 +61,8 @@
 - `SkillPurpleBlade.png`: 보라색 전투 칼날.
 - `SkillThumbsAscension.png`: 신규 스킬 썸네일 10개와 톱날뱀 머리·몸통 전투 아트. 명시적 영역으로 잘림을 방지한다.
 - 기존 동료와 불골렘 아틀라스를 유지한다. [동료 미리보기](AscensionCompanionsPreview.png).
+- 실제 Unity 렌더: [스킬 썸네일](AscensionSkillThumbnailsPreview.png), [보스 체력·타이머](BossChallengePreview.png), [보상 후광](RewardHaloPreview.png), [보상 축하 파티클](RewardCelebrationPreview.png).
 
 검증은 로컬 Unity 조작 없이 GitHub Actions Unity PlayMode로 수행한다. `ascension` 범위는 스킬 전투·아트, 카탈로그·확률·저장, 스테이지 경계·보스 시간·사망·대시, 밸런스 자동 저장과 기존 전투 검사를 포함한다. 결과 XML 및 실제 Unity 렌더는 CI 아티팩트에 저장한다.
+
+2026-09-24 검증: [확장 검사 38개](https://github.com/kuzuni/20260920/actions/runs/35934505959) 중 37개 통과 후 보스 종료 순간의 HUD 갱신 문제를 수정했다. 수정 커밋 `521e8ee`의 [보스·진행·보상 관련 재검증 7개](https://github.com/kuzuni/20260920/actions/runs/35935847237)는 전부 통과했다. 앞선 나머지 검사의 구현은 변경하지 않았다. 미리보기는 이 두 실행의 실제 Unity 렌더다.
