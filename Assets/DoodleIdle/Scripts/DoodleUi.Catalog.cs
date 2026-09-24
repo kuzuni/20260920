@@ -260,7 +260,7 @@ namespace DoodleIdle
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
             if (stat == null) return 0;
             return IsCriticalChance(id) && stat.increment > 0
-                ? Math.Min(collectionTuning.maxStatLevel, Mathf.CeilToInt((100 - stat.initial) / stat.increment)) : collectionTuning.maxStatLevel;
+                ? Math.Min(collectionTuning.maxStatLevel, Math.Max(0, (int)GameNumber.Ceiling(((GameNumber)100 - stat.initial) / stat.increment))) : collectionTuning.maxStatLevel;
         }
 
         float EquippedValue(string category) => (float)EquippedAmount(category);

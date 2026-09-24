@@ -95,7 +95,8 @@ namespace DoodleIdle.Tests
             var unordered = new[] { steps[1], new DoodleGrowthStep { from = 3, growth = 8 }, steps[0] };
             Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,5,unordered), Is.EqualTo(60), "Unsorted data uses the last rate at duplicate thresholds.");
             Assert.That(DoodleGrowthStep.Evaluate(0,.5f,1,int.MaxValue,steps), Is.Zero);
-            Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,int.MaxValue,null), Is.EqualTo(1e30));
+            Assert.That(DoodleGrowthStep.Evaluate(10,.5f,1,int.MaxValue,null), Is.EqualTo(double.MaxValue));
+            Assert.That(DoodleGrowthStep.EvaluateAmount(10,.5f,1,int.MaxValue,null) > (GameNumber)double.MaxValue, Is.True);
             var tuning = ui.ReadBalanceTuning();
             tuning.goldPerEnemy = 10; tuning.goldStageGrowth = .5f; tuning.goldGrowthSteps = steps;
             tuning.enemyStartingHealth = 68; tuning.enemyHealthStageGrowth = .5f; tuning.enemyHealthGrowthSteps = steps;
@@ -250,9 +251,11 @@ namespace DoodleIdle.Tests
             Assert.That(PlayerPrefs.GetString("DoodleUi.Gold"), Is.EqualTo(ui.Gold.ToString()));
             Assert.That(ui.GrantDebugGold(-1), Is.Zero);
             ui.Gold = long.MaxValue - 3;
-            Assert.That(ui.GrantDebugGold(long.MaxValue), Is.EqualTo(3));
+            var uncappedGold = ui.GoldAmount;
+            Assert.That(ui.GrantDebugGold(long.MaxValue), Is.EqualTo(long.MaxValue));
+            Assert.That(ui.GoldAmount > uncappedGold, Is.True);
             Assert.That(ui.Gold, Is.EqualTo(long.MaxValue));
-            Assert.That(ui.GrantDebugGold(1), Is.Zero);
+            Assert.That(ui.GrantDebugGold(1), Is.EqualTo(1));
             Assert.That(JsonUtility.ToJson(ui.ReadBalanceTuning()), Is.EqualTo(balanceBefore));
             yield return null;
         }

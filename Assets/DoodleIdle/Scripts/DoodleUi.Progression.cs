@@ -38,18 +38,28 @@ namespace DoodleIdle
                     services.mainStage = (int)Math.Min(int.MaxValue - 1L, (long)services.mainStage + 1);
                 services.highestMainStage=Math.Max(services.highestMainStage,services.mainStage);
                 services.mainStageKillProgress = 0;
-                Save();
+                RequestCombatSave();
                 if (UnlockedSkillSlots != previousSkillSlots && ActivePage == "Skills") RefreshPage();
             }
             else
             {
+                int previous = services.mainStageKillProgress;
                 services.mainStageKillProgress = Math.Min(MainStageKillGoal, services.mainStageKillProgress + 1);
-                if (services.mainStageKillProgress == MainStageKillGoal)
+                if (previous < MainStageKillGoal && services.mainStageKillProgress == MainStageKillGoal)
                 {
                     if (!BreakthroughMode) services.mainStageKillProgress = 0;
-                    Save();
+                    RequestCombatSave();
                 }
             }
+        }
+        bool combatSavePending;
+        float nextCombatSave;
+        void RequestCombatSave() { if (combatSnapshot) combatSavePending = true; else Save(); }
+        void FlushCombatSave()
+        {
+            if (!combatSavePending || Time.unscaledTime < nextCombatSave) return;
+            nextCombatSave = Time.unscaledTime + 1;
+            Save();
         }
         public int HighestDungeonStage => services == null ? 0 : Math.Max(services.dungeonStages[0], Math.Max(services.dungeonStages[1], services.dungeonStages[2]));
         public int GetDungeonStage(int index) => services == null || index < 0 || index >= 3 ? 0 : services.dungeonStages[index];

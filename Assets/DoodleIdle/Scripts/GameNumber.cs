@@ -64,6 +64,8 @@ namespace DoodleIdle
         {
             if (power == 0) return 1;
             if (value.Mantissa == 0) { if (power < 0) throw new DivideByZeroException(); return 0; }
+            double direct = Math.Pow(value.Mantissa, power);
+            if (direct != 0 && !double.IsInfinity(direct)) return new GameNumber(direct, value.Exponent * power);
             double log = Math.Log10(Math.Abs(value.Mantissa)) * power;
             double whole = Math.Floor(log);
             return new GameNumber((value.Mantissa < 0 && power % 2 != 0 ? -1 : 1) * Math.Pow(10, log - whole), value.Exponent * power + new BigInteger(whole));

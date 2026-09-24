@@ -179,7 +179,7 @@ namespace DoodleIdle
             for (int i = 0; i < target; i++)
             {
                 GameNumber price = StatUpgradePriceAmount(collectionTuning.statCosts, id, StatLevel(id) + i);
-                if (requested < 0 && price > GoldAmount - total) break;
+                if (requested < 0 && price > GameNumber.Round(GoldAmount - total)) break;
                 total += price;
                 upgrades++;
             }

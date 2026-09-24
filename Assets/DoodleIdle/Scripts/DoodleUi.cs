@@ -329,7 +329,7 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(message))motion.Hide();else motion.Show(3.5f);
         }
         internal void StopSavingForReset() { suppressSaving=true; }
-        public void Save() { if(suppressSaving)return; PlayerPrefs.SetString("DoodleUi.Gold",(GoldAmount.Exponent < 15 ? Gold.ToString() : GoldAmount.ToString())); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
+        public void Save() { if(suppressSaving)return; combatSavePending=false; PlayerPrefs.SetString("DoodleUi.Gold",(GoldAmount.Exponent < 15 ? Gold.ToString() : GoldAmount.ToString())); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
         public void NotifyPowerChanged(GameNumber before,string reason=null)
         {
             if(!powerToast)return;GameNumber after=PowerAmount,change=after-before;
@@ -350,7 +350,7 @@ namespace DoodleIdle
         void LateUpdate()
         {
             if(!initialized)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
-            Relayout(); CreditPendingFieldGold(); TickServices();
+            Relayout(); CreditPendingFieldGold(); TickServices(); FlushCombatSave();
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
             else { RefreshBossHud(); RefreshHudSkills(); }

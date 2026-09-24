@@ -34,6 +34,10 @@ namespace DoodleIdle.Tests
             Assert.That(huge.Exponent > long.MaxValue, Is.True);
             Assert.That(GameNumber.TryParse(huge.ToString(), out restored), Is.True);
             Assert.That(restored, Is.EqualTo(huge));
+            var chance = GrowthTuning.stats.First(x => x.id == "crit2Chance");
+            chance.initial = 0; chance.increment = 1e-12f; GrowthLevels[chance.id] = 0;
+            game.Ui.StatUpgradeQuoteAmount(chance.id, 1, out int available);
+            Assert.That(available, Is.EqualTo(1), "Tiny critical increments must not overflow the level-cap conversion.");
             yield return null;
         }
 
@@ -106,6 +110,32 @@ namespace DoodleIdle.Tests
             } finally { ui.EndCombatSnapshot(); }
             var relic = ui.Items("Relic").First(x => x.effect == "attack"); relic.level *= 2;
             Assert.That(ui.AttackPercentAmount(300, "Skill") > expected, Is.True, "Changes after the snapshot must be live.");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator LateGameAreaKillsCoalesceSavesAndPauseFlushesImmediately()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            if (!ui.BreakthroughMode) ui.ToggleBreakthroughMode();
+            ServiceSetSavedField(ServiceStateObject, "mainStageKillProgress", 0);
+            ui.Save(); string before = PlayerPrefs.GetString("DoodleUi.Services.v1");
+            try {
+                ui.BeginCombatSnapshot();
+                for (int i = 0; i < ui.MainStageKillGoal + 150; i++) ui.RecordMainCombatKill(false);
+                Assert.That(PlayerPrefs.GetString("DoodleUi.Services.v1"), Is.EqualTo(before), "A multi-kill must not serialize the full profile on each victim.");
+            } finally { ui.EndCombatSnapshot(); }
+            Assert.That(ui.MainBossPending, Is.True);
+            typeof(DoodleUi).GetMethod("FlushCombatSave", GrowthPrivate).Invoke(ui, null);
+            Assert.That(PlayerPrefs.GetString("DoodleUi.Services.v1"), Is.Not.EqualTo(before));
+            before = PlayerPrefs.GetString("DoodleUi.Services.v1");
+            for (int i = 0; i < 100; i++) ui.RecordMainCombatKill(false);
+            Assert.That(PlayerPrefs.GetString("DoodleUi.Services.v1"), Is.EqualTo(before), "Already reaching the goal must not retrigger a save for each extra enemy.");
+            try { ui.BeginCombatSnapshot(); ui.RecordMainCombatKill(true); }
+            finally { ui.EndCombatSnapshot(); }
+            typeof(DoodleUi).GetMethod("OnApplicationPause", GrowthPrivate).Invoke(ui, new object[] { true });
+            Assert.That((bool)typeof(DoodleUi).GetField("combatSavePending", GrowthPrivate).GetValue(ui), Is.False);
+            Assert.That(PlayerPrefs.GetString("DoodleUi.Services.v1"), Is.Not.EqualTo(before));
             yield return null;
         }
 
