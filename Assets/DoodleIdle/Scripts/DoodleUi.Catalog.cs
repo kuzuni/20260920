@@ -55,7 +55,7 @@ namespace DoodleIdle
         readonly List<UiItem> collectionItems = new List<UiItem>();
         readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
         UiCollectionTuning collectionTuning;
-        float starterDamageBaseline = 1;
+        GameNumber starterDamageBaseline = 1;
         readonly System.Random collectionRandom = new System.Random();
 
         [Serializable] sealed class ItemSave { public string id; public int count, level, slot; public bool equipped, discovered; }
@@ -79,7 +79,7 @@ namespace DoodleIdle
             }
             foreach (var stat in collectionTuning.stats) statLevels[stat.id] = 0;
             // Use the empty new-game profile as the baseline before restoring earned upgrades.
-            starterDamageBaseline = CollectionDamageMultiplier(false);
+            starterDamageBaseline = CollectionDamageAmount(false);
             string saved = PlayerPrefs.GetString(CollectionsSaveKey, "");
             if (!string.IsNullOrEmpty(saved))
             {
@@ -205,12 +205,13 @@ namespace DoodleIdle
             }
         }
         public string CompanionSlotUnlockRequirement(int slot) => GradeNames[slot + 2] + "1 이상 갑옷 획득";
-        List<UiItem> EquippedItems(string category)
+        List<UiItem> EquippedItems(string category) { var result = new List<UiItem>(); FillEquippedItems(category, result); return result; }
+        static readonly Comparison<UiItem> CompareEquippedSlot = (a, b) => a.slot.CompareTo(b.slot);
+        public void FillEquippedItems(string category, List<UiItem> result)
         {
-            int limit = EquipLimit(category);
-            var equipped = Items(category).FindAll(x => x.equipped && x.discovered && x.slot < limit);
-            equipped.Sort((a, b) => a.slot.CompareTo(b.slot));
-            return equipped;
+            InitCollections(); result.Clear(); int limit = EquipLimit(category);
+            foreach (var item in collectionItems) if (item.category == category && item.equipped && item.discovered && item.slot < limit) result.Add(item);
+            result.Sort(CompareEquippedSlot);
         }
         int EquipLimit(string category) => category == "Skill" ? UnlockedSkillSlots : category == "Companion" ? UnlockedCompanionSlots : category == "Relic" ? 0 : 1;
         void NormalizeEquipment(string category)
@@ -224,22 +225,12 @@ namespace DoodleIdle
 
         public int StatLevel(string id) { InitCollections(); return statLevels.TryGetValue(id, out int level) ? level : 0; }
         public int AttackStatLevel => StatLevel("attack");
-        public float StatValue(string id)
-        {
-            InitCollections();
-            foreach (var stat in collectionTuning.stats)
-                if (stat.id == id)
-                {
-                    float value = StatValueAtLevel(stat,StatLevel(id));
-                    return IsCriticalChance(id) ? Mathf.Clamp(value, 0, 100) : value;
-                }
-            return 0;
-        }
-        static float StatValueAtLevel(UiStatDefinition stat,int level) => (float)Math.Min(1e30,(stat.initial+stat.increment*(double)level)*Math.Pow(Math.Max(1,stat.valueGrowth),Math.Max(0,level)));
-        public float StatValueAfterUpgrades(string id,int count) { var stat=Array.Find(collectionTuning.stats,x=>x.id==id);return stat==null?0:Mathf.Min(IsCriticalChance(id)?100:1e30f,StatValueAtLevel(stat,(int)Math.Min(int.MaxValue,(long)StatLevel(id)+count))); }
-        public float OwnedBonus => LimitedStat((OwnedEffectProduct("attack") - 1) * 100);
-        public float HealthBonus => LimitedStat((OwnedEffectProduct("health") - 1) * 100);
-        public float GoldGainMultiplier => OwnedEffectMultiplier("gold");
+        // Finite adapters for editor integrations; gameplay and labels use the Amount APIs.
+        public float StatValue(string id) => (float)StatAmount(id);
+        public float StatValueAfterUpgrades(string id,int count) => (float)StatAmountAfterUpgrades(id,count);
+        public float OwnedBonus => (float)((OwnedAmount("attack") - 1) * 100);
+        public float HealthBonus => (float)((OwnedAmount("health") - 1) * 100);
+        public float GoldGainMultiplier => (float)GoldGainAmount;
         public static readonly string[] CriticalStatIds = { "crit2Chance", "crit4Chance", "crit8Chance", "crit16Chance", "crit32Chance", "crit64Chance", "crit128Chance" };
         public static int CriticalMultiplierAt(int tier) => 1 << (tier + 1);
         public static int CriticalLevelCap(int tier) => tier == 0 ? 4000 : 2000;
@@ -249,45 +240,20 @@ namespace DoodleIdle
             for (int i = 0; i < tier; i++) if (StatLevel(CriticalStatIds[i]) < StatMaxLevel(CriticalStatIds[i])) return false;
             return true;
         }
-        public float CriticalChance(int tier) => CriticalUnlocked(CriticalStatIds[tier]) ? Mathf.Clamp(StatValue(CriticalStatIds[tier]) * OwnedEffectMultiplier(CriticalStatIds[tier]), 0, 100) : 0;
+        public float CriticalChance(int tier) => combatSnapshot ? snapshotChances[tier] : CriticalUnlocked(CriticalStatIds[tier]) ? (float)GameNumber.Clamp(StatAmount(CriticalStatIds[tier]) * OwnedAmount(CriticalStatIds[tier]), 0, 100) : 0;
         public float Critical2Chance => CriticalChance(0);
         public bool Critical4Unlocked => CriticalUnlocked("crit4Chance");
         public float Critical4Chance => CriticalChance(1);
-        public float CriticalDamageBonus => LimitedStat((OwnedEffectProduct("critDamage") - 1) * 100);
-        public float MaxHealth => Mathf.Max(1, LimitedStat((double)StatValue("health") * (1 + EquippedValue("Armor") / 100) * OwnedEffectMultiplier("health")));
-        public float HealthRegen => LimitedStat(((double)StatValue("healthRegen") + NecklaceRecovery(EquippedValue("Necklace"))) * OwnedEffectMultiplier("healthRegen"));
-        float NecklaceRecovery(float equipPercent) => LimitedStat((double)StatValue("health") * OwnedEffectMultiplier("health") * equipPercent / 100 * .05f);
-        float CollectionDamageMultiplier(bool includeSkins) => LimitedStat((double)StatValue("attack") / BaseStatValue("attack")
-            * (1 + EquippedValue("Club") / 100) * (1 + EffectBonus("attack", "Equipment") / 100)
-            * (1 + (EffectBonus("attack", "Skill") + EquippedValue("Skill") * .02f) / 100)
-            * (1 + (EffectBonus("attack", "Companion") + EquippedValue("Companion")) / 100)
-            * (1 + EffectBonus("attack", "Relic") / 100) * (includeSkins ? 1 + SkinOwnedBonus("attack") / 100 : 1));
-        static float LimitedStat(double value) => (float)Math.Max(0, Math.Min(1e30, value));
-        float OwnedEffectMultiplier(string effect, bool includeSkins = true) => LimitedStat(OwnedEffectProduct(effect, includeSkins));
-        double OwnedEffectProduct(string effect, bool includeSkins = true)
-        {
-            double value = 1;
-            foreach (string category in OwnedEffectCategories) value *= 1d + EffectBonus(effect, category) / 100d;
-            if (includeSkins) value *= 1d + SkinOwnedBonus(effect) / 100d;
-            return value;
-        }
+        public float CriticalDamageBonus => (float)CriticalBonusAmount;
+        public float MaxHealth => (float)MaxHealthAmount;
+        public float HealthRegen => (float)HealthRegenAmount;
+        float CollectionDamageMultiplier(bool includeSkins) => (float)CollectionDamageAmount(includeSkins);
+        float OwnedEffectMultiplier(string effect, bool includeSkins = true) => (float)OwnedAmount(effect, includeSkins);
         static readonly string[] OwnedEffectCategories = { "Equipment", "Skill", "Companion", "Relic" };
-        public float CombatDamageMultiplier { get { InitCollections(); return CollectionDamageMultiplier(true) / Mathf.Max(.001f, starterDamageBaseline); } }
+        public float CombatDamageMultiplier => (float)CombatDamageAmount;
         public float CombatAttackSpeedMultiplier => 1;
-        public double ExpectedCriticalMultiplier
-        {
-            get
-            {
-                double remaining = 1, expected = 0, bonus = 1 + CriticalDamageBonus / 100d;
-                for (int i = CriticalStatIds.Length - 1; i >= 0; i--) {
-                    double chance = CriticalChance(i) / 100d;
-                    expected += remaining * chance * CriticalMultiplierAt(i) * bonus;
-                    remaining *= 1 - chance;
-                }
-                return expected + remaining;
-            }
-        }
-        public long Power => (long)Math.Min(long.MaxValue, Math.Round(BaseStatValue("attack") * CombatDamageMultiplier * ExpectedCriticalMultiplier * 70d + MaxHealth + HealthRegen * 20d));
+        public double ExpectedCriticalMultiplier => (double)ExpectedCriticalAmount;
+        public long Power => (long)PowerAmount;
         static bool IsCriticalChance(string id) => Array.IndexOf(CriticalStatIds, id) >= 0;
         int StatMaxLevel(string id)
         {
@@ -297,14 +263,7 @@ namespace DoodleIdle
                 ? Math.Min(collectionTuning.maxStatLevel, Mathf.CeilToInt((100 - stat.initial) / stat.increment)) : collectionTuning.maxStatLevel;
         }
 
-        float EquippedValue(string category)
-        {
-            InitCollections();
-            float value = 0;
-            // This is queried on every damage event: avoid allocating inventory lists.
-            foreach (var item in collectionItems) if (item.category == category && item.equipped) value += ItemEquipValue(item);
-            return value;
-        }
+        float EquippedValue(string category) => (float)EquippedAmount(category);
         float BaseStatValue(string id)
         {
             InitCollections();
@@ -312,38 +271,21 @@ namespace DoodleIdle
                 if (definition.id == id) return Mathf.Max(.001f, definition.initial);
             return 1;
         }
-        float ItemEquipValue(UiItem item)
-        {
-            if(IsEquipment(item)) {
-                float enhancement=(item.rarity==6 && item.tier==1 || item.rarity==8)?1+Math.Max(0,item.level-1)*.01f:AbilityEnhancementMultiplier(item);
-                return ((1+item.equipValue/100)*enhancement-1)*100;
-            }
-            return item.equipValue * (item.category=="Skill"||item.category=="Companion" ? AbilityEnhancementMultiplier(item) : 1 + Math.Max(0, item.level - 1) * .15f);
-        }
+        float ItemEquipValue(UiItem item) => (float)ItemEquipAmount(item);
         int CompareEquipPriority(UiItem a, UiItem b)
         {
             if(a.category=="Skill"||a.category=="Companion") {
                 int grade=a.rarity.CompareTo(b.rarity);
-                return grade!=0?grade:ItemExpectedDps(a).CompareTo(ItemExpectedDps(b));
+                return grade!=0?grade:ItemDpsAmount(a).CompareTo(ItemDpsAmount(b));
             }
-            return ItemEquipValue(a).CompareTo(ItemEquipValue(b));
+            return ItemEquipAmount(a).CompareTo(ItemEquipAmount(b));
         }
-        float ItemOwnedValue(UiItem item) => item.category == "Relic" ? item.level * collectionTuning.relicStepPercent : item.ownedPercent * (1 + Math.Max(0, item.level - 1) * .1f);
-        float EffectBonus(string effect, string category = null, bool includeSkins = true)
-        {
-            InitCollections();
-            float value = 0;
-            foreach (var item in collectionItems) {
-                if (!item.discovered || !(category == null || item.category == category || category == "Equipment" && IsEquipment(item))) continue;
-                if (item.effect == effect) value += ItemOwnedValue(item);
-                if (effect == "gold") value += ItemOwnedGoldValue(item);
-            }
-            return value + (category == null && includeSkins ? SkinOwnedBonus(effect) : 0);
-        }
+        float ItemOwnedValue(UiItem item) => (float)ItemOwnedAmount(item);
+        float EffectBonus(string effect, string category = null, bool includeSkins = true) => (float)EffectAmount(effect, category, includeSkins);
         public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : (int)Math.Min(20L, (long)collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10);
         public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
         public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
-        float ItemOwnedGoldValue(UiItem item) => item.category == "Armor" || item.category == "Necklace" ? 0 : item.ownedGoldPercent * (1 + Math.Max(0, item.level - 1) * .1f);
+        float ItemOwnedGoldValue(UiItem item) => (float)ItemOwnedGoldAmount(item);
         public int ItemMaxLevel(UiItem item) => IsEquipment(item) ? (item.rarity == 8 && item.tier == 1 ? int.MaxValue : 100) : item.category == "Skill" || item.category == "Companion" ? 100 : collectionTuning.maxItemLevel;
         public static bool CanSynthesizeCategory(string category) => IsEquipmentCategory(category) || category == "Skill" || category == "Companion";
         long UpgradeCopiesBetween(int from, int to)
@@ -367,7 +309,7 @@ namespace DoodleIdle
         {
             var next = SynthesisTarget(item);
             if (next == null || !item.discovered || item.level < 100 || item.count < 5) return 0;
-            long before = Power;
+            GameNumber before = PowerAmount;
             int amount = SynthesizeCopies(item, next, all);
             if (amount == 0) return 0;
             NotifyPowerChanged(before, CategoryName(item.category) + " 합성");
@@ -388,7 +330,7 @@ namespace DoodleIdle
             if (!CanSynthesizeCategory(category)) return 0;
             var items = Items(category);
             items.Sort((a, b) => a.rarity != b.rarity ? a.rarity.CompareTo(b.rarity) : a.tier.CompareTo(b.tier));
-            long before = Power;
+            GameNumber before = PowerAmount;
             long total = 0;
             for (int i = 0; i + 1 < items.Count; i++) total += SynthesizeCopies(items[i], items[i + 1], true);
             if (total > 0) {
@@ -423,7 +365,7 @@ namespace DoodleIdle
         public bool UpgradeItem(UiItem item, bool notifyPower = true)
         {
             if (item == null || !collectionItems.Contains(item) || !item.discovered || item.category == "Relic" || item.level >= ItemMaxLevel(item) || item.count < CopiesNeeded(item)) return false;
-            long before = notifyPower ? Power : 0;
+            GameNumber before = notifyPower ? PowerAmount : 0;
             item.count -= CopiesNeeded(item);
             item.level++;
             RecordItemUpgrades(item, 1);

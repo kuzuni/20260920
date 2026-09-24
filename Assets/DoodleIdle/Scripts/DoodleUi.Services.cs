@@ -67,7 +67,7 @@ namespace DoodleIdle
         sealed class LocalRank
         {
             public string name, art;
-            public long power;
+            public GameNumber power;
             public int points;
             public bool self;
         }
@@ -497,7 +497,7 @@ namespace DoodleIdle
             foreach (int index in new[] { 0, 2 })
             {
                 int stage = DungeonChallengeStage(index);
-                string reward = index == 0 ? "골드 " + UiNumber.Format(DungeonGoldReward(stage)) : "던전 유물 뽑기권 " + DungeonRelicReward(stage) + "장";
+                string reward = index == 0 ? "골드 " + UiNumber.Format(DungeonGoldAmount(stage)) : "던전 유물 뽑기권 " + DungeonRelicReward(stage) + "장";
                 var card = ServiceCard(body, DungeonNames[index], index == 0 ? new Color(1,.97f,.85f) : new Color(.94f,.9f,.98f));
                 Notify(card, () => CanEnterDungeon(index));
                 var row = UiKit.Row(card, "Dungeon", 216, 8);
@@ -544,7 +544,7 @@ namespace DoodleIdle
             var rewards=new List<UiReward>();
             if(index==0) {
                 int amount=DungeonGoldReward(stage);
-                Gold=SaturatingAdd(Gold,amount);RecordServiceProgress("gold",amount);
+                GoldAmount += DungeonGoldAmount(stage);RecordServiceProgress("gold",amount);
                 rewards.Add(new UiReward { name="",icon="Gold",amount=amount,rarity=0 });
             } else {
                 int amount=DungeonRelicReward(stage);GrantDungeonRelicTickets(amount);
@@ -560,7 +560,7 @@ namespace DoodleIdle
             string[] art = { "Player", "StormCloud", "MushroomA", "DevilA", "BatA", "StormCloudB" };
             var ranks = new List<LocalRank>();
             for (int i = 0; i < 100; i++) ranks.Add(new LocalRank { name = i < names.Length ? names[i] : names[i % names.Length] + (i + 1), art = art[i % art.Length], points = 2840 - i * 17, power = 58200 - i * 460 });
-            ranks.Add(new LocalRank { name = PlayerName, art = "Player", points = services.pvpPoints, power = Power, self = true });
+            ranks.Add(new LocalRank { name = PlayerName, art = "Player", points = services.pvpPoints, power = PowerAmount, self = true });
             ranks.Sort((a, b) => { int points = b.points.CompareTo(a.points); return points != 0 ? points : b.power.CompareTo(a.power); });
             return ranks;
         }
@@ -592,7 +592,7 @@ namespace DoodleIdle
             var myRow = UiKit.Row(mine, "My ranking", 64);
             UiKit.Icon(myRow, "Player", 62);
             UiKit.Text(myRow, "내 순위 " + (selfIndex + 1) + "위\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
-            UiKit.Text(myRow, "승점 " + UiNumber.Format(services.pvpPoints) + "\n전투력 " + UiNumber.Format(Power), 20, TextAnchor.MiddleRight, 66);
+            UiKit.Text(myRow, "승점 " + UiNumber.Format(services.pvpPoints) + "\n전투력 " + UiNumber.Format(PowerAmount), 20, TextAnchor.MiddleRight, 66);
             var actions=UiKit.Row(body,"PVP actions",66,10);
             var challenge = UiKit.Button(actions, "모의 대전 시작", PlayLocalPvp, UiKit.Blue, 66);UiKit.Flexible(challenge.transform,1.6f);
             var attempts=UiKit.Box(actions,"PVP remaining attempts",new Color(.96f,.94f,.9f),66);
@@ -632,8 +632,8 @@ namespace DoodleIdle
             ResetServicePeriods(); if (services.pvpUsed >= serviceTuning.pvpAttempts) return;
             var ranks = LocalRanking(); int own = ranks.FindIndex(r => r.self);
             var opponent = ranks[own > 0 ? own - 1 : 1];
-            bool won = Power * (0.85 + serviceRandom.NextDouble() * .3) >= opponent.power;
-            services.pvpUsed++; services.pvpPoints = Math.Max(0, services.pvpPoints + (won ? 35 : -10));
+            bool won = PowerAmount * (0.85 + serviceRandom.NextDouble() * .3) >= opponent.power;
+            services.pvpUsed++; services.pvpPoints = (int)Math.Max(0, Math.Min(int.MaxValue, (long)services.pvpPoints + (won ? 35 : -10)));
             RecordServiceProgress("pvp", 1); Save(); RefreshPage();
             ShowDetail("모의 대전 결과", panel =>
             {

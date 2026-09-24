@@ -48,7 +48,7 @@ namespace DoodleIdle.Tests
                 foreach (var enemy in enemies) {
                     var type = enemy.GetType();
                     Assert.That(((SpriteRenderer)type.GetField("art").GetValue(enemy)).sprite.name,Does.StartWith("Desert"));
-                    Assert.That((float)type.GetField("maxHp").GetValue(enemy),Is.EqualTo(68 * ui.EnemyHealthMultiplier(101)).Within(.1));
+                    Assert.That((float)(GameNumber)type.GetField("maxHp").GetValue(enemy),Is.EqualTo(68 * ui.EnemyHealthMultiplier(101)).Within(.1));
                 }
                 Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(4));
                 Assert.That(UiNode("Equipped Skill").GetComponentsInChildren<DoodleUiPadlock>().Length,Is.EqualTo(4));
@@ -191,13 +191,13 @@ namespace DoodleIdle.Tests
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var actor = actors[0]; var type = actor.GetType();
             var maxHp = type.GetField("maxHp"); var hp = type.GetField("hp");
-            float originalHp = (float)maxHp.GetValue(actor);
-            hp.SetValue(actor, originalHp * .4f);
+            float originalHp = (float)(GameNumber)maxHp.GetValue(actor);
+            hp.SetValue(actor, (GameNumber)(originalHp * .4f));
             ui.ApplyBalanceTuning(draft);
             Assert.That(ui.EnemyHealthMultiplier(stage), Is.EqualTo(health * 4).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(stage), Is.EqualTo(damage * 2).Within(.001));
-            Assert.That((float)maxHp.GetValue(actor), Is.EqualTo(originalHp * 4).Within(.01));
-            Assert.That((float)hp.GetValue(actor) / (float)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
+            Assert.That((float)(GameNumber)maxHp.GetValue(actor), Is.EqualTo(originalHp * 4).Within(.01));
+            Assert.That((float)(GameNumber)hp.GetValue(actor) / (float)(GameNumber)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(progress));
             Assert.That(ui.GoldForMainKills(50, 500), Is.EqualTo(gold * 3).Within(2));
             Assert.That(ui.DungeonGoldReward(1), Is.EqualTo(ui.GoldForMainKills(50, 500)));
@@ -216,8 +216,8 @@ namespace DoodleIdle.Tests
             draft.earlyEnemyDamageEndStage = 11; draft.earlyEnemyDamageMax = 32;
             ui.ApplyBalanceTuning(draft);
             Assert.That(ui.EnemyHealthMultiplier(1) * 68, Is.EqualTo(136).Within(.001));
-            Assert.That((float)maxHp.GetValue(actor), Is.EqualTo(68 * DoodleUi.EnemyHealthMultiplier(draft, stage)).Within(.01));
-            Assert.That((float)hp.GetValue(actor) / (float)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
+            Assert.That((float)(GameNumber)maxHp.GetValue(actor), Is.EqualTo(68 * DoodleUi.EnemyHealthMultiplier(draft, stage)).Within(.01));
+            Assert.That((float)(GameNumber)hp.GetValue(actor) / (float)(GameNumber)maxHp.GetValue(actor), Is.EqualTo(.4f).Within(.0001));
             Assert.That(ui.EnemyDamageMultiplier(0) * 64, Is.EqualTo(12).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(1) * 64, Is.EqualTo(12).Within(.001));
             Assert.That(ui.EnemyDamageMultiplier(6) * 64, Is.EqualTo(22).Within(.001));
@@ -510,7 +510,7 @@ namespace DoodleIdle.Tests
             foreach(var relic in ui.Items("Relic")){relic.discovered=true;relic.level=5;}
             DayOneState("mainStage",stage-1);DayOneState("highestMainStage",stage-1);DayOneState("mainStageKillProgress",0);
             DayOneState("goldExpiry",DateTime.UtcNow.AddHours(9).Ticks);DayOneState("attackExpiry",DateTime.UtcNow.AddHours(9).Ticks);
-            typeof(DoodleUi).GetField("starterDamageBaseline",GrowthPrivate).SetValue(ui,1f);
+            typeof(DoodleUi).GetField("starterDamageBaseline",GrowthPrivate).SetValue(ui,(GameNumber)1);
         }
 
         [UnityTest]
@@ -584,9 +584,9 @@ namespace DoodleIdle.Tests
             var target=enemies[0];var hp=target.GetType().GetField("hp");
             var hit=typeof(DoodleIdleGame).GetMethod("SkillDamage",GrowthPrivate);
             foreach(var item in ui.Items("Skill")) {
-                item.level=10;float before=1000000;hp.SetValue(target,before);
+                item.level=10;float before=1000000;hp.SetValue(target, (GameNumber)(before));
                 hit.Invoke(game,new object[]{target,DoodleAttackPower.Skill(item.ability).hitWeight,Vector2.zero,item.ability});
-                Assert.That(before-(float)hp.GetValue(target),Is.EqualTo(ui.ItemHitDamage(item)).Within(.15f),item.ability);
+                Assert.That(before-(float)(GameNumber)hp.GetValue(target),Is.EqualTo(ui.ItemHitDamage(item)).Within(.15f),item.ability);
                 float damage=ui.ItemHitDamage(item);item.level=11;Assert.That(ui.ItemHitDamage(item),Is.GreaterThan(damage));
             }
             yield return null;

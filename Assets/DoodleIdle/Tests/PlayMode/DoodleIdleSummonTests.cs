@@ -37,8 +37,8 @@ namespace DoodleIdle.Tests
         {
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
             var actor=actors.Cast<object>().Single(x=>(Rigidbody2D)x.GetType().GetField("body").GetValue(x)==body);
-            actor.GetType().GetField("hp").SetValue(actor,health);
-            actor.GetType().GetField("maxHp").SetValue(actor,health);
+            actor.GetType().GetField("hp").SetValue(actor, (GameNumber)(health));
+            actor.GetType().GetField("maxHp").SetValue(actor, (GameNumber)(health));
         }
         SpriteRenderer[] NamedArt(string name) => game.GetComponentsInChildren<SpriteRenderer>().Where(r => r.name == name).ToArray();
 
@@ -93,7 +93,7 @@ namespace DoodleIdle.Tests
             Place(bodies[2],new Vector2(9,0));
             Place(bodies[3],new Vector2(6,3));
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
-            float Hp(int index) => (float)actors[index].GetType().GetField("hp").GetValue(actors[index]);
+            float Hp(int index) => (float)(GameNumber)actors[index].GetType().GetField("hp").GetValue(actors[index]);
             float untouched=Hp(3);
             var times=new List<float>();game.SkillProjectileLaunched+=(skill,time,id)=>{if(skill==DoodleIdleGame.ExtraSkill.Arrows)times.Add(time);};
             game.CastVariant("PurpleFireArrows");

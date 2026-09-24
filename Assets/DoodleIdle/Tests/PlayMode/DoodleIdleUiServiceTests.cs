@@ -364,7 +364,7 @@ namespace DoodleIdle.Tests
             {
                 if (actors.Count == 0) typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
                 var actor=actors[0];
-                float health=(float)actor.GetType().GetField("hp").GetValue(actor);
+                float health=(float)(GameNumber)actor.GetType().GetField("hp").GetValue(actor);
                 float lethalWeight=health*2/Mathf.Max(.000001f,game.Ui.UiDamageMultiplier*game.Ui.AttackCategoryMultiplier("Basic"));
                 damage.Invoke(game, new[] { actor, (object)lethalWeight, Vector2.zero });
             }

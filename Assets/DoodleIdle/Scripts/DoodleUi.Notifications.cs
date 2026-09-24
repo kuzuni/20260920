@@ -67,7 +67,7 @@ namespace DoodleIdle
                 case "Buffs": return GoldBuffSeconds==0||AttackBuffSeconds==0;
                 case "Dungeons": return CanEnterDungeon(0)||CanEnterDungeon(2);
                 case "Stats":
-                    foreach(var stat in collectionTuning.stats){int count;long cost=StatUpgradeQuote(stat.id,1,out count);if(count>0&&Gold>=cost)return true;}
+                    foreach(var stat in collectionTuning.stats){int count;GameNumber cost=StatUpgradeQuoteAmount(stat.id,1,out count);if(count>0&&GoldAmount>=cost)return true;}
                     return false;
                 case "Equipment": return Items("Armor").Exists(ItemNeedsAttention)||Items("Club").Exists(ItemNeedsAttention)||Items("Necklace").Exists(ItemNeedsAttention);
                 case "Skills": return Items("Skill").Exists(ItemNeedsAttention);

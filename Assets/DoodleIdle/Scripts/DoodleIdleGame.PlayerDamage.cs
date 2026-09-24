@@ -9,14 +9,16 @@ namespace DoodleIdle
         public const float ContactInvulnerabilityDuration = 1;
         float contactInvulnerability;
         Material playerHitMaterial;
-        public float PlayerHealth => player == null ? 0 : player.hp;
-        public float PlayerMaxHealth => player == null ? 0 : player.maxHp;
+        public float PlayerHealth => player == null ? 0 : (float)player.hp;
+        public float PlayerMaxHealth => player == null ? 0 : (float)player.maxHp;
+        public GameNumber PlayerHealthAmount => player == null ? 0 : player.hp;
+        public GameNumber PlayerMaxHealthAmount => player == null ? 0 : player.maxHp;
         public bool PlayerInvulnerable => contactInvulnerability > .0001f;
         public int PlayerContactHits { get; private set; }
 
         void ResetPlayerContactDamage()
         {
-            player.hp = player.maxHp = Ui ? Ui.MaxHealth : 1280;
+            player.hp = player.maxHp = Ui ? Ui.MaxHealthAmount : 1280;
             contactInvulnerability = 0; PlayerContactHits = 0;
             if (!player.healthFill) AddHealthBar(player);
             player.healthBack.name = "Player HP background";
@@ -27,11 +29,11 @@ namespace DoodleIdle
         void TickPlayerContactDamage(float dt)
         {
             contactInvulnerability = Mathf.Max(0, contactInvulnerability - dt);
-            float maxHealth = Ui ? Ui.MaxHealth : 1280;
+            GameNumber maxHealth = Ui ? Ui.MaxHealthAmount : 1280;
             // Preserve missing HP when equipment/stat maximum health changes.
-            player.hp = Mathf.Clamp(player.hp + maxHealth - player.maxHp + (Ui ? Ui.HealthRegen * dt : 0), 0, maxHealth);
+            player.hp = GameNumber.Clamp(player.hp + maxHealth - player.maxHp + (Ui ? Ui.HealthRegenAmount * dt : 0), 0, maxHealth);
             player.maxHp = maxHealth;
-            float damage=enemyContactDamage*(Ui?Ui.EnemyDamageMultiplier(Ui.CombatDifficultyStage):1);
+            GameNumber damage=enemyContactDamage*(Ui?Ui.EnemyDamageAmount(Ui.CombatDifficultyStage)/64:1);
             if (!PlayerInvulnerable && damage > 0) {
                 foreach (var enemy in enemies) {
                     if (!Alive(enemy)) continue;
@@ -40,7 +42,7 @@ namespace DoodleIdle
                     float radius = player.collider.radius * Mathf.Abs(player.root.transform.lossyScale.x)
                         + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                     if (SegmentDistance(Vector2.zero, relative, next) > radius + .02f) continue;
-                    player.hp = Mathf.Max(0, player.hp - damage);
+                    player.hp = GameNumber.Max(0, player.hp - damage);
                     ShowDamageNumber(player.Position, damage, true);
                     PlayerContactHits++; contactInvulnerability = ContactInvulnerabilityDuration;
                     if (player.hp <= 0) {

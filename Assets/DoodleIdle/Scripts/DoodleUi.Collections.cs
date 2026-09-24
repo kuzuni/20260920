@@ -15,7 +15,7 @@ namespace DoodleIdle
         UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
         readonly List<Action> statWalletBindings = new List<Action>();
-        long displayedStatGold;
+        GameNumber displayedStatGold;
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
         {
@@ -69,7 +69,7 @@ namespace DoodleIdle
             UiKit.Text(row, value, 24, TextAnchor.MiddleLeft, 32);
         }
 
-        Button CollectionCoinButton(Transform parent, string name, string caption, long cost, Action click, float height, float width, out Text captionText, out Text priceText)
+        Button CollectionCoinButton(Transform parent, string name, string caption, GameNumber cost, Action click, float height, float width, out Text captionText, out Text priceText)
         {
             var button = UiKit.Button(parent, name, click, UiKit.Yellow, height);
             button.GetComponentInChildren<Text>().gameObject.SetActive(false);
@@ -95,12 +95,12 @@ namespace DoodleIdle
 
         void BuildStats(RectTransform body)
         {
-            statWalletBindings.Clear(); displayedStatGold = Gold;
+            statWalletBindings.Clear(); displayedStatGold = GoldAmount;
             body.GetComponent<VerticalLayoutGroup>().spacing = 12;
             var power = UiKit.Row(body, "Combat power", 126, 16);
             power.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(42, 0, 0, 0);
             UiKit.Icon(power, "Player", 124);
-            var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(Power), 35, TextAnchor.MiddleCenter, 108);
+            var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(PowerAmount), 35, TextAnchor.MiddleCenter, 108);
             CollectionWidth(powerText.transform, 286);
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);
             foreach (int amount in new[] { 1, 10, 100, -1 })
@@ -113,7 +113,7 @@ namespace DoodleIdle
             {
                 var stat = definition;
                 int upgrades;
-                long cost = StatUpgradeQuote(stat.id, statBatch, out upgrades);
+                GameNumber cost = StatUpgradeQuoteAmount(stat.id, statBatch, out upgrades);
                 var frame = CollectionBox(body, "Stat " + stat.id, UiKit.Paper);
                 CollectionSoftBorder(frame);
                 var row = UiKit.Row(frame, stat.name, 104, 10);
@@ -123,9 +123,9 @@ namespace DoodleIdle
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id).ToString("N0"), 30, TextAnchor.MiddleLeft, 39);
-                float current = StatValue(stat.id);
-                float next = StatValueAfterUpgrades(stat.id,upgrades);
-                if (IsCriticalChance(stat.id)) next = Mathf.Clamp(next, 0, 100);
+                GameNumber current = StatAmount(stat.id);
+                GameNumber next = StatAmountAfterUpgrades(stat.id,upgrades);
+                if (IsCriticalChance(stat.id)) next = GameNumber.Clamp(next, 0, 100);
                 var valueText = UiKit.Text(text, locked ? CriticalUnlockText(stat.id) + " MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
                 if (locked)
                 {
@@ -140,15 +140,15 @@ namespace DoodleIdle
                     Save(); RefreshPage(); return true;
                 };
                 var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () => { if (!purchase()) Toast("강화 골드가 부족하거나 최대 단계입니다."); }, 94, 164, out var captionText, out var priceText);
-                button.interactable = upgrades > 0 && Gold >= cost;
+                button.interactable = upgrades > 0 && GoldAmount >= cost;
                 statWalletBindings.Add(() => {
                     if (!button) return;
-                    long liveCost = StatUpgradeQuote(stat.id, statBatch, out int liveUpgrades);
-                    button.interactable = liveUpgrades > 0 && Gold >= liveCost;
+                    GameNumber liveCost = StatUpgradeQuoteAmount(stat.id, statBatch, out int liveUpgrades);
+                    button.interactable = liveUpgrades > 0 && GoldAmount >= liveCost;
                     button.name = liveUpgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(liveUpgrades) + "\n골드 " + UiNumber.Format(liveCost);
                     captionText.text = liveUpgrades == 0 ? "최대 단계" : liveUpgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(liveUpgrades);
                     priceText.text = UiNumber.Format(liveCost);
-                    valueText.text = StatNumber(stat.id, StatValue(stat.id)) + " → <color=#216B20>" + StatNumber(stat.id, StatValueAfterUpgrades(stat.id, liveUpgrades)) + "</color>";
+                    valueText.text = StatNumber(stat.id, StatAmount(stat.id)) + " → <color=#216B20>" + StatNumber(stat.id, StatAmountAfterUpgrades(stat.id, liveUpgrades)) + "</color>";
                 });
                 UiKit.Repeat(button, "stat:" + stat.id, purchase);
             }
@@ -157,16 +157,17 @@ namespace DoodleIdle
         void RefreshStatWallet()
         {
             if (ActivePage != "Stats") { statWalletBindings.Clear(); return; }
-            if (displayedStatGold == Gold) return;
-            displayedStatGold = Gold;
+            if (displayedStatGold == GoldAmount) return;
+            displayedStatGold = GoldAmount;
             // Update existing controls without rebuilding the popup or interrupting scrolling/holds.
             foreach (var refresh in statWalletBindings) refresh();
         }
 
         static string CriticalUnlockText(string id) => CriticalMultiplierAt(Math.Max(0, Array.IndexOf(CriticalStatIds, id) - 1)) + "배 치명타";
-        string StatNumber(string id, float value) => UiNumber.Format(value, IsCriticalChance(id) ? 2 : 1) + (IsCriticalChance(id) ? "%" : id == "healthRegen" ? "/초" : "");
+        string StatNumber(string id, GameNumber value) => UiNumber.Format(value, IsCriticalChance(id) ? 2 : 1) + (IsCriticalChance(id) ? "%" : id == "healthRegen" ? "/초" : "");
 
-        public long StatUpgradeQuote(string id, int requested, out int upgrades)
+        public long StatUpgradeQuote(string id, int requested, out int upgrades) => (long)StatUpgradeQuoteAmount(id, requested, out upgrades);
+        public GameNumber StatUpgradeQuoteAmount(string id, int requested, out int upgrades)
         {
             InitCollections();
             var stat = Array.Find(collectionTuning.stats, x => x.id == id);
@@ -174,27 +175,26 @@ namespace DoodleIdle
             if (stat == null || (IsCriticalChance(id) && !CriticalUnlocked(id))) return 0;
             int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));
             int target = requested < 0 ? available : Math.Min(Math.Max(0, requested), available);
-            long total = 0;
+            GameNumber total = 0;
             for (int i = 0; i < target; i++)
             {
-                long price = StatUpgradePrice(collectionTuning.statCosts, id, StatLevel(id) + i);
-                if (price > long.MaxValue - total) break;
-                if (requested < 0 && price > Gold - total) break;
+                GameNumber price = StatUpgradePriceAmount(collectionTuning.statCosts, id, StatLevel(id) + i);
+                if (requested < 0 && price > GoldAmount - total) break;
                 total += price;
                 upgrades++;
             }
             // MAX still presents the next purchase price when the wallet is empty.
-            if (requested < 0 && upgrades == 0 && available > 0) return StatUpgradeQuote(id, 1, out upgrades);
-            return total;
+            if (requested < 0 && upgrades == 0 && available > 0) return StatUpgradeQuoteAmount(id, 1, out upgrades);
+            return GameNumber.Round(total);
         }
 
         public bool UpgradeStat(string id, int requested)
         {
             int count;
-            long cost = StatUpgradeQuote(id, requested, out count);
-            if (count == 0 || cost > Gold) return false;
-            long before = Power;
-            Gold -= cost;
+            GameNumber cost = StatUpgradeQuoteAmount(id, requested, out count);
+            if (count == 0 || cost > GoldAmount) return false;
+            GameNumber before = PowerAmount;
+            GoldAmount -= cost;
             statLevels[id] += count;
             RecordServiceProgress("statUpgrade", count);
             RecordServiceProgress("statUpgrade:"+id, count);
@@ -216,8 +216,8 @@ namespace DoodleIdle
             var info = UiKit.Column(row, "Item information", 4, 1);
             CollectionColumnWidth(info, 1);
             UiKit.Text(info, selected.name + " · <color=#236B25>" + GradeNames[selected.rarity] + "</color>", 27, TextAnchor.MiddleLeft, 38);
-            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedValue(selected)) + "%" + (ItemOwnedGoldValue(selected) > 0 ? " · 골드 +" + UiNumber.Format(ItemOwnedGoldValue(selected)) + "%" : ""));
-            CollectionEffectRow(info, "장착 효과", selected.category == "Necklace" ? "체력 회복 +" + UiNumber.Format(NecklaceRecovery(ItemEquipValue(selected)), 2) + "/초" : (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipValue(selected)) + "%");
+            CollectionEffectRow(info, "보유 효과", EffectName(selected.effect) + " +" + UiNumber.Format(ItemOwnedAmount(selected)) + "%" + (ItemOwnedGoldValue(selected) > 0 ? " · 골드 +" + UiNumber.Format(ItemOwnedGoldValue(selected)) + "%" : ""));
+            CollectionEffectRow(info, "장착 효과", selected.category == "Necklace" ? "체력 회복 +" + UiNumber.Format(NecklaceRecovery(ItemEquipAmount(selected)), 2) + "/초" : (selected.category == "Armor" ? "체력" : "공격력") + " +" + UiNumber.Format(ItemEquipAmount(selected)) + "%");
             var actions = UiKit.Row(info, "Selected item actions", 46, 12);
             if (selected.discovered)
             {
@@ -301,14 +301,14 @@ namespace DoodleIdle
 
         void OwnershipStrip(RectTransform parent, string category)
         {
-            string effect = "공격력 +" + UiNumber.Format(EffectBonus("attack", category)) + "%";
-            float health = EffectBonus("health", category);
+            string effect = "공격력 +" + UiNumber.Format(EffectAmount("attack", category)) + "%";
+            GameNumber health = EffectAmount("health", category);
             if (health > 0) effect += " · 체력 +" + UiNumber.Format(health) + "%";
             if (IsEquipmentCategory(category))
             {
                 var row = UiKit.Row(parent, "Total ownership", 42, 0);
                 string equipmentEffect = category == "Club" ? "attack" : category == "Armor" ? "health" : "healthRegen";
-                effect = EffectName(equipmentEffect) + " +" + UiNumber.Format(EffectBonus(equipmentEffect, category)) + "%";
+                effect = EffectName(equipmentEffect) + " +" + UiNumber.Format(EffectAmount(equipmentEffect, category)) + "%";
                 UiKit.Text(row, "총 보유 효과   " + effect, 23, TextAnchor.MiddleCenter, 42);
                 return;
             }
@@ -428,7 +428,7 @@ namespace DoodleIdle
 
         public void AutoEquip(string category)
         {
-            long before = Power;
+            GameNumber before = PowerAmount;
             var owned = Items(category).FindAll(x => x.discovered);
             owned.Sort((a, b) => { int score = CompareEquipPriority(b, a); return score != 0 ? score : string.CompareOrdinal(a.id, b.id); });
             foreach (var item in Items(category)) item.equipped = false;
@@ -487,7 +487,7 @@ namespace DoodleIdle
                 CollectionLabelPill(ownedHeading, "보유 효과", new Color(.79f, .95f, .69f), 106, 26, 22);
                 var ownedValue = UiKit.Box(owned, "Ownership value", UiKit.Paper, 26);
                 ownedValue.GetComponent<Outline>().enabled = false;
-                var ownedText = UiKit.Text(ownedValue, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "%", 22, TextAnchor.MiddleLeft, 26);
+                var ownedText = UiKit.Text(ownedValue, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedAmount(item)) + "%", 22, TextAnchor.MiddleLeft, 26);
                 UiKit.Stretch(ownedText.rectTransform, 7, 1, 7, 1);
                 if (item.category == "Skill" || item.category == "Companion")
                 {
@@ -496,23 +496,23 @@ namespace DoodleIdle
                     var hit = CollectionBox(measures, "Skill potency", UiKit.Paper);
                     hit.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
                     UiKit.Text(hit, "1타 피해 (일반)", 17, TextAnchor.MiddleLeft, 22);
-                    UiKit.Text(hit, UiNumber.Format(ItemHitDamage(item), 2), 23, TextAnchor.MiddleLeft, 26);
+                    UiKit.Text(hit, UiNumber.Format(ItemHitAmount(item), 2), 23, TextAnchor.MiddleLeft, 26);
                     var dps = CollectionBox(measures, "Expected DPS", UiKit.Paper);
                     dps.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(6, 6, 4, 4);
                     UiKit.Text(dps, "예상 총 DPS", 17, TextAnchor.MiddleLeft, 22);
-                    UiKit.Text(dps, UiNumber.Format(ItemExpectedDps(item), 2), 23, TextAnchor.MiddleLeft, 26);
+                    UiKit.Text(dps, UiNumber.Format(ItemDpsAmount(item), 2), 23, TextAnchor.MiddleLeft, 26);
                     UiKit.Text(body, "1타 = 공격력의 " + UiNumber.Format(ItemHitPercent(item), 2) + "% · 재사용 " + UiNumber.Format(interval, 2) + "초", 16, TextAnchor.MiddleCenter, 24);
                     if (item.ability == "Molotov" || item.ability == "BlueMolotov")
                         UiKit.Text(body, "화상 1타 = 공격력의 " + UiNumber.Format(DoodleAttackPower.Percent(8), 2) + "%", 16, TextAnchor.MiddleCenter, 22);
                     float splashFraction = ItemSplashFraction(item);
                     if (splashFraction > 0)
-                        UiKit.Text(body, "주변 1명당 " + UiNumber.Format(splashFraction * 100) + "% · " + UiNumber.Format(ItemHitDamage(item) * splashFraction, 2) + " 피해\n직격 대상은 중복 피해 없음", 15, TextAnchor.MiddleCenter, 42);
+                        UiKit.Text(body, "주변 1명당 " + UiNumber.Format(splashFraction * 100) + "% · " + UiNumber.Format(ItemHitAmount(item) * splashFraction, 2) + " 피해\n직격 대상은 중복 피해 없음", 15, TextAnchor.MiddleCenter, 42);
                     string basis = item.category == "Companion" ? item.volleyCount + "발 모두 명중 · 추가 폭발 대상 제외" : DoodleAttackPower.Skill(item.ability).basis;
                     if (item.category == "Skill" && splashFraction > 0) basis += " · 추가 폭발 대상 제외";
                     UiKit.Text(body, basis + "\n현재 공격력·유물·버프 반영 / DPS는 치명타 평균 반영\n전부 명중 가정 · 이동·대상 수에 따라 실제 피해 변동", 14, TextAnchor.MiddleCenter, 60);
                     UiKit.Text(body, "장착 시에만 자동 공격", 15, TextAnchor.MiddleCenter, 22);
                 }
-                else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipValue(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
+                else UiKit.Text(body, "장착 공격력 +" + UiNumber.Format(ItemEquipAmount(item)) + "%", 23, TextAnchor.MiddleCenter, 32);
                 if (!item.discovered) UiKit.Text(body, "미획득 · 효과가 적용되지 않습니다.", 18, TextAnchor.MiddleCenter, 26);
                 if (item.discovered)
                 {
@@ -549,7 +549,7 @@ namespace DoodleIdle
         void EquipFromUi(UiItem item, bool detail)
         {
             if (!item.discovered) { Toast("아직 획득하지 않았습니다."); return; }
-            long before = Power;
+            GameNumber before = PowerAmount;
             if (item.equipped)
             {
                 if (!detail) { Toast("장착 중인 장비입니다."); return; }
@@ -581,7 +581,7 @@ namespace DoodleIdle
         {
             var item = pendingEquip;
             if (item == null || item.category != previous.category || !previous.equipped || !item.discovered) return;
-            long before = Power;
+            GameNumber before = PowerAmount;
             previous.equipped = false; item.equipped = true; item.slot = previous.slot; pendingEquip = null;
             RecordMissionAction("equip:"+item.category);
             NormalizeEquipment(item.category); NotifyPowerChanged(before, "장착 교체"); Save(); RefreshPage();
@@ -595,9 +595,9 @@ namespace DoodleIdle
             UiKit.Stretch(noteText.rectTransform, 4, 2, 4, 2);
             var totals = CollectionBox(body, "Relic effects", new Color(.89f, .985f, .85f));
             totals.GetComponent<Outline>().effectColor = new Color(.27f, .53f, .23f);
-            string summary = "총 유물 효과   공격력 +" + UiNumber.Format(EffectBonus("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectBonus("health", "Relic")) + "%\n"
-                + "골드 +" + UiNumber.Format(EffectBonus("gold", "Relic")) + "% · 회복 +" + UiNumber.Format(EffectBonus("healthRegen", "Relic")) + "% · 치명 피해 +" + UiNumber.Format(EffectBonus("critDamage", "Relic")) + "%";
-            summary += "\n기본 공격 +" + UiNumber.Format(EffectBonus("basicAttack", "Relic")) + "% · 스킬 +" + UiNumber.Format(EffectBonus("skillAttack", "Relic")) + "% · 동료 +" + UiNumber.Format(EffectBonus("companionAttack", "Relic")) + "%";
+            string summary = "총 유물 효과   공격력 +" + UiNumber.Format(EffectAmount("attack", "Relic")) + "% · 체력 +" + UiNumber.Format(EffectAmount("health", "Relic")) + "%\n"
+                + "골드 +" + UiNumber.Format(EffectAmount("gold", "Relic")) + "% · 회복 +" + UiNumber.Format(EffectAmount("healthRegen", "Relic")) + "% · 치명 피해 +" + UiNumber.Format(EffectAmount("critDamage", "Relic")) + "%";
+            summary += "\n기본 공격 +" + UiNumber.Format(EffectAmount("basicAttack", "Relic")) + "% · 스킬 +" + UiNumber.Format(EffectAmount("skillAttack", "Relic")) + "% · 동료 +" + UiNumber.Format(EffectAmount("companionAttack", "Relic")) + "%";
             UiKit.Text(totals, summary, 21, TextAnchor.MiddleCenter, 88);
             foreach (var entry in AllRelics)
             {
@@ -612,7 +612,7 @@ namespace DoodleIdle
                 UiKit.Text(title, item.name, 27, TextAnchor.MiddleLeft, 34);
                 string levelLabel = "Lv. " + item.level.ToString("N0");
                 CollectionLabelPill(title, levelLabel, new Color(.94f, .90f, .82f), Mathf.Max(110, levelLabel.Length * 13), 32, 23);
-                UiKit.Text(info, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedValue(item)) + "% → <color=#216B20>+" + UiNumber.Format(ItemOwnedValue(item) + collectionTuning.relicStepPercent) + "%</color>", 24, TextAnchor.MiddleLeft, 34);
+                UiKit.Text(info, EffectName(item.effect) + " +" + UiNumber.Format(ItemOwnedAmount(item)) + "% → <color=#216B20>+" + UiNumber.Format(ItemOwnedAmount(item) + collectionTuning.relicStepPercent) + "%</color>", 24, TextAnchor.MiddleLeft, 34);
                 UiKit.Text(info, "성공 확률 50%", 23, TextAnchor.MiddleLeft, 30);
                 Func<bool> attempt = () => UpgradeRelicFromUi(item, false);
                 string caption = !item.discovered ? "미획득" : item.level >= collectionTuning.maxItemLevel ? "최대 단계" : "강화";
@@ -652,7 +652,7 @@ namespace DoodleIdle
         IEnumerator UpgradeCollectionBulk(string category)
         {
             collectionBulkRunning = true;
-            long before = Power;
+            GameNumber before = PowerAmount;
             long attempts = 0, successes = 0;
             long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 250;
             int frameRolls = 0;
@@ -712,7 +712,7 @@ namespace DoodleIdle
         {
             success = false;
             if (item == null || item.category != "Relic" || !item.discovered || item.count < 1 || item.level >= collectionTuning.maxItemLevel) return false;
-            long before = notifyPower ? Power : 0;
+            GameNumber before = notifyPower ? PowerAmount : 0;
             item.count--;
             RecordMissionAction("relicAttempt");
             success = collectionRandom.NextDouble() < .5;

@@ -108,7 +108,7 @@ namespace DoodleIdle
             if(!CanClaimMainMission)return false;
             var reward=CurrentMainMission;
             if(reward.ticketCount>0&&SummonTickets(reward.ticket)>int.MaxValue-reward.ticketCount)return false;
-            services.mainMissionIndex++;Diamonds+=reward.diamonds;Gold=SaturatingAdd(Gold,reward.gold);
+            services.mainMissionIndex++;Diamonds=(int)Math.Min(int.MaxValue,(long)Diamonds+reward.diamonds);GoldAmount+=reward.gold;
             var rewards=new List<UiReward>{new UiReward{name="다이아",icon="Diamond",amount=reward.diamonds},new UiReward{name="골드",icon="Gold",amount=reward.gold}};
             if(reward.ticketCount>0){GrantSummonTickets(reward.ticket,reward.ticketCount);rewards.Add(new UiReward{name=CommerceLabel(reward.ticket)+" 뽑기권",icon=TicketIcon(reward.ticket),amount=reward.ticketCount});}
             Save();RefreshPage();ShowRewards("미션 보상 획득!",rewards);return true;

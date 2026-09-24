@@ -17,9 +17,9 @@ namespace DoodleIdle.Tests
             var health = enemy.GetType().GetField("hp");
             var damage = typeof(DoodleIdleGame).GetMethod("DamageByCategory", GrowthPrivate);
             float Hit(string category) {
-                health.SetValue(enemy, 100000f);
+                health.SetValue(enemy, (GameNumber)(100000f));
                 damage.Invoke(game, new object[] { enemy, 128f, Vector2.zero, category });
-                return 100000 - (float)health.GetValue(enemy);
+                return 100000 - (float)(GameNumber)health.GetValue(enemy);
             }
             foreach (string category in new[] { "Basic", "Skill", "Companion" })
                 Assert.That(Hit(category), Is.EqualTo(ui.CurrentAttackPower).Within(.02f), "A 100% hit scales with current attack.");

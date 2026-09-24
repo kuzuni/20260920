@@ -16,10 +16,12 @@ namespace DoodleIdle
         public int SkillActivationCount(string ability) => skillActivationCounts.TryGetValue(ability, out var count) ? count : 0;
 
         bool SkillEquipped(string ability) => equippedSkillAbilities.Contains(ability);
+        readonly List<UiItem> equippedSkillBuffer = new List<UiItem>(8);
+        readonly List<string> removedSkillBuffer = new List<string>(8);
         void RefreshEquippedSkillAbilities()
         {
             equippedSkillAbilities.Clear();
-            if (Ui) foreach (var item in Ui.EquippedSkills) equippedSkillAbilities.Add(item.ability);
+            if (Ui) { Ui.FillEquippedItems("Skill", equippedSkillBuffer); foreach (var item in equippedSkillBuffer) equippedSkillAbilities.Add(item.ability); }
         }
         public float SkillInterval(string ability)
         {
@@ -59,7 +61,7 @@ namespace DoodleIdle
         void TickEquippedSkills(float dt)
         {
             RefreshEquippedSkillAbilities();
-            var removed = new List<string>();
+            var removed = removedSkillBuffer; removed.Clear();
             foreach (var pair in equippedSkillClocks) if (!SkillEquipped(pair.Key)) removed.Add(pair.Key);
             foreach (var ability in removed) equippedSkillClocks.Remove(ability);
             foreach (var ability in equippedSkillAbilities)

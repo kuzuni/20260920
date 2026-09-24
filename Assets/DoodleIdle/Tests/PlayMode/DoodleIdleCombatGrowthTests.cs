@@ -32,9 +32,9 @@ namespace DoodleIdle.Tests
             void ExpectHit(float multiplier)
             {
                 const float startingHealth = 10000, baseDamage = 100;
-                health.SetValue(enemy, startingHealth);
+                health.SetValue(enemy, (GameNumber)(startingHealth));
                 damage.Invoke(game, new object[] { enemy, baseDamage, Vector2.zero });
-                float lost = startingHealth - (float)health.GetValue(enemy);
+                float lost = startingHealth - (float)(GameNumber)health.GetValue(enemy);
                 Assert.That(lost, Is.EqualTo(baseDamage * ui.UiDamageMultiplier * multiplier).Within(.01f));
                 Assert.That(game.Kills, Is.EqualTo(kills));
             }

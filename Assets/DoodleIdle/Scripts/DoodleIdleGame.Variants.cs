@@ -115,12 +115,12 @@ namespace DoodleIdle
                     if(distance>shot.radius+.56f || !shot.victims.Add(enemy))continue;
                     SkillDamage(enemy,shot.damage,shot.direction,shot.ability);
                 }
-                if(shot.age>=shot.life){Destroy(shot.art.gameObject);variantShots.RemoveAt(i);}
+                if(shot.age>=shot.life){ReleaseVisual(shot.art.gameObject);variantShots.RemoveAt(i);}
             }
         }
         void ClearVariants()
         {
-            foreach(var shot in variantShots)if(shot.art)Destroy(shot.art.gameObject);
+            foreach(var shot in variantShots)if(shot.art)ReleaseVisual(shot.art.gameObject);
             variantShots.Clear();variantVolleys.Clear();variantClocks.Clear();VariantProjectilesLaunched=0;
         }
     }

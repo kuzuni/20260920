@@ -7,7 +7,8 @@ namespace DoodleIdle
     {
         readonly Dictionary<string,Sprite> worldSkinSprites = new Dictionary<string,Sprite>();
         public void SetUiCameraSize(float size) { if(gameCamera)gameCamera.orthographicSize=Mathf.Max(1,size); }
-        public float RollUiCriticalMultiplier()
+        public float RollUiCriticalMultiplier() => (float)RollUiCriticalAmount();
+        public GameNumber RollUiCriticalAmount()
         {
             if(!Ui)return 1;
             float multiplier=1;
@@ -19,7 +20,7 @@ namespace DoodleIdle
                     multiplier = DoodleUi.CriticalMultiplierAt(tier); break;
                 }
             }
-            return multiplier>1?multiplier*(1+Ui.CriticalDamageBonus/100f):1;
+            return multiplier>1?multiplier*(1+Ui.CriticalBonusAmount/100):1;
         }
         Sprite WorldSkinSprite(string key,bool grip)
         {

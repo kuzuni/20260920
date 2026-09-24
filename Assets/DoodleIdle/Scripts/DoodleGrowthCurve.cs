@@ -21,8 +21,10 @@ namespace DoodleIdle
 
         // A threshold N selects the rate for the transition N-1 -> N; values never reset.
         public static double Evaluate(double start, float initialRate, int origin, int target, DoodleGrowthStep[] steps)
+            => (double)EvaluateAmount(start, initialRate, origin, target, steps);
+        public static GameNumber EvaluateAmount(GameNumber start, float initialRate, int origin, int target, DoodleGrowthStep[] steps)
         {
-            double value = DoodleGrowthCurve.Exponential(start, 0, 0);
+            GameNumber value = GameNumber.Max(0, start);
             long cursor = (long)origin + 1;
             while (cursor <= target) {
                 float rate = CleanRate(initialRate);
@@ -33,7 +35,7 @@ namespace DoodleIdle
                     if (step.from <= cursor && step.from >= latest) { latest = step.from; rate = CleanRate(step.growth); }
                     else if (step.from > cursor && step.from < next) next = step.from;
                 }
-                value = DoodleGrowthCurve.Exponential(value, rate, (int)(next - cursor));
+                value *= GameNumber.Pow(1d + rate, (int)(next - cursor));
                 cursor = next;
             }
             return value;
@@ -187,8 +189,7 @@ namespace DoodleIdle
         {
             if (start <= 0 || factor <= 0) return 0;
             if (double.IsNaN(start) || double.IsNaN(growth) || double.IsNaN(factor)) return 0;
-            double baseline = Math.Min(1e30, start * Math.Pow(1 + Math.Max(0, growth), Math.Max(0, steps)));
-            return Math.Min(1e30, baseline * factor);
+            return (double)((GameNumber)start * GameNumber.Pow(1 + Math.Max(0, growth), Math.Max(0, steps)) * factor);
         }
     }
 }

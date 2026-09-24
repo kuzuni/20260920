@@ -15,7 +15,7 @@ namespace DoodleIdle
         sealed class CompanionShot
         {
             public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
-            public float age, duration, speed, damage, explosionRadius, splashDamageMultiplier, sprayEcho; public bool arc, spray;
+            public float age, duration, speed, explosionRadius, splashDamageMultiplier, sprayEcho; public bool arc, spray; public GameNumber damage;
         }
         readonly Dictionary<string, CompanionActor> companions = new Dictionary<string, CompanionActor>();
         readonly Dictionary<string, Sprite> companionSprites = new Dictionary<string, Sprite>();
@@ -37,13 +37,17 @@ namespace DoodleIdle
             var sprite = Sprite.Create(source.texture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height)); sprite.name = key;
             companionSprites[key] = sprite; return sprite;
         }
+        readonly List<UiItem> equippedCompanionBuffer = new List<UiItem>(8);
+        readonly List<string> removedCompanionBuffer = new List<string>(8);
+        readonly HashSet<string> equippedCompanionIds = new HashSet<string>();
         void TickCompanions(float dt)
         {
-            var equipped = Ui.EquippedCompanions;
-            var removed = new List<string>();
-            foreach (var pair in companions) if (!companionsEnabled || !equipped.Exists(x => x.id == pair.Key)) removed.Add(pair.Key);
+            var equipped = equippedCompanionBuffer; Ui.FillEquippedItems("Companion", equipped);
+            var removed = removedCompanionBuffer; removed.Clear(); equippedCompanionIds.Clear();
+            foreach (var item in equipped) equippedCompanionIds.Add(item.id);
+            foreach (var pair in companions) if (!companionsEnabled || !equippedCompanionIds.Contains(pair.Key)) removed.Add(pair.Key);
             foreach (var id in removed) {
-                Destroy(companions[id].art.gameObject); Destroy(companions[id].shadow.gameObject); companions.Remove(id);
+                ReleaseVisual(companions[id].art.gameObject); ReleaseVisual(companions[id].shadow.gameObject); companions.Remove(id);
             }
             if (companionsEnabled) for (int i = 0; i < equipped.Count; i++)
             {
@@ -98,7 +102,7 @@ namespace DoodleIdle
             var direction = (target.Position - origin).normalized;
             if (spread) direction = Rotate(direction, (shotIndex - (item.volleyCount - 1) * .5f) * 10);
             companion.facingLeft = direction.x < 0; companion.art.flipX = companion.facingLeft;
-            float damage = Ui.CompanionHitWeight(item);
+            GameNumber damage = Ui.CompanionWeightAmount(item);
             string projectile = item.projectile;
             var sprite = WorldIcon(projectile);
             if (item.trajectory == "Lightning")
@@ -121,8 +125,8 @@ namespace DoodleIdle
             CompanionShotsLaunched++; companionShotCounts[item.id] = CompanionShotCount(item.id) + 1;
             CompanionShotLaunched?.Invoke(item.id, Time.fixedTime, item.trajectory == "Arc", item.explosionRadius);
         }
-        void CompanionDamage(Actor enemy, float damage, Vector2 direction)
-        { if (Alive(enemy)) { CompanionHits++; DamageByCategory(enemy, damage, direction, "Companion"); } }
+        void CompanionDamage(Actor enemy, GameNumber damage, Vector2 direction)
+        { if (Alive(enemy)) { CompanionHits++; DamageAmount(enemy, damage, direction, "Companion"); } }
         void TickCompanionShots(float dt)
         {
             for (int i = companionShots.Count - 1; i >= 0; i--)
@@ -149,10 +153,10 @@ namespace DoodleIdle
                     if (victim != null) CompanionDamage(victim, shot.damage, shot.direction);
                     if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage * shot.splashDamageMultiplier, victim, shot.impactIndex);
                 }
-                if (victim != null || landed || shot.age >= shot.duration) { Destroy(shot.art.gameObject); companionShots.RemoveAt(i); }
+                if (victim != null || landed || shot.age >= shot.duration) { ReleaseVisual(shot.art.gameObject); companionShots.RemoveAt(i); }
             }
         }
-        void CompanionExplosion(Vector2 position, float radius, float damage, Actor directVictim, int impactIndex)
+        void CompanionExplosion(Vector2 position, float radius, GameNumber damage, Actor directVictim, int impactIndex)
         {
             CompanionExplosions++;
             EmitCompanionImpact(impactIndex, position, radius);
@@ -166,10 +170,10 @@ namespace DoodleIdle
         void ClearCompanions()
         {
             foreach (var companion in companions.Values) {
-                if (companion.art) Destroy(companion.art.gameObject);
-                if (companion.shadow) Destroy(companion.shadow.gameObject);
+                if (companion.art) ReleaseVisual(companion.art.gameObject);
+                if (companion.shadow) ReleaseVisual(companion.shadow.gameObject);
             }
-            foreach (var shot in companionShots) if (shot.art) Destroy(shot.art.gameObject);
+            foreach (var shot in companionShots) if (shot.art) ReleaseVisual(shot.art.gameObject);
             companions.Clear(); companionShots.Clear(); companionShotCounts.Clear();
             CompanionAttacks = CompanionShotsLaunched = CompanionExplosions = CompanionHits = 0;
         }

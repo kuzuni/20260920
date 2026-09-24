@@ -92,7 +92,7 @@ namespace DoodleIdle
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if (Vector2.Distance(enemies[e].Position, bottle.end) <= FireZoneRadius + .56f)
                         Impact(SummonSkill.Molotov, enemies[e], 18, Vector2.zero, bottle.blue ? "BlueMolotov" : "Molotov");
-                Destroy(bottle.art.gameObject); bottles.RemoveAt(i);
+                ReleaseVisual(bottle.art.gameObject); bottles.RemoveAt(i);
             }
             for (int i = fireZones.Count - 1; i >= 0; i--)
             {
@@ -130,13 +130,13 @@ namespace DoodleIdle
                     if (outerDistance > 1 || (InsideHole(previousCenter)&&InsideHole(pulse.center)) || !pulse.victims.Add(enemy)) continue;
                     Impact(SummonSkill.SoundWave, enemy, 24, pulse.direction);
                 }
-                if (pulse.age >= SoundWaveLifetime) { Destroy(pulse.art.gameObject); soundWaves.RemoveAt(i); }
+                if (pulse.age >= SoundWaveLifetime) { ReleaseVisual(pulse.art.gameObject); soundWaves.RemoveAt(i); }
             }
         }
         void ClearAreaSkills()
         {
-            foreach (var bottle in bottles) if (bottle.art) Destroy(bottle.art.gameObject);
-            foreach (var pulse in soundWaves) if (pulse.art) Destroy(pulse.art.gameObject);
+            foreach (var bottle in bottles) if (bottle.art) ReleaseVisual(bottle.art.gameObject);
+            foreach (var pulse in soundWaves) if (pulse.art) ReleaseVisual(pulse.art.gameObject);
             bottles.Clear(); fireZones.Clear(); soundWaves.Clear(); soundVolleys.Clear();
             SoundWavesLaunched = 0;
         }

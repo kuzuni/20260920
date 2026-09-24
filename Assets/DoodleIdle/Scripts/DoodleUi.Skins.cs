@@ -112,7 +112,7 @@ namespace DoodleIdle
                 : skin.acquisition == "MainStage" ? HighestMainStage >= skin.requiredStage
                 : skin.acquisition == "HighestDungeonStage" && HighestDungeonStage >= skin.requiredStage;
             if (!available) return false;
-            long before = Power;
+            GameNumber before = PowerAmount;
             if (skin.acquisition == "Diamond") Diamonds -= skin.diamondCost;
             skin.owned = true;
             Save();
@@ -126,7 +126,7 @@ namespace DoodleIdle
             InitSkins();
             var skin = skinCatalog.Find(x => x.id == id);
             if (skin == null || !skin.owned || skin.equipped) return false;
-            long before = Power;
+            GameNumber before = PowerAmount;
             foreach (var other in skinCatalog) if (other.category == skin.category) other.equipped = other == skin;
             Save();
             NotifyPowerChanged(before, skin.name + " 외형 장착");

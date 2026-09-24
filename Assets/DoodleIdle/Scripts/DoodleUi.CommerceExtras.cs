@@ -39,7 +39,7 @@ namespace DoodleIdle
             if(!ValidSummonCount(count, true)||!summonStates.ContainsKey(category)||SummonTickets(category)<count)return false;
             var rewards = RollSummonRewards(category, count, commerceRandom);
             if(category=="Relic")services.relicTickets-=count;else summonStates[category].tickets-=count;
-            long before=Power;CompleteSummon(category,rewards);NotifyPowerChanged(before,"뽑기권 사용");return true;
+            GameNumber before = PowerAmount;CompleteSummon(category,rewards);NotifyPowerChanged(before,"뽑기권 사용");return true;
         }
         void BuildTicketBalance(Transform parent,string category)
         {

@@ -35,14 +35,14 @@ namespace DoodleIdle
         void RefreshHealthBar(Actor actor)
         {
             if (!actor.healthFill) return;
-            float fraction = Mathf.Clamp01(actor.hp / actor.maxHp);
+            float fraction = (float)GameNumber.Clamp(actor.hp / actor.maxHp, 0, 1);
             actor.healthFill.transform.localScale = new Vector3(.9f * fraction, .08f / actor.healthFill.sprite.bounds.size.y, 1);
             actor.healthFill.transform.localPosition = new Vector3(-.45f * (1 - fraction), .78f, 0);
             actor.healthFill.color = Color.Lerp(new Color(1, .45f, .45f), Color.white, fraction);
             actor.healthBack.sortingOrder = Order(actor.Position) + 3;
             actor.healthFill.sortingOrder = Order(actor.Position) + 4;
         }
-        void ShowDamageNumber(Vector2 position, float amount, bool playerHit = false)
+        void ShowDamageNumber(Vector2 position, GameNumber amount, bool playerHit = false)
         {
             if (damageNumbers.Count >= MaxDamageNumbers)
             {
@@ -64,7 +64,7 @@ namespace DoodleIdle
             }
             number.origin = position + new Vector2(ParticleRandom(-.25f, .25f), 1.05f);
             number.age = 0; number.drift = ParticleRandom(-.45f, .45f);
-            number.text.text = UiNumber.Format(System.Math.Ceiling(amount));
+            number.text.text = UiNumber.Format(GameNumber.Ceiling(amount));
             number.text.name = playerHit ? "Player damage number" : "Enemy damage number";
             number.text.color = playerHit ? new Color(.62f, .62f, .62f) : new Color(1, .96f, .76f);
             number.text.rectTransform.localPosition = number.origin * 100;

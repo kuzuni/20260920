@@ -92,32 +92,32 @@ namespace DoodleIdle
 
     public sealed partial class DoodleUi
     {
-        public float CurrentAttackPower => DoodleAttackPower.ReferenceAttack * UiDamageMultiplier;
+        public float CurrentAttackPower => (float)AttackAmount;
         public float AttackCategoryMultiplier(string category) => OwnedEffectMultiplier(category == "Skill" ? "skillAttack" : category == "Companion" ? "companionAttack" : "basicAttack");
-        public float AttackPercentDamage(float percent, string category) => CurrentAttackPower * percent / 100 * AttackCategoryMultiplier(category);
+        public float AttackPercentDamage(float percent, string category) => (float)AttackPercentAmount(percent, category);
         float AbilityEnhancementMultiplier(UiItem item) => 1 + Mathf.Clamp01(Mathf.Max(0, item.level - 1) / (float)Mathf.Max(1, ItemMaxLevel(item) - 1)) * collectionTuning.abilityMaxEnhancementBonus;
-        float AbilityDpsPercent(UiItem item)
+        GameNumber AbilityDpsPercent(UiItem item)
         {
             var grades = item.category == "Companion" ? collectionTuning.companionDpsPercentByGrade : collectionTuning.skillDpsPercentByGrade;
-            return grades[Mathf.Clamp(item.rarity, 0, grades.Length - 1)] * item.damageMultiplier * AbilityEnhancementMultiplier(item);
+            return (GameNumber)grades[Mathf.Clamp(item.rarity, 0, grades.Length - 1)] * item.damageMultiplier * AbilityEnhancementMultiplier(item);
         }
         // Allocate the grade's damage-per-second budget over the actual cast interval
         // and hit count. Fast volleys and long summons therefore share the same scale.
-        public float SkillItemPower(UiItem item) => DoodleAttackPower.ReferenceAttack * AbilityDpsPercent(item) / 100 * ItemAttackInterval(item) / Mathf.Max(.01f, DoodleAttackPower.Skill(item.ability).totalWeight);
-        public float CompanionHitWeight(UiItem item) => DoodleAttackPower.ReferenceAttack * AbilityDpsPercent(item) / 100 * ItemAttackInterval(item) / Mathf.Max(1, item.volleyCount);
-        public float SkillPowerMultiplier(string ability)
+        public float SkillItemPower(UiItem item) => (float)SkillItemAmount(item);
+        public GameNumber SkillItemAmount(UiItem item) => DoodleAttackPower.ReferenceAttack * AbilityDpsPercent(item) / 100 * ItemAttackInterval(item) / Mathf.Max(.01f, DoodleAttackPower.Skill(item.ability).totalWeight);
+        public float CompanionHitWeight(UiItem item) => (float)CompanionWeightAmount(item);
+        public GameNumber CompanionWeightAmount(UiItem item) => DoodleAttackPower.ReferenceAttack * AbilityDpsPercent(item) / 100 * ItemAttackInterval(item) / Mathf.Max(1, item.volleyCount);
+        public float SkillPowerMultiplier(string ability) => (float)SkillPowerAmount(ability);
+        public GameNumber SkillPowerAmount(string ability)
         {
-            foreach (var item in collectionItems) if (item.category == "Skill" && item.ability == ability) return SkillItemPower(item);
+            foreach (var item in collectionItems) if (item.category == "Skill" && item.ability == ability) return SkillItemAmount(item);
             return 1;
         }
-        public float ItemHitPercent(UiItem item) => DoodleAttackPower.Percent(item.category == "Companion" ? CompanionHitWeight(item) : DoodleAttackPower.Skill(item.ability).hitWeight * SkillItemPower(item));
-        public float ItemHitDamage(UiItem item) => AttackPercentDamage(ItemHitPercent(item), item.category);
+        public GameNumber ItemHitPercentAmount(UiItem item) => (item.category == "Companion" ? CompanionWeightAmount(item) : DoodleAttackPower.Skill(item.ability).hitWeight * SkillItemAmount(item)) * 100 / DoodleAttackPower.ReferenceAttack;
+        public float ItemHitPercent(UiItem item) => (float)ItemHitPercentAmount(item);
+        public float ItemHitDamage(UiItem item) => (float)ItemHitAmount(item);
         public float ItemSplashFraction(UiItem item) => item.category == "Companion" ? (item.explosionRadius > 0 ? item.splashDamageMultiplier : 0) : DoodleAttackPower.SkillSplash(item.ability).fraction;
         public float ItemAttackInterval(UiItem item) => item.category == "Companion" ? Mathf.Max(.01f, item.attackInterval) : game ? game.SkillInterval(item.ability) : item.cooldown;
-        public double ItemExpectedDps(UiItem item)
-        {
-            float total = item.category == "Companion" ? CompanionHitWeight(item) * item.volleyCount : DoodleAttackPower.Skill(item.ability).totalWeight * SkillItemPower(item);
-            return AttackPercentDamage(DoodleAttackPower.Percent(total), item.category) * ExpectedCriticalMultiplier / Mathf.Max(.01f, ItemAttackInterval(item));
-        }
+        public double ItemExpectedDps(UiItem item) => (double)ItemDpsAmount(item);
     }
 }

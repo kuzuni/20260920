@@ -74,20 +74,20 @@ namespace DoodleIdle
             }
             return collectionTuning.maxStatLevel;
         }
-        public float EnemyHealthMultiplier(int displayStage) => EnemyHealthMultiplier(serviceTuning, displayStage);
-        public static float EnemyHealthMultiplier(ServiceTuning tuning, int displayStage)
+        public GameNumber EnemyHealthAmount(int displayStage) => EnemyHealthAmount(serviceTuning, displayStage);
+        public static GameNumber EnemyHealthAmount(ServiceTuning tuning, int displayStage) => GameNumber.Max(.001, DoodleGrowthStep.EvaluateAmount(Math.Max(.001, tuning.enemyStartingHealth), tuning.enemyHealthStageGrowth, 1, displayStage, tuning.enemyHealthGrowthSteps));
+        public float EnemyHealthMultiplier(int displayStage) => (float)(EnemyHealthAmount(displayStage) / 68);
+        public static float EnemyHealthMultiplier(ServiceTuning tuning, int displayStage) => (float)(EnemyHealthAmount(tuning, displayStage) / 68);
+        public GameNumber EnemyDamageAmount(int displayStage) => EnemyDamageAmount(serviceTuning, displayStage);
+        public static GameNumber EnemyDamageAmount(ServiceTuning tuning, int displayStage)
         {
-            return (float)(Math.Max(.001, DoodleGrowthStep.Evaluate(Math.Max(.001,tuning.enemyStartingHealth), tuning.enemyHealthStageGrowth, 1, displayStage, tuning.enemyHealthGrowthSteps))/68);
+            int earlyEnd = Math.Max(2, tuning.earlyEnemyDamageEndStage);
+            double start = Math.Max(0, tuning.enemyStartingDamage), earlyMax = Math.Max(0, tuning.earlyEnemyDamageMax);
+            return displayStage <= earlyEnd ? (GameNumber)(start + (earlyMax - start) * Math.Max(0L, (long)displayStage - 1) / (earlyEnd - 1))
+                : DoodleGrowthStep.EvaluateAmount(earlyMax, tuning.enemyDamageStageGrowth, earlyEnd, displayStage, tuning.enemyDamageGrowthSteps);
         }
-        public float EnemyDamageMultiplier(int displayStage) => EnemyDamageMultiplier(serviceTuning, displayStage);
-        public static float EnemyDamageMultiplier(ServiceTuning tuning, int displayStage)
-        {
-            int earlyEnd=Math.Max(2,tuning.earlyEnemyDamageEndStage);
-            double start=Math.Max(0,tuning.enemyStartingDamage), earlyMax=Math.Max(0,tuning.earlyEnemyDamageMax);
-            double damage=displayStage<=earlyEnd ? start+(earlyMax-start)*Math.Max(0L,(long)displayStage-1)/(earlyEnd-1)
-                : DoodleGrowthStep.Evaluate(earlyMax,tuning.enemyDamageStageGrowth,earlyEnd,displayStage,tuning.enemyDamageGrowthSteps);
-            return (float)(Math.Min(1e30,damage)/64);
-        }
+        public float EnemyDamageMultiplier(int displayStage) => (float)(EnemyDamageAmount(displayStage) / 64);
+        public static float EnemyDamageMultiplier(ServiceTuning tuning, int displayStage) => (float)(EnemyDamageAmount(tuning, displayStage) / 64);
         public void HandlePlayerDefeat()
         {
             if(services==null)return;
@@ -98,21 +98,24 @@ namespace DoodleIdle
             if(game)game.RequestCombatWaveReset();Save();RefreshHud();
         }
         // Field kills and cave rewards share every gold balance value and live bonus.
-        public int GoldForMainKills(int displayStage, int count) => GoldForMainKills(serviceTuning, displayStage, count, (double)GoldGainMultiplier * GoldBuffMultiplier);
-        public static int GoldForMainKills(ServiceTuning tuning, int displayStage, int count, double bonusMultiplier = 1)
+        public GameNumber GoldForMainKillsAmount(int displayStage, int count) => GoldForMainKillsAmount(serviceTuning, displayStage, count, GoldGainAmount * GoldBuffMultiplier);
+        public static GameNumber GoldForMainKillsAmount(ServiceTuning tuning, int displayStage, int count, GameNumber bonusMultiplier)
         {
-            if(count<=0)return 0;
-            double unit=DoodleGrowthStep.Evaluate(Math.Max(0,tuning.goldPerEnemy),tuning.goldStageGrowth,1,displayStage,tuning.goldGrowthSteps);
-            return (int)Math.Min(int.MaxValue,Math.Max(0,Math.Round(unit*count*bonusMultiplier)));
+            if (count <= 0) return 0;
+            var unit = DoodleGrowthStep.EvaluateAmount(Math.Max(0, tuning.goldPerEnemy), tuning.goldStageGrowth, 1, displayStage, tuning.goldGrowthSteps);
+            return GameNumber.Round(GameNumber.Max(0, unit * count * bonusMultiplier));
         }
-        public int DungeonGoldReward(int stage) => GoldForMainKills(DungeonDifficultyStage(stage),Math.Max(1,serviceTuning.goldDungeonEnemyCount));
+        public int GoldForMainKills(int displayStage, int count) => (int)GoldForMainKillsAmount(displayStage, count);
+        public static int GoldForMainKills(ServiceTuning tuning, int displayStage, int count, double bonusMultiplier = 1) => (int)GoldForMainKillsAmount(tuning, displayStage, count, bonusMultiplier);
+        public GameNumber DungeonGoldAmount(int stage) => GoldForMainKillsAmount(DungeonDifficultyStage(stage), Math.Max(1, serviceTuning.goldDungeonEnemyCount));
+        public int DungeonGoldReward(int stage) => (int)DungeonGoldAmount(stage);
         void CreditPendingFieldGold()
         {
-            if(!game)return;
-            if(game.Kills<lastKills)lastKills=game.Kills;
-            if(game.Kills==lastKills)return;
-            int earned=ActiveDungeonIndex>=0?0:GoldForMainKills(CombatDifficultyStage,game.Kills-lastKills);
-            Gold=SaturatingAdd(Gold,earned);RecordServiceProgress("gold",earned);lastKills=game.Kills;
+            if (!game) return;
+            if (game.Kills < lastKills) lastKills = game.Kills;
+            if (game.Kills == lastKills) return;
+            GameNumber earned = ActiveDungeonIndex >= 0 ? 0 : GoldForMainKillsAmount(CombatDifficultyStage, game.Kills - lastKills);
+            GoldAmount += earned; RecordServiceProgress("gold", (int)earned); lastKills = game.Kills;
         }
         public int DungeonRelicReward(int stage) => (int)Math.Min(int.MaxValue,Math.Max(1L,serviceTuning.dungeonRelicTickets)+Math.Max(0L,(long)stage-1));
         public void GrantDungeonRelicTickets(int amount)

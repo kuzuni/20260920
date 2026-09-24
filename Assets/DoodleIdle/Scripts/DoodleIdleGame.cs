@@ -32,7 +32,7 @@ namespace DoodleIdle
             dashRemaining = swing = 0;
             if (player != null) player.body.linearVelocity = Vector2.zero;
             for (int i = shots.Count - 1; i >= 0; i--)
-                if (!shots[i].stone) { Destroy(shots[i].visual.gameObject); shots.RemoveAt(i); }
+                if (!shots[i].stone) { ReleaseVisual(shots[i].visual.gameObject); shots.RemoveAt(i); }
         }
 
         public int EnemyCount => enemies.Count;
@@ -51,10 +51,12 @@ namespace DoodleIdle
         {
             public GameObject root;
             public Rigidbody2D body;
-            public SpriteRenderer art;
+            public SpriteRenderer art, shadow;
             public SpriteRenderer healthBack, healthFill;
             public CircleCollider2D collider;
-            public float hp = 68, maxHp = 68, flash, phase;
+            public GameNumber hp = 68, maxHp = 68;
+            public float flash, phase;
+            public bool returnedToPool;
             public float walkClock;
             public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
             public Vector2 enemyDashDirection;
@@ -211,14 +213,14 @@ namespace DoodleIdle
             ClearParticles();
             ClearDamageNumbers();
             ClearExtraSkills();
-            foreach (var a in enemies) { a.root.SetActive(false); Destroy(a.root); }
+            foreach (var a in enemies) { a.root.SetActive(false); ReleaseEnemy(a); }
             enemies.Clear();
-            foreach (var shot in shots) Destroy(shot.visual.gameObject);
+            foreach (var shot in shots) ReleaseVisual(shot.visual.gameObject);
             shots.Clear();
-            foreach (var f in flecks) Destroy(f.visual.gameObject);
+            foreach (var f in flecks) ReleaseVisual(f.visual.gameObject);
             flecks.Clear();
             if (player != null) { player.root.SetActive(false); Destroy(player.root); }
-            foreach (var banana in bananas) if (banana) Destroy(banana.gameObject);
+            foreach (var banana in bananas) if (banana) ReleaseVisual(banana.gameObject);
             bananaHitTimes.Clear(); dashVictims.Clear();
             Kills = Refills = DashCasts = StonesLaunched = BananaHits = SlashHits = DashHits = 0;
             EnemyDashCasts = 0;
@@ -236,7 +238,7 @@ namespace DoodleIdle
             for (int i = 0; i < 5; i++)
             {
                 bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * 1.16f, 80).transform;
-                var trigger = bananas[i].gameObject.AddComponent<CircleCollider2D>();
+                var trigger = VisualTrigger(bananas[i].GetComponent<SpriteRenderer>());
                 trigger.radius = .4f; trigger.isTrigger = true;
                 bananas[i].gameObject.SetActive(BananasActive);
             }
@@ -247,6 +249,8 @@ namespace DoodleIdle
 
         Actor CreateActor(bool isPlayer, Vector2 p, int kind)
         {
+            if (!isPlayer && TryRentEnemy(p, kind, out var recycled)) return recycled;
+            if (!isPlayer) EnemyObjectsCreated++;
             var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + ThemeEnemies[CurrentThemeIndex][kind]);
             root.transform.SetParent(world);
             root.transform.position = p;
@@ -265,10 +269,10 @@ namespace DoodleIdle
             shadow.transform.SetParent(root.transform, true);
             var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
-            var actor = new Actor { root = root, body = body, art = art, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
+            var actor = new Actor { root = root, body = body, art = art, shadow = shadow, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
             if (!isPlayer)
             {
-                actor.hp = actor.maxHp = EnemyMaxHealth * (Ui ? Ui.EnemyHealthMultiplier(Ui.CombatDifficultyStage) : 1);
+                actor.hp = actor.maxHp = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
                 actor.dashCooldown = 2 + actor.phase * .4f;
                 NormalizeEnemyFrame(actor,art.sprite);
                 actor.art.flipX = player.Position.x < p.x;
@@ -284,7 +288,7 @@ namespace DoodleIdle
             {
                 if (BossActive) return;
                 // The stage's credited kill goal starts the challenge, regardless of surviving field enemies.
-                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
                 boss.isBoss = true; boss.hp = boss.maxHp = boss.maxHp * 20;
@@ -331,7 +335,6 @@ namespace DoodleIdle
             }
             RefreshHudLayout();
             UpdateJoystick();
-            UpdateHud();
             if (paused) return;
             float dt = Time.deltaTime;
             UpdateFlecks(dt);
@@ -345,10 +348,12 @@ namespace DoodleIdle
         void FixedUpdate()
         {
             if (!Ready || paused) return;
+            try {
+            if (Ui) Ui.BeginCombatSnapshot();
             if (combatWaveResetRequested)
             {
                 combatWaveResetRequested = false;
-                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 Refill();
             }
@@ -406,6 +411,7 @@ namespace DoodleIdle
             UpdateShots(dt);
             if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
             LimitEnemyCrowdMotion(dt);
+            } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }
 
         void LateUpdate()
@@ -449,7 +455,7 @@ namespace DoodleIdle
         {
             swing = 1;
             var sprite = Visual("Club slash wave", slash, player.Position + direction * .65f, Vector2.one * 1.6f, 500);
-            sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
+            VisualTrigger(sprite);
             sprite.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
             shots.Add(new Shot { visual = sprite.transform, start = sprite.transform.position, direction = direction, duration = .42f });
         }
@@ -503,7 +509,7 @@ namespace DoodleIdle
                 float t = Mathf.Clamp01(shot.age / shot.duration);
                 if (shot.stone)
                 {
-                    if (shot.target != null && shot.target.root) shot.end = shot.target.Position;
+                    if (Alive(shot.target)) shot.end = shot.target.Position;
                     shot.visual.position = Vector2.Lerp(shot.start, shot.end, t) + Vector2.up * (4 * 2.5f * t * (1 - t));
                     shot.visual.Rotate(0, 0, dt * 640);
                     if (t >= 1)
@@ -526,7 +532,7 @@ namespace DoodleIdle
                         { shot.hit.Add(enemy); SlashHits++; Damage(enemy, 29, shot.direction); }
                     }
                 }
-                if (t >= 1) { Destroy(shot.visual.gameObject); shots.RemoveAt(i); }
+                if (t >= 1) { ReleaseVisual(shot.visual.gameObject); shots.RemoveAt(i); }
             }
         }
 
@@ -534,7 +540,7 @@ namespace DoodleIdle
             => DamageByCategory(enemy, amount, push, "Basic");
 
         void SkillDamage(Actor enemy, float weight, Vector2 push, string ability = null)
-            => DamageByCategory(enemy, weight * (Ui && ability != null ? Ui.SkillPowerMultiplier(ability) : 1), push, "Skill");
+            => DamageAmount(enemy, weight * (Ui && ability != null ? Ui.SkillPowerAmount(ability) : 1), push, "Skill");
 
         void SkillImpact(Actor target, float weight, Vector2 push, string ability)
         {
@@ -557,10 +563,11 @@ namespace DoodleIdle
             }
         }
 
-        void DamageByCategory(Actor enemy, float weight, Vector2 push, string category)
+        void DamageByCategory(Actor enemy, float weight, Vector2 push, string category) => DamageAmount(enemy, weight, push, category);
+        void DamageAmount(Actor enemy, GameNumber weight, Vector2 push, string category)
         {
             if (enemy.hp <= 0) return;
-            float amount = (Ui ? Ui.AttackPercentDamage(DoodleAttackPower.Percent(weight), category) : weight) * RollUiCriticalMultiplier();
+            GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
@@ -575,7 +582,7 @@ namespace DoodleIdle
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.
             enemy.root.SetActive(false);
-            Destroy(enemy.root);
+            ReleaseEnemy(enemy);
         }
 
         void Animate(Actor actor)
@@ -623,7 +630,7 @@ namespace DoodleIdle
                 var f = flecks[i]; f.remaining -= dt;
                 f.visual.position += f.velocity * dt;
                 Color color = f.sprite.color; color.a = Mathf.Min(color.a, f.remaining / f.lifetime); f.sprite.color = color;
-                if (f.remaining <= 0) { Destroy(f.visual.gameObject); flecks.RemoveAt(i); }
+                if (f.remaining <= 0) { ReleaseVisual(f.visual.gameObject); flecks.RemoveAt(i); }
             }
         }
 
@@ -644,13 +651,7 @@ namespace DoodleIdle
 
         SpriteRenderer Visual(string label, Sprite sprite, Vector2 p, Vector2 scale, int order)
         {
-            var go = new GameObject(label);
-            go.transform.SetParent(world);
-            go.transform.position = p; go.transform.localScale = new Vector3(scale.x, scale.y, 1);
-            var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sortingOrder = order;
-            SetSpriteArt(renderer, sprite);
-            return renderer;
+            return RentVisual(label, sprite, p, scale, order);
         }
 
         void SetSpriteArt(SpriteRenderer renderer, Sprite sprite)

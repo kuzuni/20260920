@@ -8,7 +8,7 @@ namespace DoodleIdle
         float bossTimeRemaining;
         public float BossTimeRemaining => BossActive ? bossTimeRemaining : 0;
         public float BossHealthFraction {
-            get { var boss = enemies.Find(x => x.isBoss); return boss == null ? 0 : Mathf.Clamp01(boss.hp / boss.maxHp); }
+            get { var boss = enemies.Find(x => x.isBoss); return boss == null ? 0 : (float)GameNumber.Clamp(boss.hp / boss.maxHp, 0, 1); }
         }
         bool TickBossChallenge(float dt)
         {

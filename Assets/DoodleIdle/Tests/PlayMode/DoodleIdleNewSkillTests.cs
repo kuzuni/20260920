@@ -15,8 +15,8 @@ namespace DoodleIdle.Tests
             foreach (var item in game.Ui.Items("Skill")) item.equipped = false;
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             foreach (var actor in actors) {
-                actor.GetType().GetField("hp").SetValue(actor, 100000f);
-                actor.GetType().GetField("maxHp").SetValue(actor, 100000f);
+                actor.GetType().GetField("hp").SetValue(actor, (GameNumber)(100000f));
+                actor.GetType().GetField("maxHp").SetValue(actor, (GameNumber)(100000f));
             }
             for (int i = 0; i < bodies.Length; i++) Place(bodies[i], new Vector2(-25 - i % 10 * 2, -25 - i / 10 * 2));
             return bodies;
@@ -44,17 +44,17 @@ namespace DoodleIdle.Tests
                     float baseline=Mathf.Max(10000,damage*10), tolerance=Mathf.Max(.03f,baseline*.0000002f);
                     for(int i=0;i<3;i++)SetTargetHealth(bodies[i],baseline);
                     impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,ability });
-                    Assert.That(baseline - (float)health.GetValue(actors[0]), Is.EqualTo(damage).Within(tolerance), ability + " direct hit is never doubled");
-                    Assert.That(baseline - (float)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(tolerance), ability + " splash keeps attack/relic/critical scaling");
-                    Assert.That((float)health.GetValue(actors[2]), Is.EqualTo(baseline), ability + " outside radius");
+                    Assert.That(baseline - (float)(GameNumber)health.GetValue(actors[0]), Is.EqualTo(damage).Within(tolerance), ability + " direct hit is never doubled");
+                    Assert.That(baseline - (float)(GameNumber)health.GetValue(actors[1]), Is.EqualTo(damage * profile.fraction).Within(tolerance), ability + " splash keeps attack/relic/critical scaling");
+                    Assert.That((float)(GameNumber)health.GetValue(actors[2]), Is.EqualTo(baseline), ability + " outside radius");
                 }
             }
             // Death removes the direct target from the population before the secondary pass.
-            health.SetValue(actors[0],1f); health.SetValue(actors[1],100000f);
+            health.SetValue(actors[0], (GameNumber)(1f)); health.SetValue(actors[1], (GameNumber)(100000f));
             Place(bodies[1],new Vector2(3,.2f));
             var neighbor = actors[1];
             impact.Invoke(game,new object[] { actors[0],100f,Vector2.zero,"Stone" });
-            Assert.That((float)health.GetValue(neighbor), Is.LessThan(100000f));
+            Assert.That((float)(GameNumber)health.GetValue(neighbor), Is.LessThan(100000f));
             GrowthLevels["crit2Chance"] = 0;
             game.TogglePause();
             foreach (string ability in abilities) {
@@ -93,12 +93,12 @@ namespace DoodleIdle.Tests
                 float weight=game.Ui.CompanionHitWeight(item);
                 float damage=game.Ui.ItemHitDamage(item)*(float)game.Ui.ExpectedCriticalMultiplier;
                 float baseline = Mathf.Max(100000, damage * 10), tolerance = Mathf.Max(.03f, baseline * .0000002f);
-                for(int i=0;i<3;i++)health.SetValue(actors[i],baseline);
+                for(int i=0;i<3;i++)health.SetValue(actors[i], (GameNumber)(baseline));
                 hit.Invoke(game,new object[]{actors[0],weight,Vector2.zero});
                 explode.Invoke(game,new object[]{new Vector2(3,0),item.explosionRadius,weight*item.splashDamageMultiplier,actors[0],index});
-                Assert.That(baseline-(float)health.GetValue(actors[0]),Is.EqualTo(damage).Within(tolerance),item.name);
-                Assert.That(baseline-(float)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(tolerance),item.name);
-                Assert.That((float)health.GetValue(actors[2]),Is.EqualTo(baseline));
+                Assert.That(baseline-(float)(GameNumber)health.GetValue(actors[0]),Is.EqualTo(damage).Within(tolerance),item.name);
+                Assert.That(baseline-(float)(GameNumber)health.GetValue(actors[1]),Is.EqualTo(damage*item.splashDamageMultiplier).Within(tolerance),item.name);
+                Assert.That((float)(GameNumber)health.GetValue(actors[2]),Is.EqualTo(baseline));
                 Assert.That(Particles("Companion impact: "+index).particleCount,Is.GreaterThan(0),item.name);
             }
             UiOpen("Companions");
@@ -275,7 +275,7 @@ namespace DoodleIdle.Tests
             Object.Destroy(CaptureFrame("expansion-meteor-falling.png", 1000, 1000, false));
             yield return PhysicsTicks(31); yield return null;
             Assert.That(game.MeteorsLanded, Is.EqualTo(1)); Assert.That(game.MeteorHits, Is.EqualTo(2));
-            Assert.That(NamedArt("Falling red meteor"), Is.Empty);
+            Assert.That(NamedArt("Falling red meteor").Length, Is.EqualTo(game.MeteorsLaunched - game.MeteorsLanded));
             var crater = NamedArt("Meteor impact crater").Single();
             Assert.That(crater.sortingOrder, Is.LessThan(0));
             Assert.That(game.GetComponentsInChildren<ParticleSystem>().Single(x => x.name == "Meteor Explosion Particle System").particleCount, Is.GreaterThan(0));

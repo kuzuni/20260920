@@ -414,7 +414,7 @@ namespace DoodleIdle
             if (RelicTickets < 1) { Toast("유물 뽑기권이 부족해요."); return false; }
             var reward = GrantItem("Relic", commerceRandom);
             if (reward == null) { Toast("유물 데이터를 확인해 주세요."); return false; }
-            long before = Power;
+            GameNumber before = PowerAmount;
             if (!TrySpendRelicTickets(1)) return false;
             CompleteSummon("Relic", new List<UiItem> { reward });
             NotifyPowerChanged(before, "유물 뽑기권 사용");
@@ -427,7 +427,7 @@ namespace DoodleIdle
             if(!ValidSummonCount(count, true)||DungeonRelicTickets<count)return false;
             var rewards = RollSummonRewards("DungeonRelic", count, commerceRandom);
             if(!TrySpendDungeonRelicTickets(count))return false;
-            long before=Power;CompleteSummon("DungeonRelic",rewards);NotifyPowerChanged(before,"던전 유물 획득");return true;
+            GameNumber before = PowerAmount;CompleteSummon("DungeonRelic",rewards);NotifyPowerChanged(before,"던전 유물 획득");return true;
         }
 
         void CompleteSummon(string category, List<UiItem> rewards)

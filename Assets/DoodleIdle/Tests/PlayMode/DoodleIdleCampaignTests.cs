@@ -24,7 +24,7 @@ namespace DoodleIdle.Tests
             Place(bodies[0], new Vector2(3, 0));
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var hp = actors[0].GetType().GetField("hp");
-            float before = (float)hp.GetValue(actors[0]);
+            float before = (float)(GameNumber)hp.GetValue(actors[0]);
             var shots = (IList)typeof(DoodleIdleGame).GetField("shots", GrowthPrivate).GetValue(game);
             Assert.That(shots.Count, Is.Zero);
             typeof(DoodleIdleGame).GetMethod("FireSlash", GrowthPrivate).Invoke(game, new object[] { Vector2.right });
@@ -38,10 +38,10 @@ namespace DoodleIdle.Tests
             for (int frame = 0; frame < 30; frame++) render.Invoke(game, null);
             Assert.That((float)age.GetValue(shot), Is.Zero, "Extra render updates cannot age a damaging projectile.");
             Assert.That(visual.position, Is.EqualTo(origin));
-            Assert.That((float)hp.GetValue(actors[0]), Is.EqualTo(before));
+            Assert.That((float)(GameNumber)hp.GetValue(actors[0]), Is.EqualTo(before));
             Assert.That(game.Elapsed, Is.EqualTo(elapsed));
             yield return PhysicsTicks(30);
-            Assert.That((float)hp.GetValue(actors[0]), Is.LessThan(before), "The same shot must hit through actual physics ticks.");
+            Assert.That((float)(GameNumber)hp.GetValue(actors[0]), Is.LessThan(before), "The same shot must hit through actual physics ticks.");
             Assert.That(shots.Count, Is.Zero, "A shot expires after its physics lifetime.");
         }
 
@@ -104,7 +104,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Gold, Is.Zero); Assert.That(ui.Diamonds, Is.Zero);
             Assert.That(CampaignCategories.SelectMany(ui.Items).Any(x => x.discovered), Is.False);
             Assert.That(CampaignStats.All(x => ui.StatLevel(x) == 0), Is.True);
-            typeof(DoodleUi).GetField("starterDamageBaseline", GrowthPrivate).SetValue(ui, 1f);
+            typeof(DoodleUi).GetField("starterDamageBaseline", GrowthPrivate).SetValue(ui, (GameNumber)1);
             int seed = 20260923;
             foreach (string field in new[] { "commerceRandom", "collectionRandom", "serviceRandom" })
                 typeof(DoodleUi).GetField(field, GrowthPrivate).SetValue(ui, new System.Random(seed++));

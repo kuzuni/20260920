@@ -11,7 +11,9 @@ namespace DoodleIdle
     {
         DoodleIdleGame game;
         Font font;
-        public long Gold;
+        GameNumber goldAmount;
+        public GameNumber GoldAmount { get => goldAmount; set => goldAmount = GameNumber.Round(GameNumber.Max(0, value)); }
+        public long Gold { get => (long)GameNumber.Round(GoldAmount); set => GoldAmount = value; }
         public int Diamonds;
         public string PlayerName = "먼지고양이";
         public string ActivePage { get; private set; }
@@ -52,7 +54,7 @@ namespace DoodleIdle
         {
             if(initialized)return; initialized=true; game=owner; root=(RectTransform)canvasRoot; Canvas=root.GetComponent<Canvas>();
             font=Resources.Load<Font>("DoodleIdle/UI/DisplayFont"); UiKit.Font=font;
-            long.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","0"),out Gold); Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",0);
+            GameNumber.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","0"),out goldAmount); GoldAmount = goldAmount; Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",0);
             InitCollections(); InitSkins(); InitCommerce(); InitServices();
             CameraMode=Mathf.Clamp(PlayerPrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
             safe=UiKit.Rect(root,"Safe area"); UiKit.Stretch(safe);
@@ -327,10 +329,10 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(message))motion.Hide();else motion.Show(3.5f);
         }
         internal void StopSavingForReset() { suppressSaving=true; }
-        public void Save() { if(suppressSaving)return; PlayerPrefs.SetString("DoodleUi.Gold",Gold.ToString()); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
-        public void NotifyPowerChanged(long before,string reason=null)
+        public void Save() { if(suppressSaving)return; PlayerPrefs.SetString("DoodleUi.Gold",(GoldAmount.Exponent < 15 ? Gold.ToString() : GoldAmount.ToString())); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
+        public void NotifyPowerChanged(GameNumber before,string reason=null)
         {
-            if(!powerToast)return;long after=Power,change=after-before;
+            if(!powerToast)return;GameNumber after=PowerAmount,change=after-before;
             powerToast.text="전투력 "+UiNumber.Format(before)+" → "+UiNumber.Format(after)+"  ("+(change>0?"+":"")+UiNumber.Format(change)+")";
             if(!string.IsNullOrEmpty(reason))powerToast.text=reason+"\n"+powerToast.text;
             powerToast.color=change<0?UiKit.Red:change>0?UiKit.Green:UiKit.Paper;powerToastUntil=Time.unscaledTime+2.5f;powerToast.GetComponentInParent<DoodleToastMotion>().Show(2.5f);
@@ -343,31 +345,39 @@ namespace DoodleIdle
         void ConsumeGesture() { consumeThroughFrame=Time.frameCount+2; releaseLatch=Pointer.current!=null&&Pointer.current.press.isPressed; game.CancelUiPointer(); }
         void ClearOverlays() { foreach(var go in overlayStack) if(go){rewardCloseEffects.Remove(go);go.SetActive(false);Destroy(go);} overlayStack.Clear(); }
         static void ClearChildren(Transform parent) { if(!parent)return; foreach(Transform child in parent) { child.gameObject.SetActive(false); Destroy(child.gameObject); } }
+        float nextHudTextRefresh;
+        readonly List<UiItem> hudSkillBuffer = new List<UiItem>(8);
         void LateUpdate()
         {
             if(!initialized)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
             Relayout(); CreditPendingFieldGold(); TickServices();
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
-            RefreshHud(); if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
+            if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
+            else { RefreshBossHud(); RefreshHudSkills(); }
+            if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
             if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }
         }
         public void RefreshHud()
         {
-            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(Power); walletGold.text=UiNumber.Format(Gold); walletDiamond.text=Diamonds.ToString("N0");
+            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(PowerAmount); walletGold.text=UiNumber.Format(GoldAmount); walletDiamond.text=Diamonds.ToString("N0");
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
             missionDiamonds.text=MainMissionReward.ToString();
             var reward=CurrentMainMission;missionTicketCount.gameObject.SetActive(reward.ticketCount>0);missionTicketIcon.gameObject.SetActive(reward.ticketCount>0);
             if(reward.ticketCount>0){missionTicketCount.text="+"+reward.ticketCount;missionTicketIcon.sprite=UiKit.Art(TicketIcon(reward.ticket));}
             RefreshBossHud();
-            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+(MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
+            stageLabel.text=ActiveDungeonIndex>=0?DungeonMission:"스테이지 "+((long)MainStage+1).ToString()+"\n<"+game.CurrentThemeName+">\n"+(game.BossActive?"보스 1/1":UiNumber.Format(MainStageKillProgress)+"/"+UiNumber.Format(MainStageKillGoal));
             breakthroughButton.interactable=ActiveDungeonIndex<0;breakthroughButton.GetComponentInChildren<Text>().text=BreakthroughMode?"돌파 모드 ON":"돌파 모드 OFF";
             breakthroughPulse.SetActive(BreakthroughMode && ActiveDungeonIndex<0);
             goldBuffSurface.color=GoldBuffSeconds>0?UiKit.Green:Color.gray;attackBuffSurface.color=AttackBuffSeconds>0?UiKit.Green:Color.gray;
-            var skills=EquippedSkills; for(int i=0;i<8;i++) { bool locked=i>=UnlockedSkillSlots; bool found=i<skills.Count; hudIcons[i].enabled=!locked; hudLocks[i].gameObject.SetActive(locked); hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
+            RefreshHudSkills();
+        }
+        void RefreshHudSkills()
+        {
+            var skills=hudSkillBuffer; FillEquippedItems("Skill",skills); for(int i=0;i<8;i++) { bool locked=i>=UnlockedSkillSlots; bool found=i<skills.Count; hudIcons[i].enabled=!locked; hudLocks[i].gameObject.SetActive(locked); hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));
-        public float UiDamageMultiplier => CombatDamageMultiplier*AttackBuffMultiplier;
+        public float UiDamageMultiplier => (float)(CombatDamageAmount*AttackBuffMultiplier);
         public float UiSpeedMultiplier => CombatAttackSpeedMultiplier;
     }
     public sealed class DoodleUiWindow : MonoBehaviour

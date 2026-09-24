@@ -101,14 +101,14 @@ namespace DoodleIdle
         {
             ClearAreaSkills();
             ClearOrbitGun();
-            foreach (var shot in movingSkills) if (shot.art) Destroy(shot.art.gameObject);
-            foreach (var snake in snakes) { foreach (var part in snake.parts) if (part) Destroy(part.gameObject); if (snake.wings) Destroy(snake.wings.gameObject); }
-            foreach (var turret in turrets) { turret.recoil?.Kill(); if (turret.art) Destroy(turret.art.gameObject); }
-            foreach (var cloud in clouds) if (cloud.art) Destroy(cloud.art.gameObject);
-            foreach (var stain in stains) if (stain.art) Destroy(stain.art.gameObject);
+            foreach (var shot in movingSkills) if (shot.art) ReleaseVisual(shot.art.gameObject);
+            foreach (var snake in snakes) { foreach (var part in snake.parts) if (part) ReleaseVisual(part.gameObject); if (snake.wings) ReleaseVisual(snake.wings.gameObject); }
+            foreach (var turret in turrets) { turret.recoil?.Kill(); if (turret.art) ReleaseVisual(turret.art.gameObject); }
+            foreach (var cloud in clouds) if (cloud.art) ReleaseVisual(cloud.art.gameObject);
+            foreach (var stain in stains) if (stain.art) ReleaseVisual(stain.art.gameObject);
             movingSkills.Clear(); snakes.Clear(); turrets.Clear(); clouds.Clear(); stains.Clear();
             redVolleys.Clear();
-            if (guardian) Destroy(guardian.gameObject);
+            if (guardian) ReleaseVisual(guardian.gameObject);
         }
         void ResetSummons()
         {
@@ -170,7 +170,7 @@ namespace DoodleIdle
         void LeaveStain(Vector2 position)
         {
             if (!summonArt.TryGetValue("InkStain", out var ink)) return;
-            if (stains.Count >= 180) { Destroy(stains[0].art.gameObject); stains.RemoveAt(0); }
+            if (stains.Count >= 180) { ReleaseVisual(stains[0].art.gameObject); stains.RemoveAt(0); }
             // Equal world-space width/height removes the previous flattened oval.
             var art = Visual("Fading black death stain", ink, position, new Vector2(1.15f / ink.bounds.size.x, 1.15f / ink.bounds.size.y), -950);
             art.color = new Color(0, 0, 0, .28f);
@@ -324,7 +324,7 @@ namespace DoodleIdle
             {
                 var stain = stains[i]; stain.age += dt;
                 stain.art.color = new Color(0, 0, 0, .28f * Mathf.Clamp01((6 - stain.age) / 2));
-                if (stain.age >= 6) { Destroy(stain.art.gameObject); stains.RemoveAt(i); }
+                if (stain.age >= 6) { ReleaseVisual(stain.art.gameObject); stains.RemoveAt(i); }
             }
         }
         void TickTurrets(float dt)
@@ -335,7 +335,7 @@ namespace DoodleIdle
                 if (turret.recoil != null && turret.recoil.IsActive()) turret.recoil.ManualUpdate(dt, dt);
                 if (turret.age >= 10)
                 {
-                    LastCannonLifetime = turret.age; turret.recoil?.Kill(); Destroy(turret.art.gameObject); turrets.RemoveAt(i); continue;
+                    LastCannonLifetime = turret.age; turret.recoil?.Kill(); ReleaseVisual(turret.art.gameObject); turrets.RemoveAt(i); continue;
                 }
                 var target = InRange(turret.origin, 9);
                 if (target == null || turret.clock > 0) continue;
@@ -377,7 +377,7 @@ namespace DoodleIdle
                 Vector2 position=cloud.art.transform.position;
                 if(!Alive(cloud.target))cloud.target=Closest(position-Vector2.up*2);
                 if(Alive(cloud.target))cloud.art.transform.position=Vector2.MoveTowards(position,cloud.target.Position+Vector2.up*2,(cloud.red?RedCloudMoveSpeed:CloudMoveSpeed)*dt);
-                if (cloud.age >= 8) { Destroy(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
+                if (cloud.age >= 8) { ReleaseVisual(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
                 if (cloud.clock > 0) continue;
                 cloud.clock = .7f;
                 Vector2 origin = cloud.art.transform.position;
@@ -455,7 +455,7 @@ namespace DoodleIdle
                     else Echo(shot.kind + " afterimage", shot.art.sprite, old, shot.art.transform.localScale, shot.art.transform.rotation, shot.kind == SummonSkill.RedWave ? .22f : .3f, .3f, 480);
                     shot.trail = shot.kind == SummonSkill.RedWave ? .04f : .06f;
                 }
-                if (finished) { Destroy(shot.art.gameObject); movingSkills.RemoveAt(i); }
+                if (finished) { ReleaseVisual(shot.art.gameObject); movingSkills.RemoveAt(i); }
             }
         }
 
@@ -468,8 +468,8 @@ namespace DoodleIdle
                 float lifetime = tether || dragon ? 6 : 3.5f;
                 if (snake.age >= lifetime)
                 {
-                    foreach (var part in snake.parts) Destroy(part.gameObject);
-                    if (snake.wings) Destroy(snake.wings.gameObject);
+                    foreach (var part in snake.parts) ReleaseVisual(part.gameObject);
+                    if (snake.wings) ReleaseVisual(snake.wings.gameObject);
                     snakes.RemoveAt(n); continue;
                 }
                 Vector2 perpendicular = new Vector2(-snake.direction.y, snake.direction.x);

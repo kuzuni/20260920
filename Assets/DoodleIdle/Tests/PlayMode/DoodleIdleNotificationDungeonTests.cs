@@ -160,7 +160,7 @@ namespace DoodleIdle.Tests
                     var type=actor.GetType();var root=(GameObject)type.GetField("root").GetValue(actor);
                     string pattern=dungeon==0?"돌 수호자|미라 고양이|황금 풍뎅이":"수정 슬라임|보석 박쥐|수정 거북";
                     Assert.That(root.name,Does.Match(pattern));
-                    Assert.That((float)type.GetField("maxHp").GetValue(actor),Is.EqualTo(68*ui.EnemyHealthMultiplier(50)).Within(.01f));
+                    Assert.That((float)(GameNumber)type.GetField("maxHp").GetValue(actor),Is.EqualTo(68*ui.EnemyHealthMultiplier(50)).Within(.01f));
                 }
                 game.TogglePause();
                 typeof(DoodleIdleGame).GetMethod("ClearDamageNumbers",ServicePrivate).Invoke(game,null);

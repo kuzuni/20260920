@@ -102,11 +102,11 @@ namespace DoodleIdle
         {
             ClearCompanions();ClearVariants();ClearExpansionSkills();ClearAscension();
             ClearSummons();
-            foreach (var shot in extraShots) if (shot.art) Destroy(shot.art.gameObject);
+            foreach (var shot in extraShots) if (shot.art) ReleaseVisual(shot.art.gameObject);
             extraShots.Clear();
-            foreach (var worm in worms) foreach (var part in worm.parts) if (part) Destroy(part.gameObject);
+            foreach (var worm in worms) foreach (var part in worm.parts) if (part) ReleaseVisual(part.gameObject);
             worms.Clear(); skillTargets.Clear();
-            if (drone) Destroy(drone.gameObject);
+            if (drone) ReleaseVisual(drone.gameObject);
             arrowsPending = missilesPending = 0;
         }
 
@@ -341,7 +341,7 @@ namespace DoodleIdle
                     flecks.Add(new Fleck { visual = echo.transform, sprite = echo, remaining = .28f, lifetime = .28f, velocity = Vector2.up * .25f });
                     shot.trail = .04f;
                 }
-                if (finished) { Destroy(shot.art.gameObject); extraShots.RemoveAt(i); }
+                if (finished) { ReleaseVisual(shot.art.gameObject); extraShots.RemoveAt(i); }
             }
         }
 
@@ -387,7 +387,7 @@ namespace DoodleIdle
                 }
                 if (worm.age >= 6.5f)
                 {
-                    foreach (var part in worm.parts) Destroy(part.gameObject);
+                    foreach (var part in worm.parts) ReleaseVisual(part.gameObject);
                     worms.RemoveAt(n);
                 }
             }

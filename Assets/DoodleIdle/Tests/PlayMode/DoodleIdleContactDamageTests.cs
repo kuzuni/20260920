@@ -204,7 +204,7 @@ namespace DoodleIdle.Tests
             AscensionSpawnBoss(100);
             var boss = actors[0]; var type = boss.GetType();
             var body = (Rigidbody2D)type.GetField("body").GetValue(boss);
-            type.GetField("hp").SetValue(boss,1e15f); type.GetField("maxHp").SetValue(boss,1e15f);
+            type.GetField("hp").SetValue(boss, (GameNumber)(1e15f)); type.GetField("maxHp").SetValue(boss, (GameNumber)(1e15f));
             Place(PlayerBody(), Vector2.zero); Place(body,new Vector2(5,0));
             type.GetField("dashCooldown").SetValue(boss,0f);
             yield return PhysicsTicks(12);

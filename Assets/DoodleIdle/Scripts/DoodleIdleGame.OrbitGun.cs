@@ -34,7 +34,7 @@ namespace DoodleIdle
             orbitGunAge += dt;
             if (orbitGunAge >= OrbitSkillLifetime)
             {
-                orbitGunRecoil?.Kill(); orbitGun.gameObject.SetActive(false); Destroy(orbitGun.gameObject); orbitGun = null; return;
+                orbitGunRecoil?.Kill(); orbitGun.gameObject.SetActive(false); ReleaseVisual(orbitGun.gameObject); orbitGun = null; return;
             }
             orbitGunAngle += dt * 1.65f;
             orbitGunShotClock -= dt;
@@ -62,7 +62,7 @@ namespace DoodleIdle
         void ClearOrbitGun()
         {
             orbitGunRecoil?.Kill();
-            if (orbitGun) { orbitGun.gameObject.SetActive(false); Destroy(orbitGun.gameObject); }
+            if (orbitGun) { orbitGun.gameObject.SetActive(false); ReleaseVisual(orbitGun.gameObject); }
             orbitGun = null; OrbitBulletsLaunched = 0;
         }
     }

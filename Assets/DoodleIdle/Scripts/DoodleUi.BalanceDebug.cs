@@ -29,23 +29,24 @@ namespace DoodleIdle
         }
 
         // One price function for the Odin preview, UI quote and actual single/bulk/MAX purchases.
-        public static long StatUpgradePrice(UiStatCostTuning tuning, string id, int currentLevel)
+        public static long StatUpgradePrice(UiStatCostTuning tuning, string id, int currentLevel) => (long)StatUpgradePriceAmount(tuning, id, currentLevel);
+        public static GameNumber StatUpgradePriceAmount(UiStatCostTuning tuning, string id, int currentLevel)
         {
             int tier = Array.IndexOf(CriticalStatIds, id);
-            double raw;
+            GameNumber raw;
             if (tier > 0) {
-                long start = StatUpgradePrice(tuning, CriticalStatIds[0], CriticalLevelCap(0) - 1);
+                GameNumber start = StatUpgradePriceAmount(tuning, CriticalStatIds[0], CriticalLevelCap(0) - 1);
                 float rate = CriticalContinuationGrowth(tuning);
                 for (int i = 1; i < tier; i++)
-                    start = RoundStatPrice(DoodleGrowthCurve.Exponential(start, rate, CriticalLevelCap(i) - 1));
-                raw = DoodleGrowthCurve.Exponential(start, rate, Math.Max(0, currentLevel));
+                    start = RoundStatPriceAmount(start * GameNumber.Pow(1d + rate, CriticalLevelCap(i) - 1));
+                raw = start * GameNumber.Pow(1d + rate, Math.Max(0, currentLevel));
             } else {
                 int cost = tier == 0 ? tuning.critical2BaseCost : tuning.commonBaseCost;
                 float growth = tier == 0 ? tuning.critical2Growth : tuning.commonGrowth;
                 var steps = tier == 0 ? tuning.critical2GrowthSteps : tuning.commonGrowthSteps;
-                raw = DoodleGrowthStep.Evaluate(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
+                raw = DoodleGrowthStep.EvaluateAmount(Math.Max(1, cost), BalanceValue(growth, 0, .004f), 0, currentLevel, steps);
             }
-            return RoundStatPrice(raw);
+            return RoundStatPriceAmount(raw);
         }
         public static float CriticalContinuationGrowth(UiStatCostTuning tuning)
         {
@@ -56,6 +57,7 @@ namespace DoodleIdle
                 }
             return rate;
         }
+        static GameNumber RoundStatPriceAmount(GameNumber raw) => raw.Exponent < 15 ? (GameNumber)RoundStatPrice((double)raw) : GameNumber.Ceiling(raw);
         static long RoundStatPrice(double raw)
         {
             // Exponentiation can land a few double-precision ULPs above an integer.
@@ -99,17 +101,17 @@ namespace DoodleIdle
         {
             if (tuning == null || serviceTuning == null) return;
             CreditPendingFieldGold();
-            float previousHealth = EnemyHealthMultiplier(CombatDifficultyStage);
+            GameNumber previousHealth = EnemyHealthAmount(CombatDifficultyStage);
             CopyBalanceTuning(tuning, serviceTuning);
-            if (game) game.RescaleLivingEnemyHealth(EnemyHealthMultiplier(CombatDifficultyStage) / previousHealth);
+            if (game) game.RescaleLivingEnemyHealth(EnemyHealthAmount(CombatDifficultyStage) / previousHealth);
             Save(); RefreshHud();
         }
 
         public long GrantDebugGold(long amount)
         {
-            long granted = Math.Min(Math.Max(0, amount), long.MaxValue - Math.Max(0, Gold));
+            long granted = Math.Max(0, amount);
             if (granted == 0) return 0;
-            Gold = Math.Max(0, Gold) + granted;
+            GoldAmount += granted;
             Save(); RefreshHud();
             if (!string.IsNullOrEmpty(ActivePage)) RefreshPage();
             return granted;
@@ -151,7 +153,7 @@ namespace DoodleIdle
             if (!Ready) return;
             combatWaveResetRequested = false;
             ReleaseJoystick();
-            foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); Destroy(enemy.root); }
+            foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
             enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
             ClearExtraSkills(); ClearParticles(); ClearDamageNumbers();
             foreach (var shot in shots) if (shot.visual) Destroy(shot.visual.gameObject);
@@ -167,13 +169,13 @@ namespace DoodleIdle
             Refill();
         }
 
-        public void RescaleLivingEnemyHealth(float multiplier)
+        public void RescaleLivingEnemyHealth(GameNumber multiplier)
         {
             foreach (var enemy in enemies)
             {
                 if (!Alive(enemy)) continue;
-                float fraction = Mathf.Clamp01(enemy.hp / Mathf.Max(.001f, enemy.maxHp));
-                enemy.maxHp = (float)Math.Min(1e30, Math.Max(.001, (double)enemy.maxHp * multiplier));
+                float fraction = (float)GameNumber.Clamp(enemy.hp / GameNumber.Max(.001, enemy.maxHp), 0, 1);
+                enemy.maxHp = GameNumber.Max(.001, enemy.maxHp * multiplier);
                 enemy.hp = enemy.maxHp * fraction;
                 RefreshHealthBar(enemy);
             }

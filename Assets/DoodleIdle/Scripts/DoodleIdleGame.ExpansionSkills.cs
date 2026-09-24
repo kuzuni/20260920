@@ -95,7 +95,7 @@ namespace DoodleIdle
             }
             for (int i = lightningFlashes.Count - 1; i >= 0; i--) {
                 var flash = lightningFlashes[i]; flash.age += dt;
-                if (flash.age >= .3f) { Destroy(flash.art.gameObject); lightningFlashes.RemoveAt(i); continue; }
+                if (flash.age >= .3f) { ReleaseVisual(flash.art.gameObject); lightningFlashes.RemoveAt(i); continue; }
                 SetSpriteArt(flash.art, DoodleExpansionArt.Get("SkillLightning", flash.age < .15f ? 0 : 1));
             }
             for (int i = stoneVolleys.Count - 1; i >= 0; i--)
@@ -117,7 +117,7 @@ namespace DoodleIdle
             {
                 var unit = pursuers[i]; unit.age += dt; unit.attackClock -= dt; unit.punch -= dt;
                 if (unit.age >= (unit.golem ? 10 : 7)) {
-                    Destroy(unit.art.gameObject); if (unit.shadow) Destroy(unit.shadow.gameObject); pursuers.RemoveAt(i); continue;
+                    ReleaseVisual(unit.art.gameObject); if (unit.shadow) ReleaseVisual(unit.shadow.gameObject); pursuers.RemoveAt(i); continue;
                 }
                 Vector2 position = unit.art.transform.position;
                 if (!Alive(unit.target)) unit.target = Closest(position);
@@ -194,7 +194,7 @@ namespace DoodleIdle
                 for (int e = enemies.Count - 1; e >= 0; e--)
                     if ((enemies[e].Position - meteor.end).sqrMagnitude <= (meteor.hand ? 4.2f * 4.2f : 3.2f * 3.2f))
                     { var enemy = enemies[e]; SkillDamage(enemy, 150, (enemy.Position - meteor.end).normalized, meteor.hand ? "GodHand" : "Meteor"); MeteorHits++; }
-                MeteorsLanded++; Destroy(meteor.art.gameObject); meteors.RemoveAt(i);
+                MeteorsLanded++; ReleaseVisual(meteor.art.gameObject); meteors.RemoveAt(i);
             }
         }
         void LaunchStone(int index)
@@ -202,20 +202,20 @@ namespace DoodleIdle
             var target = NearbyTarget(player.Position, index);
             if (!Alive(target)) return;
             var sprite = Visual("Parabolic stone", sprites[6], player.Position, Vector2.one * .645f, 550);
-            sprite.gameObject.AddComponent<CircleCollider2D>().isTrigger = true;
+            VisualTrigger(sprite);
             shots.Add(new Shot { visual = sprite.transform, start = player.Position, end = target.Position, target = target, duration = .65f, stone = true });
             StonesLaunched++;
         }
         void ClearExpansionSkills()
         {
             foreach (var unit in pursuers) {
-                if (unit.art) Destroy(unit.art.gameObject);
-                if (unit.shadow) Destroy(unit.shadow.gameObject);
+                if (unit.art) ReleaseVisual(unit.art.gameObject);
+                if (unit.shadow) ReleaseVisual(unit.shadow.gameObject);
             }
-            foreach (var flash in lightningFlashes) if (flash.art) Destroy(flash.art.gameObject);
+            foreach (var flash in lightningFlashes) if (flash.art) ReleaseVisual(flash.art.gameObject);
             lightningFlashes.Clear();
             skillSplashCounts.Clear();
-            foreach (var meteor in meteors) if (meteor.art) Destroy(meteor.art.gameObject);
+            foreach (var meteor in meteors) if (meteor.art) ReleaseVisual(meteor.art.gameObject);
             pursuers.Clear(); meteors.Clear(); meteorVolleys.Clear(); clawStrikes.Clear(); stoneVolleys.Clear();
             TornadoHits = ClawHits = GolemHits = GolemsSummoned = MeteorsLanded = MeteorsLaunched = MeteorHits = 0;
         }

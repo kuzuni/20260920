@@ -125,7 +125,7 @@ namespace DoodleIdle.Tests
             AscensionSpawnBoss(100);
             var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
             var boss = actors[0]; var type = boss.GetType();
-            type.GetField("hp").SetValue(boss,(float)type.GetField("maxHp").GetValue(boss)*.4f);
+            type.GetField("hp").SetValue(boss, (GameNumber)((float)(GameNumber)type.GetField("maxHp").GetValue(boss)*.4f));
             ui.RefreshHud();
             Assert.That(UiNode("Boss challenge HUD").gameObject.activeInHierarchy, Is.True);
             Assert.That(((RectTransform)UiNode("Boss health bar fill")).anchorMax.x, Is.EqualTo(.4f).Within(.001));
@@ -156,7 +156,7 @@ namespace DoodleIdle.Tests
             boss=actors[0]; type=boss.GetType();
             Place((Rigidbody2D)type.GetField("body").GetValue(boss), PlayerBody().position);
             var player=typeof(DoodleIdleGame).GetField("player",GrowthPrivate).GetValue(game);
-            player.GetType().GetField("hp").SetValue(player,1f);
+            player.GetType().GetField("hp").SetValue(player, (GameNumber)(1f));
             typeof(DoodleIdleGame).GetField("contactInvulnerability",GrowthPrivate).SetValue(game,0f);
             game.enemyContactDamage=1e10f;
             typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage",GrowthPrivate).Invoke(game,new object[]{.02f});
@@ -443,8 +443,8 @@ namespace DoodleIdle.Tests
             Assert.That(NamedArt("MissileRage projectile").Single().transform.localScale.x, Is.EqualTo(1.95f).Within(.001));
             for (int i = 0; i < 100 && game.MissileRageExplosions == 0; i++) yield return new WaitForFixedUpdate();
             Assert.That(game.MissileRageExplosions, Is.GreaterThan(0));
-            Assert.That((float)hp.GetValue(actors[0]), Is.LessThan(baseline));
-            Assert.That((float)hp.GetValue(actors[1]), Is.LessThan(baseline), "A real missile explosion damages the nearby enemy too.");
+            Assert.That((float)(GameNumber)hp.GetValue(actors[0]), Is.LessThan(baseline));
+            Assert.That((float)(GameNumber)hp.GetValue(actors[1]), Is.LessThan(baseline), "A real missile explosion damages the nearby enemy too.");
             Object.Destroy(CaptureFrame("ascension-missile-contact-explosion.png", 1000, 1000, false));
             game.ResetGame(); yield return null;
             bodies = DurableSkillTargets(); game.refillBelow = 0;
