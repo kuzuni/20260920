@@ -293,7 +293,9 @@ namespace DoodleIdle
         }
         float ItemOwnedValue(UiItem item) => (float)ItemOwnedAmount(item);
         float EffectBonus(string effect, string category = null, bool includeSkins = true) => (float)EffectAmount(effect, category, includeSkins);
-        public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : (int)Math.Min(20L, (long)collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10);
+        public int CopiesNeeded(UiItem item) => item.category == "Relic" ? 1 : IsEquipment(item)
+            ? (int)Math.Min(20L, 2L + Math.Max(0, item.level - 1))
+            : (int)Math.Min(20L, (long)collectionTuning.copiesPerUpgrade + Math.Max(0, item.level - 1) / 10);
         public static bool IsEquipmentCategory(string category) => category == "Armor" || category == "Club" || category == "Necklace";
         public static bool IsEquipment(UiItem item) => item != null && IsEquipmentCategory(item.category);
         float ItemOwnedGoldValue(UiItem item) => (float)ItemOwnedGoldAmount(item);
@@ -358,8 +360,10 @@ namespace DoodleIdle
             while (item.level < cap) {
                 int price = CopiesNeeded(item);
                 if (price <= 0 || item.count < price) break;
-                // The price only changes every ten levels; after 20 copies it stays fixed.
-                int samePriceLevels = price >= 20 ? cap - item.level : Math.Min(cap - item.level, 10 - (item.level - 1) % 10);
+                // Equipment changes price each level; abilities keep their ten-level bands.
+                // Once capped, even very large God upgrades use a single division.
+                int samePriceLevels = price >= 20 ? cap - item.level : IsEquipment(item) ? 1
+                    : Math.Min(cap - item.level, 10 - (item.level - 1) % 10);
                 int amount = Math.Min(samePriceLevels, item.count / price);
                 item.count -= amount * price;
                 item.level += amount;

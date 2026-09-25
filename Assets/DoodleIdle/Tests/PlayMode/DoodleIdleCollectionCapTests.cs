@@ -11,6 +11,40 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator EquipmentCopiesStartAtTwoRiseEveryUpgradeAndBatchMatchesIndividualPurchases()
+        {
+            game.TogglePause();var ui=game.Ui;
+            int[] copies={1,2,4,5,188,189,208,209,1808,1809};
+            int[] levels={1,2,2,3,18,19,19,20,99,100};
+            int[] remainders={1,0,2,0,18,0,19,0,19,0};
+            foreach(string category in new[]{"Armor","Club","Necklace"}) {
+                var item=ui.Items(category).First();item.discovered=true;
+                for(int i=0;i<copies.Length;i++) {
+                    item.level=1;item.count=copies[i];
+                    while(ui.UpgradeItem(item,false)) {}
+                    Assert.That(item.level,Is.EqualTo(levels[i]),category+" individual budget "+copies[i]);
+                    Assert.That(item.count,Is.EqualTo(remainders[i]));
+                    item.level=1;item.count=copies[i];
+                    int upgraded=(int)typeof(DoodleUi).GetMethod("UpgradeItemBatch",GrowthPrivate).Invoke(ui,new object[]{item});
+                    Assert.That(upgraded,Is.EqualTo(levels[i]-1),category+" batch budget "+copies[i]);
+                    Assert.That(item.level,Is.EqualTo(levels[i]));Assert.That(item.count,Is.EqualTo(remainders[i]));
+                }
+                item.level=1;item.count=2;
+                Assert.That(ui.CanUpgradeItem(item),Is.True);Assert.That(ui.UpgradeItem(item),Is.True);
+                Assert.That(ui.CopiesNeeded(item),Is.EqualTo(3));Assert.That(ui.CanUpgradeItem(item),Is.False);
+                item.count=3;Assert.That(ui.CanUpgradeItem(item),Is.True);
+                typeof(DoodleUi).GetField("equipmentCategory",GrowthPrivate).SetValue(ui,category);
+                UiOpen("Equipment");yield return null;
+                var slot=UiNode("Slot: "+item.name,UiNode("Collection inventory"));
+                Assert.That(slot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("3/3")||x.text.Contains("3 / 3")),Is.True);
+            }
+            foreach(string category in new[]{"Skill","Companion"}) {
+                var item=ui.Items(category).First();item.level=1;Assert.That(ui.CopiesNeeded(item),Is.EqualTo(5));
+                item.level=11;Assert.That(ui.CopiesNeeded(item),Is.EqualTo(6));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BulkEquipmentSkillsAndCompanionsUseExactBatchedCostsAndProgress()
         {
             game.TogglePause(); var ui = game.Ui;
@@ -28,7 +62,7 @@ namespace DoodleIdle.Tests
                 Assert.That(routine.MoveNext(), Is.False, "Deterministic upgrades must finish without one iteration or yield per level.");
                 foreach (var item in items) {
                     Assert.That(item.level, Is.EqualTo(item.rarity == 8 ? 100000151 : 100));
-                    Assert.That(item.count, Is.EqualTo(item.rarity == 8 ? 7 : 6));
+                    Assert.That(item.count, Is.EqualTo(item.rarity == 8 ? 7 : DoodleUi.IsEquipmentCategory(category) ? 0 : 6));
                 }
                 Assert.That(ui.CareerProgress(metric), Is.EqualTo(before + expected));
                 Debug.Log("Bulk " + category + " benchmark: " + expected + " upgrades, " + timer.ElapsedMilliseconds + " ms including save.");
@@ -43,9 +77,9 @@ namespace DoodleIdle.Tests
             foreach (string category in new[] { "Armor", "Club", "Necklace" }) {
                 var god = ui.Items(category).Single(x => x.rarity == 8 && x.tier == 1);
                 god.discovered = true;
-                foreach (int level in new[] { 1, 100, 150, 151, 160, 161, 500, 1000, 100000000, int.MaxValue - 1 }) {
+                foreach (int level in new[] { 1, 2, 18, 19, 20, 100, 150, 151, 160, 161, 500, 1000, 100000000, int.MaxValue - 1 }) {
                     god.level = level;
-                    int expected = System.Math.Min(20, 5 + (level - 1) / 10);
+                    int expected = level >= 19 ? 20 : level + 1;
                     Assert.That(ui.CopiesNeeded(god), Is.EqualTo(expected));
                     god.count = expected - 1;
                     Assert.That(ui.UpgradeItem(god), Is.False);
