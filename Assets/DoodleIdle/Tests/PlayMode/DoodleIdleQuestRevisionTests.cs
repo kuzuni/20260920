@@ -9,6 +9,42 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        [UnityTest]
+        public IEnumerator CriticalUpgradeQuestCombinesEveryTierAndMigratesUnclaimedProgressOnce()
+        {
+            game.TogglePause();var ui=game.Ui;
+            int quest=QuestIndex(1,"statUpgrade:criticalChance");
+            Assert.That(Enumerable.Range(0,ui.QuestCount(1)).Count(i=>ui.QuestMetric(1,i).StartsWith("statUpgrade:crit")),Is.EqualTo(1));
+            for(int i=0;i<DoodleUi.CriticalStatIds.Length;i++) {
+                for(int p=0;p<i;p++)GrowthLevels[DoodleUi.CriticalStatIds[p]]=DoodleUi.CriticalLevelCap(p);
+                string id=DoodleUi.CriticalStatIds[i];GrowthLevels[id]=0;ui.GoldAmount=new GameNumber(1,1000);
+                Assert.That(ui.UpgradeStat(id,3),Is.True);
+                Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo((i+1)*3));
+            }
+            Assert.That(ui.UpgradeStat("health",5),Is.True);
+            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(51));
+            ui.GoldAmount=0;Assert.That(ui.UpgradeStat("crit131072Chance",1),Is.False);
+            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(51));
+            LoadServiceSnapshot(saved=> {
+                var old=new int[25];old[15]=7;old[16]=8;
+                ServiceSetSavedField(saved,"repeat",old);ServiceSetSavedField(saved,"questSchemaVersion",2);
+            });
+            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(15));
+            Assert.That(ui.CanClaimQuest(1,quest),Is.True);
+            UiOpen("Quests");UiClick("반복",UiNode("Quest tabs"));
+            Assert.That(UiNode("Quest 1 "+quest).GetComponentsInChildren<UnityEngine.UI.Text>().Any(x=>x.text.Contains("치명타 확률 스탯")),Is.True);
+            int wallet=ui.Diamonds;ui.ClaimQuests(quest);ui.CloseDetail();
+            Assert.That(ui.Diamonds,Is.EqualTo(wallet+ui.QuestReward(1,quest)));
+            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(5));
+            ui.Save();ReloadPersistedServices();
+            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(5));
+            Assert.That(ui.CanClaimQuest(1,quest),Is.False);
+            ServiceSetSavedField(ServiceStateObject,"mainMissionIndex",13);
+            Assert.That(ui.CurrentMainMission.label,Does.Contain("치명타 확률 스탯").And.Not.Contain("x2"));
+            Assert.That(ui.MainMissionProgress,Is.EqualTo(DoodleUi.CriticalStatIds.Sum(x=>(long)ui.StatLevel(x))));
+            yield return null;
+        }
+
         int QuestIndex(int tab, string metric) => Enumerable.Range(0,game.Ui.QuestCount(tab)).Single(i=>game.Ui.QuestMetric(tab,i)==metric);
 
         [UnityTest]
@@ -30,7 +66,7 @@ namespace DoodleIdle.Tests
                 GrowthLevels[stat]=0;
                 if(stat=="crit4Chance")GrowthLevels["crit2Chance"]=4000;
                 Assert.That(ui.UpgradeStat(stat,10),Is.True,stat);
-                Assert.That(ui.CanClaimQuest(1,QuestIndex(1,"statUpgrade:"+stat)),Is.True,stat);
+                Assert.That(ui.CanClaimQuest(1,QuestIndex(1,"statUpgrade:"+(stat.StartsWith("crit")?"criticalChance":stat))),Is.True,stat);
             }
             var companion=ui.Items("Companion").First();companion.discovered=true;companion.level=1;companion.count=10000;
             for(int i=0;i<10;i++)Assert.That(ui.UpgradeItem(companion),Is.True);

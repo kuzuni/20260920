@@ -30,7 +30,7 @@ namespace DoodleIdle
             public float projectedGoldMultiplier=1.65f,projectedMissionGoldPerStage=1100;
             public float goldBuff = 1, attackBuff = 1;
             public int[] dailyGoals = { 500, 1, 1, 1, 1, 10, 10, 10, 10, 10, 10 };
-            public int[] repeatGoals = { 500, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 1, 5, 1 };
+            public int[] repeatGoals = { 500, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 1, 5, 1 };
             public int[] weeklyGoals = { 5000, 7, 5, 5, 5, 100, 100, 100, 100, 100, 100 };
             public int dailyQuestReward = 1000, weeklyQuestReward = 3000, repeatQuestReward = 5, repeatRouletteReward = 3;
         }
@@ -215,6 +215,8 @@ namespace DoodleIdle
         {
             if (services == null || amount <= 0) return;
             RecordMissionAction(metric,amount);
+            if (metric.StartsWith("statUpgrade:", StringComparison.Ordinal) && IsCriticalChance(metric.Substring(12)))
+                RecordServiceProgress("statUpgrade:criticalChance", amount);
             if (metric == "gold") services.earnedGold = SaturatingAdd(services.earnedGold, amount);
             ResetServicePeriods();
             int index = Array.IndexOf(ServiceMetrics, metric);
@@ -521,6 +523,12 @@ namespace DoodleIdle
                 UiKit.Text(count,index==0?"노랑 열쇠":"보라 열쇠",18,TextAnchor.MiddleCenter,24);
                 var enter=UiKit.Button(actions,services.activeDungeon==index?"진행 중":"입장",()=>EnterDungeon(index),UiKit.Blue,76);ServiceWidth(enter.transform,118);
                 enter.interactable=CanEnterDungeon(index);Notify(enter.transform,()=>CanEnterDungeon(index));
+                var sweep=UiKit.Button(actions,"소탕",()=>SweepDungeon(index),UiKit.Yellow,76);ServiceWidth(sweep.transform,110);
+                sweep.name="SweepDungeon_"+index;
+                Notify(sweep.transform,()=>{bool available=CanSweepDungeon(index);sweep.interactable=available;return available;});
+                int cleared=GetDungeonStage(index);
+                string sweepReward=index==0?"골드 "+UiNumber.Format(DungeonGoldAmount(cleared)):"던전 유물 뽑기권 "+DungeonRelicReward(cleared)+"장";
+                UiKit.Text(card,cleared>0?"소탕 · 최고 클리어 "+cleared.ToString("N0")+"단계 · "+sweepReward:"첫 클리어 후 소탕 가능 · 열쇠 1개 사용",19,TextAnchor.MiddleCenter,34);
                 if(services.activeDungeon==index)ServiceGauge(card,()=>services.dungeonProgress,()=>DungeonKillsFor(index));
             }
             UiKit.Text(body,"각 던전은 UTC 00:00에 각각 3회 충전",17,TextAnchor.MiddleCenter,28);
@@ -545,17 +553,37 @@ namespace DoodleIdle
             RecordServiceProgress("dungeonClear",1);
             services.activeDungeon=-1;services.dungeonProgress=0;
             if(game)game.RequestCombatWaveReset();
+            GrantDungeonClearReward(index,stage,"던전 클리어!");
+        }
+
+        public bool CanSweepDungeon(int index) => CanEnterDungeon(index) && GetDungeonStage(index)>0
+            && (index!=2 || (long)DungeonRelicTickets+DungeonRelicReward(GetDungeonStage(index))<=int.MaxValue);
+        public bool SweepDungeon(int index)
+        {
+            CreditPendingFieldGold();TickServices();ResetServicePeriods();
+            if(!CanSweepDungeon(index))return false;
+            int stage=GetDungeonStage(index);
+            services.dungeonUsed[index]++;
+            RecordServiceProgress("dungeon",1);RecordServiceProgress("dungeonEnter:"+index,1);
+            RecordMissionAction("dungeon:"+index);RecordServiceProgress("dungeonClear",1);
+            GrantDungeonClearReward(index,stage,"던전 소탕 완료!");
+            return true;
+        }
+
+        void GrantDungeonClearReward(int index,int stage,string title)
+        {
             var rewards=new List<UiReward>();
             if(index==0) {
-                int amount=DungeonGoldReward(stage);
-                GoldAmount += DungeonGoldAmount(stage);RecordServiceProgress("gold",amount);
-                rewards.Add(new UiReward { name="",icon="Gold",amount=amount,displayAmount=DungeonGoldAmount(stage),rarity=0 });
+                var gold=DungeonGoldAmount(stage);int amount=(int)gold;
+                GoldAmount += gold;RecordServiceProgress("gold",amount);
+                rewards.Add(new UiReward { name="",icon="Gold",amount=amount,displayAmount=gold,rarity=0 });
             } else {
-                int amount=DungeonRelicReward(stage);GrantDungeonRelicTickets(amount);
+                int amount=DungeonRelicReward(stage);
+                services.dungeonRelicTickets=(int)Math.Min(int.MaxValue,(long)services.dungeonRelicTickets+amount);
                 rewards.Add(new UiReward { name="던전 유물 뽑기권",icon="DungeonRelicTicket",amount=amount,rarity=0 });
             }
             Save();if(ActivePage=="Dungeons")RefreshPage();
-            ShowRewards("던전 클리어!\n"+DungeonNames[index]+" · "+stage+"단계",rewards);
+            ShowRewards(title+"\n"+DungeonNames[index]+" · "+stage+"단계",rewards);
         }
 
         List<LocalRank> LocalRanking()

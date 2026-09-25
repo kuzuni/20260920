@@ -9,6 +9,40 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        [UnityTest]
+        public IEnumerator DungeonSweepUsesOneKeyAndHighestClearedStageWithoutAdvancingIt()
+        {
+            game.TogglePause();var ui=game.Ui;
+            Assert.That(ui.SweepDungeon(0),Is.False);Assert.That(ui.SweepDungeon(2),Is.False);
+            Assert.That(ui.SweepDungeon(-1),Is.False);Assert.That(ui.SweepDungeon(1),Is.False);Assert.That(ui.SweepDungeon(3),Is.False);
+            LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"dungeonStages",new[]{7,0,3});ServiceSetSavedField(saved,"dungeonUsed",new[]{0,0,0});});
+            UiOpen("Dungeons");yield return null;
+            AssertBadge(UiNode("SweepDungeon_0"),true);AssertBadge(UiNode("SweepDungeon_2"),true);
+            Object.Destroy(CaptureFrame("dungeon-sweep-buttons.png",720,1520));
+            var gold=ui.GoldAmount;var reward=ui.DungeonGoldAmount(7);int main=ui.MainStage;
+            long clear=ui.CareerProgress("dungeonClear"),entry=ui.CareerProgress("dungeonEnter:0");
+            Assert.That(ui.SweepDungeon(0),Is.True);
+            Assert.That((double)((ui.GoldAmount-gold)/reward),Is.EqualTo(1).Within(1e-9));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,0}));
+            Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.DungeonChallengeStage(0),Is.EqualTo(8));
+            Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.MainStage,Is.EqualTo(main));
+            Assert.That(ui.CareerProgress("dungeonClear"),Is.EqualTo(clear+1));Assert.That(ui.CareerProgress("dungeonEnter:0"),Is.EqualTo(entry+1));
+            Object.Destroy(CaptureFrame("dungeon-sweep-reward.png",720,1520));ui.CloseDetail();
+            int tickets=ui.DungeonRelicTickets;
+            Assert.That(ui.SweepDungeon(2),Is.True);ui.CloseDetail();
+            Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets+ui.DungeonRelicReward(3)));
+            Assert.That(ui.GetDungeonStage(2),Is.EqualTo(3));Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,1}));
+            Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();
+            gold=ui.GoldAmount;Assert.That(ui.SweepDungeon(0),Is.False);Assert.That(ui.GoldAmount,Is.EqualTo(gold));
+            ui.Save();ReloadPersistedServices();
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,1}));
+            LoadServiceSnapshot(saved=>ServiceSetSavedField(saved,"activeDungeon",2));
+            Assert.That(ui.SweepDungeon(2),Is.False);
+            LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"activeDungeon",-1);ServiceSetSavedField(saved,"dungeonRelicTickets",int.MaxValue);});
+            Assert.That(ui.SweepDungeon(2),Is.False);Assert.That(ServiceStateValue<int[]>("dungeonUsed")[2],Is.EqualTo(1));
+            yield return null;
+        }
+
         void AssertBadge(Transform target, bool visible)
         {
             var badge=target.GetComponent<DoodleNotificationBadge>();

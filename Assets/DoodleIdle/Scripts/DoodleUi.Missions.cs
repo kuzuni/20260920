@@ -28,7 +28,7 @@ namespace DoodleIdle
             new MissionDefinition("relicAttempt","유물 강화 시도해 보기",1,"Relic",5),
             new MissionDefinition("stat:health","체력 Lv.15 달성",15),
             new MissionDefinition("stat:healthRegen","체력 회복 Lv.15 달성",15),
-            new MissionDefinition("stat:crit2Chance","x2 치명타 확률 Lv.15 달성",15),
+            new MissionDefinition("stat:criticalChance","치명타 확률 스탯 15회 강화",15),
             new MissionDefinition("attendance","출석 보상 받기",1),
             new MissionDefinition("roulette","룰렛 보상 받기",1),
             new MissionDefinition("questClaim","퀘스트 보상 받기",1),
@@ -51,7 +51,12 @@ namespace DoodleIdle
                 int repeating=index-earlyTutorials-(index>dungeonTutorialIndex+1?2:0);
                 long cycle=repeating/11L+1;int kind=repeating%11;
                 if(kind<4) {
-                    string[] ids={"attack","health","healthRegen","crit2Chance"};string[] labels={"공격력","체력","체력 회복","x2 치명타 확률"};
+                    if(kind==3) {
+                        long maximum=0;foreach(string id in CriticalStatIds)maximum+=StatMaxLevel(id);
+                        long upgrades=Math.Min(maximum,15+cycle*20);
+                        return new MissionDefinition("stat:criticalChance","치명타 확률 스탯 "+upgrades.ToString("N0")+"회 강화",upgrades);
+                    }
+                    string[] ids={"attack","health","healthRegen"};string[] labels={"공격력","체력","체력 회복"};
                     long level=Math.Min(StatMaxLevel(ids[kind]),15+cycle*20);
                     return new MissionDefinition("stat:"+ids[kind],labels[kind]+" Lv."+level+" 달성",level);
                 }
@@ -82,6 +87,7 @@ namespace DoodleIdle
         public long MissionProgress(string key)
         {
             if(services==null)return 0;
+            if(key=="stat:criticalChance") {long total=0;foreach(string id in CriticalStatIds)total+=StatLevel(id);return total;}
             if(key.StartsWith("stat:"))return StatLevel(key.Substring(5));
             if(key=="stage")return Math.Max(services.highestMainStage,MainStage);
             if(key=="kills")return Math.Max(services.mainKills,CareerProgress("kills"));
