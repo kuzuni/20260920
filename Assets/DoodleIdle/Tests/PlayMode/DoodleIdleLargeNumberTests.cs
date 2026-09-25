@@ -12,6 +12,53 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator BasicStatsReachOneHundredMillionAndMaxQuotesStayBatched()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            Assert.That(GrowthTuning.maxStatLevel, Is.EqualTo(100000000));
+            var costs = ui.ReadStatCostTuning(); costs.commonBaseCost = 20; costs.commonGrowth = 0;
+            costs.commonGrowthSteps = Array.Empty<DoodleGrowthStep>(); ui.ApplyStatCostTuning(costs);
+            foreach (string id in new[] { "attack", "health", "healthRegen" }) {
+                GrowthLevels[id] = 0; ui.GoldAmount = 2000000000;
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                Assert.That(ui.StatUpgradeQuoteAmount(id, -1, out int count), Is.EqualTo((GameNumber)2000000000));
+                Assert.That(count, Is.EqualTo(100000000));
+                Assert.That(clock.ElapsedMilliseconds, Is.LessThan(1000), "MAX must not visit 100 million levels.");
+                GrowthLevels[id] = 99999999;
+                Assert.That(ui.StatUpgradeQuoteAmount(id, 100, out count), Is.EqualTo((GameNumber)20));
+                Assert.That(count, Is.EqualTo(1)); Assert.That(ui.UpgradeStat(id, 100), Is.True);
+                Assert.That(ui.StatLevel(id), Is.EqualTo(100000000));
+                Assert.That(ui.UpgradeStat(id, 1), Is.False);
+            }
+            ui.SaveCollections(); var probes = new System.Collections.Generic.List<GameObject>();
+            try {
+                var restored = GrowthProbe(probes);
+                foreach (string id in new[] { "attack", "health", "healthRegen" }) Assert.That(restored.StatLevel(id), Is.EqualTo(100000000));
+            } finally { foreach (var probe in probes) Object.Destroy(probe); }
+            costs.commonGrowth = .004f; costs.commonGrowthSteps = new[] {
+                new DoodleGrowthStep { from = 8010, growth = .001f }, new DoodleGrowthStep { from = 8020, growth = 0 },
+                new DoodleGrowthStep { from = 8040, growth = .02f } };
+            ui.ApplyStatCostTuning(costs); GrowthLevels["attack"] = 8000;
+            GameNumber expected = 0;
+            for (int i = 0; i < 100; i++) expected += DoodleUi.StatUpgradePriceAmount(costs, "attack", 8000 + i);
+            Assert.That((double)(ui.StatUpgradeQuoteAmount("attack", 100, out _) / expected), Is.EqualTo(1).Within(1e-10));
+            costs.commonGrowthSteps = Array.Empty<DoodleGrowthStep>(); ui.ApplyStatCostTuning(costs);
+            expected = 0; for (int i = 0; i < 1000; i++) expected += DoodleUi.StatUpgradePriceAmount(costs, "attack", 8000 + i);
+            ui.GoldAmount = expected + DoodleUi.StatUpgradePriceAmount(costs, "attack", 9000) * .5;
+            ui.StatUpgradeQuoteAmount("attack", -1, out int affordable); Assert.That(affordable, Is.EqualTo(1000));
+            ui.GoldAmount = DoodleUi.StatUpgradePriceAmount(costs, "attack", 100000000) * 1000;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            ui.StatUpgradeQuoteAmount("attack", -1, out affordable);
+            Assert.That(affordable, Is.EqualTo(100000000 - 8000));
+            Assert.That(timer.ElapsedMilliseconds, Is.LessThan(1000));
+            foreach (string id in DoodleUi.CriticalStatIds) {
+                GrowthLevels[id] = DoodleUi.CriticalLevelCap(Array.IndexOf(DoodleUi.CriticalStatIds, id));
+                Assert.That(ui.UpgradeStat(id, 1), Is.False, "Critical chance retains its 100% cap.");
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator LargeNumbersKeepGrowingBeyondMachineExponentsAndRoundTrip()
         {
             game.TogglePause();

@@ -180,12 +180,49 @@ namespace DoodleIdle.Tests
                 if(effect=="healthRegen") Assert.That(ui.HealthRegen/ui.StatValue("healthRegen"),Is.EqualTo(multiplier).Within(.001));
                 if(effect=="gold") {
                     float gold=ui.GoldGainMultiplier;
+                    var health=ui.MaxHealthAmount;var regen=ui.HealthRegenAmount;
                     var costume=ui.Skins("Appearance").First(x=>!x.initiallyOwned);
                     Assert.That(ui.TryAcquireSkin(costume.id),Is.True);
-                    Assert.That(ui.GoldGainMultiplier/gold,Is.EqualTo(1.5f).Within(.001));
+                    Assert.That(ui.GoldGainMultiplier,Is.EqualTo(gold));
+                    Assert.That((double)(ui.MaxHealthAmount/health),Is.EqualTo(1.5).Within(.001));
+                    Assert.That((double)(ui.HealthRegenAmount/regen),Is.EqualTo(1.5).Within(.001));
                 }
             }
+            var firstCostume=ui.Skins("Appearance").First(x=>!x.initiallyOwned);
+            var secondCostume=ui.Skins("Appearance").Where(x=>!x.initiallyOwned).Skip(1).First();
+            Assert.That(ui.TryAcquireSkin(secondCostume.id),Is.True);
+            Assert.That(ui.SkinOwnedBonus("health"),Is.EqualTo(100));
+            Assert.That(ui.SkinOwnedBonus("healthRegen"),Is.EqualTo(100));
+            Assert.That(ui.SkinOwnedBonus("gold"),Is.Zero);
+            var ownedHealth=ui.MaxHealthAmount;var ownedRegen=ui.HealthRegenAmount;
+            Assert.That(ui.EquipSkin(firstCostume.id),Is.True);
+            Assert.That(ui.MaxHealthAmount,Is.EqualTo(ownedHealth));
+            Assert.That(ui.HealthRegenAmount,Is.EqualTo(ownedRegen));
+            ui.Save();var probes=new System.Collections.Generic.List<GameObject>();
+            try {
+                var restored=GrowthProbe(probes);
+                Assert.That(restored.SkinOwnedBonus("health"),Is.EqualTo(100));
+                Assert.That(restored.SkinOwnedBonus("healthRegen"),Is.EqualTo(100));
+                Assert.That(restored.SkinOwnedBonus("gold"),Is.Zero);
+            } finally { foreach(var probe in probes) Object.Destroy(probe); }
+            UiOpen("Skins");UiClick("외형 스킨");UiClick("SkinSlot_"+firstCostume.id);
+            Assert.That(UiNode("Selected skin").GetComponentsInChildren<UnityEngine.UI.Text>().Any(t=>t.text.Contains("체력·체력 회복 +50%")),Is.True);
+            Assert.That(UiNode("Skin total ownership").GetComponentInChildren<UnityEngine.UI.Text>().text,Does.Not.Contain("골드"));
             yield return null;
+            Object.Destroy(CaptureFrame("appearance-health-recovery-bonus.png",720,1520));
+            var scroll=UiNode("Skin inventory").GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            var details=(RectTransform)UiNode("Selected skin");var totalBox=UiNode("Skin total ownership");
+            Assert.That(details.IsChildOf(scroll.content),Is.False);
+            Assert.That(totalBox.IsChildOf(scroll.content),Is.False);
+            Assert.That(UiNode("Skin tabs").IsChildOf(scroll.content),Is.False);
+            var fixedPosition=details.anchoredPosition;var contentPosition=scroll.content.anchoredPosition;
+            scroll.verticalNormalizedPosition=0;yield return null;
+            Assert.That(details.anchoredPosition,Is.EqualTo(fixedPosition));
+            Assert.That(scroll.content.anchoredPosition,Is.Not.EqualTo(contentPosition));
+            foreach(var skin in ui.Skins("Weapon").Concat(ui.Skins("Appearance"))) Assert.That(skin.rarity,Is.Zero);
+            foreach(var layout in UiNode("Skin inventory").GetComponentsInChildren<DoodleUiSlotLayout>())
+                Assert.That(layout.grade.gameObject.activeSelf,Is.False);
+            Object.Destroy(CaptureFrame("appearance-fixed-details-list-bottom.png",720,1520));
         }
     }
 }

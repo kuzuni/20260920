@@ -42,10 +42,11 @@ namespace DoodleIdle
                     if (skin.acquisition != "Diamond" && skin.acquisition != "MainStage" && skin.acquisition != "HighestDungeonStage") continue;
                     skin.name = string.IsNullOrEmpty(skin.name) ? skin.id : skin.name;
                     if (string.IsNullOrEmpty(skin.icon)) skin.icon = skin.category == "Appearance" ? "Player" : "Club";
-                    skin.rarity = Mathf.Clamp(skin.rarity, 0, 4);
+                    skin.rarity = 0;
                     skin.diamondCost = skin.acquisition == "Diamond" ? Mathf.Max(1, skin.diamondCost) : 0;
                     skin.requiredStage = Mathf.Max(1, skin.requiredStage);
                     skin.ownedBonus = Mathf.Clamp(skin.ownedBonus, 0, 10000);
+                    if (skin.category == "Appearance" && skin.effect == "gold") skin.effect = "healthAndRegen";
                     if (skin.tint.a <= 0) skin.tint = Color.white;
                     skin.owned = skin.initiallyOwned;
                     skin.equipped = false;
@@ -99,7 +100,8 @@ namespace DoodleIdle
         {
             InitSkins();
             float total = 0;
-            foreach (var skin in skinCatalog) if (skin.owned && skin.effect == effect) total += skin.ownedBonus;
+            foreach (var skin in skinCatalog)
+                if (skin.owned && (skin.effect == effect || skin.effect == "healthAndRegen" && (effect == "health" || effect == "healthRegen"))) total += skin.ownedBonus;
             return total;
         }
 
@@ -142,6 +144,7 @@ namespace DoodleIdle
                 case "health": return "체력";
                 case "gold": return "골드 획득량";
                 case "healthRegen": return "체력 회복";
+                case "healthAndRegen": return "체력·체력 회복";
                 case "critDamage": return "치명타 피해";
                 default: return "추가 효과 없음";
             }
@@ -159,10 +162,13 @@ namespace DoodleIdle
         {
             InitSkins();
             body.GetComponent<VerticalLayoutGroup>().spacing = 8;
+            var window = body.GetComponentInParent<DoodleUiWindow>();
+            var header = UiKit.Column(window.inner, "Skin fixed details", 8, 4);
+            window.fixedHeader = header;
             var list = skinCatalog.FindAll(x => x.category == skinCategory);
             string selectedId = skinCategory == "Weapon" ? selectedWeaponSkin : selectedAppearanceSkin;
             var selected = list.Find(x => x.id == selectedId) ?? list[0];
-            var frame = UiKit.Box(body, "Selected skin", UiKit.Paper, 226);
+            var frame = UiKit.Box(header, "Selected skin", UiKit.Paper, 226);
             var specification = UiKit.Row(frame, "Skin specification", 210, 12);
             UiKit.Stretch(specification, 8, 8, 8, 8);
             var preview = SkinSlot(specification, selected, () => { }, 128f * 4 / 3);
@@ -205,10 +211,11 @@ namespace DoodleIdle
             foreach (string key in new[] { "attack", "health", "gold", "healthRegen", "critDamage" })
                 if (SkinOwnedBonus(key) > 0) totals.Add(SkinEffectName(key) + " +" + UiNumber.Format(SkinOwnedBonus(key)) + "%");
             float totalsHeight = totals.Count > 2 ? 98 : 62;
-            var effects = UiKit.Box(body, "Skin total ownership", new Color(.96f, .94f, .86f), totalsHeight);
+            var effects = UiKit.Box(header, "Skin total ownership", new Color(.96f, .94f, .86f), totalsHeight);
             var totalText = UiKit.Text(effects, "스킨 총 보유 효과\n" + (totals.Count == 0 ? "추가 효과 없음" : string.Join(" · ", totals)), 21, TextAnchor.MiddleCenter, totalsHeight - 2);
             UiKit.Stretch(totalText.rectTransform, 5, 1, 5, 1);
-            UiKit.Text(body, skinCategory == "Weapon" ? "무기 스킨 목록" : "외형 스킨 목록", 28, TextAnchor.MiddleLeft, 36);
+            UiKit.Text(header, skinCategory == "Weapon" ? "무기 스킨 목록" : "외형 스킨 목록", 28, TextAnchor.MiddleLeft, 36);
+            window.fixedHeaderHeight = 226 + totalsHeight + 36 + 16 + 8;
             var grid = UiKit.Grid(body, "Skin inventory", 4, 150);
             UiKit.PortraitGrid(grid);
             foreach (var skin in list)
@@ -227,20 +234,14 @@ namespace DoodleIdle
 
         void RefreshSkinDetails(RectTransform previousBody)
         {
-            // RefreshPage preserves the outgoing scroll position; selecting a different
-            // skin should preserve the detail area's top instead of the inventory offset.
-            var scroll = previousBody.GetComponentInParent<ScrollRect>();
-            if (scroll)
-            {
-                scroll.StopMovement();
-                scroll.verticalNormalizedPosition = 1;
-            }
+            // Details remain fixed; retain the inventory position when selecting a skin.
             RefreshPage();
         }
 
         Button SkinSlot(Transform parent, UiSkin skin, Action click, float height)
         {
-            var slot = UiKit.Slot(parent, skin.name, skin.icon, skin.rarity, skin.owned ? 1 : 0, 1, skin.equipped, !skin.owned, click, height);
+            var slot = UiKit.Slot(parent, skin.name, skin.icon, 0, skin.owned ? 1 : 0, 1, skin.equipped, !skin.owned, click, height);
+            slot.GetComponent<DoodleUiSlotLayout>().grade.gameObject.SetActive(false);
             slot.name = "SkinSlot_" + skin.id;
             var icon = slot.transform.Find("Icon: " + skin.icon);
             if (icon && skin.owned) icon.GetComponent<Image>().color = skin.tint;

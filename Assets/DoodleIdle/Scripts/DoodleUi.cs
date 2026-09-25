@@ -386,7 +386,8 @@ namespace DoodleIdle
         public float maxWidth=570,maxHeight=880,centerFromTop=.5f,headerHeight=80;
         public float detailScale=1;
         public int titleSize=48;
-        public RectTransform content,inner,footer,viewport,rail,closeButton;
+        public RectTransform content,inner,footer,viewport,rail,closeButton,fixedHeader;
+        public float fixedHeaderHeight;
         public Text titleText;
         public void Reflow(RectTransform safe)
         {
@@ -414,6 +415,12 @@ namespace DoodleIdle
             float heading=full?82:headerHeight;
             if(titleText) { titleText.resizeTextMaxSize=full?42:titleSize;titleText.rectTransform.offsetMin=new Vector2(50,-heading+4);titleText.rectTransform.offsetMax=new Vector2(-50,-8); }
             if(closeButton)closeButton.anchoredPosition=new Vector2(-33,-heading*.5f);
+            if(fixedHeader) {
+                fixedHeader.anchorMin=fixedHeader.anchorMax=new Vector2(.5f,1);fixedHeader.pivot=new Vector2(.5f,1);
+                fixedHeader.anchoredPosition=new Vector2(0,-heading);
+                fixedHeader.sizeDelta=new Vector2(width-42,fixedHeaderHeight);
+                heading+=fixedHeaderHeight+8;
+            }
             if(viewport)viewport.offsetMax=new Vector2(viewport.offsetMax.x,-heading);
             if(rail)rail.offsetMax=new Vector2(rail.offsetMax.x,-heading-2);
             content.sizeDelta=new Vector2(width-42,content.sizeDelta.y);

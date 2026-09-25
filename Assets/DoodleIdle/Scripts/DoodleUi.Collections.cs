@@ -176,16 +176,59 @@ namespace DoodleIdle
             int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));
             int target = requested < 0 ? available : Math.Min(Math.Max(0, requested), available);
             GameNumber total = 0;
-            for (int i = 0; i < target; i++)
+            for (int i = 0; i < target;)
             {
-                GameNumber price = StatUpgradePriceAmount(collectionTuning.statCosts, id, StatLevel(id) + i);
+                int level = StatLevel(id) + i;
+                GameNumber price = StatUpgradePriceAmount(collectionTuning.statCosts, id, level);
+                // Large prices have no representable fractional gold; sum each growth band directly.
+                // Flat bands also have one exact, rounded unit price at every level.
+                if (!IsCriticalChance(id)) {
+                    var tuning = collectionTuning.statCosts;
+                    float rate = BalanceValue(tuning.commonGrowth, 0, .004f);
+                    int latest = int.MinValue, band = target - i;
+                    foreach (var step in tuning.commonGrowthSteps ?? Array.Empty<DoodleGrowthStep>()) {
+                        if (step == null) continue;
+                        if (step.from <= level + 1 && step.from >= latest) {
+                            latest = step.from; rate = BalanceValue(step.growth, 0, 0);
+                        } else if (step.from > level + 1) band = Math.Min(band, step.from - level);
+                    }
+                    if (rate == 0 || price.Exponent >= 15) {
+                        GameNumber sum = StatPriceBandSum(price, rate, band);
+                        if (requested < 0 && sum > GameNumber.Round(GoldAmount - total)) {
+                            int low = 0, high = band;
+                            while (low < high) {
+                                int mid = low + (high - low + 1) / 2;
+                                if (StatPriceBandSum(price, rate, mid) <= GameNumber.Round(GoldAmount - total)) low = mid;
+                                else high = mid - 1;
+                            }
+                            total += StatPriceBandSum(price, rate, low); upgrades += low;
+                            break;
+                        }
+                        total += sum; upgrades += band; i += band;
+                        continue;
+                    }
+                }
                 if (requested < 0 && price > GameNumber.Round(GoldAmount - total)) break;
                 total += price;
-                upgrades++;
+                upgrades++; i++;
             }
             // MAX still presents the next purchase price when the wallet is empty.
             if (requested < 0 && upgrades == 0 && available > 0) return StatUpgradeQuoteAmount(id, 1, out upgrades);
             return GameNumber.Round(total);
+        }
+
+        static GameNumber StatPriceBandSum(GameNumber price, float rate, int count)
+        {
+            if (count == 0) return 0;
+            if (rate == 0) return price * count;
+            GameNumber factor = 1d + rate, block = 1, prefix = 1, sum = 0;
+            // Binary geometric sum avoids cancellation when the configured growth is tiny.
+            while (count > 0) {
+                if ((count & 1) != 0) { sum += prefix * block; prefix *= factor; }
+                count >>= 1;
+                if (count > 0) { block *= 1 + factor; factor *= factor; }
+            }
+            return price * sum;
         }
 
         public bool UpgradeStat(string id, int requested)
