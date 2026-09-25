@@ -134,6 +134,8 @@ namespace DoodleIdle.Tests
         public IEnumerator CriticalTiersChainPricesUnlockInOrderAndUseHighestSuccessfulMultiplier()
         {
             game.TogglePause(); var ui = game.Ui;
+            Assert.That(DoodleUi.CriticalStatIds.Length,Is.EqualTo(17));
+            Assert.That(DoodleUi.CriticalMultiplierAt(16),Is.EqualTo(131072));
             var tuning = ui.ReadStatCostTuning();
             // Affordable but non-flat curve exercises every tier without wallet saturation.
             tuning.critical2BaseCost = 20; tuning.critical2Growth = .0001f;
@@ -159,6 +161,8 @@ namespace DoodleIdle.Tests
                 for (int roll = 0; roll < 20; roll++) Assert.That(game.RollUiCriticalMultiplier(), Is.EqualTo(DoodleUi.CriticalMultiplierAt(i)));
                 Assert.That(ui.UpgradeStat(id, 1), Is.False);
             }
+            try {ui.BeginCombatSnapshot();Assert.That(game.RollUiCriticalMultiplier(),Is.EqualTo(131072));}
+            finally {ui.EndCombatSnapshot();}
             GrowthLevels["crit128Chance"] = 1000;
             Assert.That(ui.ExpectedCriticalMultiplier, Is.EqualTo(96).Within(.001));
             int high = 0; for (int i = 0; i < 500; i++) { float value = game.RollUiCriticalMultiplier(); Assert.That(value == 64f || value == 128f, Is.True); if (value == 128) high++; }

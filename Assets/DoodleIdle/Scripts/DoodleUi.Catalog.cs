@@ -68,6 +68,7 @@ namespace DoodleIdle
             var asset = Resources.Load<TextAsset>("DoodleIdle/UI/Collections");
             if (asset == null) throw new InvalidOperationException("Missing DoodleIdle/UI/Collections tuning data.");
             collectionTuning = JsonUtility.FromJson<UiCollectionTuning>(asset.text);
+            hideMaxStats = PlayerPrefs.GetInt("DoodleUi.HideMaxStats", 0) != 0;
             if (collectionTuning == null || collectionTuning.items == null || collectionTuning.stats == null)
                 throw new InvalidOperationException("Invalid collection tuning data.");
             collectionItems.AddRange(collectionTuning.items);
@@ -231,7 +232,7 @@ namespace DoodleIdle
         public float OwnedBonus => (float)((OwnedAmount("attack") - 1) * 100);
         public float HealthBonus => (float)((OwnedAmount("health") - 1) * 100);
         public float GoldGainMultiplier => (float)GoldGainAmount;
-        public static readonly string[] CriticalStatIds = { "crit2Chance", "crit4Chance", "crit8Chance", "crit16Chance", "crit32Chance", "crit64Chance", "crit128Chance" };
+        public static readonly string[] CriticalStatIds = { "crit2Chance", "crit4Chance", "crit8Chance", "crit16Chance", "crit32Chance", "crit64Chance", "crit128Chance", "crit256Chance", "crit512Chance", "crit1024Chance", "crit2048Chance", "crit4096Chance", "crit8192Chance", "crit16384Chance", "crit32768Chance", "crit65536Chance", "crit131072Chance" };
         public static int CriticalMultiplierAt(int tier) => 1 << (tier + 1);
         public static int CriticalLevelCap(int tier) => tier == 0 ? 4000 : 2000;
         public bool CriticalUnlocked(string id)

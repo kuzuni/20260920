@@ -96,7 +96,7 @@ namespace DoodleIdle
         readonly Dictionary<string, GameNumber> snapshotEffects = new Dictionary<string, GameNumber>();
         readonly Dictionary<string, GameNumber> snapshotEquipped = new Dictionary<string, GameNumber>();
         readonly GameNumber[] snapshotCategories = new GameNumber[3];
-        readonly float[] snapshotChances = new float[7];
+        readonly float[] snapshotChances = new float[CriticalStatIds.Length];
         GameNumber snapshotAttack, snapshotHealth, snapshotRegen, snapshotCriticalBonus;
         public void BeginCombatSnapshot()
         {

@@ -76,6 +76,16 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.CollectionFullyMaxed(category), Is.False);
                 Assert.That(ui.CollectionRefundQuote(category), Is.Zero);
                 Assert.That(ui.RefundCollection(category), Is.Zero);
+                if(category=="Skill") {
+                    Assert.That(ui.CanRefundSkill(items[0]),Is.False);
+                    Assert.That(ui.SkillRefundQuote(items[0]),Is.Zero);
+                    Assert.That(ui.RefundSkill(items[0]),Is.Zero);
+                    ui.AutoEquip("Skill");UiOpen("Skills");
+                    AssertBadge(UiNode("Slot: "+items[0].name,UiNode("Collection inventory")),false);
+                    UiClick("Slot: "+items[0].name,UiNode("Collection inventory"));
+                    Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(x=>x.name.StartsWith("환불")),Is.False);
+                    ui.CloseDetail();
+                }
                 Assert.That(items.All(x => x.count == 2), Is.True);
                 UiOpen(category == "Skill" ? "Skills" : "Companions");
                 Assert.That(UiNode("Collection actions").GetComponentsInChildren<Button>().Any(x => x.name == "일괄 환불"), Is.False);

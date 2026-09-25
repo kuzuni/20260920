@@ -110,8 +110,20 @@ namespace DoodleIdle
         }
         public static Image Icon(Transform parent,string resource,float size=64)
         {
-            var r=Rect(parent,"Icon: "+resource); var im=r.gameObject.AddComponent<Image>(); im.sprite=Art(resource); im.preserveAspect=true; im.raycastTarget=false;
-            var l=r.gameObject.AddComponent<LayoutElement>(); l.minWidth=l.preferredWidth=size; l.minHeight=l.preferredHeight=size; l.flexibleWidth=0; l.flexibleHeight=0; r.sizeDelta=Vector2.one*size; return im;
+            int multiplier = 0;
+            bool extendedCritical = resource != null && resource.StartsWith("StatCrit", StringComparison.Ordinal) && int.TryParse(resource.Substring(8), out multiplier) && multiplier >= 256;
+            var r=Rect(parent,"Icon: "+resource); var im=r.gameObject.AddComponent<Image>(); im.sprite=extendedCritical ? Circle : Art(resource); im.preserveAspect=true; im.raycastTarget=false;
+            var l=r.gameObject.AddComponent<LayoutElement>(); l.minWidth=l.preferredWidth=size; l.minHeight=l.preferredHeight=size; l.flexibleWidth=0; l.flexibleHeight=0; r.sizeDelta=Vector2.one*size;
+            if (extendedCritical) {
+                im.enabled=false;
+                var shape=Rect(r,"Critical multiplier badge");Stretch(shape);
+                var badge=shape.gameObject.AddComponent<DoodleCriticalBadge>();badge.raycastTarget=false;
+                int tier=Mathf.RoundToInt(Mathf.Log(multiplier,2))-8;
+                badge.color=Color.Lerp(Color.HSVToRGB((.12f+tier*.083f)%1,.35f,.86f),Paper,.25f);
+                var label=Text(r,"×\n"+multiplier.ToString("N0"),multiplier>=10000?20:24,TextAnchor.MiddleCenter,size);
+                Stretch(label.rectTransform,8,7,8,7);label.lineSpacing=.78f;label.resizeTextMinSize=12;label.fontStyle=FontStyle.Bold;
+            }
+            return im;
         }
         public static RectTransform Gauge(Transform parent,string text,float fraction,float height=24)
         {
@@ -400,6 +412,25 @@ namespace DoodleIdle
             Quad(vh,-6,4,-3,11,Color.white);Quad(vh,3,4,6,11,Color.white);Quad(vh,-4,9,4,12,Color.white);Quad(vh,-1,-6,1,-1,UiKit.Ink);
         }
         static void Quad(VertexHelper vh,float l,float b,float r,float t,Color c) { int s=vh.currentVertCount;vh.AddVert(new Vector2(l,b),c,Vector2.zero);vh.AddVert(new Vector2(l,t),c,Vector2.zero);vh.AddVert(new Vector2(r,t),c,Vector2.zero);vh.AddVert(new Vector2(r,b),c,Vector2.zero);vh.AddTriangle(s,s+1,s+2);vh.AddTriangle(s,s+2,s+3); }
+    }
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class DoodleCriticalBadge : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();var rect=rectTransform.rect;var center=rect.center;
+            float radius=Mathf.Min(rect.width,rect.height)*.48f;
+            void Burst(float scale,Color tint) {
+                int first=vh.currentVertCount;vh.AddVert(center,tint,Vector2.zero);
+                for(int i=0;i<20;i++) {
+                    float angle=(i*18+9)*Mathf.Deg2Rad;
+                    float r=radius*scale*(i%2==0?1:.74f)*(1+.025f*Mathf.Sin(i*2.3f));
+                    vh.AddVert(center+new Vector2(Mathf.Sin(angle),Mathf.Cos(angle))*r,tint,Vector2.zero);
+                }
+                for(int i=0;i<20;i++)vh.AddTriangle(first,first+1+i,first+1+(i+1)%20);
+            }
+            Burst(1,UiKit.Ink);Burst(.92f,color);
+        }
     }
     [Serializable] public sealed class UiReward { public string name,icon; public int amount,rarity; [NonSerialized] public GameNumber displayAmount; public GameNumber DisplayAmount => displayAmount > 0 ? displayAmount : amount; }
 }

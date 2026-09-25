@@ -11,6 +11,7 @@ namespace DoodleIdle
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4", selectedNecklace = "necklace_0";
         float equipmentTabPosition;
         int statBatch = 1;
+        bool hideMaxStats;
         bool collectionBulkRunning;
         UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
@@ -109,9 +110,15 @@ namespace DoodleIdle
                 var mode = UiKit.Button(batch, amount < 0 ? "MAX" : "×" + UiNumber.Format(amount), () => { statBatch = selected; RefreshPage(); }, statBatch == amount ? UiKit.Blue : UiKit.Paper, 64);
                 CollectionButtonText(mode, 34);
             }
+            var hideMax = UiKit.Button(body, hideMaxStats ? "✓ MAX 숨기기" : "MAX 숨기기", () => {
+                hideMaxStats = !hideMaxStats;
+                PlayerPrefs.SetInt("DoodleUi.HideMaxStats", hideMaxStats ? 1 : 0); PlayerPrefs.Save(); RefreshPage();
+            }, hideMaxStats ? UiKit.Green : UiKit.Paper, 42);
+            hideMax.name = "Hide max stats";
             foreach (var definition in collectionTuning.stats)
             {
                 var stat = definition;
+                if (hideMaxStats && StatLevel(stat.id) >= StatMaxLevel(stat.id)) continue;
                 int upgrades;
                 GameNumber cost = StatUpgradeQuoteAmount(stat.id, statBatch, out upgrades);
                 var frame = CollectionBox(body, "Stat " + stat.id, UiKit.Paper);
@@ -120,6 +127,8 @@ namespace DoodleIdle
                 bool locked = IsCriticalChance(stat.id) && !CriticalUnlocked(stat.id);
                 var statArt = UiKit.Icon(row, stat.icon, 86);
                 if (locked) statArt.color = Color.gray;
+                var criticalBadge = statArt.GetComponentInChildren<DoodleCriticalBadge>();
+                if (criticalBadge && locked) criticalBadge.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id).ToString("N0"), 30, TextAnchor.MiddleLeft, 39);
@@ -284,6 +293,9 @@ namespace DoodleIdle
             var tabs = UiKit.Box(footer, "Equipment tabs", new Color(.78f,.78f,.76f), 52);
             UiKit.SlidingTabs(tabs, new[] { "갑옷", "몽둥이", "목걸이" }, equipmentCategory == "Armor" ? 0 : equipmentCategory == "Club" ? 1 : 2, equipmentTabPosition,
                 index => { equipmentCategory = index == 0 ? "Armor" : index == 1 ? "Club" : "Necklace"; RefreshPage(); }, value => equipmentTabPosition = value, 52);
+            Notify(tabs.Find("갑옷"), () => EquipmentCategoryNeedsAttention("Armor"));
+            Notify(tabs.Find("몽둥이"), () => EquipmentCategoryNeedsAttention("Club"));
+            Notify(tabs.Find("목걸이"), () => EquipmentCategoryNeedsAttention("Necklace"));
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
@@ -562,7 +574,7 @@ namespace DoodleIdle
                     var buttons = UiKit.Row(UiKit.Footer(body, "Collection detail footer", 60), "Detail actions", 56);
                     bool maximum = item.level >= ItemMaxLevel(item);
                     bool synthesis = item.level >= 100 && SynthesisTarget(item) != null;
-                    bool refund = item.category == "Skill" && maximum;
+                    bool refund = item.category == "Skill" && maximum && CollectionFullyMaxed("Skill");
                     Action refundAction = () =>
                     {
                         int paid = RefundSkill(item);

@@ -353,7 +353,7 @@ namespace DoodleIdle
             Relayout(); CreditPendingFieldGold(); TickServices(); FlushCombatSave();
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
-            else { RefreshBossHud(); RefreshHudSkills(); }
+            else { RefreshStatWallet(); RefreshBossHud(); RefreshHudSkills(); }
             if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
             if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }
         }

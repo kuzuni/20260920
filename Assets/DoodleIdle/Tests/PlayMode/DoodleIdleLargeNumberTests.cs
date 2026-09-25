@@ -12,6 +12,29 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator MaxStatVisibilityTogglePersistsAndKeepsIncompleteAndLockedStats()
+        {
+            game.TogglePause();var ui=game.Ui;
+            GrowthLevels["attack"]=GrowthLevels["health"]=100000000;
+            GrowthLevels["healthRegen"]=99999999;GrowthLevels["crit2Chance"]=4000;
+            GrowthLevels["crit4Chance"]=20;
+            UiOpen("Stats");UiClick("Hide max stats");yield return null;
+            var texts=UiRoot.GetComponentsInChildren<Text>();
+            Assert.That(UiRoot.GetComponentsInChildren<Transform>().Any(x=>x.name=="Stat attack"||x.name=="Stat health"||x.name=="Stat crit2Chance"),Is.False);
+            Assert.That(UiNode("Stat healthRegen"),Is.Not.Null);
+            Assert.That(UiNode("Stat crit4Chance"),Is.Not.Null);
+            Assert.That(UiNode("Stat crit131072Chance"),Is.Not.Null,"Locked stages are not maxed and remain visible.");
+            Assert.That(PlayerPrefs.GetInt("DoodleUi.HideMaxStats"),Is.EqualTo(1));
+            UiOpen("Equipment");UiOpen("Stats");Assert.That(UiRoot.GetComponentsInChildren<Transform>().Any(x=>x.name=="Stat attack"),Is.False);
+            Object.Destroy(CaptureFrame("stats-hide-max.png",720,1520));
+            UiClick("Hide max stats");yield return null;
+            Assert.That(UiNode("Stat attack"),Is.Not.Null);
+            var scroll=UiNode("Stat crit131072Chance").GetComponentInParent<ScrollRect>();scroll.verticalNormalizedPosition=0;yield return null;
+            Assert.That(UiNode("Stat crit131072Chance").GetComponentInChildren<DoodleCriticalBadge>(),Is.Not.Null);
+            Object.Destroy(CaptureFrame("stats-expanded-critical-tiers.png",720,1520));
+        }
+
+        [UnityTest]
         public IEnumerator BasicStatsReachOneHundredMillionAndMaxQuotesStayBatched()
         {
             game.TogglePause(); var ui = game.Ui;

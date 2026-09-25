@@ -12,7 +12,13 @@ namespace DoodleIdle.Editor
     {
         const string TuningPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/ServicesTuning.json";
         const string CollectionPath = "Assets/DoodleIdle/Resources/DoodleIdle/UI/Collections.json";
-        static readonly string[] Names = { "골드 보상", "적 체력", "적 데미지", "공격력 · 체력 · 회복 강화 비용", "x2 치명타 강화 비용", "x4 치명타 강화 비용", "x8 치명타 강화 비용", "x16 치명타 강화 비용", "x32 치명타 강화 비용", "x64 치명타 강화 비용", "x128 치명타 강화 비용" };
+        static readonly string[] Names = BuildNames();
+        static string[] BuildNames()
+        {
+            var names = new List<string> { "골드 보상", "적 체력", "적 데미지", "공격력 · 체력 · 회복 강화 비용" };
+            for (int i = 0; i < DoodleUi.CriticalStatIds.Length; i++) names.Add("x" + DoodleUi.CriticalMultiplierAt(i).ToString("N0") + " 치명타 강화 비용");
+            return names.ToArray();
+        }
         [SerializeField, HideInInspector] DoodleUi.ServiceTuning draft = new DoodleUi.ServiceTuning(), loaded = new DoodleUi.ServiceTuning();
         [SerializeField, HideInInspector] UiStatCostTuning statDraft = new UiStatCostTuning(), statLoaded = new UiStatCostTuning();
         [SerializeField, HideInInspector] int selected, previewPosition = 70;

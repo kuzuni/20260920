@@ -222,7 +222,8 @@ namespace DoodleIdle
         decimal AbilityRefundRemainder(string category) => category == "Skill" ? SkillRefundRemainder : 0;
         int RefundableAbilityCopies(UiItem item)
         {
-            if (item == null || (item.category != "Skill" && item.category != "Companion") || !item.discovered || item.level < ItemMaxLevel(item) || item.count <= 0 || !Items(item.category).Contains(item)) return 0;
+            if (item == null || (item.category != "Skill" && item.category != "Companion") || !item.discovered || item.level < ItemMaxLevel(item) || item.count <= 0 || !collectionItems.Contains(item)) return 0;
+            if (item.category == "Skill" && !CollectionFullyMaxed("Skill")) return 0;
             decimal room = Math.Max(0L, (long)int.MaxValue - Diamonds);
             return (int)Math.Min(item.count, Math.Max(0, decimal.Floor((room - AbilityRefundRemainder(item.category)) / AbilityRefundUnitPrice(item.category))));
         }
@@ -243,8 +244,11 @@ namespace DoodleIdle
         public bool CollectionFullyMaxed(string category)
         {
             if (category != "Skill" && category != "Companion") return false;
-            var items = Items(category);
-            return items.Count > 0 && items.TrueForAll(x => x.discovered && x.level >= ItemMaxLevel(x));
+            InitCollections(); bool found = false;
+            foreach (var item in collectionItems) if (item.category == category) {
+                found = true; if (!item.discovered || item.level < ItemMaxLevel(item)) return false;
+            }
+            return found;
         }
         public int CollectionRefundQuote(string category)
         {

@@ -53,6 +53,11 @@ namespace DoodleIdle
         bool CategoryCanUpgrade(string category) => Items(category).Exists(CanUpgradeItem);
         bool CategoryCanEquip(string category) => Items(category).Exists(CanImproveLoadout);
         bool ItemNeedsAttention(UiItem item) => CanUpgradeItem(item)||CanSynthesize(item)||CanImproveLoadout(item)||(item.category=="Skill"&&SkillRefundQuote(item)>0);
+        bool EquipmentCategoryNeedsAttention(string category)
+        {
+            foreach (var item in collectionItems) if (item.category == category && ItemNeedsAttention(item)) return true;
+            return false;
+        }
         public bool CanClaimQuest(int tab,int index) => services!=null&&index>=0&&index<QuestCount(tab)&&!QuestClaimed(tab,index)&&QuestCounters(tab)[QuestMetrics[tab][index]]>=QuestGoal(tab,index)&&QuestReward(tab,index)>0&&(long)Diamonds+QuestReward(tab,index)<=int.MaxValue;
         public bool QuestTabHasReward(int tab) { for(int i=0;i<QuestCount(tab);i++)if(CanClaimQuest(tab,i))return true;return false; }
         public bool CanClaimAttendance => services!=null&&services.attendanceIndex<7&&services.attendanceDay!=services.day;
@@ -71,7 +76,8 @@ namespace DoodleIdle
                 case "Stats":
                     foreach(var stat in collectionTuning.stats){int count;GameNumber cost=StatUpgradeQuoteAmount(stat.id,1,out count);if(count>0&&GoldAmount>=cost)return true;}
                     return false;
-                case "Equipment": return Items("Armor").Exists(ItemNeedsAttention)||Items("Club").Exists(ItemNeedsAttention)||Items("Necklace").Exists(ItemNeedsAttention);
+                case "Equipment": return EquipmentCategoryNeedsAttention("Armor")||EquipmentCategoryNeedsAttention("Club")||EquipmentCategoryNeedsAttention("Necklace");
+                case "Skins": return CanUnlockSkins("Weapon")||CanUnlockSkins("Appearance");
                 case "Skills": return Items("Skill").Exists(ItemNeedsAttention);
                 case "Companions": return Items("Companion").Exists(ItemNeedsAttention) || CollectionRefundQuote("Companion") > 0;
                 case "Relics": return AllRelics.Exists(CanUpgradeItem);

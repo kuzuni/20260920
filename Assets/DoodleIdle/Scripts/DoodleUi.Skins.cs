@@ -105,15 +105,30 @@ namespace DoodleIdle
             return total;
         }
 
+        bool CanAcquireSkin(UiSkin skin) => skin != null && !skin.owned && (skin.acquisition == "Diamond" ? Diamonds >= skin.diamondCost
+            : skin.acquisition == "MainStage" ? HighestMainStage >= skin.requiredStage
+            : skin.acquisition == "HighestDungeonStage" && HighestDungeonStage >= skin.requiredStage);
+        bool CanUnlockSkin(UiSkin skin) => skin != null && skin.acquisition != "Diamond" && CanAcquireSkin(skin);
+        public bool CanUnlockSkins(string category)
+        {
+            InitSkins();
+            foreach (var skin in skinCatalog) if (skin.category == category && CanUnlockSkin(skin)) return true;
+            return false;
+        }
+        public int UnlockAllSkins(string category)
+        {
+            InitSkins(); GameNumber before = PowerAmount; int count = 0;
+            foreach (var skin in skinCatalog) if (skin.category == category && CanUnlockSkin(skin)) { skin.owned = true; count++; }
+            if (count == 0) return 0;
+            Save(); NotifyPowerChanged(before, "스킨 " + count + "종 일괄 해금"); RefreshPage();
+            return count;
+        }
+
         public bool TryAcquireSkin(string id)
         {
             InitSkins();
             var skin = skinCatalog.Find(x => x.id == id);
-            if (skin == null || skin.owned) return false;
-            bool available = skin.acquisition == "Diamond" ? Diamonds >= skin.diamondCost
-                : skin.acquisition == "MainStage" ? HighestMainStage >= skin.requiredStage
-                : skin.acquisition == "HighestDungeonStage" && HighestDungeonStage >= skin.requiredStage;
-            if (!available) return false;
+            if (!CanAcquireSkin(skin)) return false;
             GameNumber before = PowerAmount;
             if (skin.acquisition == "Diamond") Diamonds -= skin.diamondCost;
             skin.owned = true;
@@ -206,6 +221,7 @@ namespace DoodleIdle
                 bool ready = (selected.acquisition == "MainStage" ? HighestMainStage : HighestDungeonStage) >= selected.requiredStage;
                 var unlock = UiKit.Button(info, ready ? "해금" : "조건 미달", () => TryAcquireSkin(selected.id), UiKit.Yellow, 48);
                 unlock.name = "UnlockSkin_" + selected.id; unlock.interactable = ready;
+                Notify(unlock.transform, () => { bool available = CanUnlockSkin(selected); unlock.interactable = available; return available; });
             }
             var totals = new List<string>();
             foreach (string key in new[] { "attack", "health", "gold", "healthRegen", "critDamage" })
@@ -227,9 +243,14 @@ namespace DoodleIdle
                     RefreshSkinDetails(body);
                 }, 150);
             }
-            var tabs = UiKit.Box(UiKit.Footer(body, "Skins footer", 56), "Skin tabs", new Color(.78f,.78f,.76f), 56);
+            var footer = UiKit.Footer(body, "Skins footer", 118);
+            var bulk = UiKit.Button(footer, "일괄 해금", () => UnlockAllSkins(skinCategory), UiKit.Yellow, 54);
+            Notify(bulk.transform, () => { bool available = CanUnlockSkins(skinCategory); bulk.interactable = available; return available; });
+            var tabs = UiKit.Box(footer, "Skin tabs", new Color(.78f,.78f,.76f), 56);
             UiKit.SlidingTabs(tabs, "무기 스킨", "외형 스킨", skinCategory == "Weapon" ? 0 : 1, skinTabPosition,
                 index => { skinCategory = index == 0 ? "Weapon" : "Appearance"; RefreshSkinDetails(body); }, value => skinTabPosition = value, 56);
+            Notify(tabs.Find("무기 스킨"), () => CanUnlockSkins("Weapon"));
+            Notify(tabs.Find("외형 스킨"), () => CanUnlockSkins("Appearance"));
         }
 
         void RefreshSkinDetails(RectTransform previousBody)
@@ -243,6 +264,7 @@ namespace DoodleIdle
             var slot = UiKit.Slot(parent, skin.name, skin.icon, 0, skin.owned ? 1 : 0, 1, skin.equipped, !skin.owned, click, height);
             slot.GetComponent<DoodleUiSlotLayout>().grade.gameObject.SetActive(false);
             slot.name = "SkinSlot_" + skin.id;
+            Notify(slot.transform, () => CanUnlockSkin(skin));
             var icon = slot.transform.Find("Icon: " + skin.icon);
             if (icon && skin.owned) icon.GetComponent<Image>().color = skin.tint;
             if (icon && skin.category == "Appearance") {

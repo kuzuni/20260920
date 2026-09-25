@@ -11,6 +11,49 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator SkinBulkUnlockAndEquipmentTabNotificationsFollowAvailableActions()
+        {
+            game.TogglePause();var ui=game.Ui;
+            AssertBadge(UiNode("Skins"),false);
+            LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"mainStage",300);ServiceSetSavedField(saved,"highestMainStage",300);});
+            var appearances=ui.Skins("Appearance").Where(x=>!x.initiallyOwned).ToArray();
+            SelectSkinForTest(appearances[0]);yield return null;
+            AssertBadge(UiNode("Skins"),true);
+            AssertBadge(UiNode("외형 스킨",UiNode("Skin tabs")),true);
+            AssertBadge(UiNode("무기 스킨",UiNode("Skin tabs")),true);
+            AssertBadge(UiNode("UnlockSkin_"+appearances[0].id),true);
+            AssertBadge(UiNode("SkinSlot_"+appearances[0].id,UiNode("Skin inventory")),true);
+            AssertBadge(UiNode("SkinSlot_"+appearances[3].id,UiNode("Skin inventory")),false);
+            AssertBadge(UiNode("일괄 해금"),true);
+            Object.Destroy(CaptureFrame("skin-unlock-notifications.png",720,1520));
+            int diamonds=ui.Diamonds;string equipped=ui.EquippedSkinId("Appearance");
+            UiClick("일괄 해금");
+            Assert.That(appearances.Count(x=>x.owned),Is.EqualTo(3));
+            Assert.That(ui.Diamonds,Is.EqualTo(diamonds));Assert.That(ui.EquippedSkinId("Appearance"),Is.EqualTo(equipped));
+            Assert.That(ui.SkinOwnedBonus("health"),Is.EqualTo(150));Assert.That(ui.SkinOwnedBonus("healthRegen"),Is.EqualTo(150));
+            Assert.That(ui.UnlockAllSkins("Appearance"),Is.Zero);
+            AssertBadge(UiNode("외형 스킨",UiNode("Skin tabs")),false);
+            AssertBadge(UiNode("무기 스킨",UiNode("Skin tabs")),true);
+            AssertBadge(UiNode("일괄 해금"),false);AssertBadge(UiNode("Skins"),true);
+            UiClick("무기 스킨",UiNode("Skin tabs"));UiClick("일괄 해금");AssertBadge(UiNode("Skins"),false);
+            var probes=new System.Collections.Generic.List<GameObject>();
+            try {var restored=GrowthProbe(probes);Assert.That(restored.Skins("Appearance").Count(x=>x.owned&&!x.initiallyOwned),Is.EqualTo(3));}
+            finally {foreach(var probe in probes)Object.Destroy(probe);}
+            string[] categories={"Armor","Club","Necklace"},tabs={"갑옷","몽둥이","목걸이"};
+            foreach(string category in categories) foreach(var item in ui.Items(category)){item.discovered=item.equipped=false;item.level=item.count=0;}
+            for(int i=0;i<categories.Length;i++) {
+                var item=ui.Items(categories[i])[0];ui.AddItem(item,1);item.count=0;UiOpen("Equipment");
+                for(int j=0;j<tabs.Length;j++)AssertBadge(UiNode(tabs[j],UiNode("Equipment tabs")),i==j);
+                ui.AutoEquip(categories[i]);AssertBadge(UiNode(tabs[i],UiNode("Equipment tabs")),false);
+                item.count=ui.CopiesNeeded(item);AssertBadge(UiNode(tabs[i],UiNode("Equipment tabs")),true);
+                Assert.That(ui.UpgradeItem(item),Is.True);AssertBadge(UiNode(tabs[i],UiNode("Equipment tabs")),false);
+                item.level=100;item.count=5;AssertBadge(UiNode(tabs[i],UiNode("Equipment tabs")),true);
+                item.count=0;AssertBadge(UiNode(tabs[i],UiNode("Equipment tabs")),false);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ThemedSkinsHaveCompletePairedFramesAndWorldEquipmentUsesThem()
         {
             game.TogglePause(); var ui = game.Ui;

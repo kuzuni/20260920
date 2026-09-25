@@ -355,6 +355,10 @@ namespace DoodleIdle.Tests
             var tuning = (DoodleUi.CommerceTuning)typeof(DoodleUi).GetField("commerceTuning", GrowthPrivate).GetValue(ui);
             tuning.skillUnitCost = 15;
             skill.count = 7; int diamonds = ui.Diamonds;
+            Assert.That(ui.SkillRefundQuote(skill), Is.Zero);
+            Assert.That(ui.RefundSkill(skill), Is.Zero);
+            Assert.That(skill.count, Is.EqualTo(7));
+            foreach(var entry in ui.Items("Skill")) { entry.discovered=true;entry.level=100; }
             Assert.That(ui.SkillRefundQuote(skill), Is.EqualTo(105));
             Assert.That(ui.RefundSkill(skill), Is.EqualTo(105));
             Assert.That(ui.Diamonds, Is.EqualTo(diamonds + 105));
