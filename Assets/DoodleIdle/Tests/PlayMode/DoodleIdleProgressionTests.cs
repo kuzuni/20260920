@@ -92,6 +92,8 @@ namespace DoodleIdle.Tests
             yield return null;
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 1));
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(5), "Surplus real kills carry into the next main stage.");
+            // Ordinary kill progress is batched; app suspension flushes the pending profile.
+            typeof(DoodleUi).GetMethod("OnApplicationPause", ServicePrivate).Invoke(ui,new object[]{true});
             ReloadPersistedServices();
             Assert.That(ui.MainStage, Is.EqualTo(initialStage + 1));
             Assert.That(ui.MainStageKillProgress, Is.EqualTo(5));
@@ -176,7 +178,7 @@ namespace DoodleIdle.Tests
                 for (int quest = 0; quest < ui.QuestCount(tab); quest++)
                 {
                     string metric = ui.QuestMetric(tab,quest);
-                    ui.RecordServiceProgress(metric, goals[tab][quest]);
+                    ui.RecordServiceProgress(metric, ui.QuestTarget(tab,quest));
                     int before = ui.Diamonds;
                     UiClick("받기", UiNode("Quest " + tab + " " + quest));
                     int reward = tab == 0 ? 1000 : tab == 2 ? 3000 : metric == "roulette" ? 3 : 5;

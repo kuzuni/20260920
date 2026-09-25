@@ -169,13 +169,14 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.SweepDungeon(index),Is.False);
                 for(int stage=1;stage<=2;stage++) {
                     ui.EnterDungeon(index);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(index));
+                    if(index==5&&stage==1)yield return new WaitForSecondsRealtime(2.6f);
                     DefeatActualServiceEnemies(ui.DungeonKillGoal-1);yield return null;
                     Assert.That(ui.GetDungeonStage(index),Is.EqualTo(stage-1));
                     DefeatActualServiceEnemies(1);yield return null;
                     Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.GetDungeonStage(index),Is.EqualTo(stage));
                     Assert.That(ui.SummonTickets(category),Is.EqualTo(before+(stage==1?10:21)));
                     Assert.That(UiNode("Individual rewards").GetComponentsInChildren<Image>().Any(x=>x.sprite==UiKit.Art(DoodleUi.TicketIcon(category))),Is.True);
-                    if(index==5&&stage==1)Object.Destroy(CaptureFrame("necklace-dungeon-ticket-reward.png",720,1520));
+                    if(index==5&&stage==1){yield return new WaitForSecondsRealtime(.25f);Object.Destroy(CaptureFrame("necklace-dungeon-ticket-reward.png",720,1520));}
                     ui.CloseDetail();
                 }
                 Assert.That(ui.SweepDungeon(index),Is.True);ui.CloseDetail();
