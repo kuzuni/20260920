@@ -31,6 +31,10 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("Stat attack"),Is.Not.Null);
             var scroll=UiNode("Stat crit131072Chance").GetComponentInParent<ScrollRect>();scroll.verticalNormalizedPosition=0;yield return null;
             Assert.That(UiNode("Stat crit131072Chance").GetComponentInChildren<DoodleCriticalBadge>(),Is.Not.Null);
+            var badges=UiRoot.GetComponentsInChildren<DoodleCriticalBadge>();
+            Assert.That(badges.Length,Is.EqualTo(10));
+            Assert.That(badges.Select(x=>x.color).Distinct().Count(),Is.EqualTo(10));
+            Assert.That(badges.All(x=>x.color!=Color.gray),Is.True,"Locked critical tiers retain their individual colors.");
             Object.Destroy(CaptureFrame("stats-expanded-critical-tiers.png",720,1520));
         }
 

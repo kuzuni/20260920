@@ -126,9 +126,8 @@ namespace DoodleIdle
                 var row = UiKit.Row(frame, stat.name, 104, 10);
                 bool locked = IsCriticalChance(stat.id) && !CriticalUnlocked(stat.id);
                 var statArt = UiKit.Icon(row, stat.icon, 86);
-                if (locked) statArt.color = Color.gray;
                 var criticalBadge = statArt.GetComponentInChildren<DoodleCriticalBadge>();
-                if (criticalBadge && locked) criticalBadge.color = Color.gray;
+                if (locked && !criticalBadge) statArt.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
                 UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id).ToString("N0"), 30, TextAnchor.MiddleLeft, 39);
