@@ -51,11 +51,11 @@ namespace DoodleIdle.Tests
         public IEnumerator QuestActionsTrackSeparateSummonsStatsCompanionsEntriesAndClears()
         {
             game.TogglePause();var ui=game.Ui;ui.SkipSummonAnimations=true;
-            string[] categories={"Armor","Club","Skill","Companion","Relic","DungeonRelic"};
+            string[] categories={"Armor","Club","Skill","Companion","Relic"};
             foreach(string category in categories) {
                 Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"summon:"+category)),Is.False);
                 ui.GrantSummonTickets(category,10);
-                Assert.That(category=="DungeonRelic"?ui.TrySummonDungeonRelicTickets(10):ui.TrySummon(category,10,false),Is.True);
+                Assert.That(ui.TrySummon(category,10,false),Is.True);
                 ui.CloseFullscreen();
                 Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"summon:"+category)),Is.True);
                 Assert.That(ui.CanClaimQuest(1,QuestIndex(1,"summon:"+category)),Is.True);
@@ -83,7 +83,7 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.CanClaimQuest(1,QuestIndex(1,"dungeonClear")),Is.True);
             }
             ui.Save();ReloadPersistedServices();
-            Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"summon:DungeonRelic")),Is.True);
+            Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"summon:Relic")),Is.True);
             Assert.That(ui.CanClaimQuest(1,QuestIndex(1,"companionUpgrade")),Is.True);
             yield return null;
         }

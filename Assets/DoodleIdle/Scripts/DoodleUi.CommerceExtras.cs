@@ -23,7 +23,7 @@ namespace DoodleIdle
             commerceExtras.mileageCoupons=Math.Max(0,commerceExtras.mileageCoupons);
             if(commerceExtras.fulfilledTransactions==null)commerceExtras.fulfilledTransactions=new List<string>();
         }
-        public static string TicketIcon(string category) => category=="DungeonRelic"?"DungeonRelicTicket":"Ticket"+category;
+        public static string TicketIcon(string category) => "Ticket"+(category=="DungeonRelic"?"Relic":category);
         public int SummonTickets(string category) => category=="Relic"?RelicTickets:category=="DungeonRelic"?DungeonRelicTickets:summonStates.ContainsKey(category)?summonStates[category].tickets:0;
         public void GrantSummonTickets(string category,int amount)
         {
@@ -38,7 +38,7 @@ namespace DoodleIdle
             if(category=="DungeonRelic")return TrySummonDungeonRelicTickets(count);
             if(!ValidSummonCount(count, true)||!summonStates.ContainsKey(category)||SummonTickets(category)<count)return false;
             var rewards = RollSummonRewards(category, count, commerceRandom);
-            if(category=="Relic")services.relicTickets-=count;else summonStates[category].tickets-=count;
+            if(category=="Relic"){services.relicTickets-=count;TransferLegacyRelicTickets();}else summonStates[category].tickets-=count;
             GameNumber before = PowerAmount;CompleteSummon(category,rewards);NotifyPowerChanged(before,"뽑기권 사용");return true;
         }
         void BuildTicketBalance(Transform parent,string category)

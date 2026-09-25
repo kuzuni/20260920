@@ -23,7 +23,7 @@ namespace DoodleIdle.Tests
             long clear=ui.CareerProgress("dungeonClear"),entry=ui.CareerProgress("dungeonEnter:0");
             Assert.That(ui.SweepDungeon(0),Is.True);
             Assert.That((double)((ui.GoldAmount-gold)/reward),Is.EqualTo(1).Within(1e-9));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,0}));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,0,0,0,0,0,0}));
             Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.DungeonChallengeStage(0),Is.EqualTo(8));
             Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.MainStage,Is.EqualTo(main));
             Assert.That(ui.CareerProgress("dungeonClear"),Is.EqualTo(clear+1));Assert.That(ui.CareerProgress("dungeonEnter:0"),Is.EqualTo(entry+1));
@@ -31,11 +31,11 @@ namespace DoodleIdle.Tests
             int tickets=ui.DungeonRelicTickets;
             Assert.That(ui.SweepDungeon(2),Is.True);ui.CloseDetail();
             Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets+ui.DungeonRelicReward(3)));
-            Assert.That(ui.GetDungeonStage(2),Is.EqualTo(3));Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,1}));
+            Assert.That(ui.GetDungeonStage(2),Is.EqualTo(3));Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,1,0,0,0,0,0}));
             Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();
             gold=ui.GoldAmount;Assert.That(ui.SweepDungeon(0),Is.False);Assert.That(ui.GoldAmount,Is.EqualTo(gold));
             ui.Save();ReloadPersistedServices();
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,1}));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,1,0,0,0,0,0}));
             LoadServiceSnapshot(saved=>ServiceSetSavedField(saved,"activeDungeon",2));
             Assert.That(ui.SweepDungeon(2),Is.False);
             LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"activeDungeon",-1);ServiceSetSavedField(saved,"dungeonRelicTickets",int.MaxValue);});
@@ -110,11 +110,11 @@ namespace DoodleIdle.Tests
             UiOpen("Equipment");UiClick("Slot: "+armor.name,UiNode("Collection inventory"));
             AssertBadge(UiNode("합성"),true);AssertBadge(UiNode("일괄 합성"),true);
             Object.Destroy(CaptureFrame("notification-equipment-synthesis.png",720,1520));
-            var relic=ui.Items("DungeonRelic").First();ui.AddItem(relic,1);UiOpen("Relics");
+            var relic=ui.Items("Relic").First();ui.AddItem(relic,1);UiOpen("Relics");
             AssertBadge(UiNode("Relics"),true);AssertBadge(UiNode("일괄강화"),true);
             AssertBadge(UiNode("Relic "+relic.id).GetComponentInChildren<Button>().transform,true);
             bool success;Assert.That(ui.TryUpgradeRelic(relic,out success),Is.True);AssertBadge(UiNode("Relics"),false);
-            LoadServiceSnapshot(saved=> {ServiceSetSavedField(saved,"spins",5);ServiceSetSavedField(saved,"dungeonUsed",new[]{3,0,3});});
+            LoadServiceSnapshot(saved=> {ServiceSetSavedField(saved,"spins",5);ServiceSetSavedField(saved,"dungeonUsed",new[]{3,0,3,3,3,3,3,3});});
             AssertBadge(UiNode("Roulette"),false);AssertBadge(UiNode("Dungeons"),false);
             ui.ClosePage();Object.Destroy(CaptureFrame("notification-main.png",720,1520));yield return null;
         }
@@ -132,51 +132,100 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator DungeonRelicsAreExclusiveUniformPersistentAndShareTheirOptions()
+        public IEnumerator RelicDungeonUsesOrdinaryUniformRelicsAndNoExclusiveShop()
         {
-            game.TogglePause();var ui=game.Ui;
-            var normal=ui.Items("Relic");var dungeon=ui.Items("DungeonRelic");
-            Assert.That(normal.Count,Is.EqualTo(8));Assert.That(dungeon.Count,Is.EqualTo(8));
-            Assert.That(normal.Intersect(dungeon),Is.Empty);Assert.That(dungeon.All(x=>x.dungeonRelic&&x.rarity==0),Is.True);
-            CollectionAssert.AreEquivalent(normal.Select(x=>x.effect),dungeon.Select(x=>x.effect));
-            for (int i = 0; i < dungeon.Count; i++) {
-                var art = UiKit.Art(dungeon[i].icon);
-                Assert.That(art, Is.Not.Null);
-                Assert.That(art.texture.name, Is.EqualTo("DungeonRelics"));
-                Assert.That(art.texture, Is.Not.SameAs(UiKit.Art(normal[i].icon).texture));
-                var pixels = art.texture.GetPixels((int)art.rect.x, (int)art.rect.y, (int)art.rect.width, (int)art.rect.height);
-                Assert.That(pixels.Count(x => x.a > .1f), Is.GreaterThan(pixels.Length / 5));
-            }
-            var random=new System.Random(71);
-            for(int i=0;i<100;i++){Assert.That(ui.GrantItem("Relic",random).dungeonRelic,Is.False);Assert.That(ui.GrantItem("DungeonRelic",random).dungeonRelic,Is.True);}
-            foreach(var item in dungeon)Assert.That(ui.ItemProbability(item),Is.EqualTo(12.5));
-            Assert.That(ui.SummonLevel("DungeonRelic"),Is.Zero);Assert.That(ui.CanFreeSummon("DungeonRelic"),Is.False);
-            Assert.That(ui.TrySummon("DungeonRelic",10,false),Is.False);Assert.That(ui.TrySummonDungeonRelicTickets(1),Is.False);
-            int diamonds=ui.Diamonds,normalCount=normal.Sum(x=>x.count);
-            ui.GrantDungeonRelicTickets(10);Assert.That(ui.TrySummonDungeonRelicTickets(10),Is.True);
-            Assert.That(ui.DungeonRelicTickets,Is.Zero);Assert.That(dungeon.Sum(x=>x.count),Is.EqualTo(10));
-            Assert.That(ui.Diamonds,Is.EqualTo(diamonds));Assert.That(normal.Sum(x=>x.count),Is.EqualTo(normalCount));
-            Assert.That(ui.SummonExperience("DungeonRelic"),Is.Zero);
-            Assert.That(UiNode("DungeonRelicTicketSummon1").GetComponentsInChildren<Image>().Any(x=>x.sprite==UiKit.Art("DungeonRelicTicket")),Is.True);
-            Object.Destroy(CaptureFrame("dungeon-relic-ticket-result.png",720,1520));
-            ui.CloseFullscreen();ReloadPersistedServices();Assert.That(ui.DungeonRelicTickets,Is.Zero);
-            foreach(var item in dungeon){item.count=0;item.level=0;item.discovered=false;}
-            float gold=ui.GoldGainMultiplier;var goldRelic=dungeon.Single(x=>x.effect=="gold");
-            ui.AddItem(goldRelic,1);Assert.That(ui.GoldGainMultiplier,Is.GreaterThan(gold));
-            int boosted=ui.GoldForMainKills(50,500);Assert.That(ui.DungeonGoldReward(1),Is.EqualTo(boosted));
-            var tuning=(DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning",ServicePrivate).GetValue(ui);
-            tuning.goldPerEnemy*=2;Assert.That(ui.DungeonGoldReward(1),Is.EqualTo(boosted*2).Within(1));
-            tuning.goldStageGrowth=.01f;Assert.That(ui.DungeonGoldReward(2),Is.EqualTo(ui.GoldForMainKills(100,500)));
-            Assert.That(ui.DungeonGoldReward(2),Is.GreaterThan(ui.DungeonGoldReward(1)));
-            UiOpen("Shop");var row=UiNode("Summon_DungeonRelic");
-            Assert.That(row.GetComponentsInChildren<Button>().Any(x=>x.name=="DungeonRelicTicketSummon1"),Is.True);
-            Assert.That(row.GetComponentsInChildren<Image>().Count(x=>x.sprite==UiKit.Art("DungeonRelicTicket")),Is.EqualTo(4));
-            Assert.That(UiNode("Icon: DungeonRelic",row).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("DungeonPottery")));
-            Assert.That(UiNode("Icon: Skill",UiNode("Summon_Skill")).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("SkillMeteor")));
+            game.TogglePause();var ui=game.Ui;ui.SkipSummonAnimations=true;
+            var normal=ui.Items("Relic");Assert.That(normal.Count,Is.EqualTo(8));
+            Assert.That(ui.Items("DungeonRelic"),Is.Empty);Assert.That(ui.AllRelics.Count,Is.EqualTo(8));
+            foreach(var item in normal){Assert.That(item.dungeonRelic,Is.False);Assert.That(ui.ItemProbability(item),Is.EqualTo(12.5));}
+            int diamonds=ui.Diamonds,count=normal.Sum(x=>x.count);
+            ui.GrantRelicTickets(10);Assert.That(ui.TrySummonTickets("Relic",10),Is.True);
+            Assert.That(ui.RelicTickets,Is.Zero);Assert.That(normal.Sum(x=>x.count),Is.EqualTo(count+10));
+            Assert.That(ui.Diamonds,Is.EqualTo(diamonds));Assert.That(ui.SummonLevel("Relic"),Is.Zero);
+            ui.CloseFullscreen();UiOpen("Shop");
+            Assert.That(UiRoot.GetComponentsInChildren<Transform>().Any(x=>x.name=="Summon_DungeonRelic"),Is.False);
+            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("던전 유물")),Is.False);
             Assert.That(UiNode("Icon: Relic",UiNode("Summon_Relic")).GetComponent<Image>().sprite,Is.SameAs(UiKit.Art("NavPottery")));
             var scroll=UiTopScroll();scroll.verticalNormalizedPosition=0;Canvas.ForceUpdateCanvases();
-            Object.Destroy(CaptureFrame("dungeon-relic-shop.png",720,1520));
-            ui.SaveCollections();var saved=PlayerPrefs.GetString("DoodleUi.Collections.v1");Assert.That(saved,Does.Contain(goldRelic.id));yield return null;
+            Object.Destroy(CaptureFrame("unified-relic-shop.png",720,1520));
+            foreach(int tab in new[]{0,1,2})Assert.That(Enumerable.Range(0,ui.QuestCount(tab)).Select(i=>ui.QuestMetric(tab,i)),Does.Not.Contain("summon:DungeonRelic"));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator EveryTicketDungeonGrantsTenThenElevenAndSweepsItsOwnHighestClear()
+        {
+            game.TogglePause();var ui=game.Ui;
+            string[] expected={"Relic","Armor","Club","Necklace","Skill","Companion"};
+            Assert.That(DoodleUi.DungeonIndices.Length,Is.EqualTo(7));
+            UiOpen("Dungeons");yield return null;
+            Object.Destroy(CaptureFrame("expanded-dungeons-top.png",720,1520));
+            UiTopScroll().verticalNormalizedPosition=0;Canvas.ForceUpdateCanvases();
+            Object.Destroy(CaptureFrame("expanded-dungeons-bottom.png",720,1520));ui.ClosePage();
+            for(int i=0;i<expected.Length;i++) {
+                int index=i+2;string category=expected[i];
+                Assert.That(DoodleUi.DungeonTicketCategory(index),Is.EqualTo(category));
+                int before=ui.SummonTickets(category),main=ui.MainStage;
+                Assert.That(ui.SweepDungeon(index),Is.False);
+                for(int stage=1;stage<=2;stage++) {
+                    ui.EnterDungeon(index);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(index));
+                    DefeatActualServiceEnemies(ui.DungeonKillGoal-1);yield return null;
+                    Assert.That(ui.GetDungeonStage(index),Is.EqualTo(stage-1));
+                    DefeatActualServiceEnemies(1);yield return null;
+                    Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.GetDungeonStage(index),Is.EqualTo(stage));
+                    Assert.That(ui.SummonTickets(category),Is.EqualTo(before+(stage==1?10:21)));
+                    Assert.That(UiNode("Individual rewards").GetComponentsInChildren<Image>().Any(x=>x.sprite==UiKit.Art(DoodleUi.TicketIcon(category))),Is.True);
+                    if(index==5&&stage==1)Object.Destroy(CaptureFrame("necklace-dungeon-ticket-reward.png",720,1520));
+                    ui.CloseDetail();
+                }
+                Assert.That(ui.SweepDungeon(index),Is.True);ui.CloseDetail();
+                Assert.That(ui.SummonTickets(category),Is.EqualTo(before+32));Assert.That(ui.GetDungeonStage(index),Is.EqualTo(2));
+                Assert.That(ServiceStateValue<int[]>("dungeonUsed")[index],Is.EqualTo(3));
+                Assert.That(ui.CanEnterDungeon(index),Is.False);Assert.That(ui.SweepDungeon(index),Is.False);
+                Assert.That(ui.MainStage,Is.EqualTo(main));
+            }
+            Assert.That(ui.CanEnterDungeon(0),Is.True);ui.Save();ReloadPersistedServices();
+            foreach(int index in DoodleUi.DungeonIndices.Skip(1))Assert.That(ui.GetDungeonStage(index),Is.EqualTo(2));
+            Assert.That(ui.HighestDungeonStage,Is.EqualTo(2));
+            LoadServiceSnapshot(saved=>ServiceSetSavedField(saved,"day",System.DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd")));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.All.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator RetiredDungeonRelicsAndTicketsMigrateOnceWithoutLosingProgress()
+        {
+            game.TogglePause();var ui=game.Ui;
+            LoadServiceSnapshot(saved=> {
+                ServiceSetSavedField(saved,"dungeonStages",new[]{7,99,4});ServiceSetSavedField(saved,"dungeonUsed",new[]{2,0,1});
+                ServiceSetSavedField(saved,"relicTickets",9);ServiceSetSavedField(saved,"dungeonRelicTickets",17);
+                ServiceSetSavedField(saved,"questSchemaVersion",3);
+                var repeat=new int[26];repeat[22]=3;repeat[23]=7;ServiceSetSavedField(saved,"repeat",repeat);
+                var claimed=new bool[11];claimed[10]=true;ServiceSetSavedField(saved,"dailyClaimed",claimed);
+            });
+            Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<int>("dungeonRelicTickets"),Is.Zero);
+            Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.GetDungeonStage(2),Is.EqualTo(4));Assert.That(ui.HighestDungeonStage,Is.EqualTo(7));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{2,0,1,0,0,0,0,0}));
+            Assert.That(ServiceStateValue<int[]>("repeat")[22],Is.EqualTo(10));
+            Assert.That(ServiceStateValue<bool[]>("dailyClaimed")[QuestIndex(0,"summon:Relic")],Is.True);
+            ReloadPersistedServices();Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<int[]>("repeat")[22],Is.EqualTo(10));
+            PlayerPrefs.SetString("DoodleUi.Collections.v1","{\"version\":3,\"items\":[{\"id\":\"dungeon_relic_strength\",\"level\":15000,\"count\":27,\"discovered\":true},{\"id\":\"relic_strength\",\"level\":123,\"count\":5,\"discovered\":true}]}");
+            ReloadDungeonCollections();
+            var merged=ui.Items("Relic").Single(x=>x.id=="relic_strength");
+            Assert.That(merged.level,Is.EqualTo(15123));Assert.That(merged.count,Is.EqualTo(32));Assert.That(merged.discovered,Is.True);
+            ui.SaveCollections();Assert.That(PlayerPrefs.GetString("DoodleUi.Collections.v1"),Does.Not.Contain("dungeon_relic_"));
+            ReloadDungeonCollections();merged=ui.Items("Relic").Single(x=>x.id=="relic_strength");
+            Assert.That(merged.level,Is.EqualTo(15123));Assert.That(merged.count,Is.EqualTo(32));
+            LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"relicTickets",int.MaxValue-2);ServiceSetSavedField(saved,"dungeonRelicTickets",10);});
+            Assert.That(ui.RelicTickets,Is.EqualTo(int.MaxValue));Assert.That(ServiceStateValue<int>("dungeonRelicTickets"),Is.EqualTo(8));
+            Assert.That(ui.TrySpendRelicTickets(10),Is.True);Assert.That(ui.RelicTickets,Is.EqualTo(int.MaxValue-2));Assert.That(ServiceStateValue<int>("dungeonRelicTickets"),Is.Zero);
+            yield return null;
+        }
+
+        void ReloadDungeonCollections()
+        {
+            typeof(DoodleUi).GetField("collectionTuning",ServicePrivate).SetValue(game.Ui,null);
+            ((IList)typeof(DoodleUi).GetField("collectionItems",ServicePrivate).GetValue(game.Ui)).Clear();
+            game.Ui.InitCollections();
         }
 
         [UnityTest]

@@ -171,7 +171,7 @@ namespace DoodleIdle.Tests
                 UiClick(tabs[tab], UiNode("Quest tabs"));
                 var counters = ServiceStateValue<int[]>(tab == 0 ? "daily" : tab == 1 ? "repeat" : "weekly");
                 System.Array.Clear(counters,0,counters.Length);
-                Assert.That(ui.QuestCount(tab), Is.EqualTo(tab == 1 ? 19 : 11));
+                Assert.That(ui.QuestCount(tab), Is.EqualTo(tab == 1 ? 17 : 10));
                 Assert.That(Enumerable.Range(0,ui.QuestCount(tab)).Select(i=>ui.QuestMetric(tab,i)),Does.Not.Contain("gold"));
                 for (int quest = 0; quest < ui.QuestCount(tab); quest++)
                 {

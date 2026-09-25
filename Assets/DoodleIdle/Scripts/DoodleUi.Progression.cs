@@ -61,10 +61,11 @@ namespace DoodleIdle
             nextCombatSave = Time.unscaledTime + 1;
             Save();
         }
-        public int HighestDungeonStage => services == null ? 0 : Math.Max(services.dungeonStages[0], Math.Max(services.dungeonStages[1], services.dungeonStages[2]));
-        public int GetDungeonStage(int index) => services == null || index < 0 || index >= 3 ? 0 : services.dungeonStages[index];
+        public int HighestDungeonStage { get { int highest=0;foreach(int index in DungeonIndices)highest=Math.Max(highest,GetDungeonStage(index));return highest; } }
+        public int GetDungeonStage(int index) => services == null || !IsDungeon(index) ? 0 : services.dungeonStages[index];
         public int RelicTickets => services == null ? 0 : services.relicTickets;
-        public int DungeonRelicTickets => services == null ? 0 : services.dungeonRelicTickets;
+        // Compatibility adapters for older integrations; all rewards use the ordinary relic wallet.
+        public int DungeonRelicTickets => RelicTickets;
         public int DungeonChallengeStage(int index) => (int)Math.Min(int.MaxValue, (long)GetDungeonStage(index) + 1);
         public static int DungeonDifficultyStage(int stage) => (int)Math.Min(int.MaxValue, Math.Max(1L, stage) * 50);
         public int CombatDifficultyStage => ActiveDungeonIndex < 0 ? (int)Math.Min(int.MaxValue, (long)MainStage+1) : DungeonDifficultyStage(DungeonChallengeStage(ActiveDungeonIndex));
@@ -127,21 +128,22 @@ namespace DoodleIdle
             GameNumber earned = ActiveDungeonIndex >= 0 ? 0 : GoldForMainKillsAmount(CombatDifficultyStage, game.Kills - lastKills);
             GoldAmount += earned; RecordServiceProgress("gold", (int)earned); lastKills = game.Kills;
         }
-        public int DungeonRelicReward(int stage) => (int)Math.Min(int.MaxValue,Math.Max(1L,serviceTuning.dungeonRelicTickets)+Math.Max(0L,(long)stage-1));
-        public void GrantDungeonRelicTickets(int amount)
+        public int DungeonTicketReward(int stage) => (int)Math.Min(int.MaxValue,10L+Math.Max(0L,(long)stage-1));
+        public int DungeonRelicReward(int stage) => DungeonTicketReward(stage);
+        bool CanReceiveDungeonReward(int index,int stage) => index==0 || (long)SummonTickets(DungeonTicketCategory(index))+DungeonTicketReward(stage)<=int.MaxValue;
+        public void GrantDungeonRelicTickets(int amount) => GrantRelicTickets(amount);
+        public bool TrySpendDungeonRelicTickets(int amount) => TrySpendRelicTickets(amount);
+        void TransferLegacyRelicTickets()
         {
-            if(services==null||amount<=0)return;
-            services.dungeonRelicTickets=(int)Math.Min(int.MaxValue,(long)services.dungeonRelicTickets+amount);Save();
-        }
-        public bool TrySpendDungeonRelicTickets(int amount)
-        {
-            if(services==null||amount<=0||DungeonRelicTickets<amount)return false;
-            services.dungeonRelicTickets-=amount;Save();return true;
+            // Keep any overflow in the retired save field until wallet space is available.
+            int transfer=Math.Min(services.dungeonRelicTickets,int.MaxValue-services.relicTickets);
+            services.relicTickets+=transfer;services.dungeonRelicTickets-=transfer;
         }
         public bool TrySpendRelicTickets(int amount)
         {
             if (services == null || amount <= 0 || services.relicTickets < amount) return false;
             services.relicTickets -= amount;
+            TransferLegacyRelicTickets();
             Save();
             return true;
         }

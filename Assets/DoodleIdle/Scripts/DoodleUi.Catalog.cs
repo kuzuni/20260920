@@ -90,8 +90,17 @@ namespace DoodleIdle
                     if (state != null && state.items != null)
                         foreach (var entry in state.items)
                         {
-                            var item = collectionItems.Find(x => x.id == entry.id);
+                            string id = entry.id != null && entry.id.StartsWith("dungeon_relic_",StringComparison.Ordinal) ? entry.id.Substring(8) : entry.id;
+                            var item = collectionItems.Find(x => x.id == id);
                             if (item == null) continue;
+                            if (item.category == "Relic") {
+                                bool owned=entry.discovered||entry.count>0||entry.level>0;
+                                long levels=(long)item.level+(owned?Math.Max(1,entry.level):0);
+                                long excess=Math.Max(0,levels-ItemMaxLevel(item));
+                                item.level=(int)Math.Min(ItemMaxLevel(item),levels);
+                                item.count=(int)Math.Min(int.MaxValue,(long)item.count+Math.Max(0,entry.count)+excess);
+                                item.discovered|=owned;continue;
+                            }
                             item.count = Math.Max(0, entry.count);
                             item.discovered = entry.discovered || item.count > 0 || entry.level > 0;
                             item.level = item.discovered ? Mathf.Clamp(entry.level, 1, ItemMaxLevel(item)) : 0;
@@ -132,7 +141,7 @@ namespace DoodleIdle
         public List<UiItem> Items(string category)
         {
             InitCollections();
-            return collectionItems.FindAll(x => category == "DungeonRelic" ? x.category == "Relic" && x.dungeonRelic : x.category == category && (category != "Relic" || !x.dungeonRelic));
+            return collectionItems.FindAll(x => x.category == category);
         }
 
         public List<UiItem> AllRelics { get { InitCollections();return collectionItems.FindAll(x=>x.category=="Relic"); } }
@@ -143,7 +152,7 @@ namespace DoodleIdle
             if (rng == null) throw new ArgumentNullException(nameof(rng));
             var items = Items(category);
             if (items.Count == 0) throw new ArgumentException("Unknown collection category", nameof(category));
-            if(category=="Relic"||category=="DungeonRelic")return items[rng.Next(items.Count)];
+            if(category=="Relic")return items[rng.Next(items.Count)];
             var weights=SummonWeights(category);
             int roll = rng.Next(SummonWeightTotal), grade = 0;
             while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
@@ -171,7 +180,7 @@ namespace DoodleIdle
         public double ItemProbability(UiItem item)
         {
             if (item == null) return 0;
-            if(item.category=="Relic")return 100d/Items(item.dungeonRelic?"DungeonRelic":"Relic").Count;
+            if(item.category=="Relic")return 100d/Items("Relic").Count;
             var choices=Items(item.category).FindAll(x=>x.rarity==item.rarity);int index=choices.IndexOf(item);
             if(index<0)return 0;
             return GradeProbability(item.category,item.rarity)*SummonTierWeight(index,choices.Count)/SummonTierWeightTotal(choices.Count);

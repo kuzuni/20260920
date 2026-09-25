@@ -62,7 +62,8 @@ namespace DoodleIdle
         public bool QuestTabHasReward(int tab) { for(int i=0;i<QuestCount(tab);i++)if(CanClaimQuest(tab,i))return true;return false; }
         public bool CanClaimAttendance => services!=null&&services.attendanceIndex<7&&services.attendanceDay!=services.day;
         public bool CanSpinRoulette => services!=null&&!rouletteSpinning&&services.spins<serviceTuning.dailySpins;
-        public bool CanEnterDungeon(int index) => services!=null&&(index==0||index==2)&&services.activeDungeon<0&&services.dungeonUsed[index]<serviceTuning.dungeonAttempts;
+        bool HasDungeonKey(int index) => services!=null&&IsDungeon(index)&&services.activeDungeon<0&&services.dungeonUsed[index]<serviceTuning.dungeonAttempts;
+        public bool CanEnterDungeon(int index) => HasDungeonKey(index)&&CanReceiveDungeonReward(index,DungeonChallengeStage(index));
         public bool NotificationForPage(string page)
         {
             if(services==null||collectionTuning==null)return false;
@@ -72,7 +73,7 @@ namespace DoodleIdle
                 case "Attendance": return CanClaimAttendance;
                 case "Roulette": return CanSpinRoulette;
                 case "Buffs": return GoldBuffSeconds==0||AttackBuffSeconds==0;
-                case "Dungeons": return CanEnterDungeon(0)||CanEnterDungeon(2);
+                case "Dungeons": return Array.Exists(DungeonIndices,CanEnterDungeon);
                 case "Stats":
                     foreach(var stat in collectionTuning.stats){int count;GameNumber cost=StatUpgradeQuoteAmount(stat.id,1,out count);if(count>0&&GoldAmount>=cost)return true;}
                     return false;

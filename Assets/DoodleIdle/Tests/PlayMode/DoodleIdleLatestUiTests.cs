@@ -74,7 +74,7 @@ namespace DoodleIdle.Tests
             Assert.That(UiNode("Bottom navigation").gameObject.activeInHierarchy, Is.True);
             Object.Destroy(CaptureFrame("latest-chat-window.png", 720, 1520)); ui.ClosePage();
             long gold = ui.Gold; int diamonds = ui.Diamonds;
-            string[] ticketCategories = { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic", "DungeonRelic" };
+            string[] ticketCategories = { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic" };
             var ticketAmounts = ticketCategories.Select(ui.SummonTickets).ToArray();
             var rewards = new System.Collections.Generic.List<UiReward> { new UiReward { icon="Gold",amount=100 }, new UiReward { icon="Diamond",amount=100 } };
             foreach (string category in ticketCategories) rewards.Add(new UiReward { icon = DoodleUi.TicketIcon(category), amount = 10 });

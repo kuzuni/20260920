@@ -13,9 +13,9 @@ namespace DoodleIdle
             "relicUpgrade", "summon:Armor", "summon:Club", "summon:Skill", "summon:Companion", "summon:Relic", "summon:DungeonRelic", "dungeonClear", "statUpgrade:criticalChance"
         };
         static readonly int[][] QuestMetrics = {
-            new[] { 0, 3, 8, 9, 10, 18, 19, 20, 21, 22, 23 },
-            new[] { 0, 4, 5, 11, 12, 13, 14, 25, 17, 18, 19, 20, 21, 22, 23, 24, 3, 8 },
-            new[] { 0, 3, 8, 9, 10, 18, 19, 20, 21, 22, 23 }
+            new[] { 0, 3, 8, 9, 10, 18, 19, 20, 21, 22 },
+            new[] { 0, 4, 5, 11, 12, 13, 14, 25, 17, 18, 19, 20, 21, 22, 24, 3, 8 },
+            new[] { 0, 3, 8, 9, 10, 18, 19, 20, 21, 22 }
         };
         static readonly string[] QuestLabels = {
             "적 {0}마리 처치", "골드 {0} 획득", "던전 {0}회 도전", "룰렛 {0}회 돌리기", "장비 {0}회 강화", "스킬 {0}회 강화", "PVP {0}회 도전", "뽑기 {0}회 진행",
@@ -53,6 +53,13 @@ namespace DoodleIdle
                 if (weekly != null && weekly.Length > 0) services.weeklyClaimed[0] = weekly[0];
                 services.questSchemaVersion = 2;
             }
+            if (services.questSchemaVersion < 4) {
+                foreach (var counters in new[] { services.daily, services.weekly, services.repeat }) {
+                    counters[22]=(int)Math.Min(int.MaxValue,(long)counters[22]+counters[23]);counters[23]=0;
+                }
+                foreach (var claims in new[] { services.dailyClaimed, services.weeklyClaimed })
+                    if (claims != null && claims.Length > 10) claims[9] |= claims[10];
+            }
             Array.Resize(ref services.dailyClaimed, QuestCount(0));
             Array.Resize(ref services.weeklyClaimed, QuestCount(2));
             if (services.questSchemaVersion < 3) {
@@ -65,6 +72,14 @@ namespace DoodleIdle
                 var merged = new int[18];
                 for (int i = 0; i < merged.Length; i++) merged[i] = serviceTuning.repeatGoals[i < 8 ? i : i + 1];
                 serviceTuning.repeatGoals = merged;
+            }
+            services.questSchemaVersion = 4;
+            if(serviceTuning.dailyGoals != null && serviceTuning.dailyGoals.Length==11) Array.Resize(ref serviceTuning.dailyGoals,10);
+            if(serviceTuning.weeklyGoals != null && serviceTuning.weeklyGoals.Length==11) Array.Resize(ref serviceTuning.weeklyGoals,10);
+            if(serviceTuning.repeatGoals != null && serviceTuning.repeatGoals.Length==18) {
+                var goals=new int[17];
+                for(int i=0;i<goals.Length;i++)goals[i]=serviceTuning.repeatGoals[i<14?i:i+1];
+                serviceTuning.repeatGoals=goals;
             }
             var defaults = new ServiceTuning();
             if (serviceTuning.dailyGoals == null || serviceTuning.dailyGoals.Length != QuestCount(0)) serviceTuning.dailyGoals = defaults.dailyGoals;

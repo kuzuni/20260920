@@ -87,7 +87,7 @@ namespace DoodleIdle.Tests
                 }
                 Assert.That(ui.Items(category).Sum(ui.ItemProbability), Is.EqualTo(100).Within(.000001));
             }
-            foreach (string category in new[] { "Relic", "DungeonRelic" }) {
+            foreach (string category in new[] { "Relic" }) {
                 var items = ui.Items(category);
                 foreach (var item in items) Assert.That(ui.ItemProbability(item), Is.EqualTo(100d/items.Count));
             }

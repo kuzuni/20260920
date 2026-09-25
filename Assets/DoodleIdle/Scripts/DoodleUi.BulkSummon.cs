@@ -55,7 +55,7 @@ namespace DoodleIdle
 
         string SummonGradeLabel(UiItem item)
         {
-            int tier = item.tier > 0 ? item.tier : Items(item.dungeonRelic ? "DungeonRelic" : item.category).FindAll(x => x.rarity == item.rarity).IndexOf(item) + 1;
+            int tier = item.tier > 0 ? item.tier : Items(item.category).FindAll(x => x.rarity == item.rarity).IndexOf(item) + 1;
             return (item.category == "Relic" ? "유물" : GradeNames[item.rarity]) + " " + tier;
         }
     }

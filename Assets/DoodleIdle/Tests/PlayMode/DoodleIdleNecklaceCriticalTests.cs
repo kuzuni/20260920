@@ -183,7 +183,7 @@ namespace DoodleIdle.Tests
         public IEnumerator SummonResultsShowLiveCategoryTicketsAndDiamondsAfterRepeatDraws()
         {
             game.TogglePause(); var ui = game.Ui; ui.SkipSummonAnimations = true;
-            foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic", "DungeonRelic" }) {
+            foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic" }) {
                 ui.GrantSummonTickets(category, 23); ui.Diamonds = 45678;
                 int tickets = ui.SummonTickets(category);
                 Assert.That(ui.TrySummonTickets(category, 10), Is.True); yield return null;

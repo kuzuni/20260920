@@ -11,7 +11,7 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
-        static readonly string[] CampaignCategories = { "Armor", "Club", "Skill", "Companion", "Relic", "DungeonRelic" };
+        static readonly string[] CampaignCategories = { "Armor", "Club", "Skill", "Companion", "Relic" };
         static readonly string[] CampaignStats = { "attack", "health", "healthRegen", "crit2Chance" };
 
         void CampaignClose() => game.Ui.ClosePage();

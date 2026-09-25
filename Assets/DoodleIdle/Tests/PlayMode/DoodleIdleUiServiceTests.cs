@@ -378,7 +378,7 @@ namespace DoodleIdle.Tests
             int mainStage=ui.MainStage,mainProgress=ui.MainStageKillProgress,initialKills=game.Kills,requiredKills=0;
             UiOpen("Dungeons");
             var keys=UiRoot.GetComponentsInChildren<DoodleServiceSymbol>().Where(x=>x.kind=="DungeonKey").ToArray();
-            Assert.That(keys.Length,Is.EqualTo(2));Assert.That(keys.Select(x=>x.accent).Distinct().Count(),Is.EqualTo(2));
+            Assert.That(keys.Length,Is.EqualTo(7));Assert.That(keys.Select(x=>x.accent).Distinct().Count(),Is.EqualTo(7));
             Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(x=>x.text.Contains("다이아 동굴")),Is.False);
             ui.EnterDungeon(1);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));
             UnityEngine.Object.Destroy(CaptureFrame("dungeon-new-list.png",720,1520));
@@ -398,17 +398,17 @@ namespace DoodleIdle.Tests
                 DefeatActualServiceEnemies(1);yield return null;
                 Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.HasOverlay,Is.True);
                 Assert.That(ui.Gold,Is.EqualTo(gold+(dungeon==0?goldReward:0)));
-                Assert.That(ui.Diamonds,Is.EqualTo(diamonds));Assert.That(ui.RelicTickets,Is.Zero);
+                Assert.That(ui.Diamonds,Is.EqualTo(diamonds));
                 Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets+(dungeon==2?ticketReward:0)));
                 Assert.That(ui.GetDungeonStage(dungeon),Is.EqualTo(attempt+1));
                 var icon=UiNode("Individual rewards").GetComponentsInChildren<Image>().Single(x=>x.name.StartsWith("Icon: "));
-                Assert.That(icon.sprite,Is.SameAs(UiKit.Art(dungeon==0?"Gold":"DungeonRelicTicket")));
+                Assert.That(icon.sprite,Is.SameAs(UiKit.Art(dungeon==0?"Gold":"TicketRelic")));
                 ui.CloseDetail();
             }
             foreach(int dungeon in new[]{0,2}){ui.EnterDungeon(dungeon);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));}
             Assert.That(game.Kills-initialKills,Is.EqualTo(requiredKills));
             Assert.That(ui.MainStage,Is.EqualTo(mainStage));Assert.That(ui.MainStageKillProgress,Is.EqualTo(mainProgress));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,3}));
+            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,3,0,0,0,0,0}));
             ReloadPersistedServices();Assert.That(ui.HighestDungeonStage,Is.EqualTo(3));Assert.That(ui.DungeonRelicTickets,Is.EqualTo(33));
         }
 
