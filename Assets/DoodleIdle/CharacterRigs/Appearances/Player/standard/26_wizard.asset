@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: 26_wizard
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: standard
+  characterId: 26_wizard
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -3263923430718489394, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: -0.77, y: 9.485, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 8
+  - name: "\uBAB8\uD1B5"
+    sprite: {fileID: -287835426448358684, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: 0, y: 2.995, z: 0}
+    boneNames:
+    - "\uBAB8\uD1B5"
+    sortingOrder: 3
+  - name: "\uD3141"
+    sprite: {fileID: 5126976220767932529, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: -6.335, y: -0.325, z: 0}
+    boneNames:
+    - "\uD3141"
+    - "\uD3141_\uB05D"
+    sortingOrder: 1
+  - name: "\uD3142"
+    sprite: {fileID: -3131562540517776456, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: -3.855, y: -0.325, z: 0}
+    boneNames:
+    - "\uD3142"
+    - "\uD3142_\uB05D"
+    sortingOrder: 6
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 625458377239456174, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: -1.02, y: -0.53, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 2
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: -8814703756968781314, guid: cc6b1ccce5f9cb24486625fae93323d2, type: 3}
+    rendererPosition: {x: 1.635, y: -0.525, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 5
+  weapon: {fileID: 21300000, guid: 228df2bc25b532948a6d4263bc87a9c1, type: 3}
+  weaponScale: 1

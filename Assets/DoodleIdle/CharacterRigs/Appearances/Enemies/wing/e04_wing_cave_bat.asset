@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: e04_wing_cave_bat
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: wing
+  characterId: e04_wing_cave_bat
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: 6913248689569866672, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: 0.1, y: 9.695, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 8
+  - name: "\uBAB8\uD1B5"
+    sprite: {fileID: -3104321306703793768, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: 0, y: 3.9, z: 0}
+    boneNames:
+    - "\uBAB8\uD1B5"
+    sortingOrder: 3
+  - name: "\uB0A0\uAC1C1"
+    sprite: {fileID: 7934769193152714783, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: -6.8, y: 8.4, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C1"
+    - "\uB0A0\uAC1C1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB0A0\uAC1C2"
+    sprite: {fileID: 7022710113369871089, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: -6.8, y: 2.8, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C2"
+    - "\uB0A0\uAC1C2_\uB05D"
+    sortingOrder: 6
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 6720015908201235341, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: -1.3, y: 0.15, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 2
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: 3062039073293404176, guid: a633633658cbf8d4ca2c984943d6fcac, type: 3}
+    rendererPosition: {x: 1.3, y: 0.15, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 5
+  weapon: {fileID: 0}
+  weaponScale: 1

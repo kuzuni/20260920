@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: 18_companion_star_cat
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: floating
+  characterId: 18_companion_star_cat
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -2940224512602976234, guid: 8ce22f5e6f909af458fe108cfb029910, type: 3}
+    rendererPosition: {x: 0, y: 6.3, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 6
+  - name: "\uB0A0\uAC1C1"
+    sprite: {fileID: -2651295564071183774, guid: 8ce22f5e6f909af458fe108cfb029910, type: 3}
+    rendererPosition: {x: -4.15, y: -1.3, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C1"
+    - "\uB0A0\uAC1C1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB0A0\uAC1C2"
+    sprite: {fileID: 3837311319243804902, guid: 8ce22f5e6f909af458fe108cfb029910, type: 3}
+    rendererPosition: {x: 4.15, y: -1.3, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C2"
+    - "\uB0A0\uAC1C2_\uB05D"
+    sortingOrder: 3
+  weapon: {fileID: 0}
+  weaponScale: 1

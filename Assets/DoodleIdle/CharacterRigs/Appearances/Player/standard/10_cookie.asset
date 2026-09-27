@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: 10_cookie
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: standard
+  characterId: 10_cookie
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -1606766291647031467, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: -0.655, y: 8.585, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 8
+  - name: "\uBAB8\uD1B5"
+    sprite: {fileID: 9183344144625532970, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: 0, y: 2.995, z: 0}
+    boneNames:
+    - "\uBAB8\uD1B5"
+    sortingOrder: 3
+  - name: "\uD3141"
+    sprite: {fileID: -4398212562659829138, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: -6.335, y: -0.325, z: 0}
+    boneNames:
+    - "\uD3141"
+    - "\uD3141_\uB05D"
+    sortingOrder: 1
+  - name: "\uD3142"
+    sprite: {fileID: 7641449819193301299, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: -3.855, y: -0.325, z: 0}
+    boneNames:
+    - "\uD3142"
+    - "\uD3142_\uB05D"
+    sortingOrder: 6
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 5565203578644748839, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: -1.02, y: -0.53, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 2
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: -268825747829797167, guid: 518e9d11056c17f4fad574b23b1e5082, type: 3}
+    rendererPosition: {x: 1.635, y: -0.525, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 5
+  weapon: {fileID: 21300000, guid: c71cfa49e44e3234f9d27f3b2c940690, type: 3}
+  weaponScale: 1

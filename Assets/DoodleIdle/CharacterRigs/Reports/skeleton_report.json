@@ -1,0 +1,1028 @@
+{
+  "characters": 118,
+  "exact_same_type_bones": true,
+  "types": {
+    "standard": {
+      "bones": [
+        {
+          "name": "Root",
+          "guid": "afb3e73ecc008edd2a13539e74e5a602",
+          "position": {
+            "x": 950,
+            "y": 230,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 100,
+          "parentId": -1,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "머리",
+          "guid": "9eb526cd94b7a1ffce3abbd9fa92dec7",
+          "position": {
+            "x": -40,
+            "y": 580,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 370,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "몸통",
+          "guid": "1e58d4ff38b96dd9e4762e64f986b42f",
+          "position": {
+            "x": 0,
+            "y": 180,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 250,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "팔1",
+          "guid": "359ed9255e826ee382acddd03c24cb05",
+          "position": {
+            "x": -680,
+            "y": 50,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.49269885,
+            "w": 0.87019986
+          },
+          "length": 93.99493,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "팔1_끝",
+          "guid": "979208572147087fb3df1aa06a6dd252",
+          "position": {
+            "x": 93.99493,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 86.76458,
+          "parentId": 3,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "팔2",
+          "guid": "c3eb384302f193611615ef4cff6fd71d",
+          "position": {
+            "x": -432,
+            "y": 50,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.49269885,
+            "w": 0.87019986
+          },
+          "length": 93.99493,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "팔2_끝",
+          "guid": "c7a4d268bfbfcbb640c370529479b747",
+          "position": {
+            "x": 93.99493,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 86.76458,
+          "parentId": 5,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1",
+          "guid": "9530ad89835029ffe2ddb48e3de1e5b1",
+          "position": {
+            "x": -103,
+            "y": 40,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 88.399994,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1_끝",
+          "guid": "d3edb8d109ae0f6b66a30a9c6607cac6",
+          "position": {
+            "x": 88.399994,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 81.600006,
+          "parentId": 7,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2",
+          "guid": "2d13eb6e9c7378269c1e424c5ff0392f",
+          "position": {
+            "x": 163,
+            "y": 40,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 88.399994,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2_끝",
+          "guid": "d1991c4785b37cf7d72dbb695ea6a825",
+          "position": {
+            "x": 88.399994,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 81.600006,
+          "parentId": 9,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        }
+      ],
+      "characters": 71,
+      "bone_count": 11,
+      "sha256": "13fbddc22b7d4d08b0c9aeb1673a834dc332285629268b694ed982b9304e49d2"
+    },
+    "quad": {
+      "bones": [
+        {
+          "name": "Root",
+          "guid": "41f8bfad0ae24cdf6f490f0ab3a1a60c",
+          "position": {
+            "x": 800,
+            "y": 230,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 100,
+          "parentId": -1,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "머리",
+          "guid": "3703958a58763242996a8312f7f66a6a",
+          "position": {
+            "x": 320,
+            "y": 905,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.58670664,
+            "w": 0.80979955
+          },
+          "length": 320.97507,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "몸통",
+          "guid": "6780343865a35e5f6bf31bb4b930e53d",
+          "position": {
+            "x": -290,
+            "y": 600,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 620,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1",
+          "guid": "426412ef2c71a8f83665a229f3256ad5",
+          "position": {
+            "x": -570,
+            "y": 280,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 187.19998,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1_끝",
+          "guid": "3aa996cd85b7959ea885b0d93c077e27",
+          "position": {
+            "x": 187.19998,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 172.80002,
+          "parentId": 3,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2",
+          "guid": "d7256c615ee0b37ad7383572fa455134",
+          "position": {
+            "x": -220,
+            "y": 280,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 187.19998,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2_끝",
+          "guid": "f0299f6f2f499f1fe780e7c837e8bd18",
+          "position": {
+            "x": 187.19998,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 172.80002,
+          "parentId": 5,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리3",
+          "guid": "f82155ceab37354b26ba1a964cf379a3",
+          "position": {
+            "x": 160,
+            "y": 280,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 187.19998,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리3_끝",
+          "guid": "1792ea7ee3d99777518613b31f74a459",
+          "position": {
+            "x": 187.19998,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 172.80002,
+          "parentId": 7,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리4",
+          "guid": "3d0d854abbdddd99d3c01320239ec1d7",
+          "position": {
+            "x": 490,
+            "y": 280,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 187.19998,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리4_끝",
+          "guid": "275bd90b751ec9b9827703ec7580f684",
+          "position": {
+            "x": 187.19998,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 172.80002,
+          "parentId": 9,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "꼬리",
+          "guid": "b3b97e2e146a68747f7ac2cf1bd8779a",
+          "position": {
+            "x": -230,
+            "y": 1000,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.9651462,
+            "w": 0.26171133
+          },
+          "length": 247.04106,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "꼬리_끝",
+          "guid": "d1d701d37dcd29483d94e9598dd18409",
+          "position": {
+            "x": 247.04106,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 228.03789,
+          "parentId": 11,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        }
+      ],
+      "characters": 4,
+      "bone_count": 13,
+      "sha256": "0623d854cd6e6586d9d26d9cf5433baa383ddf075b1b88f79a4bcd0b43855b36"
+    },
+    "wing": {
+      "bones": [
+        {
+          "name": "Root",
+          "guid": "a600d189a1c9e4990d49cb79793e2a23",
+          "position": {
+            "x": 1110,
+            "y": 210,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 100,
+          "parentId": -1,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "머리",
+          "guid": "122157713b9e42be7c678e722eeeca82",
+          "position": {
+            "x": 10,
+            "y": 690,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 410,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "몸통",
+          "guid": "9d0c575f766fadccd6d7e8964d452060",
+          "position": {
+            "x": 0,
+            "y": 240,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 310,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개1",
+          "guid": "03df16abfa1287f12b3a49c7909d7969",
+          "position": {
+            "x": -440,
+            "y": 955,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.99281067,
+            "w": 0.119695485
+          },
+          "length": 251.60962,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개1_끝",
+          "guid": "132fe2278e1f0da39d1616a4171bcf63",
+          "position": {
+            "x": 251.60962,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 232.25502,
+          "parentId": 3,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개2",
+          "guid": "88642b2cc6645d7c5e49e1e9ec8388d6",
+          "position": {
+            "x": -930,
+            "y": 400,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.12930278,
+            "w": 0.99160516
+          },
+          "length": 263.61484,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개2_끝",
+          "guid": "ff5c97ea4a673a027ec568ea2e30deeb",
+          "position": {
+            "x": 263.61484,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 243.33682,
+          "parentId": 5,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1",
+          "guid": "030c9beff45b999e6483a8654f00fc45",
+          "position": {
+            "x": -130,
+            "y": 110,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 93.59999,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1_끝",
+          "guid": "7424403e5d765b035859862eb6bb055b",
+          "position": {
+            "x": 93.59999,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 86.40001,
+          "parentId": 7,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2",
+          "guid": "819a74b89fbf5fb45321d44daacf820b",
+          "position": {
+            "x": 130,
+            "y": 110,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 93.59999,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2_끝",
+          "guid": "1eeee5e768302758fffcefdf25857dd6",
+          "position": {
+            "x": 93.59999,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 86.40001,
+          "parentId": 9,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        }
+      ],
+      "characters": 4,
+      "bone_count": 11,
+      "sha256": "a420d176399263f3a151f266637cc72067e309c9fb66677ca9222d16a61be4c3"
+    },
+    "floating": {
+      "bones": [
+        {
+          "name": "Root",
+          "guid": "c2d5c933d85f25b067a3dc9d52a68757",
+          "position": {
+            "x": 750,
+            "y": 480,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 100,
+          "parentId": -1,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "머리",
+          "guid": "6a53e6457b139b0c9722b2f8de3aa209",
+          "position": {
+            "x": 0,
+            "y": 220,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 600,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개1",
+          "guid": "1ef6e6e811eec7143c8c43adc147af4f",
+          "position": {
+            "x": -210,
+            "y": -140,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.9864492,
+            "w": 0.16406704
+          },
+          "length": 208.84329,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개1_끝",
+          "guid": "ab64c8c58da461bfccb6630ba1a32319",
+          "position": {
+            "x": 208.84329,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 192.77841,
+          "parentId": 2,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개2",
+          "guid": "dbccda973f51754e588781837c3dff74",
+          "position": {
+            "x": 230,
+            "y": -140,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.17240381,
+            "w": 0.98502636
+          },
+          "length": 199.03162,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "날개2_끝",
+          "guid": "e1262f556275b6f7dbfd563654028f73",
+          "position": {
+            "x": 199.03162,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 183.72157,
+          "parentId": 4,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        }
+      ],
+      "characters": 19,
+      "bone_count": 6,
+      "sha256": "703a8b77fb51417ca83069fd1fe6c4442e8a436e27fa3f22a1ebbcc6aadb511a"
+    },
+    "biped": {
+      "bones": [
+        {
+          "name": "Root",
+          "guid": "6c3f9bda54d91c6736efb2cbef5df9d0",
+          "position": {
+            "x": 750,
+            "y": 250,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 100,
+          "parentId": -1,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "머리",
+          "guid": "31e2a5ed770f6880cbf861ad7a885b52",
+          "position": {
+            "x": 0,
+            "y": 430,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0.70710677,
+            "w": 0.70710677
+          },
+          "length": 610,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1",
+          "guid": "2a957526b638647c8e4fb81b157049b2",
+          "position": {
+            "x": -305,
+            "y": 220,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 166.4,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리1_끝",
+          "guid": "09e2e9aabc5ed4ab92b296030222ce1f",
+          "position": {
+            "x": 166.4,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 153.6,
+          "parentId": 2,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2",
+          "guid": "42b7730ebd538a5476303eca6269c062",
+          "position": {
+            "x": 335,
+            "y": 220,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": -0.70710677,
+            "w": 0.70710677
+          },
+          "length": 166.4,
+          "parentId": 0,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        },
+        {
+          "name": "다리2_끝",
+          "guid": "5c0bfea19b83ea4ab4a86eaa58ca82f6",
+          "position": {
+            "x": 166.4,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "w": 1
+          },
+          "length": 153.6,
+          "parentId": 4,
+          "color": {
+            "serializedVersion": 2,
+            "rgba": 0
+          }
+        }
+      ],
+      "characters": 20,
+      "bone_count": 6,
+      "sha256": "24582057b2d1782091a41015c8b8f181135335bd9f927c09a8de5a9185b4bc42"
+    }
+  }
+}

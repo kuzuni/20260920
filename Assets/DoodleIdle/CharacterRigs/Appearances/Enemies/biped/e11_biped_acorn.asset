@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: e11_biped_acorn
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: biped
+  characterId: e11_biped_acorn
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -4278380097793022079, guid: 6267ba2ac667f6943a12a25cb08c69e9, type: 3}
+    rendererPosition: {x: -0.005, y: 8.5, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 6
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 7404026834455415853, guid: 6267ba2ac667f6943a12a25cb08c69e9, type: 3}
+    rendererPosition: {x: -3.05, y: 0.6, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: 7323138915112645489, guid: 6267ba2ac667f6943a12a25cb08c69e9, type: 3}
+    rendererPosition: {x: 3.35, y: 0.6, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 3
+  weapon: {fileID: 0}
+  weaponScale: 1

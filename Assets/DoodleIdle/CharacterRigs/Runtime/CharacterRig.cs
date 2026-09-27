@@ -1,0 +1,53 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.U2D.Animation;
+
+namespace DoodleIdle.CharacterRigs
+{
+    public sealed class CharacterRig : MonoBehaviour
+    {
+        public string rigType;
+        public CharacterAppearance appearance;
+        public Transform skeleton;
+        public SpriteRenderer weaponRenderer;
+        public SpriteRenderer[] partRenderers;
+        public Animator animator;
+
+        public void SetAppearance(CharacterAppearance next)
+        {
+            if (next == null || next.rigType != rigType)
+                throw new ArgumentException("Appearance must use rig type " + rigType + "; received " + (next ? next.rigType : "null") + ".", nameof(next));
+            var bones = new Dictionary<string, Transform>();
+            foreach (var bone in skeleton.GetComponentsInChildren<Transform>(true)) bones.Add(bone.name, bone);
+            if (next.parts.Length != partRenderers.Length) throw new InvalidOperationException("Part count mismatch.");
+            foreach (var part in next.parts)
+            {
+                var renderer = Array.Find(partRenderers, r => r.name == part.name);
+                if (renderer == null || part.sprite == null) throw new InvalidOperationException("Missing part: " + part.name);
+                var transforms = new Transform[part.boneNames.Length];
+                for (var i = 0; i < transforms.Length; i++) transforms[i] = bones[part.boneNames[i]];
+                var skin = renderer.GetComponent<SpriteSkin>();
+                renderer.sprite = part.sprite;
+                renderer.transform.localPosition = part.rendererPosition;
+                renderer.sortingOrder = part.sortingOrder;
+                skin.SetRootBone(skeleton);
+                var state = skin.SetBoneTransforms(transforms);
+                skin.alwaysUpdate = true;
+                if (state != SpriteSkinState.Ready) throw new InvalidOperationException("Invalid skin: " + part.name + " (" + state + ")");
+            }
+            if (weaponRenderer != null)
+            {
+                weaponRenderer.sprite = next.weapon;
+                weaponRenderer.enabled = next.weapon != null;
+                weaponRenderer.transform.localScale = Vector3.one * next.weaponScale;
+            }
+            appearance = next;
+        }
+
+        public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
+        public void Attack() => animator.SetTrigger("Attack");
+        public void Hit() => animator.SetTrigger("Hit");
+        public void Die() => animator.SetTrigger("Die");
+    }
+}
