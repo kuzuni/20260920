@@ -36,10 +36,23 @@
     "enemyHealthGrowthSteps": [
         {
             "from": 100,
-            "growth": 0.029999999329447748
+            "growth": 0.07999999821186066
+        },
+        {
+            "from": 230,
+            "growth": 0.019999999552965165
         }
     ],
-    "enemyDamageGrowthSteps": [],
+    "enemyDamageGrowthSteps": [
+        {
+            "from": 100,
+            "growth": 0.08500000089406967
+        },
+        {
+            "from": 230,
+            "growth": 0.019999999552965165
+        }
+    ],
     "enemyStartingHealth": 68.0,
     "enemyStartingDamage": 0.0,
     "playerKeepDistance": 0.6000000238418579,
@@ -58,8 +71,8 @@
         "interpolation": 0,
         "originOutTangent": 0.0
     },
-    "earlyEnemyDamageEndStage": 70,
-    "earlyEnemyDamageMax": 100.0,
+    "earlyEnemyDamageEndStage": 10,
+    "earlyEnemyDamageMax": 10.0,
     "projectedGoldMultiplier": 1.649999976158142,
     "projectedMissionGoldPerStage": 1100.0,
     "goldBuff": 1.0,

@@ -2,6 +2,8 @@
 
 2026-09-28에 output/의 최신 수정 PNG를 원본 그대로 복사했습니다. 전체 157개 PNG의 SHA-256 일치를 확인했으며 출처와 해시는 asset_manifest.json에 있습니다.
 
+프로젝트에는 이 폴더의 최종 PNG와 PSB만 보관합니다. 이전 시안·중간 생성물·프리뷰·진단용 파일은 프로젝트 밖으로 옮겼습니다. asset_manifest.json의 Source는 제작 당시의 출처 기록이며 현재 게임 실행에 필요한 경로가 아닙니다.
+
 - Player/Characters: 플레이어 40종 (기존 20종 수정본 + 추가 20종).
 - Player/Weapons: 별도 근접 무기 40개.
 - Enemies/Biomes: 배경별 적 30종.
