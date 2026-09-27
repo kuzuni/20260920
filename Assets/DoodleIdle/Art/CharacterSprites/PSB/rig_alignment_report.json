@@ -7,47 +7,9 @@
     "after_psb_sha256": "a23a09697377e0f3d503dc2c65b5e5f8b9d6f576c6aed6952c25651c3d8bbf13",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0,
-            2.7410152168788736e-17,
-            0.0
-          ],
-          [
-            0.0,
-            1.0,
-            0.0
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -232,35 +194,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6875,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -272,50 +209,12 @@
     "psb": "PSB/Player/Characters/01_school.psb",
     "type": "standard",
     "before_psb_sha256": "925f931fd333757b96d858074c7f498a1b86ba48c24071a75634d6094bd1bd0b",
-    "after_psb_sha256": "34ccba5ca64ec129cb7015f1cc09fa3b147a3f5827d3db20fcf5af83d83f8099",
+    "after_psb_sha256": "2f83721a4f3c4f43df814ae99c5eb1d3cec78cd6c502a5e7ec5e44edc5abe9ee",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            858.0,
-            710.0
-          ],
-          [
-            1082.0,
-            711.0
-          ],
-          [
-            902.5,
-            903.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0022769801134979,
-            -0.01004354542350246,
-            6.177268313305645
-          ],
-          [
-            -0.0022807525325619837,
-            1.0108885672937769,
-            -4.773997105643257
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -500,35 +399,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.1724137931035,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -540,50 +414,12 @@
     "psb": "PSB/Player/Characters/02_construction.psb",
     "type": "standard",
     "before_psb_sha256": "6b76e9efcaf5bf702a7ba9b706f34587db3165363c8100742b34e3d264a5755b",
-    "after_psb_sha256": "625de6c777283b4756d4a5d3677aca5fdb582002db487883d7d7782e3c337ec6",
+    "after_psb_sha256": "81e1067fb884046fc914973141e90fcb897108b9a3257a3cabfc413a9d9c53ea",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.0,
-            709.5
-          ],
-          [
-            1085.0,
-            710.0
-          ],
-          [
-            904.5,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.993391682783383,
-            -0.013040618089096866,
-            14.928863023288239
-          ],
-          [
-            -5.690321332367808e-06,
-            1.0025720252422654,
-            -0.3199639233627783
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -768,38 +604,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            710.5
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            901.6161137440758,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -808,50 +619,12 @@
     "psb": "PSB/Player/Characters/03_firefighter.psb",
     "type": "standard",
     "before_psb_sha256": "e2304ee7af2277367a4e988c529dc46b1d3ab80f8b54fe509b095875b822155b",
-    "after_psb_sha256": "9157ed2f85ac7427a5126222ebc0a9a18dbdfef9a9083904402cba00189287c6",
+    "after_psb_sha256": "81057450555281d54dd4a6da04b78a73f9f0ce0bf492a1598a90934a4abb923a",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            870.5,
-            710.5
-          ],
-          [
-            1097.5,
-            711.0
-          ],
-          [
-            917.1707317073171,
-            905.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9890263712793126,
-            -0.017972560807833386,
-            10.82204825532397
-          ],
-          [
-            -5.665316064178199e-06,
-            1.0025720534932965,
-            -1.3225123493533066
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -1036,38 +809,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            710.5
-          ],
-          [
-            1083.0,
-            711.0
-          ],
-          [
-            901.6732673267327,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -1076,50 +824,12 @@
     "psb": "PSB/Player/Characters/04_general.psb",
     "type": "standard",
     "before_psb_sha256": "dec387b38d704ac2137dcd197dba5a1fd5361b2deee195895f81d8c440efea92",
-    "after_psb_sha256": "fd856bc95d9f41e0b14e4b73be80a682f1d6ba747745b3fdee0fccfff4a62c2c",
+    "after_psb_sha256": "c6e1db3f23432acee609af4377e402967f889119bf84f1805e90f642ec44c2af",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            857.0,
-            711.0
-          ],
-          [
-            1081.5,
-            711.5
-          ],
-          [
-            909.1875,
-            906.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0001088488287353,
-            -0.0488731241022305,
-            36.655507790459836
-          ],
-          [
-            -1.4607927545460913e-16,
-            1.0000000000000002,
-            0.0
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -1304,38 +1014,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.0,
-            711.5
-          ],
-          [
-            901.6783216783217,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -1344,50 +1029,12 @@
     "psb": "PSB/Player/Characters/05_police.psb",
     "type": "standard",
     "before_psb_sha256": "2b814f04bff3250bf8a5b6c383ef09cd3217aaa2f7eb7d15c215514526f283b5",
-    "after_psb_sha256": "b4a37d3c3036dd6144fe54db46b80ed1443be1a2326295029870c6e05e113e3f",
+    "after_psb_sha256": "68236a26f07f48897d2f68cbb062297f1156079dbfb23979e5208c3b605dfc07",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            860.5,
-            711.0
-          ],
-          [
-            1086.5,
-            711.5
-          ],
-          [
-            905.0121951219512,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9933806528509074,
-            -0.008055088610135812,
-            9.923116223600688
-          ],
-          [
-            -2.2938018955167662e-05,
-            1.010367984567749,
-            -7.351898862358601
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -1572,38 +1219,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            710.5
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.3806451612903,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -1612,50 +1234,12 @@
     "psb": "PSB/Player/Characters/06_swimmer.psb",
     "type": "standard",
     "before_psb_sha256": "3b632b7de99b385ab427ed0db190f7fb75779a42d7ba435bf6df81f047a5313a",
-    "after_psb_sha256": "72c65d5c6e7e2e1beac668277c62c6918e11a9f0d46fe273d32ed195e5e17be5",
+    "after_psb_sha256": "ddbab26f79747a85ad4c828e2e64bdf9a99cd985e0474f5bc8731b069f820a26",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            861.5,
-            710.0
-          ],
-          [
-            1086.0,
-            711.5
-          ],
-          [
-            911.0384615384615,
-            898.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0002447874680636,
-            -0.03663652438680154,
-            23.30104791089219
-          ],
-          [
-            -0.0047114176793643485,
-            1.0384755126781957,
-            -22.25872767074654
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -1840,38 +1424,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.0,
-            711.5
-          ],
-          [
-            899.317880794702,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -1880,50 +1439,12 @@
     "psb": "PSB/Player/Characters/07_pig.psb",
     "type": "standard",
     "before_psb_sha256": "8555341cbbe702017ec66127874bc32b340a9588f64b792bd4095e5b9e1bebee",
-    "after_psb_sha256": "0c13e63c020f399013e2b4059ce6d203c3185b336baa9994f4ee439e9dcc75e4",
+    "after_psb_sha256": "bc2001c9d900612056a603e0850a2f073420091f559bd23b3ab1555ba0c174e5",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            858.5,
-            709.5
-          ],
-          [
-            1084.0,
-            710.0
-          ],
-          [
-            903.5,
-            903.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9955899164634723,
-            -0.011052325026054693,
-            12.127681322094762
-          ],
-          [
-            -1.7197200295473683e-05,
-            1.0077559373334022,
-            -3.98807374159527
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -2108,38 +1629,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.5
-          ],
-          [
-            1083.0,
-            712.0
-          ],
-          [
-            902.0,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -2148,50 +1644,12 @@
     "psb": "PSB/Player/Characters/08_shark.psb",
     "type": "standard",
     "before_psb_sha256": "500f7583d5541038a93bcce8998d43f87959906972213a81664dc1690ce93522",
-    "after_psb_sha256": "f0e3a8464f5c3e0fe7af83a2822434a25693c27484f3b79347f4ed883234a285",
+    "after_psb_sha256": "34e9beae198e55b9ec40acb3c9c6505604780036bbd3e4a1eb8b641f83196d8b",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.5,
-            711.5
-          ],
-          [
-            1084.5,
-            712.0
-          ],
-          [
-            906.43,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9978258591194245,
-            -0.02163660374109072,
-            16.763117648640623
-          ],
-          [
-            -2.8875672557931406e-05,
-            1.0129940526509766,
-            -9.72044982060629
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -2376,38 +1834,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.725888324873,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -2416,50 +1849,12 @@
     "psb": "PSB/Player/Characters/09_durian.psb",
     "type": "standard",
     "before_psb_sha256": "31b5ca09b6013410ac48002462eada7350e1159347585cd694f769c506c68aed",
-    "after_psb_sha256": "6873a62053b0031a258a86cc6cf82baec4072f18668deb6d3c0004de13385817",
+    "after_psb_sha256": "f913d1dd02087293891c93981892e4e2b3fbb40c1e47fc1a695cbc58cbfe3b62",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            858.5,
-            710.5
-          ],
-          [
-            1082.0,
-            711.0
-          ],
-          [
-            909.1353383458646,
-            906.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0045681494337328,
-            -0.041962796878473,
-            26.39281089329553
-          ],
-          [
-            5.724893801417074e-06,
-            0.9974409724709232,
-            2.3132742380804765
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -2644,35 +2039,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            902.0236220472441,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -2684,50 +2054,12 @@
     "psb": "PSB/Player/Characters/10_cookie.psb",
     "type": "standard",
     "before_psb_sha256": "901095f7a9bcb35c3fc96e12402bab91278495458f66d1c07e977db85ac43cd8",
-    "after_psb_sha256": "b7a0b1e3ecd999014f0a1d948b4d488c2ed0a5bbaf3d2ed4868266d42c0284be",
+    "after_psb_sha256": "5d24e39237a052abc7f7b47d5773112d28fb34e99f6fa8ab97680b3e5568b8c3",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            867.0,
-            710.0
-          ],
-          [
-            1090.5,
-            710.0
-          ],
-          [
-            912.7195767195767,
-            901.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0044742729306486,
-            -0.01707443578942009,
-            0.24365477961593454
-          ],
-          [
-            0.002237136465323935,
-            1.0204069061138288,
-            -15.428500656254208
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -2912,38 +2244,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            903.0,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -2952,50 +2259,12 @@
     "psb": "PSB/Player/Characters/11_hamburger.psb",
     "type": "standard",
     "before_psb_sha256": "c78b9b6540446823d67c247bcc3503d531f0b0c1ca4ba7838d48fc2ff3a7a022",
-    "after_psb_sha256": "efbfb2410caedaffea6ab97a0401b4c1297bb8fa2cb95658dff5cc68670a0342",
+    "after_psb_sha256": "e6dc30616822418abda6e51f93a03d7f3c9e2673f8f27d995b152c8de139f73f",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            880.5,
-            707.0
-          ],
-          [
-            1104.5,
-            707.5
-          ],
-          [
-            925.3823529411765,
-            900.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.00225898431861,
-            -0.012024974737504449,
-            -14.987378553120482
-          ],
-          [
-            -2.3143027312098362e-05,
-            1.0103680762358547,
-            -3.3098524632010036
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -3180,38 +2449,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1084.0,
-            712.0
-          ],
-          [
-            901.9457831325301,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -3220,50 +2464,12 @@
     "psb": "PSB/Player/Characters/12_pizza.psb",
     "type": "standard",
     "before_psb_sha256": "c9d7ca81077bbc2e3f2f50d5a0faef91bc4fef8c1ce9d652d7eeb45b7dc8b1e1",
-    "after_psb_sha256": "0df7e23b8305df18c41c1649adcd1866c94b93aa5a370168a07df53573032306",
+    "after_psb_sha256": "a6adcfa859ceadf6d6b1b6b997f57690ff7cba4b604cd7c74335830ac3a80d2a",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.5,
-            711.5
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            905.2850678733032,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9999999999999998,
-            -0.01621894298695354,
-            11.039777935217604
-          ],
-          [
-            0.002227171492204853,
-            1.0124572924782542,
-            -11.277617495827991
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -3448,38 +2654,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            710.5
-          ],
-          [
-            1083.5,
-            712.0
-          ],
-          [
-            903.1136363636364,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -3488,50 +2669,12 @@
     "psb": "PSB/Player/Characters/13_chicken.psb",
     "type": "standard",
     "before_psb_sha256": "85f703e0761553fd009e9199f96deec48aa201144d948dc640367a4803a1a63e",
-    "after_psb_sha256": "b5a224d411a1f465b2ace7a46b4d70f7d4a768e56570353c941caf5a81aec195",
+    "after_psb_sha256": "abc04dd0e22e98590300a5b75f3efec435efb1195b08381cac57547a4abc377c",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            858.5,
-            710.5
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            906.0886699507389,
-            907.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9978323165556169,
-            -0.02454245002764285,
-            19.798366981643145
-          ],
-          [
-            1.6972662781290407e-05,
-            0.9923623017483599,
-            5.912013576792541
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -3716,38 +2859,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.8029556650247,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -3756,50 +2874,12 @@
     "psb": "PSB/Player/Characters/14_salmon_sushi.psb",
     "type": "standard",
     "before_psb_sha256": "f0d57c1226fb4e9ff77b298fdb634f43c416c8e2691d4e1a7f2ba728dd5ae9c9",
-    "after_psb_sha256": "95c8c96bc3b0f66779d8a6780cf1abc9064c47b8c1052bb375cb29d036b02b70",
+    "after_psb_sha256": "b77f90cb65b618140b947c47bdb277ff4a02156c7976d02e968b50fbcf852374",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            860.0,
-            710.5
-          ],
-          [
-            1085.5,
-            711.0
-          ],
-          [
-            903.046052631579,
-            908.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9955675694815563,
-            -0.0009738361816783532,
-            3.5038008529440425
-          ],
-          [
-            2.8080594557916242e-05,
-            0.9873356518544241,
-            9.473870046111816
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -3984,38 +3064,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            711.0
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            901.8092105263158,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -4024,50 +3079,12 @@
     "psb": "PSB/Player/Characters/15_cucumber.psb",
     "type": "standard",
     "before_psb_sha256": "095a61a24d245bfc878e2b5ef01a0f27868bb0d28c21d48ba064066a7f7e11ed",
-    "after_psb_sha256": "bb575b01a6985a4f8ecac642775c0341aefacbafa22bbff8e86fdddc55bb28ac",
+    "after_psb_sha256": "e4c651780d4d0772d730a45a3a8aa4a2e3f7dc0199473504e9eb2cfc32e04d58",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.0,
-            709.0
-          ],
-          [
-            1083.0,
-            709.5
-          ],
-          [
-            904.78,
-            899.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0022699835349844,
-            -0.0169526236732473,
-            10.069494327780898
-          ],
-          [
-            -5.8772210899728426e-05,
-            1.026329950483237,
-            -16.617449563452297
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -4252,35 +3269,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6751269035533,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -4292,50 +3284,12 @@
     "psb": "PSB/Player/Characters/16_fire.psb",
     "type": "standard",
     "before_psb_sha256": "d2109f439351a1a5b68d764d1b8db19cbdeaef0b0e57feb0a2324eb2d45a9ecb",
-    "after_psb_sha256": "464a14a926b8bd2b92b7936732561702dbfe38a4b5d104c3af158afcbed39df3",
+    "after_psb_sha256": "06e8f47d89dc5e5b9525b559f3e541a723f1e7d00730e6f1588c02e349bec997",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            866.0,
-            710.5
-          ],
-          [
-            1090.0,
-            711.0
-          ],
-          [
-            919.450495049505,
-            899.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0023613796728603,
-            -0.05789809344140396,
-            32.09164059342051
-          ],
-          [
-            -7.701919185673731e-05,
-            1.0345045979518994,
-            -23.94881822467665
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -4520,38 +3474,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            712.0
-          ],
-          [
-            902.0,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -4560,50 +3489,12 @@
     "psb": "PSB/Player/Characters/17_water.psb",
     "type": "standard",
     "before_psb_sha256": "4703918439ae3075c5dddd05920db3f30c64868aaf825cd75a24de2eb57dc197",
-    "after_psb_sha256": "ddd64c82b4a340e0acd843709baf878519d85ff91508609803d96351a9f43cb1",
+    "after_psb_sha256": "66a7d593a6dea7f3ae946fc6b85667764d4248bc11cc3573ba0679c64c4091cb",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            865.5,
-            710.5
-          ],
-          [
-            1092.5,
-            711.0
-          ],
-          [
-            911.8771186440679,
-            906.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9890228952173339,
-            -0.016394428669458498,
-            14.648925759047863
-          ],
-          [
-            5.636303564494228e-06,
-            0.9974411181814874,
-            2.313207311318266
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -4788,38 +3679,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.0,
-            711.5
-          ],
-          [
-            901.7532467532467,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -4828,50 +3694,12 @@
     "psb": "PSB/Player/Characters/18_cactus.psb",
     "type": "standard",
     "before_psb_sha256": "73119c9f6a692cef9721914e5d6b066744f527f2bc2d6b81029b4e4ba7cca774",
-    "after_psb_sha256": "869402344dfc03da28c939596d979423c6efc5ee1cc49edb62180b1f391d3f97",
+    "after_psb_sha256": "08e62b7fca1880c5f1a8084ad9a144173b0ec62e8958e470f22215a97d86c0d8",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            862.0,
-            710.0
-          ],
-          [
-            1084.0,
-            711.0
-          ],
-          [
-            908.2857142857143,
-            899.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0113601364451867,
-            -0.02195029083147277,
-            2.7922688745948796
-          ],
-          [
-            -0.0023978976215311395,
-            1.032333271979876,
-            -19.889635355952052
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -5056,38 +3884,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.6139534883721,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -5096,50 +3899,12 @@
     "psb": "PSB/Player/Characters/19_steampunk.psb",
     "type": "standard",
     "before_psb_sha256": "9098fc781e5902bfdc93f9bb035a1f6a3ad316a25c2ac4879bad0f0d64954e00",
-    "after_psb_sha256": "1495b301249cd6ca10a598f8ff27a91b421017a1915fc810901eef09e6462bd1",
+    "after_psb_sha256": "6657519a54846419a9eafae6be6bc97fc93a29923b54f1a96c879b6fee1cf2e9",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.5,
-            710.5
-          ],
-          [
-            1082.5,
-            711.5
-          ],
-          [
-            905.8493975903614,
-            900.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0068211752335032,
-            -0.021122077071122944,
-            8.644435645837005
-          ],
-          [
-            -0.002374908612078261,
-            1.0296046204934142,
-            -18.492848908489506
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -5324,38 +4089,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.5030674846626,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -5364,50 +4104,12 @@
     "psb": "PSB/Player/Characters/20_pirate.psb",
     "type": "standard",
     "before_psb_sha256": "f1fe19f6fdca107c2f2b6350f38c8a358c21b843df0949c17b0acf3b8c1192e2",
-    "after_psb_sha256": "0eb9cda2299221a9cd8aab04fe5dc25d9160f67a8870e31dbfb8a1770ccbf1be",
+    "after_psb_sha256": "5f3c490b5369f7b24f597ab73e073bf0608278cb0739047495906ef2d496fef7",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            866.5,
-            710.0
-          ],
-          [
-            1091.0,
-            710.5
-          ],
-          [
-            917.7142857142857,
-            902.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0000992535212994,
-            -0.04456483106338034,
-            24.055026878794212
-          ],
-          [
-            -3.482024050821221e-05,
-            1.015634287988261,
-            -10.070172733264894
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -5592,38 +4294,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            711.5
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.713567839196,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -5632,50 +4309,12 @@
     "psb": "PSB/Player/Characters/21_astronaut.psb",
     "type": "standard",
     "before_psb_sha256": "28101cabc5ffe3d284d5df16f5d8332102897e73f1e8c45f4fba65eb7ca9e574",
-    "after_psb_sha256": "58d086f38de6348f1a6728c981e5dc4533225ad1a8e32adea072e82390f292c9",
+    "after_psb_sha256": "bbf6aa520c1715d3f78d15f4b1917cfc8e36b7b6f751b787ec07dcd52a0c7ce1",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            890.0,
-            655.0
-          ],
-          [
-            1126.5,
-            656.0
-          ],
-          [
-            950.2566844919786,
-            833.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9496058431321247,
-            -0.08178190074739926,
-            67.41794460195538
-          ],
-          [
-            -0.00252160352205227,
-            1.0963592329654057,
-            -4.871070457714213
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -5860,38 +4499,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.0,
-            711.0
-          ],
-          [
-            900.6125,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -5900,50 +4514,12 @@
     "psb": "PSB/Player/Characters/22_chef.psb",
     "type": "standard",
     "before_psb_sha256": "a05d7527c19c95699178fc0c114bc5c51924468295f51286e72625b871cab4c8",
-    "after_psb_sha256": "3afa472b259c17edd638326d6ce4924d131e9061f4cc1166cd937ccb1e4799f1",
+    "after_psb_sha256": "83fe02c7c85c7d3effc9beb92f65bee35260e39d22f756f5ec21ac0be21b0081",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            917.0,
-            667.5
-          ],
-          [
-            1160.5,
-            669.0
-          ],
-          [
-            970.609865470852,
-            870.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9221773483073906,
-            -0.03345620856647747,
-            35.695390820246445
-          ],
-          [
-            -0.0038849577020236277,
-            0.9639914669618042,
-            71.09820201575143
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -6128,38 +4704,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.5
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            899.1095238095238,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -6168,50 +4719,12 @@
     "psb": "PSB/Player/Characters/23_doctor.psb",
     "type": "standard",
     "before_psb_sha256": "9ea0055453b5707eedd196fd03409bc839b4f7750895fc1565df486f2eb97f55",
-    "after_psb_sha256": "d65466e0c9d6e635e81d09657d136324dced1c59cf60e2f5ed5b9f11d6f6c29b",
+    "after_psb_sha256": "cb773cc30d2b3d471ed4f319bfa334b12aeb38b9746b00dfcb3548c60f111fbf",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            881.5,
-            713.5
-          ],
-          [
-            1115.0,
-            713.5
-          ],
-          [
-            926.2545454545455,
-            909.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9614561027837256,
-            -0.0018752404412776045,
-            12.814429450997467
-          ],
-          [
-            0.002141327623126445,
-            0.9969522550156406,
-            -2.213014253445495
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -6396,38 +4909,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            712.0
-          ],
-          [
-            902.7169811320755,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -6436,50 +4924,12 @@
     "psb": "PSB/Player/Characters/24_ninja.psb",
     "type": "standard",
     "before_psb_sha256": "008afcc5d5977fab4ce1dc7361225467f774cd388ca154368975b5f7d5d7c65f",
-    "after_psb_sha256": "dad9364806d9d8bd6e20270469b137235fe29145eeaf53284758533e37160882",
+    "after_psb_sha256": "ccfc2c70eabbff617d119bf97c820d88afa5f38b5189107100f006bb5678a867",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            863.0,
-            712.0
-          ],
-          [
-            1092.0,
-            711.5
-          ],
-          [
-            919.2625698324023,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9802073546284603,
-            -0.06503158016512202,
-            59.38353803320566
-          ],
-          [
-            0.004398113978406654,
-            1.014336202110203,
-            -15.002948265829442
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -6664,38 +5114,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            711.0
-          ],
-          [
-            1083.5,
-            712.0
-          ],
-          [
-            903.6627906976744,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -6704,50 +5129,12 @@
     "psb": "PSB/Player/Characters/25_viking.psb",
     "type": "standard",
     "before_psb_sha256": "337b935b7c1aa5d97af9fba04e49e62ef9f4d9805de032a23526ae0d1be46bb1",
-    "after_psb_sha256": "4519ad5f7c075a363deaaaf783321b51ba81b71c40db0cb211537d405fd92cc3",
+    "after_psb_sha256": "cab4aeacd79aee69b878926fcbbdc45e024b71265ed8a1c3de21afee223a5418",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            895.0,
-            709.0
-          ],
-          [
-            1126.5,
-            709.5
-          ],
-          [
-            946.2020725388601,
-            899.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9698419347020973,
-            -0.03681576707121341,
-            17.09384729511308
-          ],
-          [
-            -5.68706592662855e-05,
-            1.0263311152401104,
-            -16.61786146519495
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -6932,38 +5319,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.6,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -6972,50 +5334,12 @@
     "psb": "PSB/Player/Characters/26_wizard.psb",
     "type": "standard",
     "before_psb_sha256": "cea3a0196d72309f8d36dc9a60de253e19268988f1ed97dcc25df85c1f14350a",
-    "after_psb_sha256": "60bdb0ae5422a4a507f6cbfa46a15e0a82f70cef194295871ab1aaa11994d800",
+    "after_psb_sha256": "9d6373ac8c872cbd6f6438485af664bcd88629d3f6c427b8205ad13bb7789154",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            884.5,
-            709.5
-          ],
-          [
-            1109.0,
-            709.0
-          ],
-          [
-            936.7272727272727,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9998905464308855,
-            -0.049144652532406026,
-            9.464942653623982
-          ],
-          [
-            0.0044574026487445685,
-            1.00137378928642,
-            -3.417276141529531
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -7200,38 +5524,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.5,
-            710.5
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            903.7272727272727,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -7240,50 +5539,12 @@
     "psb": "PSB/Player/Characters/27_detective.psb",
     "type": "standard",
     "before_psb_sha256": "8ca90d37a598d1288b255a34b07d42843921f61b7f545fc8afcecf7b6d956f4a",
-    "after_psb_sha256": "d828736a90116d9e50c618b3470401e648b622f5388784f7451d242871c940a3",
+    "after_psb_sha256": "572a82e1e0e7dbf5e4936f9689f7153dc9dcc28c5d852ea2e862516e525ff485",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            877.0,
-            709.5
-          ],
-          [
-            1103.0,
-            710.0
-          ],
-          [
-            924.0,
-            903.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9934088780947398,
-            -0.020812898822419365,
-            2.5471656254196033
-          ],
-          [
-            -1.7159526397120005e-05,
-            1.0077561059314761,
-            -3.98790825373199
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -7468,38 +5729,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.5
-          ],
-          [
-            1083.5,
-            712.0
-          ],
-          [
-            901.5,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -7508,50 +5744,12 @@
     "psb": "PSB/Player/Characters/28_farmer.psb",
     "type": "standard",
     "before_psb_sha256": "3abcecb91ccfa1510640e99cbcfb0822abcb6c71a04b8de90c82d64e89b027cc",
-    "after_psb_sha256": "ad741e4934800d8bd4b096d9a9e7986fd853cf387e658eef7b1d4afeaa5cd039",
+    "after_psb_sha256": "1cfcc7c1bf4df6ccc1f0cc068c340e1399ab0b95021a5683ea876e632b960159",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            904.5,
-            710.5
-          ],
-          [
-            1128.0,
-            710.5
-          ],
-          [
-            962.2878048780487,
-            900.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0044742729306486,
-            -0.08117911314417683,
-            8.130780023165894
-          ],
-          [
-            0.0022371364653242004,
-            1.0283415345353888,
-            -21.660150220279416
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -7736,38 +5934,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            902.9004975124378,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -7776,50 +5949,12 @@
     "psb": "PSB/Player/Characters/29_miner.psb",
     "type": "standard",
     "before_psb_sha256": "30e7abc955181622764b5e484ea646158c3a8ced58f481de08bb173be41a0cbd",
-    "after_psb_sha256": "86edc4ab2b5c6f424bbb14da8a7a17840f0828610a537d877f25dd6120bff2b5",
+    "after_psb_sha256": "c2de6641b2bf32cdf68faa8584943fcd4047fb593acb7c1751a4dce4d6c7652f",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            864.0,
-            710.0
-          ],
-          [
-            1089.5,
-            710.5
-          ],
-          [
-            913.4725738396625,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9956407752579995,
-            -0.03398964135781192,
-            22.89901554113465
-          ],
-          [
-            -1.1435821422396019e-05,
-            1.0051575554614418,
-            -2.6519838279147185
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -8004,38 +6139,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.9743589743589,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -8044,50 +6154,12 @@
     "psb": "PSB/Player/Characters/30_baseball.psb",
     "type": "standard",
     "before_psb_sha256": "43b80c31af6cd8d6ac9b2c40dc000e49751d4a85c5f14df3f41b2dd419ce521a",
-    "after_psb_sha256": "9dfea6201c6bdc561b304116abe26df2df148861fad3c024963e0472723a2d0b",
+    "after_psb_sha256": "f6745daecdc15307c4530f3a8881f5296bf4faebb0e9b1ca93bc61c5b0c2c548",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            885.5,
-            711.5
-          ],
-          [
-            1111.0,
-            711.5
-          ],
-          [
-            929.1337579617834,
-            907.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9955654101995562,
-            -0.003976157521516318,
-            -19.744134655148155
-          ],
-          [
-            0.002217294900222047,
-            0.996947575913012,
-            -0.2916148962546625
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -8272,38 +6344,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.5
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            902.9423076923076,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -8312,50 +6359,12 @@
     "psb": "PSB/Player/Characters/31_penguin.psb",
     "type": "standard",
     "before_psb_sha256": "0234817155adbe7b04404e2ee8d51deea5fc6c68ad12e4bd87f46bbcfe607a05",
-    "after_psb_sha256": "591b2107707c8a0658ed8cfb298fdc8bbebbc1b27fb22abfce307d61b0728d0a",
+    "after_psb_sha256": "bb19bea0bae7a12d2af2cbe7b91b26233efb8ab9b950d1515969c4a71570b222",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            866.0,
-            710.5
-          ],
-          [
-            1092.0,
-            710.5
-          ],
-          [
-            924.171052631579,
-            903.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.993362831858407,
-            -0.0785560531219488,
-            54.56186335376419
-          ],
-          [
-            0.00221238938053133,
-            1.012318457043655,
-            -10.168192933057053
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -8540,38 +6549,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            903.0,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -8580,50 +6564,12 @@
     "psb": "PSB/Player/Characters/32_frog.psb",
     "type": "standard",
     "before_psb_sha256": "22f387bbd0ae840af4d8791e6ad8013c05822eb930db5d4d37a2d7025415e4cf",
-    "after_psb_sha256": "129bfc401e576062f15f823e6ee1509fb424b3a5bac3b89a16bcdcc4a2a9bcab",
+    "after_psb_sha256": "dfdc24ad9b70697705f7b94d0f015b763bdc5338113c683558a707de60712bd2",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            878.0,
-            709.0
-          ],
-          [
-            1103.5,
-            710.5
-          ],
-          [
-            928.2781456953643,
-            901.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9958219637066786,
-            -0.038568543904028856,
-            12.013413493492585
-          ],
-          [
-            -0.004546444942531263,
-            1.0168155563605024,
-            -5.930450800053654
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -8808,38 +6754,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            710.5
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            899.4527027027027,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -8848,50 +6769,12 @@
     "psb": "PSB/Player/Characters/33_bee.psb",
     "type": "standard",
     "before_psb_sha256": "d34e9e6a578e4b15c6fd1920a60e32d1a18f64f18f2f44bdf3bf3eec31113418",
-    "after_psb_sha256": "f1e9fc89b058f9042c32e5857e3415baf5ce01e70846e2c19a0446dc5c5c3e57",
+    "after_psb_sha256": "7387f72d4000f24630e34c76b1e671db2a35e0e182eb282d82e7aec92f457517",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            876.5,
-            706.0
-          ],
-          [
-            1101.5,
-            707.0
-          ],
-          [
-            926.6233183856502,
-            893.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.997952650673683,
-            -0.03934640157864171,
-            12.073061199037912
-          ],
-          [
-            -0.0024152361176205863,
-            1.043428126464706,
-            -23.543302826988164
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -9076,35 +6959,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.705069124424,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -9116,50 +6974,12 @@
     "psb": "PSB/Player/Characters/34_octopus.psb",
     "type": "standard",
     "before_psb_sha256": "d7058efbf286b07a3741263b0d155c3bccf0bbaed16d26c0e6a54551c02a77a2",
-    "after_psb_sha256": "e0d413d87c523ba837ea58741bb3a744527b7a8b1e82b6a156b59f7d3085dc73",
+    "after_psb_sha256": "7a81bf90684a525281e732d146c992afcc11c44eec6e8ed50567d789a37b87bd",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            875.0,
-            707.0
-          ],
-          [
-            1102.0,
-            707.5
-          ],
-          [
-            926.2294117647059,
-            898.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9890791224056235,
-            -0.041921572153283335,
-            23.194319407450763
-          ],
-          [
-            -4.6155921082008944e-05,
-            1.020954788171133,
-            -10.774648806044235
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -9344,38 +7164,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.5487804878048,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -9384,50 +7179,12 @@
     "psb": "PSB/Player/Characters/35_mushroom.psb",
     "type": "standard",
     "before_psb_sha256": "846e3f9c2c3a19db0c599ba88e8a620330ad629c245fc2496ef72d2a37f65765",
-    "after_psb_sha256": "01ff10a55487cc09396287dfe6521a7db6896528e02216a58246374389e553ae",
+    "after_psb_sha256": "81210dbae1d6d5a5a071cc10a5cc882a0670310750eebf89664e11df21eaeb48",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            859.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            914.6787878787878,
-            902.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0022321428571426,
-            -0.06617295009268427,
-            44.63044073018448
-          ],
-          [
-            0.0022321428571432916,
-            1.0202975553024636,
-            -16.350088605766327
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -9612,35 +7369,10 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            903.2484472049689,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.0,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
     "max_measurement_error_pixels": 0,
@@ -9652,50 +7384,12 @@
     "psb": "PSB/Player/Characters/36_strawberry.psb",
     "type": "standard",
     "before_psb_sha256": "0f847e10ba32f740bcb46d32ca2195fa7228186b9f1643e68b1703375ae52655",
-    "after_psb_sha256": "0039fe3503085603852c2e8862fdd99e863dea28db92e92820da359b4485f079",
+    "after_psb_sha256": "630111b9367ca6ea9d6e69e9a19d869c934c8b9bd45700341783fd6644221fde",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            905.0,
-            709.0
-          ],
-          [
-            1132.0,
-            710.0
-          ],
-          [
-            958.6717948717949,
-            900.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.989227360902452,
-            -0.054610924856590234,
-            2.4683841066031627
-          ],
-          [
-            -0.002297744864520824,
-            1.0215880842462635,
-            -11.226492628209504
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -9880,38 +7574,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.7830687830688,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -9920,50 +7589,12 @@
     "psb": "PSB/Player/Characters/37_watermelon.psb",
     "type": "standard",
     "before_psb_sha256": "dba768574cabcfeb719f0fdce97d857b37c0149a7c6d18fd26715b87415b2c77",
-    "after_psb_sha256": "0ac2fde8c253dfe7f1b5c88beb429d53b5944eaf325a725b0030d100bce2a592",
+    "after_psb_sha256": "485aa3b3b431bff58184ff12ee3afb8ab258c43d1464e5c6b66f62b8dd939fc5",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            858.0,
-            710.0
-          ],
-          [
-            1081.0,
-            710.0
-          ],
-          [
-            902.8606060606061,
-            904.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0067264573991033,
-            -0.012883699318846047,
-            4.376126067950116
-          ],
-          [
-            0.002242152466367427,
-            1.00463616330659,
-            -4.215442763822002
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -10148,38 +7779,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.0
-          ],
-          [
-            1084.0,
-            711.5
-          ],
-          [
-            902.9329268292684,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -10188,50 +7794,12 @@
     "psb": "PSB/Player/Characters/38_icecream.psb",
     "type": "standard",
     "before_psb_sha256": "fc2e0876910f80efa25214b47e25c7c3b676cc1b9a8d5011362e9f27a1391c38",
-    "after_psb_sha256": "2a34ac0eb28dd82c09123a4b5152c1a66ab23768af26d8c0ce1e74c15e258bc0",
+    "after_psb_sha256": "847dc967cab8d9b924d406489b17d43e68ec72b3d47a01ec47782ffef70b6496",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            882.5,
-            693.0
-          ],
-          [
-            1119.5,
-            694.0
-          ],
-          [
-            932.0229357798165,
-            891.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9473480060759013,
-            -0.021477439988481457,
-            37.849250550034704
-          ],
-          [
-            -0.0020479354681124697,
-            0.9853607059427709,
-            29.952333832268852
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -10416,38 +7984,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            711.5
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            900.4471153846154,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -10456,50 +7999,12 @@
     "psb": "PSB/Player/Characters/39_pumpkin.psb",
     "type": "standard",
     "before_psb_sha256": "e6de4680098d35a0138e7fbcbc9cd10da916f1cb364c31579729c72060bb3662",
-    "after_psb_sha256": "56ea840d35a289ed8146bfd19e23523223e9eccc775efc0df2be062d948eae7b",
+    "after_psb_sha256": "f277a5a50d2249695d9a701d4dec555fdde628dfd0a6f4ef17a38529da7a0881",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            890.5,
-            738.5
-          ],
-          [
-            1110.5,
-            738.0
-          ],
-          [
-            936.6142131979695,
-            923.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            1.0204004429388434,
-            -0.023805106908779496,
-            -32.086522984906495
-          ],
-          [
-            0.004672142742220968,
-            1.0557428065772019,
-            -72.82660576921133
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -10684,38 +8189,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            858.5,
-            710.5
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            903.6122448979592,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },
@@ -10724,50 +8204,12 @@
     "psb": "PSB/Player/Characters/40_snowman.psb",
     "type": "standard",
     "before_psb_sha256": "34e0d39f10c80a92fc221e5c3b3110f298052a07ee34f9c8e842ebada0e6301a",
-    "after_psb_sha256": "e15036a165f80d84634a21a55c12daa69ef480d82b60dc19a4c46eda2a373447",
+    "after_psb_sha256": "05aab268a9840198340a69e1257b2e10d2f7eddf27589edf54112c39d319bd58",
     "transforms": {
       "머리": {
-        "kind": "face_landmarks",
-        "source": [
-          [
-            855.0,
-            710.0
-          ],
-          [
-            1081.5,
-            710.5
-          ],
-          [
-            904.5,
-            903.0
-          ]
-        ],
-        "target": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ],
-        "matrix": [
-          [
-            0.9912432215640016,
-            -0.03317936849276393,
-            35.04439719264107
-          ],
-          [
-            -2.2888663816713154e-05,
-            1.010368564709114,
-            -6.342111135907722
-          ]
-        ]
+        "kind": "shared_master_head_with_theme_headwear",
+        "master": "PSB/Player/Characters/00_default.psb",
+        "master_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
       },
       "몸통": {
         "kind": "exact_slot",
@@ -10952,38 +8394,13 @@
         "bounds_error_pixels": 0
       },
       "머리": {
-        "measured_face_points": [
-          [
-            859.0,
-            710.5
-          ],
-          [
-            1083.5,
-            711.0
-          ],
-          [
-            901.6712328767123,
-            906.0
-          ]
-        ],
-        "eye_error_pixels": 0.5,
-        "expected_face_points": [
-          [
-            859.0,
-            711.0
-          ],
-          [
-            1083.5,
-            711.5
-          ],
-          [
-            901.6629213483146,
-            906.0
-          ]
-        ]
+        "shared_master_head_verified": true,
+        "exposed_face_pixels_identical": true,
+        "lower_skull_y800_to980_identical": true,
+        "eye_error_pixels": 0
       }
     },
-    "max_measurement_error_pixels": 0.5,
+    "max_measurement_error_pixels": 0,
     "common_psb_layer_frames_verified": true,
     "png_psb_pixels_identical": true
   },

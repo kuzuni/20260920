@@ -385,7 +385,9 @@
       906.0
     ]
   ],
-  "head_alignment": "Players: two eye centers and lower face point. Others: uniform scale with fixed bottom-center anchor.",
+  "head_alignment": "Players: identical default head pixels plus theme headwear. Others: uniform scale with fixed bottom-center anchor.",
   "bone_mesh_weights_included": false,
-  "unity_bone_copy_tested": false
+  "unity_bone_copy_tested": false,
+  "player_master_head": "PSB/Player/Characters/00_default.psb:머리",
+  "player_master_head_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed"
 }
