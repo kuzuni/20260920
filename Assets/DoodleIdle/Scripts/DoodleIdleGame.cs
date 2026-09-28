@@ -147,7 +147,7 @@ namespace DoodleIdle
             for (int i = 0; i < 9; i++)
             {
                 if (i == 0) { result[i] = DoodleCharacterCatalog.PlayerPortrait(); continue; }
-                if (i == 4) { result[i] = DoodleCharacterCatalog.Current.Player(-1).appearance.weapon; continue; }
+                if (i == 4) { result[i] = Instantiate(DoodleCharacterCatalog.Current.Player(-1).appearance.weapon); continue; }
                 int x0 = i % 3 * cw, y0 = (2 - i / 3) * ch;
                 int minX = x0 + cw, minY = y0 + ch, maxX = x0, maxY = y0;
                 for (int y = y0; y < y0 + ch; y++)
