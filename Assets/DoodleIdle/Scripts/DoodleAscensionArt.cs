@@ -35,18 +35,7 @@ namespace DoodleIdle
             return key != null && key.StartsWith("Ascension_", StringComparison.Ordinal) &&
                 int.TryParse(key.Substring(10), out int cell) ? Cell(cell) : null;
         }
-        public static Sprite CompanionFrame(int index, int frame)
-        {
-            if (index == 5 || index == 7) return Revision((index == 5 ? 0 : 2) + frame % 2);
-            int cell = index + (frame % 2) * 10, key = 200 + cell;
-            if (cache.TryGetValue(key, out var sprite) && sprite && sprite.texture) return sprite;
-            if (companionLayout == null) companionLayout = JsonUtility.FromJson<CompanionLayout>(Resources.Load<TextAsset>("DoodleIdle/AscensionCompanionsLayout").text);
-            var region = companionLayout.frames[cell];
-            var texture = Resources.Load<Texture2D>("DoodleIdle/AscensionCompanions");
-            sprite = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
-                new Vector2(.5f, .08f), region.pixelsPerUnit);
-            sprite.name = "CompanionMon_" + (index + 24) + "_" + frame; cache[key] = sprite; return sprite;
-        }
+        public static Sprite CompanionFrame(int index, int frame) => DoodleCollectionArt.CompanionFrame(index + 24, frame);
         public static Sprite Projectile(int index)
         {
             if (index < 0 || index >= 12) throw new ArgumentOutOfRangeException(nameof(index));

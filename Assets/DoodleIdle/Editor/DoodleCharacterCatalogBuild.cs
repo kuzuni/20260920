@@ -15,6 +15,7 @@ public sealed class DoodleCharacterCatalogBuild
     [Serializable] sealed class CatalogRows { public CharacterRigBuilder.Row[] items; }
     [Serializable] sealed class Items { public Item[] items; }
     [Serializable] sealed class Item { public string id, icon; }
+    [Serializable] sealed class CheckReport { public string[] errors; }
     public void Setup() => Build();
 
     [MenuItem("Doodle Idle/Character Rigs/Build Runtime Catalog")]
@@ -23,6 +24,7 @@ public sealed class DoodleCharacterCatalogBuild
         Directory.CreateDirectory("Library");
         File.WriteAllText("Library/CharacterRig.selection.json", "{\"sources\":[\"Companions/머리날개형/19_companion_brick.png\"]}");
         CharacterRigBuilder.RebuildSelectedSkinsKeepPrefabPoses();
+        CheckReportErrors("build_report.json");
         var rows = JsonUtility.FromJson<CatalogRows>("{\"items\":" + File.ReadAllText("Assets/DoodleIdle/Art/CharacterSprites/PSB/layer_manifest.json") + "}").items;
         var catalogPath = ResourcesRoot + "CharacterCatalog.asset";
         var catalog = AssetDatabase.LoadAssetAtPath<DoodleCharacterCatalog>(catalogPath);
@@ -75,6 +77,7 @@ public sealed class DoodleCharacterCatalogBuild
         }
         EditorUtility.SetDirty(catalog); AssetDatabase.SaveAssets(); AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         CharacterRigVerifier.Run();
+        CheckReportErrors("verification_report.json");
         // Cloud-generated assets are downloaded into the checkout after validation.
         var generated = Directory.GetFiles(ResourcesRoot + "RigPortraits", "*", SearchOption.AllDirectories).Concat(new[] {catalogPath, catalogPath + ".meta", ResourcesRoot + "RigPortraits.meta", "Assets/DoodleIdle/Art/CharacterSprites/PSB/Companions/머리날개형/19_companion_brick.psb.meta", Root + "Appearances/Companions/floating/19_companion_brick.asset", Root + "Prefabs/Character_floating.prefab"});
         foreach (string path in generated.Where(File.Exists)) {
@@ -82,6 +85,10 @@ public sealed class DoodleCharacterCatalogBuild
             Directory.CreateDirectory(Path.GetDirectoryName(output)); File.Copy(path, output, true);
         }
         Debug.Log("CHARACTER_RUNTIME_CATALOG_BUILT " + entries.Count);
+    }
+    static void CheckReportErrors(string name) {
+        var report = JsonUtility.FromJson<CheckReport>(File.ReadAllText(Root + "Reports/" + name));
+        if (report.errors != null && report.errors.Length > 0) throw new Exception(string.Join("\n", report.errors));
     }
     static void Sample(CharacterRig rig, int pose) {
         rig.animator.enabled = false;

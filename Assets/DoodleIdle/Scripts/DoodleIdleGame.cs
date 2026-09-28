@@ -339,7 +339,14 @@ namespace DoodleIdle
             }
             RefreshHudLayout();
             UpdateJoystick();
-            if (paused) return;
+            if (paused) {
+                if (player != null && player.rigVisual) {
+                    AnimateActorFrames(player, 0);
+                    player.art.color = Ui ? Ui.EquippedAppearanceTint : Color.white;
+                    player.rigVisual.Sync(); UpdateHeldClub();
+                }
+                return;
+            }
             float dt = Time.deltaTime;
             UpdateFlecks(dt);
             UpdateExtraVisuals(dt);

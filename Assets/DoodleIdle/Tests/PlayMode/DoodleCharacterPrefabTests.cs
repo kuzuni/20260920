@@ -6,8 +6,6 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.U2D.Animation;
 
-[assembly: PrebuildSetup(typeof(DoodleIdle.Tests.DoodleCharacterCatalogSetup))]
-
 namespace DoodleIdle.Tests
 {
     public sealed class DoodleCharacterCatalogSetup : IPrebuildSetup
@@ -20,6 +18,7 @@ namespace DoodleIdle.Tests
 #endif
         }
     }
+    [PrebuildSetup(typeof(DoodleCharacterCatalogSetup))]
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
@@ -94,6 +93,12 @@ namespace DoodleIdle.Tests
                 Assert.That(visual.Rig.rigType, Is.EqualTo(item.rarity < 4 ? "biped" : "floating"));
                 Assert.That(visual.GetComponent<SpriteRenderer>().enabled, Is.False);
                 Assert.That(UiKit.Art(item.projectile), Is.Not.Null);
+                var actors = (System.Collections.IDictionary)typeof(DoodleIdleGame).GetField("companions", GrowthPrivate).GetValue(game);
+                int before = game.CompanionShotCount(item.id);
+                typeof(DoodleIdleGame).GetMethod("FireCompanionShot", GrowthPrivate).Invoke(game, new object[] {actors[item.id], 0, false});
+                Assert.That(game.CompanionShotCount(item.id), Is.EqualTo(before + 1));
+                if (item.trajectory != "Lightning")
+                    Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Last(r => r.name == "Companion shot: " + item.id).sprite.texture, Is.SameAs(UiKit.Art(item.projectile).texture));
                 item.equipped = false;
                 yield return new WaitForFixedUpdate(); yield return null;
             }
@@ -126,7 +131,13 @@ namespace DoodleIdle.Tests
                 Assert.That(UiKit.Art(key).texture.name, Does.StartWith("00_default_"));
             foreach (string page in new[] { "Skins", "Companions", "Equipment", "Pvp", "Chat" }) {
                 UiOpen(page); yield return null;
+                if (page == "Skins") { UiClick("외형 스킨", UiNode("Skin tabs")); yield return null; }
                 Object.Destroy(CaptureFrame("prefab-ui-" + page + ".png", 720, 1520)); game.Ui.ClosePage();
+            }
+            var visual = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
+            foreach (var skin in game.Ui.Skins("Appearance")) {
+                skin.owned = true; game.Ui.EquipSkin(skin.id); yield return null;
+                Assert.That(visual.Entry, Is.SameAs(DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(skin.icon))));
             }
         }
     }
