@@ -54,7 +54,7 @@ namespace DoodleIdle
                 }
             foreach (string category in new[] { "Weapon", "Appearance" })
                 if (!skinCatalog.Exists(x => x.category == category && x.initiallyOwned))
-                    skinCatalog.Insert(0, new UiSkin { id = "basic_" + category, name = category == "Weapon" ? "기본 몽둥이" : "먼지고양이", category = category, icon = category == "Weapon" ? "Club" : "Player", initiallyOwned = true, owned = true, acquisition = "Diamond", tint = Color.white });
+                    skinCatalog.Insert(0, new UiSkin { id = "basic_" + category, name = category == "Weapon" ? "기본 몽둥이" : "기본 캐릭터", category = category, icon = category == "Weapon" ? "Club" : "Player", initiallyOwned = true, owned = true, acquisition = "Diamond", tint = Color.white });
             SkinSave saved = null;
             try
             {

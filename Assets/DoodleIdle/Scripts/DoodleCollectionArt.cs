@@ -20,12 +20,12 @@ namespace DoodleIdle
             cache.Remove(key);
             if (key.StartsWith("SkinAppearance_", StringComparison.Ordinal)) {
                 var parts = key.Split('_');
-                if (parts.Length != 3 || !int.TryParse(parts[1], out int costume) || costume < 0 || costume >= 20 || !int.TryParse(parts[2], out int pose) || pose < 0 || pose > 1)
+                if (parts.Length != 3 || !int.TryParse(parts[1], out int costume) || costume < 0 || costume >= 40 || !int.TryParse(parts[2], out int pose) || pose < 0 || pose > 1)
                     throw new ArgumentException("Invalid costume frame: " + key);
                 value = DoodlePlayerCostumeArt.Frame(costume, pose);
             }
             else if (key.StartsWith("SkinWeapon_", StringComparison.Ordinal) && int.TryParse(key.Substring(11), out int weapon))
-                value = LayoutCell("UI/SkinWeapons", weapon);
+                value = DoodleCharacterCatalog.Current.Player(weapon).appearance.weapon;
             else if (key.StartsWith("EquipmentArmor_", StringComparison.Ordinal) && int.TryParse(key.Substring(15), out int armor))
                 value = LayoutCell("UI/EquipmentArmor", armor);
             else if (key.StartsWith("EquipmentClub_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int club))
@@ -46,8 +46,10 @@ namespace DoodleIdle
                 value = Cell("CompanionImpacts", impact, 4, 4);
             else if (key.StartsWith("CompanionShot_", StringComparison.Ordinal) && int.TryParse(key.Substring(14), out int shot))
             {
-                int special = shot == 2 ? 0 : shot == 3 ? 1 : shot == 10 ? 2 : shot == 18 ? 3 : shot == 19 ? 4 : -1;
-                value = shot == 12 ? Cell("CompanionHoney", 0, 1, 1) : special >= 0 ? Cell("CompanionSpecialAttacks", special, 3, 2) : Cell("CompanionAttacks" + (char)('A' + shot / 8), shot % 8, 4, 2);
+                int special = shot == 2 ? 0 : shot == 3 ? 1 : shot == 10 ? 2 : shot == 19 ? 4 : -1;
+                value = shot == 18 ? Cell("CompanionReplacements/StoneShard", 0, 1, 1)
+                    : shot == 21 ? Cell("CompanionReplacements/JellyDrop", 0, 1, 1)
+                    : shot == 12 ? Cell("CompanionHoney", 0, 1, 1) : special >= 0 ? Cell("CompanionSpecialAttacks", special, 3, 2) : Cell("CompanionAttacks" + (char)('A' + shot / 8), shot % 8, 4, 2);
             }
             if (value) { value.name = key.StartsWith("SkinAppearance_", StringComparison.Ordinal) ? "Skin " + key : key; cache[key] = value; }
             return value;
@@ -73,33 +75,13 @@ namespace DoodleIdle
             return Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
                 Vector2.one * .5f, Mathf.Max(region.width, region.height));
         }
-        public static Sprite CompanionFrame(int index, int frame)
-        {
-            if (index >= 24 && index < 34) return DoodleAscensionArt.CompanionFrame(index - 24, frame);
-            string key = "CompanionMon_" + index + "_" + frame;
-            if (cache.TryGetValue(key, out var value) && value && value.texture) return value;
-            cache.Remove(key);
-            string resource = index == 12 ? "DoodleIdle/CompanionHoneyBee" : "DoodleIdle/CompanionMons" + grades[index / 4];
-            var texture = Resources.Load<Texture2D>(resource);
-            if (!texture) throw new InvalidOperationException("Missing companion animation: " + index);
-            if (!layouts.TryGetValue(resource, out var layout)) {
-                layout = JsonUtility.FromJson<AnimationLayout>(Resources.Load<TextAsset>(resource + "Layout").text);
-                layouts[resource] = layout;
-            }
-            // Whole-character bounds exclude neighboring limbs crossing nominal grid boundaries.
-            var region = layout.frames[index == 12 ? frame : frame * 4 + index % 4];
-            // Keep the face/body at the same height while limbs and wings change pose.
-            // Atlas rows have different body baselines even though their crop sizes match.
-            value = Sprite.Create(texture, new Rect(region.x, region.y, region.width, region.height),
-                new Vector2(.5f, .5f + region.bodyOffsetY / region.height), Mathf.Max(region.width, region.height));
-            value.name = key; cache[key] = value; return value;
-        }
+        public static Sprite CompanionFrame(int index, int frame) => DoodleCharacterCatalog.Portrait(DoodleCharacterCatalog.Current.Companion(index), frame);
         public static int CompanionIndex(string key) => int.Parse(key.Substring(13));
         static readonly int[] impactCells = { 0, 0, 0, 9, 0, 5, 1, 8, 1, 2, 3, 5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 5, 8, 11, 0, 10, 9, 15, 13, 13, 12 };
         static readonly string[] impactNames = { "잎 파열", "물보라", "전기 스파크", "낙뢰 섬광", "꿀 튐", "금속 스파크", "서리 파편", "마법 파열", "가시 파열", "달빛 섬광", "화염 폭발", "명중 섬광", "성운 소용돌이", "태양 불꽃", "얼음 파열", "붉은 화염" };
-        public static Sprite CompanionImpact(int index) => index == 27 || index == 29 || index == 31 || index == 33
+        public static Sprite CompanionImpact(int index) => index == 18 || index == 21 ? Get("CompanionShot_" + index) : index == 27 || index == 29 || index == 31 || index == 33
             ? DoodleAscensionArt.Projectile(index - 24) : impactCells[index] < 0 ? null : Get("CompanionImpact_" + impactCells[index]);
-        public static string CompanionImpactName(int index) => index == 0 ? "가지 파편" : index == 1 ? "양파 조각" : index == 2 ? "나뭇잎 파편" : index == 3 ? "달빛 섬광" : index == 5 ? "볼트 파편" : index == 6 ? "이슬 물보라" : index == 7 ? "도토리 파편" : index == 11 ? "태엽 파편" : impactNames[impactCells[index]];
+        public static string CompanionImpactName(int index) => index == 18 ? "자수정 조각" : index == 21 ? "보랏빛 물방울" : index == 0 ? "가지 파편" : index == 1 ? "양파 조각" : index == 2 ? "나뭇잎 파편" : index == 3 ? "달빛 섬광" : index == 5 ? "볼트 파편" : index == 6 ? "이슬 물보라" : index == 7 ? "도토리 파편" : index == 11 ? "태엽 파편" : impactNames[impactCells[index]];
         static Sprite Cell(string resource, int cell, int columns, int rows)
         {
             var texture = Resources.Load<Texture2D>("DoodleIdle/" + resource);

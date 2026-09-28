@@ -32,8 +32,8 @@ namespace DoodleIdle
         {
             vh.Clear(); if (!frame) return;
             Rect r = rectTransform.rect;
-            float unit = Mathf.Min(r.width * .75f, r.height * .55f);
-            Vector2 origin = new Vector2(r.center.x, r.yMin + r.height * .37f);
+            float unit = Mathf.Min(r.width, r.height);
+            Vector2 origin = r.center;
             Vector2 min = origin + (Vector2)frame.bounds.min * unit;
             Vector2 max = origin + (Vector2)frame.bounds.max * unit;
             Rect uv = frame.rect;

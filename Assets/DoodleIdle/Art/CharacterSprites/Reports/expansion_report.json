@@ -1,0 +1,1658 @@
+{
+  "new_enemies": 24,
+  "per_type": {
+    "floating": 8,
+    "quad": 8,
+    "biped": 8
+  },
+  "characters": [
+    {
+      "source": "Enemies/머리날개형/e13_float_paper_lantern.png",
+      "psb": "PSB/Enemies/머리날개형/e13_float_paper_lantern.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round orange paper lantern spirit, two tiny dark horn nubs, red tassel markings painted on the head, red-orange leaf-shaped wings",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "0c6ea3b3e311cd82e40536fa529399c9ce1b21166691c141c995ba9b8311649d",
+      "aligned_png_sha256": "d12431bb8c3c0e4b9b3cf00e2feb0130c2ea153478ed7fa72377bf4512450e21",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e21_quad_rock_ram.png",
+      "psb": "PSB/Enemies/4족형/e21_quad_rock_ram.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "gray slate ram monster with two cream curled horns, long horizontal gray body, four equal-color legs with cream hooves, long bushy upward-curled slate tail with cream tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "c2a8b949816ac121e717fde194fc5cc4d819a2d5003c6fd3e07da55fde2ffee7",
+      "aligned_png_sha256": "8e49366ff7af7d66bc32e851c5b3335d021ad0498d7eacaf8a56fa5102edca7f",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e29_biped_chest_mimic.png",
+      "psb": "PSB/Enemies/머리두발형/e29_biped_chest_mimic.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry rounded wooden treasure chest mimic HEAD with gold corner plates, eyes in the lid and a small toothy mouth, two short wooden legs with brass shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "81b33e00a4bcd480ac53cb8e6918fc8147401c64c400aa85a702795e418ee28c",
+      "aligned_png_sha256": "96a8656386e1578dbf1b2dbc0f82a4f4bad925d150d15944622059ce6378ea6c",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e14_float_moon_moth.png",
+      "psb": "PSB/Enemies/머리날개형/e14_float_moon_moth.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round midnight blue moon-moth spirit head with two short antennae and one pale crescent marking, lavender leaf-shaped moth wings with a single crescent spot",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "90f86368ccf4d3806ebce7d9f888418fff28cc64b0a9ce93020741b2f7b37dd9",
+      "aligned_png_sha256": "664c0dcf03ffd2bf01ec6ff6fc57766e200f0c9e05e8f38e073dc0a0459d3ab8",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e22_quad_thorn_panther.png",
+      "psb": "PSB/Enemies/4족형/e22_quad_thorn_panther.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "dark magenta thorn panther monster with small triangular ears, a leaf-shaped forehead patch, long horizontal body, four same-color legs, long bushy upward-curled magenta tail with pink tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "438bf10ef238d11d04e53356f63d87200f3c0761f7aa1dc06189bbe1533db0c9",
+      "aligned_png_sha256": "7ef7d510f31a01dfe433579c9a3d5ee0e16288626e45a07f8acd425c478e95a3",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e30_biped_radish.png",
+      "psb": "PSB/Enemies/머리두발형/e30_biped_radish.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry white radish monster HEAD with three small green leaves on top, round plump shape, two short green legs with brown shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "3d8982499649161823bd593488278c8479e6554015eca7265153ddb9a50601c6",
+      "aligned_png_sha256": "56ac3b642950084d11af4e8cb68c4af9c816e7a99b08bbd81846e880b1a5b803",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e15_float_pearl_oyster.png",
+      "psb": "PSB/Enemies/머리날개형/e15_float_pearl_oyster.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry ivory pearl head in a small lavender shell crown, two slightly angry eyes, pale lavender leaf-shaped shell wings with two simple radial lines",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "f426d44f7f0d272f4de2196b3c6615e5b73c51a4550759bb5425298c85b5f099",
+      "aligned_png_sha256": "c668a989542f72ba94513e8a58a06aad36e90945263a1f4f87369946e8fc55dd",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e23_quad_coral_gecko.png",
+      "psb": "PSB/Enemies/4족형/e23_quad_coral_gecko.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "salmon pink coral gecko monster with short ear-like coral prongs, long horizontal body, four same-color legs, long upward-curled thick smooth pink tail with cream tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "24e14f259eba4bb9255d232c262b45ac92717193549a41eb24d744e99ded65ea",
+      "aligned_png_sha256": "a20fddc17019ee6199da413622f2a258c086bb6f424719131cdb055fbf084f02",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e31_biped_dice.png",
+      "psb": "PSB/Enemies/머리두발형/e31_biped_dice.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry rounded ivory dice HEAD, just a few black pip markings clear of the face, two short dark gray legs with ivory shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "4d8bdd3d823059e516df2a4aabdab6aa36e5933214078d0693e7cd180d73a7cd",
+      "aligned_png_sha256": "2d5b263eef7b100e3668e41563f11d52c8bdf269deeb25a4744666b3655c3397",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e16_float_haunted_mask.png",
+      "psb": "PSB/Enemies/머리날개형/e16_float_haunted_mask.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round ivory haunted festival mask head with two small crimson eyebrow markings, dark purple leaf-shaped wings with a small red stripe",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "ebff25253aeee4c710f8e2d2d6682d903692bf49fa33926722ce0b9de35f5a10",
+      "aligned_png_sha256": "ada2eb40172b46ea39af72cbd796ce00f5b47f8aba6250b23d9054aeb2705224",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e24_quad_clock_ferret.png",
+      "psb": "PSB/Enemies/4족형/e24_quad_clock_ferret.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "bronze clockwork ferret monster with small rounded ears and one forehead bolt, long horizontal segmented bronze body, four equal-colored legs, long upward-curled bushy bronze tail with dark brown tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "0eb78ce33e849f8d4b6de832c2653cb90f98b1cf5023c918394d2bb2c0321d55",
+      "aligned_png_sha256": "db2cfbd8e18382066daae65c87da843382898ca4e8bba06bcadb76915b792897",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e32_biped_coal.png",
+      "psb": "PSB/Enemies/머리두발형/e32_biped_coal.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round charcoal coal HEAD with two orange cracks and two small angular tufts, two short gray legs with orange shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "4874b0e2af2d5588953f907dbf90e2229573d0f6f08efa17087cb57222914f12",
+      "aligned_png_sha256": "3feabb77971171702c8f9b48ab68279c2959c55e31a508b735620684844052a1",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e17_float_thunder_orb.png",
+      "psb": "PSB/Enemies/머리날개형/e17_float_thunder_orb.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry yellow storm orb head with two compact lightning-shaped horns, pale yellow leaf-shaped wings with a single orange lightning line",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "0461da69fed33cfcc1ca4e417a94c56208624e853463e50d259af52578c6ac2d",
+      "aligned_png_sha256": "3b4a9f66acbc96814cebddd8220da7a16b802ecb65ad3ae52184e0a437cdc4f7",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e25_quad_snow_lynx.png",
+      "psb": "PSB/Enemies/4족형/e25_quad_snow_lynx.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "pale blue snowy lynx monster with small tufted ears and dark blue forehead markings, long horizontal body, four same-color legs, long bushy upward-curled blue tail with white tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "5ce314147e2f904f9ddfce66a63dc430c33c8e4e61f2d877668e874ebb810897",
+      "aligned_png_sha256": "987ab8f9c92bc1cc68168d67fad9baf4620ecc6bf814454f76c04e0bf16a09bc",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e33_biped_bell.png",
+      "psb": "PSB/Enemies/머리두발형/e33_biped_bell.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round brass bell HEAD with a small loop on top and dark rim near the chin, two short brown legs with brass shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "4bbdc26f3370653b0af55ed271ffcf7d2dbe6975761404ef3e0fc78e056b04d5",
+      "aligned_png_sha256": "1c9adcbd1f99010d0b88e42ee7a39d6fd8dbc3a6b0a2237747b9f6807ab78ebf",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e18_float_thorn_rose.png",
+      "psb": "PSB/Enemies/머리날개형/e18_float_thorn_rose.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round burgundy rose-bud monster head with three simple folded petals, dark green leaf-shaped wings with a single vein",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "18c3a21d61be1e90f1cca688da16b306af8ff1a49b4c0d643332231eb2175949",
+      "aligned_png_sha256": "cc4dcd18516f07382c71762cdd3f2558d1c34f94e0371b22e5860ed6fe6497eb",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e26_quad_honey_badger.png",
+      "psb": "PSB/Enemies/4족형/e26_quad_honey_badger.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "honey gold striped badger monster with rounded ears and cream muzzle, long horizontal body with one brown stripe, four equal-colored legs, long bushy upward-curled honey tail with cream tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "852b9a42a7f2779ffc1138c25f48b26d2a0352ac2857c44a1cb819b8ad6a2599",
+      "aligned_png_sha256": "1f8ba7089ccf6563f408ad8a7b3a39b23603e2b619016badaa541d1238b4e869",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e34_biped_coral.png",
+      "psb": "PSB/Enemies/머리두발형/e34_biped_coral.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round turquoise coral rock HEAD with two compact pink coral prongs on top, two short turquoise legs with pale pink shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "8a9bd8323915e41c1935b173df34362a568e6e48aec998997fcede0614c1184e",
+      "aligned_png_sha256": "0a93c7ad2af9e50cd53d72a24314ddd5b6c94141185413d1e5fcdc4c89b39bca",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e19_float_ice_bell.png",
+      "psb": "PSB/Enemies/머리날개형/e19_float_ice_bell.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round icy cyan frost spirit head with a small pointed ice crown, pale cyan leaf-shaped ice wings with two simple facet lines",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "442edbc4a0b194d36462deb1f15d02ab8af0025467adcfb0c6177774dfad12c9",
+      "aligned_png_sha256": "c273fa3a077150af08def16326bcca4f94aeb4e493af28ba46e57a5c4f915ed1",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e27_quad_lava_hound.png",
+      "psb": "PSB/Enemies/4족형/e27_quad_lava_hound.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "charcoal lava hound monster with small orange horn-like ears, long horizontal body with two simple orange crack markings, four same-color legs, long bushy upward-curled charcoal tail with solid orange tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "925c1aa98700806026e7f031aa74c9a46fcc9a4c78bd94ec15066b3c66f7e97f",
+      "aligned_png_sha256": "e2f14e8be9d4809b22a17621aa7f99fe8d91db0319f144ee51a00c804f6f686b",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e35_biped_acid_flask.png",
+      "psb": "PSB/Enemies/머리두발형/e35_biped_acid_flask.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round green potion flask HEAD with a short corked neck on top, thick black outline and minimal glass highlights, two short green legs with dark green shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "389b9c1111efd241aefa56f31d6f3e9342b150691fc959b5a085f1a05a031523",
+      "aligned_png_sha256": "787602789b00b025c9c91d20a8c4b0af2cfdfbbf4b5943cfba73e8e60d64a30f",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리날개형/e20_float_sand_eye.png",
+      "psb": "PSB/Enemies/머리날개형/e20_float_sand_eye.psb",
+      "type": "floating",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry round ochre sand spirit head with small stone brow ridges, TWO distinct eyes, tan leaf-shaped sandy wings with one dark ochre stripe",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "f337d0f402e87e0bfc66c27eb3e444ad90e60b1e2c167f79dc1f9c0b7a3c64f2",
+      "aligned_png_sha256": "6a84ef40b14476f445316cf33816fec613b2ed48aaa49ec99e04f9481a9f2d11",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            96
+          ],
+          "size": [
+            1128,
+            988
+          ]
+        },
+        {
+          "name": "날개1",
+          "offset": [
+            51,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        },
+        {
+          "name": "날개2",
+          "offset": [
+            881,
+            1126
+          ],
+          "size": [
+            568,
+            448
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/4족형/e28_quad_forest_deer.png",
+      "psb": "PSB/Enemies/4족형/e28_quad_forest_deer.psb",
+      "type": "quad",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "muted green forest deer monster with two short simple branch antlers, cream muzzle, long horizontal green body with three small cream spots, four same-color legs, long bushy upward-curled green tail with cream tip",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "6bead7b804b4f6b3941ab28f31dcc4c29b6ca6465816c7867bcf7d746b41cc8a",
+      "aligned_png_sha256": "4e9702af77caf0cd7b90c26e62b4c80e10623c8e641f9c44048af954d9f12c04",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            856,
+            66
+          ],
+          "size": [
+            568,
+            578
+          ]
+        },
+        {
+          "name": "몸통",
+          "offset": [
+            246,
+            666
+          ],
+          "size": [
+            1008,
+            438
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            91,
+            1131
+          ],
+          "size": [
+            278,
+            503
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            451,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "다리3",
+          "offset": [
+            846,
+            1131
+          ],
+          "size": [
+            238,
+            503
+          ]
+        },
+        {
+          "name": "다리4",
+          "offset": [
+            1161,
+            1131
+          ],
+          "size": [
+            263,
+            503
+          ]
+        },
+        {
+          "name": "꼬리",
+          "offset": [
+            66,
+            46
+          ],
+          "size": [
+            618,
+            568
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Enemies/머리두발형/e36_biped_tombstone.png",
+      "psb": "PSB/Enemies/머리두발형/e36_biped_tombstone.psb",
+      "type": "biped",
+      "canvas": [
+        1500,
+        1700
+      ],
+      "theme": "angry rounded gray tombstone HEAD with one tiny crack and small faded rune above the face, two short gray legs with dark gray shoes",
+      "generation": "imagegen",
+      "appendage_alignment": "Reports/appendage_alignment_report.json",
+      "sha256": "c6d8f510357ea20899f4095391165325092baf4bd4debc46707d2f565d118e46",
+      "aligned_png_sha256": "51fe1b9526b3089d1012d4075c47b7bc7b37ce477eea9efb7962abcbf91d6ada",
+      "verified": true,
+      "alpha_identical": true,
+      "visible_pixels_identical": true,
+      "merged_preview_white_matte": true,
+      "rig_layout_standardized": true,
+      "layers": [
+        {
+          "name": "머리",
+          "offset": [
+            186,
+            76
+          ],
+          "size": [
+            1128,
+            1048
+          ]
+        },
+        {
+          "name": "다리1",
+          "offset": [
+            276,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        },
+        {
+          "name": "다리2",
+          "offset": [
+            916,
+            1176
+          ],
+          "size": [
+            338,
+            428
+          ]
+        }
+      ]
+    }
+  ]
+}

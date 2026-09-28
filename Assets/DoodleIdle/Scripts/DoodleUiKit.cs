@@ -195,6 +195,8 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(key)) key="Player";
             if(art.TryGetValue(key,out var cached) && cached && cached.texture) return cached;
             art.Remove(key);
+            var portrait = DoodleCharacterCatalog.LegacyPortrait(key);
+            if (portrait) { art[key] = portrait; return portrait; }
             var ascension=DoodleAscensionArt.Get(key);if(ascension){art[key]=ascension;return ascension;}
             if (key == "Necklace") key = "EquipmentNecklace_10";
             var collection=DoodleCollectionArt.Get(key);if(collection){art[key]=collection;return collection;}
@@ -256,8 +258,8 @@ namespace DoodleIdle
             else if(index>=0) value=Cell("UI/Icons",index,4,4);
             else {
                 switch(key) {
-                    case "Player": case "Companion": case "Cloud": value=Cell("Characters",0,3,3); break;
-                    case "Club": case "Attack": value=Cell("Characters",4,3,3); break;
+                    case "Cloud": value=DoodleCharacterCatalog.Portrait(DoodleCharacterCatalog.Current.Companion(10)); break;
+                    case "Club": case "Attack": value=DoodleCharacterCatalog.Current.Player(-1).appearance.weapon; break;
                     case "Banana": value=Cell("Characters",5,3,3); break;
                     case "Stone": value=Cell("Characters",6,3,3); break;
                     case "Gold": value=Art("GoldCoin"); break;
@@ -273,7 +275,7 @@ namespace DoodleIdle
                         break;
                 }
             }
-            if(!value) value=Cell("Characters",0,3,3); art[key]=value; return value;
+            if(!value) value=DoodleCharacterCatalog.PlayerPortrait(); art[key]=value; return value;
         }
         static Sprite Cell(string path,int index,int cols,int rows)
         {

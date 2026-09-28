@@ -390,5 +390,68 @@
   "unity_bone_copy_tested": true,
   "player_master_head": "PSB/Player/Characters/00_default.psb:머리",
   "player_master_head_rgba_sha256": "f9405d4af78b627dd1508f05454fc47749d2689a8ed49748af354454f9ef6aed",
-  "unity_rig_report": "../../CharacterRigs/Reports/skeleton_report.json"
+  "unity_rig_report": "../../CharacterRigs/Reports/skeleton_report.json",
+  "appendage_anchors": {
+    "quad": {
+      "꼬리": {
+        "root": [
+          570,
+          470
+        ],
+        "tip": [
+          160,
+          230
+        ],
+        "width": 300
+      }
+    },
+    "wing": {
+      "날개1": {
+        "root": [
+          670,
+          535
+        ],
+        "tip": [
+          200,
+          650
+        ],
+        "width": 290
+      },
+      "날개2": {
+        "root": [
+          180,
+          1090
+        ],
+        "tip": [
+          670,
+          1220
+        ],
+        "width": 290
+      }
+    },
+    "floating": {
+      "날개1": {
+        "root": [
+          540,
+          1360
+        ],
+        "tip": [
+          160,
+          1230
+        ],
+        "width": 210
+      },
+      "날개2": {
+        "root": [
+          980,
+          1360
+        ],
+        "tip": [
+          1340,
+          1230
+        ],
+        "width": 210
+      }
+    }
+  }
 }

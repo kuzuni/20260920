@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: e27_quad_lava_hound
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: quad
+  characterId: e27_quad_lava_hound
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -2245302592403092906, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: 3.4, y: 10.84, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 8
+  - name: "\uBAB8\uD1B5"
+    sprite: {fileID: 5255697230742235916, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: -0.5, y: 5.85, z: 0}
+    boneNames:
+    - "\uBAB8\uD1B5"
+    sortingOrder: 3
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 1291028833041953670, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: -5.7, y: 0.875, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: 2210820322234418876, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: -2.175, y: 0.875, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 5
+  - name: "\uB2E4\uB9AC3"
+    sprite: {fileID: 521598208470912309, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: 1.65, y: 0.875, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC3"
+    - "\uB2E4\uB9AC3_\uB05D"
+    sortingOrder: 2
+  - name: "\uB2E4\uB9AC4"
+    sprite: {fileID: -6821200249911119942, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: 4.925, y: 0.875, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC4"
+    - "\uB2E4\uB9AC4_\uB05D"
+    sortingOrder: 6
+  - name: "\uAF2C\uB9AC"
+    sprite: {fileID: 5219123923275919673, guid: 6a7dc35d4b32fc040a8c432152ea8bed, type: 3}
+    rendererPosition: {x: -4.115, y: 11.37, z: 0}
+    boneNames:
+    - "\uAF2C\uB9AC"
+    - "\uAF2C\uB9AC_\uB05D"
+    sortingOrder: 0
+  weapon: {fileID: 0}
+  weaponScale: 1

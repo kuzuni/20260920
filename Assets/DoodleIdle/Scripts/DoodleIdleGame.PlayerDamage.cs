@@ -69,6 +69,7 @@ namespace DoodleIdle
         void ApplyPlayerHitAppearance()
         {
             player.art.color = PlayerInvulnerabilityTint(player.art.color);
+            if (player.rigVisual) { player.rigVisual.Sync(); return; }
             if (PlayerFadedHitPhase) {
                 if (!playerHitMaterial) playerHitMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodlePlayerHit")) { name = "Doodle player hit fade" };
                 playerHitMaterial.mainTexture = player.art.sprite.texture;

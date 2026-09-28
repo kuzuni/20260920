@@ -24,11 +24,11 @@ namespace DoodleIdle
                     new[] { new GradientAlphaKey(0,0), new GradientAlphaKey(1,.08f), new GradientAlphaKey(1,.35f), new GradientAlphaKey(0,1) });
                 color.color = fade;
                 var spin = system.rotationOverLifetime;
-                spin.enabled = i <= 2 || i == 4 || i == 5 || i == 7 || i == 11 || i == 13 || i == 14 || i == 16 || i == 22;
+                spin.enabled = i <= 2 || i == 4 || i == 5 || i == 7 || i == 11 || i == 13 || i == 14 || i == 16 || i == 18 || i == 22;
                 if (spin.enabled) spin.z = new ParticleSystem.MinMaxCurve(-5,5);
                 var force = system.forceOverLifetime;
                 force.enabled = true; force.space = ParticleSystemSimulationSpace.World;
-                force.y = i == 6 || i == 8 || i == 12 ? -5f : spin.enabled ? -2.5f : i == 18 || i == 21 || i == 23 ? 1.8f : 0;
+                force.y = i == 6 || i == 8 || i == 12 ? -5f : i == 18 ? -3.5f : i == 21 || spin.enabled ? -2.5f : i == 23 ? 1.8f : 0;
                 companionImpactParticles[i] = system; all.Add(system);
             }
         }

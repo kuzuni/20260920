@@ -18,6 +18,7 @@ namespace DoodleIdle
             // Keep a new combat identity. Projectiles holding the retired Actor must never hit a respawned enemy.
             actor = new Actor { root = previous.root, body = previous.body, collider = previous.collider,
                 art = previous.art, shadow = previous.shadow, healthBack = previous.healthBack, healthFill = previous.healthFill,
+                rigVisual = previous.rigVisual,
                 kind = kind, phase = Random.value * 6.28f };
             actor.root.name = "Enemy - " + ThemeEnemies[CurrentThemeIndex][kind];
             actor.root.transform.localScale = Vector3.one;
@@ -28,6 +29,7 @@ namespace DoodleIdle
             actor.art.transform.localPosition = Vector3.zero; actor.art.color = Color.white; actor.art.enabled = true;
             actor.art.flipY = false; actor.art.transform.localRotation = Quaternion.identity;
             SetSpriteArt(actor.art, enemyWalkFrames[kind][0]); NormalizeEnemyFrame(actor, actor.art.sprite);
+            ConfigureActorRig(actor);
             actor.art.flipX = player.Position.x < position.x;
             actor.shadow.transform.localPosition = new Vector3(0, -.58f, 0);
             actor.shadow.transform.localScale = new Vector3(1.15f, .42f, 1);

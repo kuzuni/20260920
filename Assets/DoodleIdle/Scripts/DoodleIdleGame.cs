@@ -52,6 +52,7 @@ namespace DoodleIdle
             public GameObject root;
             public Rigidbody2D body;
             public SpriteRenderer art, shadow;
+            public DoodleRigVisual rigVisual;
             public SpriteRenderer healthBack, healthFill;
             public CircleCollider2D collider;
             public GameNumber hp = 68, maxHp = 68;
@@ -145,6 +146,8 @@ namespace DoodleIdle
             Color32[] pixels = texture.GetPixels32();
             for (int i = 0; i < 9; i++)
             {
+                if (i == 0) { result[i] = DoodleCharacterCatalog.PlayerPortrait(); continue; }
+                if (i == 4) { result[i] = DoodleCharacterCatalog.Current.Player(-1).appearance.weapon; continue; }
                 int x0 = i % 3 * cw, y0 = (2 - i / 3) * ch;
                 int minX = x0 + cw, minY = y0 + ch, maxX = x0, maxY = y0;
                 for (int y = y0; y < y0 + ch; y++)
@@ -233,8 +236,7 @@ namespace DoodleIdle
             paused = false;
             player = CreateActor(true, Vector2.zero, 0);
             ResetPlayerContactDamage();
-            weapon = Visual("Floating baseball club", sprites[4], Vector2.zero, Vector2.one * .94f, 20).transform;
-            weapon.SetParent(player.root.transform, false);
+            weapon = player.rigVisual.Rig.weaponRenderer.transform;
             for (int i = 0; i < 5; i++)
             {
                 bananas[i] = Visual("Orbit banana " + (i + 1), sprites[5], Vector2.zero, Vector2.one * 1.16f, 80).transform;
@@ -270,6 +272,8 @@ namespace DoodleIdle
             var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
             var actor = new Actor { root = root, body = body, art = art, shadow = shadow, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
+            actor.rigVisual = art.gameObject.AddComponent<DoodleRigVisual>();
+            ConfigureActorRig(actor);
             if (!isPlayer)
             {
                 actor.hp = actor.maxHp = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
@@ -454,6 +458,7 @@ namespace DoodleIdle
         void FireSlash(Vector2 direction)
         {
             swing = 1;
+            player.rigVisual.Attack();
             var sprite = Visual("Club slash wave", slash, player.Position + direction * .65f, Vector2.one * 1.6f, 500);
             VisualTrigger(sprite);
             sprite.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
@@ -569,6 +574,7 @@ namespace DoodleIdle
             if (enemy.hp <= 0) return;
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
+            enemy.rigVisual.Hit();
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
@@ -595,12 +601,22 @@ namespace DoodleIdle
             actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
             actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
+            actor.rigVisual.Sync();
             RefreshHealthBar(actor);
             actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = -900;
         }
 
         void UpdateHeldClub()
         {
+            if (player.rigVisual) {
+                var renderer = player.rigVisual.Rig.weaponRenderer;
+                string key = Ui ? Ui.EquippedWeaponIcon : "Club";
+                var sprite = key == "Club" ? player.rigVisual.Entry.appearance.weapon : WorldSkinSprite(key, true);
+                if (sprite && renderer.sprite != sprite) SetSpriteArt(renderer, sprite);
+                renderer.enabled = sprite;
+                renderer.color = Ui ? Ui.EquippedWeaponTint : Color.white;
+                return;
+            }
             float side = facing.x < 0 ? -1 : 1;
             // Sprite pivot is inside the grip; the hand contact follows the head's bob and tilt.
             weapon.position = player.art.transform.TransformPoint(new Vector3(.4f * side, -.18f, 0));
@@ -640,6 +656,7 @@ namespace DoodleIdle
             if (paused) ReleaseJoystick();
             player.body.simulated = !paused;
             foreach (var enemy in enemies) enemy.body.simulated = !paused;
+            foreach (var visual in world.GetComponentsInChildren<DoodleRigVisual>()) { visual.Paused = paused; visual.Sync(); }
         }
 
         static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)

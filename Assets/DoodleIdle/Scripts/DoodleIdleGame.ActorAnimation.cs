@@ -39,31 +39,37 @@ namespace DoodleIdle
         }
         void LoadActorAnimations()
         {
-            var playerTexture = ActorTexture("PlayerWalkB");
-            playerWalkB = ActorSprite(playerTexture, OpaqueBounds(playerTexture), "PlayerWalkB");
+            playerWalkB = DoodleCharacterCatalog.PlayerPortrait(-1, 1);
             for (int i = 0; i < EnemyArtNames.Length; i++)
             {
-                string name = EnemyArtNames[i];
-                var a = ActorTexture(name + "A"); var b = ActorTexture(name + "B");
-                Rect first = OpaqueBounds(a), second = OpaqueBounds(b);
-                // Use a shared crop for both poses so folding wings does not rescale the whole head.
-                Rect union = Rect.MinMaxRect(Mathf.Min(first.xMin, second.xMin), Mathf.Min(first.yMin, second.yMin),
-                    Mathf.Max(first.xMax, second.xMax), Mathf.Max(first.yMax, second.yMax));
-                enemyWalkFrames[i] = new[] { ActorSprite(a, union, name + "A"), ActorSprite(b, union, name + "B") };
+                var entry = DoodleCharacterCatalog.Current.Enemy(0, i);
+                enemyWalkFrames[i] = entry.portraits;
             }
+        }
+        int enemyAppearanceSequence;
+        void ConfigureActorRig(Actor actor)
+        {
+            var entry = actor.isPlayer ? DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(Ui ? Ui.EquippedAppearanceIcon : "Player"))
+                : DoodleCharacterCatalog.Current.Enemy(CurrentThemeIndex, enemyAppearanceSequence++);
+            actor.rigVisual.Configure(entry); actor.rigVisual.Paused = paused;
         }
         void AnimateActorFrames(Actor actor, float dt)
         {
             bool moving = actor.body.simulated && actor.body.linearVelocity.sqrMagnitude > .0025f;
+            if (actor.isPlayer) {
+                var entry = DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(Ui ? Ui.EquippedAppearanceIcon : "Player"));
+                actor.rigVisual.Configure(entry);
+                actor.art.flipX = facing.x < 0;
+            }
+            actor.rigVisual.Moving(moving); actor.rigVisual.Paused = paused;
             // Follow this actor's actual travel, not the player's facing or target position.
             // Keep the last direction at rest or during vertical motion to avoid left/right flicker.
             if (!actor.isPlayer && moving && Mathf.Abs(actor.body.linearVelocity.x) > .05f)
                 actor.art.flipX = actor.body.linearVelocity.x < 0;
             actor.walkClock = moving ? actor.walkClock + dt : 0;
             int frame = moving ? (int)(actor.walkClock * 6 + actor.phase) % 2 : 0;
-            Sprite art = actor.isPlayer ? PlayerSkinFrame(frame == 0 ? sprites[0] : playerWalkB) : enemyWalkFrames[actor.kind][frame];
-            if (actor.art.sprite != art) SetSpriteArt(actor.art, art);
-            if(!actor.isPlayer)NormalizeEnemyFrame(actor,art);
+            actor.art.sprite = DoodleCharacterCatalog.Portrait(actor.rigVisual.Entry, frame);
+            actor.art.enabled = false;
         }
         void DisposeActorAnimations()
         {

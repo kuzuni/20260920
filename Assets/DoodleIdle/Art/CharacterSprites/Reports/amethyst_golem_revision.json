@@ -1,0 +1,98 @@
+{
+  "source": "Companions/머리날개형/19_companion_brick.png",
+  "display_name": "자수정골렘",
+  "projectile": "자수정 조각",
+  "generation": "built-in image_gen",
+  "prompts": [
+    {
+      "name": "amethyst_golem",
+      "ref": "C:/Users/user/Documents/GitHub/20260920/Assets/DoodleIdle/Art/CharacterSprites/Companions/머리날개형/19_companion_brick.png",
+      "prompt": "Edit this sprite sheet into an AMETHYST GOLEM companion. Keep EXACT sheet composition and 3 separate parts: large round faceted head at top, two small feather wings below. Preserve eyes, smile, rightward gaze, black outlines, proportions, all part positions and sizes. Change gray rock to saturated medium purple amethyst with just a few large flat lavender and dark violet facets. Two existing small rocks on top become simple amethyst crystal protrusions occupying same area, do not enlarge silhouette. Wings purple with pale lilac tips, keep same feather shape. Simple low detail cute 2D game art, no extra details, no sparkle particles, no glow, no body, no text. Transparent background."
+    },
+    {
+      "name": "amethyst_shard",
+      "ref": "C:/Users/user/Documents/GitHub/20260920/Assets/DoodleIdle/Resources/DoodleIdle/CompanionReplacements/StoneShard.png",
+      "prompt": "Edit this single game projectile stone into a simple purple amethyst crystal shard. Same central placement and approximate size, thick black outline, several broad flat lavender/medium purple/deep violet facets, slightly pointed crystal shape facing right. Low detail 2D cartoon asset matching a cute faceted purple golem. No face, no effects, no text, no scattered pieces, no glow. Transparent background."
+    }
+  ],
+  "anchors": [
+    {
+      "source": "Companions/머리날개형/19_companion_brick.png",
+      "part": "날개1",
+      "source_root": [
+        276.0,
+        148.0
+      ],
+      "source_tip": [
+        9.0,
+        16.0
+      ],
+      "target_root": [
+        540.0,
+        1360.0
+      ],
+      "target_tip": [
+        160.0,
+        1230.0
+      ],
+      "span_pixels": 401.62171256046406,
+      "width_pixels": 210.0,
+      "source_to_document": [
+        [
+          1.3275834339730936,
+          0.19344866006957634,
+          144.95657053312885
+        ],
+        [
+          -0.14627857747506545,
+          1.280730152923049,
+          1210.8248247505069
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "source": "Companions/머리날개형/19_companion_brick.png",
+      "part": "날개2",
+      "source_root": [
+        44.0,
+        145.0
+      ],
+      "source_tip": [
+        299.0,
+        16.0
+      ],
+      "target_root": [
+        980.0,
+        1360.0
+      ],
+      "target_tip": [
+        1340.0,
+        1230.0
+      ],
+      "span_pixels": 382.7531841800928,
+      "width_pixels": 210.0,
+      "source_to_document": [
+        [
+          1.3225500756258861,
+          -0.17635450166975974,
+          947.3791994145762
+        ],
+        [
+          0.14365782685035156,
+          1.2917267119910048,
+          1166.378682379889
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ]
+}

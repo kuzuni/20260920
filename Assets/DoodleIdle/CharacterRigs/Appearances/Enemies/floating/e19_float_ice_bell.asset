@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: e19_float_ice_bell
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: floating
+  characterId: e19_float_ice_bell
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: 7335394574450407040, guid: c0a6b5f023c926e4691edf3cc7993d23, type: 3}
+    rendererPosition: {x: -0.005, y: 6.3, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 6
+  - name: "\uB0A0\uAC1C1"
+    sprite: {fileID: 4601529233764610673, guid: c0a6b5f023c926e4691edf3cc7993d23, type: 3}
+    rendererPosition: {x: -3.77, y: -1.015, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C1"
+    - "\uB0A0\uAC1C1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB0A0\uAC1C2"
+    sprite: {fileID: -2439889312917245361, guid: c0a6b5f023c926e4691edf3cc7993d23, type: 3}
+    rendererPosition: {x: 3.87, y: -1.02, z: 0}
+    boneNames:
+    - "\uB0A0\uAC1C2"
+    - "\uB0A0\uAC1C2_\uB05D"
+    sortingOrder: 3
+  weapon: {fileID: 0}
+  weaponScale: 1

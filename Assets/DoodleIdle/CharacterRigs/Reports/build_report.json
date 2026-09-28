@@ -1,14 +1,11 @@
 {
-  "characters": 118,
-  "sprites": 595,
-  "prefabs": 6,
-  "checks": [
-    "standard: every appearance swap validated",
-    "quad: every appearance swap validated",
-    "wing: every appearance swap validated",
-    "floating: every appearance swap validated",
-    "biped: every appearance swap validated",
-    "118 reloaded PSB metadata skeletons compared: exact bone names, GUIDs, parents, positions, rotations and lengths within each type"
-  ],
-  "errors": []
+    "characters": 13,
+    "sprites": 39,
+    "prefabs": 1,
+    "checks": [
+        "13 common skeletons reloaded and compared; 39 independently regenerated meshes",
+        "1 existing prefab skeleton poses, sorting orders and Animator controllers preserved; sprite references refreshed",
+        "Catalog contains 142 appearances; only selected types refreshed"
+    ],
+    "errors": []
 }

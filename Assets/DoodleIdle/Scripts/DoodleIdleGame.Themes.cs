@@ -38,24 +38,8 @@ namespace DoodleIdle
         Sprite[][] LoadThemeFrames(int index)
         {
             if (themeFrames.TryGetValue(index, out var cached)) return cached;
-            string path = "DoodleIdle/Themes/" + ThemeResources[index];
-            var texture = Resources.Load<Texture2D>(path);
-            var layout = JsonUtility.FromJson<ThemeAtlasLayout>(Resources.Load<TextAsset>(path + "Layout").text);
             var frames = new Sprite[3][];
-            for (int kind = 0; kind < 3; kind++)
-            {
-                frames[kind] = new Sprite[2];
-                for (int pose = 0; pose < 2; pose++)
-                {
-                    var region = layout.frames[pose * 3 + kind];
-                    var rect = new Rect(region.x,region.y,region.width,region.height);
-                    var frameTexture = string.IsNullOrEmpty(region.resource) ? texture : Resources.Load<Texture2D>("DoodleIdle/Themes/" + region.resource);
-                    var frame = Sprite.Create(frameTexture, rect, Vector2.one * .5f, Mathf.Max(rect.width, rect.height));
-                    frame.name = ThemeResources[index] + kind + (pose == 0 ? "A" : "B");
-                    sourceFrameFacesLeft[frame]=region.facesLeft;
-                    actorAnimationSprites.Add(frame); frames[kind][pose] = frame;
-                }
-            }
+            for (int kind = 0; kind < 3; kind++) frames[kind] = DoodleCharacterCatalog.Current.Enemy(index, kind).portraits;
             themeFrames[index] = frames; return frames;
         }
         void NormalizeEnemyFrame(Actor actor,Sprite frame)

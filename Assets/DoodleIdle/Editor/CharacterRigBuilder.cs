@@ -106,14 +106,46 @@ public static class CharacterRigBuilder
         File.WriteAllBytes(meta,bytes);
     }
 
+    public static void WriteReport(string path,string text) => WriteArtifact(path,Encoding.UTF8.GetBytes(text));
+    public static void WriteArtifact(string path,byte[] bytes)
+    {
+        AssetDatabase.ReleaseCachedFileHandles();
+        if(File.Exists(path))
+        {
+            const string archive="Library/CharacterRigWriteBackup";
+            Directory.CreateDirectory(archive);
+            File.Move(path,archive+"/"+Guid.NewGuid().ToString("N")+Path.GetExtension(path));
+        }
+        File.WriteAllBytes(path,bytes);
+    }
+
     static void GenerateMesh(ISpriteEditorDataProvider provider, SpriteRect rect, CharacterPart cp, Part part, Report report)
     {
         var mesh=NewInternal("SpriteMeshData");Call(mesh,"SetFrame",rect.rect);
         var controller=NewInternal("SpriteMeshDataController");controller.GetType().GetField("spriteMeshData").SetValue(controller,mesh);
-        Call(controller,"OutlineFromAlpha",NewInternal("OutlineGenerator"),provider.GetDataProvider<ITextureDataProvider>(),.35f,(byte)10);
-        Call(controller,"Triangulate",NewInternal("Triangulator"));
-        var vertices=((Vector2[])Prop(mesh,"vertices")).ToList();var indices=(int[])Prop(mesh,"indices");
-        if(vertices.Count<=4 || indices.Length<3)throw new Exception("Auto geometry failed: "+rect.name);
+        List<Vector2> vertices=null;int[] indices=null;bool valid=false;
+        foreach(var setting in new[]{(.35f,(byte)10),(.6f,(byte)10),(.15f,(byte)32),(.8f,(byte)64),(.4f,(byte)128)})
+        {
+            Call(controller,"OutlineFromAlpha",NewInternal("OutlineGenerator"),provider.GetDataProvider<ITextureDataProvider>(),setting.Item1,setting.Item2);
+            var outline=(Vector2[])Prop(mesh,"vertices");double outlineArea=0;
+            foreach(var edge in (Array)Prop(mesh,"edges"))
+            {
+                int a=(int)edge.GetType().GetField("x").GetValue(edge),b=(int)edge.GetType().GetField("y").GetValue(edge);
+                outlineArea+=(double)outline[a].x*outline[b].y-(double)outline[b].x*outline[a].y;
+            }
+            outlineArea=Math.Abs(outlineArea)*.5;
+            Call(controller,"Triangulate",NewInternal("Triangulator"));
+            vertices=((Vector2[])Prop(mesh,"vertices")).ToList();indices=(int[])Prop(mesh,"indices");double triangleArea=0;
+            for(int i=0;i<indices.Length;i+=3)
+            {
+                var u=vertices[indices[i+1]]-vertices[indices[i]];var v=vertices[indices[i+2]]-vertices[indices[i]];
+                triangleArea+=Math.Abs((double)u.x*v.y-(double)u.y*v.x)*.5;
+            }
+            // A nonempty triangulation can still contain only a tiny fragment.
+            // Retry the alpha outline rather than accepting an invisible limb.
+            if(vertices.Count>4 && outlineArea>1 && triangleArea>=outlineArea*.98 && triangleArea<=outlineArea*1.02){valid=true;break;}
+        }
+        if(!valid)throw new Exception("Auto geometry did not cover its alpha outline: "+rect.name);
         var meshEdges=(Array)Prop(mesh,"edges");var edges=new List<Vector2Int>();
         foreach(var e in meshEdges) edges.Add(new Vector2Int((int)e.GetType().GetField("x").GetValue(e),(int)e.GetType().GetField("y").GetValue(e)));
         // Subdivide the independently generated triangles for smooth joint weights.
@@ -137,7 +169,12 @@ public static class CharacterRigBuilder
         ReleaseMeta(path);
         var importer=(PSDImporter)AssetImporter.GetAtPath(path);
         importer.textureType=TextureImporterType.Sprite;importer.spriteImportMode=SpriteImportMode.Multiple;importer.useMosaicMode=true;importer.useCharacterMode=true;importer.spritePixelsPerUnit=Ppu;importer.mipmapEnabled=false;
-        var so=new SerializedObject(importer);so.FindProperty("m_ResliceFromLayer").boolValue=false;so.ApplyModifiedPropertiesWithoutUndo();importer.SaveAndReimport();
+        // Re-read changed alpha bounds before rebuilding geometry. Old packed
+        // rectangles can point outside the newly packed layer after an art edit.
+        var so=new SerializedObject(importer);so.FindProperty("m_ResliceFromLayer").boolValue=true;so.ApplyModifiedPropertiesWithoutUndo();importer.SaveAndReimport();
+        importer=(PSDImporter)AssetImporter.GetAtPath(path);
+        ReleaseMeta(path);
+        so=new SerializedObject(importer);so.FindProperty("m_ResliceFromLayer").boolValue=false;so.ApplyModifiedPropertiesWithoutUndo();importer.SaveAndReimport();
         importer=(PSDImporter)AssetImporter.GetAtPath(path);
         var factories=new SpriteDataProviderFactories();factories.Init();var provider=factories.GetSpriteEditorDataProviderFromObject(importer);provider.InitSpriteEditorDataProvider();
         var character=provider.GetDataProvider<ICharacterDataProvider>();var cd=character.GetCharacterData();cd.bones=d.bones;
@@ -170,7 +207,7 @@ public static class CharacterRigBuilder
         // Compare reloaded character skeleton, including every position/length/GUID.
         provider=factories.GetSpriteEditorDataProviderFromObject(AssetImporter.GetAtPath(path));provider.InitSpriteEditorDataProvider();var actual=provider.GetDataProvider<ICharacterDataProvider>().GetCharacterData().bones;
         if(JsonUtility.ToJson(new BoneList{bones=actual})!=JsonUtility.ToJson(new BoneList{bones=d.bones}))throw new Exception("Common skeleton mismatch: "+path);
-        report.characters++;File.WriteAllText("Library/CharacterRig.progress",report.characters+" / 118 "+row.source);return appearance;
+        report.characters++;File.WriteAllText("Library/CharacterRig.progress",report.characters+" rebuilt: "+row.source);return appearance;
     }
     [Serializable] class BoneList { public SpriteBone[] bones; }
 
@@ -248,6 +285,60 @@ public static class CharacterRigBuilder
     {
         return AssetDatabase.LoadAssetAtPath<CharacterAppearance>(Output+"Appearances/"+row.source.Split('/')[0]+"/"+row.type+"/"+Path.GetFileNameWithoutExtension(row.source)+".asset");
     }
+    [Serializable] class Selection { public string[] sources; }
+    [MenuItem("Doodle Idle/Character Rigs/Rebuild Selected Skins Keep Prefab Poses")]
+    public static void RebuildSelectedSkinsKeepPrefabPoses()
+    {
+        var selection=JsonUtility.FromJson<Selection>(File.ReadAllText("Library/CharacterRig.selection.json"));
+        if(selection?.sources==null || selection.sources.Length==0)throw new Exception("No skins selected");
+        RebuildSkins(new HashSet<string>(selection.sources));
+    }
+    [MenuItem("Doodle Idle/Character Rigs/Rebuild Skins Keep Prefab Poses")]
+    public static void RebuildSkinsKeepPrefabPoses() => RebuildSkins(null);
+    static void RebuildSkins(HashSet<string> selected)
+    {
+        var report=new Report();Directory.CreateDirectory(Output+"Reports");
+        try
+        {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            var rows=JsonUtility.FromJson<Rows>("{\"items\":"+File.ReadAllText(Art+"PSB/layer_manifest.json")+"}").items;
+            var selectedRows=selected==null?rows:rows.Where(r=>selected.Contains(r.source)).ToArray();
+            if(selected!=null && selectedRows.Length!=selected.Count)throw new Exception("Unknown source in selection");
+            var defs=selectedRows.Select(r=>r.type).Distinct().ToDictionary(t=>t,Define);
+            foreach(var row in selectedRows)Rig(row,defs[row.type],report);
+            AssetDatabase.SaveAssets();
+            foreach(var prefabPath in Directory.GetFiles(Output+"Prefabs","*.prefab"))
+            {
+                string path=prefabPath.Replace('\\','/');var root=PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var rig=root.GetComponent<CharacterRig>();
+                    if(!defs.ContainsKey(rig.rigType))continue;
+                    string appearancePath=AssetDatabase.GetAssetPath(rig.appearance);
+                    var pose=rig.skeleton.GetComponentsInChildren<Transform>(true).ToDictionary(t=>t,t=>(t.localPosition,t.localRotation,t.localScale));
+                    var controller=rig.animator.runtimeAnimatorController;
+                    var orders=rig.partRenderers.ToDictionary(r=>r,r=>r.sortingOrder);
+                    rig.SetAppearance(AssetDatabase.LoadAssetAtPath<CharacterAppearance>(appearancePath));
+                    foreach(var kv in orders)kv.Key.sortingOrder=kv.Value;
+                    foreach(var kv in pose)
+                        if(kv.Key.localPosition!=kv.Value.Item1||kv.Key.localRotation!=kv.Value.Item2||kv.Key.localScale!=kv.Value.Item3)
+                            throw new Exception("Prefab pose changed: "+path+"/"+kv.Key.name);
+                    if(rig.animator.runtimeAnimatorController!=controller)throw new Exception("Animator changed: "+path);
+                    PrefabUtility.SaveAsPrefabAsset(root,path);report.prefabs++;
+                }
+                finally{PrefabUtility.UnloadPrefabContents(root);}
+            }
+            AssetDatabase.SaveAssets();
+            int expectedParts=selectedRows.Sum(r=>defs[r.type].parts.Count);
+            if(report.characters!=selectedRows.Length||report.sprites!=expectedParts)throw new Exception("Unexpected rebuild totals");
+            report.checks.Add(report.characters+" common skeletons reloaded and compared; "+report.sprites+" independently regenerated meshes");
+            report.checks.Add(report.prefabs+" existing prefab skeleton poses, sorting orders and Animator controllers preserved; sprite references refreshed");
+            report.checks.Add("Catalog contains "+rows.Length+" appearances; only selected types refreshed");
+            File.WriteAllText("Library/CharacterRig.complete","SUCCESS");Debug.Log("CHARACTER_RIG_BUILD_SUCCESS");
+        }
+        catch(Exception e){report.errors.Add(e.ToString());File.WriteAllText("Library/CharacterRig.failed",e.ToString());Debug.LogException(e);}
+        finally{WriteReport(Output+"Reports/build_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
+    }
     static void BuildPrefabs(Row[] rows,Report report)
     {
         foreach(var type in rows.Select(r=>r.type).Distinct())
@@ -272,7 +363,7 @@ public static class CharacterRigBuilder
             File.WriteAllText("Library/CharacterRig.complete","SUCCESS");Debug.Log("CHARACTER_RIG_BUILD_SUCCESS");
         }
         catch(Exception e){report.errors.Add(e.ToString());Debug.LogException(e);}
-        finally{File.WriteAllText(Output+"Reports/build_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
+        finally{WriteReport(Output+"Reports/build_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
     }
     [MenuItem("Doodle Idle/Character Rigs/Build All")]
     public static void Build()
@@ -293,11 +384,11 @@ public static class CharacterRigBuilder
             foreach(var row in rows) appearances.Add((row,Rig(row,defs[row.type],report)));
             AssetDatabase.SaveAssets();
             BuildPrefabs(rows,report);
-            if(report.characters!=118||report.prefabs!=6)throw new Exception("Unexpected output totals");
-            report.checks.Add("118 characters; per-sprite Unity alpha outline and triangulation; normalized weights; six prefabs; five animation clips each");
+            if(report.characters!=rows.Length||report.prefabs!=6)throw new Exception("Unexpected output totals");
+            report.checks.Add(rows.Length+" characters; per-sprite Unity alpha outline and triangulation; normalized weights; six prefabs; five animation clips each");
             File.WriteAllText("Library/CharacterRig.complete","SUCCESS");Debug.Log("CHARACTER_RIG_BUILD_SUCCESS");
         }
         catch(Exception e){report.errors.Add(e.ToString());File.WriteAllText("Library/CharacterRig.failed",e.ToString());Debug.LogException(e);}
-        finally{File.WriteAllText(Output+"Reports/build_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
+        finally{WriteReport(Output+"Reports/build_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
     }
 }

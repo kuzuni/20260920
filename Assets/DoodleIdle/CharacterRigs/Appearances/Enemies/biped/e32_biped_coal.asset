@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7f3fe5b0c49aaa4fbf7babf9dabd7b9, type: 3}
+  m_Name: e32_biped_coal
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterAppearance
+  rigType: biped
+  characterId: e32_biped_coal
+  parts:
+  - name: "\uBA38\uB9AC"
+    sprite: {fileID: -8186259841287753700, guid: 8d6436da24d87724ba337dc6dcd12a32, type: 3}
+    rendererPosition: {x: -0.005, y: 8.5, z: 0}
+    boneNames:
+    - "\uBA38\uB9AC"
+    sortingOrder: 6
+  - name: "\uB2E4\uB9AC1"
+    sprite: {fileID: 4593924602279367275, guid: 8d6436da24d87724ba337dc6dcd12a32, type: 3}
+    rendererPosition: {x: -3.05, y: 0.6, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC1"
+    - "\uB2E4\uB9AC1_\uB05D"
+    sortingOrder: 1
+  - name: "\uB2E4\uB9AC2"
+    sprite: {fileID: 7100872819770865219, guid: 8d6436da24d87724ba337dc6dcd12a32, type: 3}
+    rendererPosition: {x: 3.35, y: 0.6, z: 0}
+    boneNames:
+    - "\uB2E4\uB9AC2"
+    - "\uB2E4\uB9AC2_\uB05D"
+    sortingOrder: 3
+  weapon: {fileID: 0}
+  weaponScale: 1

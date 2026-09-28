@@ -14,6 +14,7 @@ using Object=UnityEngine.Object;
 public static class CharacterRigVerifier
 {
     const string Root="Assets/DoodleIdle/CharacterRigs/";
+    [Serializable] class Catalog { public CharacterRigBuilder.Row[] items; }
     [Serializable] class Report { public int appearances,parts,swaps,animationSamples,nativeSkinChecks,animatorStates;public List<string> errors=new();public List<string> meshes=new();public List<string> previews=new(); }
     [MenuItem("Doodle Idle/Character Rigs/Verify and Render")]
     public static void Run()
@@ -59,11 +60,15 @@ public static class CharacterRigVerifier
                 State("Idle");rig.SetMoving(true);State("Move");rig.SetMoving(false);State("Idle");rig.Attack();State("Attack");rig.Hit();State("Hit");rig.Die();State("Death");
                 Object.DestroyImmediate(go);previews.Remove(go);
             }
-            if(report.appearances!=118)throw new Exception("Wrong appearance count");
+            var catalog=JsonUtility.FromJson<Catalog>("{\"items\":"+File.ReadAllText("Assets/DoodleIdle/Art/CharacterSprites/PSB/layer_manifest.json")+"}").items;
+            if(report.appearances!=catalog.Length)throw new Exception("Wrong appearance count");
+            var expected=catalog.Select(r=>r.source.Split('/')[0]+"/"+r.type+"/"+Path.GetFileNameWithoutExtension(r.source)+".asset").OrderBy(p=>p).ToArray();
+            var actual=assets.Select(a=>AssetDatabase.GetAssetPath(a).Substring((Root+"Appearances/").Length)).OrderBy(p=>p).ToArray();
+            if(!expected.SequenceEqual(actual))throw new Exception("Appearance catalog mismatch");
             File.WriteAllText("Library/CharacterRig.verified","SUCCESS");Debug.Log("CHARACTER_RIG_VERIFY_SUCCESS");
         }
         catch(Exception e){report.errors.Add(e.ToString());Debug.LogException(e);}
-        finally {foreach(var go in previews)if(go)Object.DestroyImmediate(go);File.WriteAllText(Root+"Reports/verification_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
+        finally {foreach(var go in previews)if(go)Object.DestroyImmediate(go);CharacterRigBuilder.WriteReport(Root+"Reports/verification_report.json",JsonUtility.ToJson(report,true));AssetDatabase.Refresh();}
     }
     static void VerifyNativeSkin(GameObject go,Report report)
     {
@@ -85,6 +90,24 @@ public static class CharacterRigVerifier
             }
             report.nativeSkinChecks++;
         }
+    }
+    public static Bounds PreviewBounds(GameObject go)
+    {
+        var baked = Bake(go);
+        try { var rs = baked.GetComponentsInChildren<MeshRenderer>(); var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); return b; }
+        finally { DestroyBake(baked); }
+    }
+    public static void RenderPortrait(GameObject source, string path, Vector3 center, float radius)
+    {
+        var baked = Bake(source); var preview = new PreviewRenderUtility();
+        try {
+            preview.AddSingleGO(baked); preview.camera.orthographic = true; preview.camera.orthographicSize = radius;
+            preview.camera.transform.position = new Vector3(center.x, center.y, -30); preview.camera.transform.rotation = Quaternion.identity;
+            preview.camera.nearClipPlane = .1f; preview.camera.farClipPlane = 100; preview.camera.clearFlags = CameraClearFlags.SolidColor; preview.camera.backgroundColor = Color.clear;
+            preview.BeginPreview(new Rect(0, 0, 256, 256), GUIStyle.none); preview.camera.Render(); var texture = preview.EndPreview();
+            var rt = RenderTexture.GetTemporary(256, 256, 0, RenderTextureFormat.ARGB32); Graphics.Blit(texture, rt); var previous = RenderTexture.active; RenderTexture.active = rt;
+            var png = new Texture2D(256, 256, TextureFormat.RGBA32, false); png.ReadPixels(new Rect(0, 0, 256, 256), 0, 0); png.Apply(); CharacterRigBuilder.WriteArtifact(path, png.EncodeToPNG()); Object.DestroyImmediate(png); RenderTexture.active = previous; RenderTexture.ReleaseTemporary(rt);
+        } finally { DestroyBake(baked); preview.Cleanup(); }
     }
     static GameObject Bake(GameObject go)
     {
@@ -128,7 +151,7 @@ public static class CharacterRigVerifier
             preview.camera.transform.position=new Vector3(bounds.center.x,bounds.center.y,-30);preview.camera.transform.rotation=Quaternion.identity;preview.camera.nearClipPlane=.1f;preview.camera.farClipPlane=100;preview.camera.clearFlags=CameraClearFlags.SolidColor;preview.camera.backgroundColor=new Color(.86f,.89f,.91f,1);
             preview.BeginPreview(new Rect(0,0,720,720),GUIStyle.none);preview.camera.Render();var texture=preview.EndPreview();
             var rt=RenderTexture.GetTemporary(720,720,0,RenderTextureFormat.ARGB32);Graphics.Blit(texture,rt);var previous=RenderTexture.active;RenderTexture.active=rt;
-            var png=new Texture2D(720,720,TextureFormat.RGBA32,false);png.ReadPixels(new Rect(0,0,720,720),0,0);png.Apply();File.WriteAllBytes(path,png.EncodeToPNG());Object.DestroyImmediate(png);RenderTexture.active=previous;RenderTexture.ReleaseTemporary(rt);
+            var png=new Texture2D(720,720,TextureFormat.RGBA32,false);png.ReadPixels(new Rect(0,0,720,720),0,0);png.Apply();CharacterRigBuilder.WriteArtifact(path,png.EncodeToPNG());Object.DestroyImmediate(png);RenderTexture.active=previous;RenderTexture.ReleaseTemporary(rt);
         }
         finally {DestroyBake(baked);preview.Cleanup();}
     }

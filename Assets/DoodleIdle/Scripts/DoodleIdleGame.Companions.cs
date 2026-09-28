@@ -9,6 +9,7 @@ namespace DoodleIdle
         sealed class CompanionActor
         {
             public UiItem item; public SpriteRenderer art, shadow; public float clock, frameClock, shotClock;
+            public DoodleRigVisual rigVisual;
             public Vector2 shadowOffset;
             public int pending, shotIndex; public bool facingLeft;
         }
@@ -47,7 +48,7 @@ namespace DoodleIdle
             foreach (var item in equipped) equippedCompanionIds.Add(item.id);
             foreach (var pair in companions) if (!companionsEnabled || !equippedCompanionIds.Contains(pair.Key)) removed.Add(pair.Key);
             foreach (var id in removed) {
-                ReleaseVisual(companions[id].art.gameObject); ReleaseVisual(companions[id].shadow.gameObject); companions.Remove(id);
+                Destroy(companions[id].art.gameObject); ReleaseVisual(companions[id].shadow.gameObject); companions.Remove(id);
             }
             if (companionsEnabled) for (int i = 0; i < equipped.Count; i++)
             {
@@ -55,7 +56,11 @@ namespace DoodleIdle
                 if (!companions.TryGetValue(item.id, out var companion))
                 {
                     companion = new CompanionActor { item = item, clock = .5f + i * .15f,
-                        art = Visual("Companion: " + item.id, WorldIcon(item.icon), player.Position, Vector2.one * .95f, 450) };
+                        art = new GameObject("Companion: " + item.id).AddComponent<SpriteRenderer>() };
+                    companion.art.transform.SetParent(world, false); companion.art.transform.position = player.Position;
+                    companion.art.transform.localScale = Vector3.one * .95f;
+                    companion.rigVisual = companion.art.gameObject.AddComponent<DoodleRigVisual>();
+                    companion.rigVisual.Configure(DoodleCharacterCatalog.Current.Companion(DoodleCollectionArt.CompanionIndex(item.icon)));
                     var bounds = companion.art.sprite.bounds;
                     companion.shadowOffset = Vector2.up * (bounds.min.y * .95f + .04f);
                     companion.shadow = Visual("Companion shadow: " + item.id, disc, player.Position + companion.shadowOffset,
@@ -73,7 +78,9 @@ namespace DoodleIdle
                 if (Mathf.Abs(home.x - old.x) > .01f) companion.facingLeft = home.x < old.x;
                 companion.frameClock += dt;
                 var frame = DoodleCollectionArt.CompanionFrame(index, (int)(companion.frameClock * 6) % 2);
-                if (companion.art.sprite != frame) SetSpriteArt(companion.art, frame);
+                companion.art.sprite = frame;
+                companion.rigVisual.Moving((home - old).sqrMagnitude > .01f);
+                companion.rigVisual.Paused = paused;
                 companion.art.flipX = companion.facingLeft;
                 companion.art.sortingOrder = Order(companion.art.transform.position) + 2;
                 companion.clock -= dt; companion.shotClock -= dt;
@@ -96,6 +103,7 @@ namespace DoodleIdle
         }
         void FireCompanionShot(CompanionActor companion, int shotIndex, bool spread)
         {
+            companion.rigVisual.Attack();
             var item = companion.item; Vector2 origin = companion.art.transform.position;
             bool spray = item.trajectory == "Spray";
             var target = NearbyTarget(origin, spray ? 0 : shotIndex); if (!Alive(target)) return;
@@ -170,7 +178,7 @@ namespace DoodleIdle
         void ClearCompanions()
         {
             foreach (var companion in companions.Values) {
-                if (companion.art) ReleaseVisual(companion.art.gameObject);
+                if (companion.art) Destroy(companion.art.gameObject);
                 if (companion.shadow) ReleaseVisual(companion.shadow.gameObject);
             }
             foreach (var shot in companionShots) if (shot.art) ReleaseVisual(shot.art.gameObject);
