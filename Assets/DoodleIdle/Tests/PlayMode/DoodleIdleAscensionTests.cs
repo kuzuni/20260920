@@ -390,8 +390,8 @@ namespace DoodleIdle.Tests
             Assert.That(UiKit.Art("AscensionShot_5").name, Is.EqualTo("AscensionRevision_6"));
             Assert.That(UiKit.Art("AscensionShot_7").name, Is.EqualTo("AscensionRevision_7"));
             for (int pose = 0; pose < 2; pose++) {
-                Assert.That(DoodleCollectionArt.CompanionFrame(29, pose).name, Is.EqualTo("AscensionRevision_" + pose));
-                Assert.That(DoodleCollectionArt.CompanionFrame(31, pose).name, Is.EqualTo("AscensionRevision_" + (2 + pose)));
+                Assert.That(DoodleCollectionArt.CompanionFrame(29, pose).texture, Is.SameAs(DoodleCharacterCatalog.Current.Companion(29).portraits[pose].texture));
+                Assert.That(DoodleCollectionArt.CompanionFrame(31, pose).texture, Is.SameAs(DoodleCharacterCatalog.Current.Companion(31).portraits[pose].texture));
             }
         }
 

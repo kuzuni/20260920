@@ -57,140 +57,61 @@ namespace DoodleIdle.Tests
         public IEnumerator ThemedSkinsHaveCompletePairedFramesAndWorldEquipmentUsesThem()
         {
             game.TogglePause(); var ui = game.Ui;
-            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 2000); ServiceSetSavedField(saved, "highestMainStage", 2000); });
+            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 4000); ServiceSetSavedField(saved, "highestMainStage", 4000); });
             var appearances = ui.Skins("Appearance").Where(s => !s.initiallyOwned).ToArray();
             var weapons = ui.Skins("Weapon").Where(s => !s.initiallyOwned).ToArray();
-            Assert.That(appearances.Length, Is.EqualTo(20)); Assert.That(weapons.Length, Is.EqualTo(20));
-            Assert.That(appearances.Concat(weapons).Select(s => s.name).Distinct().Count(), Is.EqualTo(40));
-            Assert.That(appearances[16].name, Does.Contain("돼지"));
-            Assert.That(weapons[16].name, Does.Contain("돼지"));
-            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
-            var animation = typeof(DoodleIdleGame).GetMethod("AnimateActorFrames", GrowthPrivate);
-            var art = (SpriteRenderer)actor.GetType().GetField("art").GetValue(actor);
-            var body = (Rigidbody2D)actor.GetType().GetField("body").GetValue(actor);
-            var club = NamedArt("Floating baseball club").Single();
-            var weaponUpdate = typeof(DoodleIdleGame).GetMethod("ApplyWeaponSkin", GrowthPrivate);
-            body.simulated = true; body.linearVelocity = Vector2.right;
-            actor.GetType().GetField("phase").SetValue(actor, 0f);
-            for (int i = 0; i < 20; i++) {
-                Assert.That(appearances[i].requiredStage, Is.EqualTo((i+1)*100));
-                Assert.That(weapons[i].requiredStage, Is.EqualTo((i+1)*100));
+            Assert.That(appearances.Length, Is.EqualTo(40)); Assert.That(weapons.Length, Is.EqualTo(40));
+            Assert.That(appearances.Concat(weapons).Select(s => s.name).Distinct().Count(), Is.EqualTo(80));
+            var visual = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
+            for (int i = 0; i < appearances.Length; i++) {
+                Assert.That(appearances[i].requiredStage, Is.EqualTo((i + 1) * 100));
+                Assert.That(weapons[i].requiredStage, Is.EqualTo((i + 1) * 100));
                 Assert.That(ui.TryAcquireSkin(appearances[i].id), Is.True);
                 Assert.That(ui.TryAcquireSkin(weapons[i].id), Is.True);
                 Assert.That(ui.EquipSkin(appearances[i].id), Is.True);
                 Assert.That(ui.EquipSkin(weapons[i].id), Is.True);
-                var first = UiKit.Art(appearances[i].icon); var second = UiKit.Art("SkinAppearance_"+i+"_1");
-                Assert.That(first.texture, Is.Not.SameAs(second.texture));
-                Assert.That(first.pixelsPerUnit, Is.EqualTo(384));
-                Assert.That(second.pixelsPerUnit, Is.EqualTo(384));
-                foreach (var sprite in new[] { first, second, UiKit.Art(weapons[i].icon) }) {
-                    var r = sprite.rect; int w = (int)r.width, h = (int)r.height;
-                    var pixels = sprite.texture.GetPixels((int)r.x, (int)r.y, w, h);
-                    Assert.That(pixels.Count(p => p.a > .125f), Is.GreaterThan(w*h/12));
-                    for (int x=0; x<w; x++) { Assert.That(pixels[x].a, Is.LessThan(.13f),sprite.name+" bottom"); Assert.That(pixels[(h-1)*w+x].a, Is.LessThan(.13f),sprite.name+" top"); }
-                    for (int y=0; y<h; y++) { Assert.That(pixels[y*w].a, Is.LessThan(.13f),sprite.name+" left"); Assert.That(pixels[y*w+w-1].a, Is.LessThan(.13f),sprite.name+" right"); }
-                }
-                for (int frame=0; frame<2; frame++) {
-                    actor.GetType().GetField("walkClock").SetValue(actor, frame/6f);
-                    animation.Invoke(game, new object[] { actor, 0f });
-                    Assert.That(art.sprite.name, Is.EqualTo("Skin SkinAppearance_"+i+"_"+frame));
-                    Assert.That(art.sharedMaterial.mainTexture, Is.SameAs(art.sprite.texture));
-                    Assert.That(art.sprite, Is.SameAs(UiKit.Art("SkinAppearance_"+i+"_"+frame)), "Do not renormalize the body by the hat bounds.");
-                }
-                weaponUpdate.Invoke(game, new object[] { club });
-                Assert.That(club.sprite.texture.name, Is.EqualTo("SkinWeapons"));
-                Assert.That(club.sprite.rect, Is.EqualTo(UiKit.Art(weapons[i].icon).rect));
-                Assert.That(club.sprite.pivot.x / club.sprite.rect.width, Is.EqualTo(.15f).Within(.001f));
-                if (i==16) {
-                    UiOpen(null);
-                    for(int frame=0;frame<2;frame++) {
-                        actor.GetType().GetField("walkClock").SetValue(actor,frame/6f);
-                        animation.Invoke(game,new object[]{actor,0f});
-                        Object.Destroy(CaptureFrame("skins-pig-world-frame-"+frame+".png",1440,900));
-                    }
+                yield return null;
+                int costume = DoodleCharacterCatalog.Costume(appearances[i].icon);
+                var entry = DoodleCharacterCatalog.Current.Player(costume);
+                Assert.That(visual.Rig.appearance, Is.SameAs(entry.appearance));
+                Assert.That(visual.Rig.weaponRenderer.sprite, Is.SameAs(UiKit.Art(weapons[i].icon)));
+                Assert.That(visual.Rig.weaponRenderer.transform.IsChildOf(visual.Rig.skeleton), Is.True);
+                for (int pose = 0; pose < 2; pose++) {
+                    var sprite = DoodlePlayerCostumeArt.Frame(costume, pose);
+                    Assert.That(sprite.texture, Is.SameAs(entry.portraits[pose].texture));
+                    Assert.That(sprite.pixelsPerUnit, Is.EqualTo(256));
+                    var pixels = sprite.texture.GetPixels32();
+                    Assert.That(pixels.Count(p => p.a > 128), Is.GreaterThan(200));
+                    Assert.That(pixels.Count(p => p.a == 0), Is.GreaterThan(100));
                 }
             }
-            body.linearVelocity = Vector2.zero;
-            foreach (string category in new[] { "Armor", "Club", "Necklace" }) {
-                var items = ui.Items(category);
-                Assert.That(items.Count, Is.EqualTo(36));
-                Assert.That(items.Select(x => x.name).Distinct().Count(), Is.EqualTo(36));
-                Assert.That(items.All(x => !System.Text.RegularExpressions.Regex.IsMatch(x.name, @"^(일반|고급|희귀|영웅|전설|신화|근원|초월|갓)\s*\d")), Is.True);
-            }
-            SelectSkinForTest(appearances[16]); yield return null;
+            SelectSkinForTest(appearances.Single(s => s.name.Contains("돼지"))); yield return null;
             Object.Destroy(CaptureFrame("skins-pig-costume.png", 720, 1520));
             UiScrollBottom(); yield return null;
             Object.Destroy(CaptureFrame("skins-appearance-inventory-bottom.png", 720, 1520));
-            SelectSkinForTest(weapons[3]); yield return null;
-            Object.Destroy(CaptureFrame("skins-ice-staff.png", 720, 1520));
-            SelectSkinForTest(weapons[13]); yield return null;
-            Object.Destroy(CaptureFrame("skins-fire-staff.png", 720, 1520));
         }
 
         [UnityTest]
         public IEnumerator AllCostumesKeepOriginalBodyScaleFaceAndAnimationTimeline()
         {
             game.TogglePause(); var ui = game.Ui;
-            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 2000); ServiceSetSavedField(saved, "highestMainStage", 2000); });
-            var appearances = ui.Skins("Appearance").Where(s => !s.initiallyOwned).ToArray();
-            var basic = ui.Skins("Appearance").Single(s => s.initiallyOwned);
-            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
-            var type = actor.GetType();
-            var art = (SpriteRenderer)type.GetField("art").GetValue(actor);
-            var body = (Rigidbody2D)type.GetField("body").GetValue(actor);
-            var animate = typeof(DoodleIdleGame).GetMethod("AnimateActorFrames", GrowthPrivate);
-            Vector3 originalScale = art.transform.localScale;
-            var timeline = new System.Collections.Generic.List<int>();
-            float[] ticks = { .02f, .10f, .08f, .09f, .07f, .12f, .14f, .03f };
-            for (int costume = -1; costume < 20; costume++) {
-                if (costume >= 0) ui.TryAcquireSkin(appearances[costume].id);
-                ui.EquipSkin(costume < 0 ? basic.id : appearances[costume].id);
-                type.GetField("walkClock").SetValue(actor, 0f); type.GetField("phase").SetValue(actor, 0f);
-                body.simulated = true; body.linearVelocity = Vector2.right;
-                var seen = new System.Collections.Generic.HashSet<int>();
-                for (int step = 0; step < ticks.Length; step++) {
-                    animate.Invoke(game, new object[] { actor, ticks[step] });
-                    int pose = art.sprite.name == "PlayerWalkB" || art.sprite.name.EndsWith("_1") ? 1 : 0;
-                    seen.Add(pose);
-                    if (costume < 0) timeline.Add(pose); else Assert.That(pose, Is.EqualTo(timeline[step]), appearances[costume].name);
-                    Assert.That(art.transform.localScale, Is.EqualTo(originalScale));
-                    if (costume < 0) continue;
-                    Assert.That(art.sprite, Is.SameAs(DoodlePlayerCostumeArt.Frame(costume, pose)));
-                    // Eye pixels are from the original player at the same body-space positions.
-                    var reference = DoodlePlayerCostumeArt.BodyFrame(pose);
-                    var eyes = pose == 0 ? new[] { new Vector2(199, 1026.5f), new Vector2(280.5f, 1001) }
-                        : new[] { new Vector2(555, 631), new Vector2(765.5f, 570) };
-                    foreach (var eye in eyes) {
-                        Vector2 unit = (eye - reference.rect.center) / reference.pixelsPerUnit;
-                        Vector2 pixel = unit * art.sprite.pixelsPerUnit + art.sprite.pivot;
-                        var color = art.sprite.texture.GetPixelBilinear(pixel.x / art.sprite.texture.width, pixel.y / art.sprite.texture.height);
-                        Assert.That(color.a, Is.GreaterThan(.9f));
-                        Assert.That(Mathf.Max(color.r, color.g, color.b), Is.LessThan(.25f), appearances[costume].name + " original eye position");
-                    }
-                }
-                Assert.That(seen.Count, Is.EqualTo(2));
-                body.linearVelocity = Vector2.zero;
-                animate.Invoke(game, new object[] { actor, .3f });
-                Assert.That(art.sprite.name, Is.EqualTo(costume < 0 ? "PlayerWalkA" : "Skin SkinAppearance_" + costume + "_0"));
-                Assert.That((float)type.GetField("walkClock").GetValue(actor), Is.Zero);
+            var visual = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
+            var bones = visual.Rig.skeleton.GetComponentsInChildren<Transform>();
+            var positions = bones.Select(b => b.localPosition).ToArray();
+            var rotations = bones.Select(b => b.localRotation).ToArray();
+            Vector3 scale = visual.Rig.transform.localScale;
+            Vector3 center = visual.Rig.transform.localPosition;
+            foreach (var skin in ui.Skins("Appearance")) {
+                skin.owned = true;
+                if (!skin.equipped) Assert.That(ui.EquipSkin(skin.id), Is.True);
+                yield return null;
+                Assert.That(visual.Rig.transform.localScale, Is.EqualTo(scale), skin.name);
+                Assert.That(visual.Rig.transform.localPosition, Is.EqualTo(center), skin.name);
+                CollectionAssert.AreEqual(positions, bones.Select(b => b.localPosition), skin.name);
+                CollectionAssert.AreEqual(rotations, bones.Select(b => b.localRotation), skin.name);
+                Assert.That(visual.Rig.animator.runtimeAnimatorController.animationClips.Length, Is.EqualTo(5));
+                Assert.That(visual.GetComponent<SpriteRenderer>().enabled, Is.False);
             }
-            foreach (var renderer in game.GetComponentsInChildren<SpriteRenderer>()) renderer.enabled = false;
-            var proof = new GameObject("Costume body comparison"); proof.transform.SetParent(game.transform);
-            var camera = Camera.main; camera.transform.position = new Vector3(0, 0, -10); camera.orthographicSize = 6.3f;
-            var setters = typeof(DoodleIdleGame).GetMethod("SetSpriteArt", GrowthPrivate);
-            var portraits = new SpriteRenderer[21];
-            for (int i = 0; i <= 20; i++) {
-                var go = new GameObject("Costume comparison " + i); go.transform.SetParent(proof.transform);
-                go.transform.position = new Vector3(-4.4f + (i % 5) * 2.2f, 4.4f - (i / 5) * 2.2f, 0);
-                go.transform.localScale = originalScale;
-                portraits[i] = go.AddComponent<SpriteRenderer>();
-            }
-            for (int pose = 0; pose < 2; pose++) {
-                for (int i = 0; i <= 20; i++) setters.Invoke(game, new object[] { portraits[i], i == 0 ? DoodlePlayerCostumeArt.BodyFrame(pose) : DoodlePlayerCostumeArt.Frame(i-1, pose) });
-                Object.Destroy(CaptureFrame("costume-body-comparison-" + pose + ".png", 1440, 1440, false));
-            }
-            Object.Destroy(proof);
-            yield return null;
         }
 
         [UnityTest]

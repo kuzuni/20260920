@@ -525,7 +525,7 @@ namespace DoodleIdle
                         UiKit.Stretch(ribbonDrawing);
                         ribbonDrawing.gameObject.AddComponent<DoodleSummonRibbon>().raycastTarget = false;
                     }
-                    var crest = UiKit.Icon(window.inner, "Player", 108);
+                    var crest = UiKit.Icon(window.inner, EquippedAppearanceIcon, 108);
                     crest.name = "Result player crest";
                     var responsive = window.inner.gameObject.AddComponent<DoodleCommerceLayout>();
                     responsive.window = window; responsive.resultGrid = grid.GetComponent<GridLayoutGroup>(); responsive.wallet = wallet;

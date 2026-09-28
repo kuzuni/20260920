@@ -73,13 +73,14 @@ namespace DoodleIdle.Tests
             PlayerBody().simulated = false;
             yield return null;
             var ui = game.Ui;
-            var weapon = NamedArt("Floating baseball club").Single();
+            var visual = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
+            var weapon = visual.Rig.weaponRenderer;
             var playerArt = NamedArt("Generated head sprite").Single(x => x.transform.parent == PlayerBody().transform);
             var originalWeapon = weapon.sprite;
             var originalPlayerTexture = playerArt.sprite.texture;
             var weaponSkin = ui.Skins("Weapon").Single(x => x.id == "weapon_vine");
             var appearance = ui.Skins("Appearance").Single(x => x.id == "appearance_mint");
-            ui.Diamonds = weaponSkin.diamondCost + appearance.diamondCost;
+            LoadServiceSnapshot(saved => { ServiceSetSavedField(saved, "mainStage", 100); ServiceSetSavedField(saved, "highestMainStage", 100); });
             Assert.That(ui.TryAcquireSkin(weaponSkin.id), Is.True);
             Assert.That(ui.TryAcquireSkin(appearance.id), Is.True);
             Assert.That(ui.EquipSkin(weaponSkin.id), Is.True);
@@ -95,8 +96,8 @@ namespace DoodleIdle.Tests
             Assert.That(weapon.sharedMaterial.mainTexture, Is.SameAs(source.texture), "The rendered material must follow the new sprite atlas.");
             Assert.That(weapon.color, Is.EqualTo(weaponSkin.tint));
             Assert.That(playerArt.color, Is.EqualTo(appearance.tint));
-            Assert.That(playerArt.color, Is.Not.EqualTo(Color.white));
-            Assert.That(playerArt.sprite.texture, Is.SameAs(originalPlayerTexture), "Cat recolors must retain the live player animation artwork.");
+            Assert.That(visual.Rig.appearance, Is.SameAs(DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(appearance.icon)).appearance));
+            Assert.That(playerArt.sprite.texture, Is.Not.SameAs(originalPlayerTexture));
 
             Assert.That(ui.EquipSkin(ui.Skins("Weapon").Single(x => x.initiallyOwned).id), Is.True);
             Assert.That(ui.EquipSkin(ui.Skins("Appearance").Single(x => x.initiallyOwned).id), Is.True);

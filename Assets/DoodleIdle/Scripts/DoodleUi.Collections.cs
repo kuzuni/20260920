@@ -100,7 +100,7 @@ namespace DoodleIdle
             body.GetComponent<VerticalLayoutGroup>().spacing = 12;
             var power = UiKit.Row(body, "Combat power", 126, 16);
             power.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(42, 0, 0, 0);
-            UiKit.Icon(power, "Player", 124);
+            UiKit.Icon(power, EquippedAppearanceIcon, 124);
             var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(PowerAmount), 35, TextAnchor.MiddleCenter, 108);
             CollectionWidth(powerText.transform, 286);
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);

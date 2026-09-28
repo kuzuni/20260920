@@ -52,6 +52,7 @@ namespace DoodleIdle
                 case "Player": case "PlayerWalkA": return PlayerPortrait();
                 case "PlayerWalkB": return PlayerPortrait(-1, 1);
                 case "Companion": return Portrait(Current.Companion(0));
+                case "StormCloud": case "StormCloudB": return Portrait(Current.entries.First(e => e.id == "e09_float_storm_cloud"), key.EndsWith("B") ? 1 : 0);
                 case "Mushroom": case "MushroomA": case "MushroomB": return Portrait(Current.Enemy(0, 2), key.EndsWith("B") ? 1 : 0);
                 case "Bat": case "BatA": case "BatB": return Portrait(Current.Enemy(6, 2), key.EndsWith("B") ? 1 : 0);
                 case "Devil": case "DevilA": case "DevilB": return Portrait(Current.Enemy(4, 1), key.EndsWith("B") ? 1 : 0);

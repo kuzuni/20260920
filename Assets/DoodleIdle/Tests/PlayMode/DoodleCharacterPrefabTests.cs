@@ -138,6 +138,8 @@ namespace DoodleIdle.Tests
             foreach (var skin in game.Ui.Skins("Appearance")) {
                 skin.owned = true; game.Ui.EquipSkin(skin.id); yield return null;
                 Assert.That(visual.Entry, Is.SameAs(DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(skin.icon))));
+                var profileImage = (UnityEngine.UI.Image)typeof(DoodleUi).GetField("profilePortrait", GrowthPrivate).GetValue(game.Ui);
+                Assert.That(profileImage.sprite.texture, Is.SameAs(visual.Entry.portraits[0].texture));
             }
         }
     }

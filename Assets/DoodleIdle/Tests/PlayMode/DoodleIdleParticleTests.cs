@@ -29,9 +29,10 @@ namespace DoodleIdle.Tests
             var seen = arts.Select(a => new HashSet<string>()).ToArray();
             var drone = NamedArt("Following missile drone").Single();
             var droneFrames = new HashSet<string>();
-            var club = NamedArt("Floating baseball club").Single();
-            Assert.That(club.sprite.pivot.x / club.sprite.rect.width, Is.EqualTo(.15f).Within(.001f));
-            Assert.That(club.sprite.pivot.y / club.sprite.rect.height, Is.EqualTo(.12f).Within(.001f));
+            var playerRig = arts[0].GetComponent<DoodleRigVisual>().Rig;
+            var club = playerRig.weaponRenderer;
+            var grip = club.transform.localPosition;
+            Assert.That(club.transform.IsChildOf(playerRig.skeleton), Is.True);
             bool capturedA = false, capturedB = false;
             Camera.main.orthographicSize = 5;
             for (int frame = 0; frame < 70; frame++)
@@ -39,22 +40,22 @@ namespace DoodleIdle.Tests
                 yield return null;
                 droneFrames.Add(drone.sprite.name);
                 Assert.That(drone.sharedMaterial.mainTexture, Is.SameAs(drone.sprite.texture));
-                Vector3 hand = arts[0].transform.TransformPoint(new Vector3(club.flipX ? -.4f : .4f, -.18f, 0));
-                Assert.That(Vector3.Distance(club.transform.position, hand), Is.LessThan(.001f), "The bat grip stays at the hand through head bob/tilt.");
+                Assert.That(club.transform.localPosition, Is.EqualTo(grip), "The weapon stays attached to its hand bone.");
                 for (int i = 0; i < arts.Length; i++)
                 {
                     seen[i].Add(arts[i].sprite.name);
-                    Assert.That(arts[i].sharedMaterial.mainTexture, Is.SameAs(arts[i].sprite.texture));
+                    Assert.That(arts[i].enabled, Is.False);
+                    Assert.That(arts[i].GetComponent<DoodleRigVisual>().Rig.partRenderers.All(r => r.enabled), Is.True);
                 }
-                if (!capturedA && arts[0].sprite.name == "PlayerWalkA")
+                if (!capturedA && arts[0].sprite.name.EndsWith("_0"))
                 { Object.Destroy(CaptureFrame("17-movement-frame-a.png", 1440, 900)); capturedA = true; }
-                if (!capturedB && arts[0].sprite.name == "PlayerWalkB")
+                if (!capturedB && arts[0].sprite.name.EndsWith("_1"))
                 { Object.Destroy(CaptureFrame("18-movement-frame-b.png", 1440, 900)); capturedB = true; }
             }
-            CollectionAssert.AreEquivalent(new[] { "PlayerWalkA", "PlayerWalkB" }, seen[0]);
+            CollectionAssert.AreEquivalent(new[] { DoodleCharacterCatalog.PlayerPortrait(-1, 0).name, DoodleCharacterCatalog.PlayerPortrait(-1, 1).name }, seen[0]);
             CollectionAssert.AreEquivalent(new[] { "RobotDroneA", "RobotDroneB" }, droneFrames);
             for (int i = 0; i < species.Length; i++)
-                CollectionAssert.AreEquivalent(new[] { "Meadow" + i + "A", "Meadow" + i + "B" }, seen[i + 1]);
+                CollectionAssert.AreEquivalent(new[] { DoodleCharacterCatalog.Portrait(arts[i + 1].GetComponent<DoodleRigVisual>().Entry, 0).name, DoodleCharacterCatalog.Portrait(arts[i + 1].GetComponent<DoodleRigVisual>().Entry, 1).name }, seen[i + 1]);
             Assert.That(game.EnemyCount, Is.EqualTo(200));
             game.TogglePause();
             var pausedFrames = arts.Select(a => a.sprite).ToArray();
@@ -63,8 +64,8 @@ namespace DoodleIdle.Tests
             game.TogglePause(); game.autoPlay = false; game.moveSpeed = 0;
             Place(PlayerBody(), new Vector2(10, 10)); PlayerBody().linearVelocity = Vector2.zero;
             yield return PhysicsTicks(3); yield return null;
-            Assert.That(arts[0].sprite.name, Is.EqualTo("PlayerWalkA"), "A stationary player returns to the original design.");
-            Assert.That(arts[0].sprite.texture, Is.SameAs(Resources.Load<Texture2D>("DoodleIdle/Characters")));
+            Assert.That(arts[0].sprite, Is.SameAs(DoodleCharacterCatalog.PlayerPortrait()));
+            Assert.That(playerRig.animator.GetBool("Moving"), Is.False);
         }
 
         [UnityTest]

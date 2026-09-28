@@ -599,7 +599,7 @@ namespace DoodleIdle
             string[] art = { "Player", "StormCloud", "MushroomA", "DevilA", "BatA", "StormCloudB" };
             var ranks = new List<LocalRank>();
             for (int i = 0; i < 100; i++) ranks.Add(new LocalRank { name = i < names.Length ? names[i] : names[i % names.Length] + (i + 1), art = art[i % art.Length], points = 2840 - i * 17, power = 58200 - i * 460 });
-            ranks.Add(new LocalRank { name = PlayerName, art = "Player", points = services.pvpPoints, power = PowerAmount, self = true });
+            ranks.Add(new LocalRank { name = PlayerName, art = EquippedAppearanceIcon, points = services.pvpPoints, power = PowerAmount, self = true });
             ranks.Sort((a, b) => { int points = b.points.CompareTo(a.points); return points != 0 ? points : b.power.CompareTo(a.power); });
             return ranks;
         }
@@ -629,7 +629,7 @@ namespace DoodleIdle
             int selfIndex = ranks.FindIndex(r => r.self);
             var mine = ServiceCard(body, "My rank", UiKit.Yellow);
             var myRow = UiKit.Row(mine, "My ranking", 64);
-            UiKit.Icon(myRow, "Player", 62);
+            UiKit.Icon(myRow, EquippedAppearanceIcon, 62);
             UiKit.Text(myRow, "내 순위 " + (selfIndex + 1) + "위\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
             UiKit.Text(myRow, "승점 " + UiNumber.Format(services.pvpPoints) + "\n전투력 " + UiNumber.Format(PowerAmount), 20, TextAnchor.MiddleRight, 66);
             var actions=UiKit.Row(body,"PVP actions",66,10);
@@ -698,7 +698,7 @@ namespace DoodleIdle
                 var text = UiKit.Text(bubble, message.content, 29, TextAnchor.MiddleLeft, messageHeight - 70); text.supportRichText = false;
                 var tail=ServiceSymbol(bubble,message.self?"TailRight":"TailLeft",20);tail.anchorMin=tail.anchorMax=new Vector2(message.self?1:0,.5f);tail.anchoredPosition=new Vector2(message.self?8:-8,0);
                 tail.GetComponent<LayoutElement>().ignoreLayout=true;tail.GetComponent<DoodleServiceSymbol>().accent=message.self?new Color(1,.95f,.7f):UiKit.Paper;
-                if (message.self) ChatPortrait(row,message.art);else ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);
+                if (message.self) ChatPortrait(row,EquippedAppearanceIcon);else ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);
             }
             var footer = UiKit.Footer(body, "Chat footer", 96);
             var inputRow = UiKit.Row(footer, "Chat composer", 62);

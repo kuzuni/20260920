@@ -23,7 +23,7 @@ namespace DoodleIdle
         public RectTransform SafeRoot => safe;
         RectTransform root,safe,pageLayer,overlayLayer,nav,header,skillDock,shortcuts,mission;
         Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast,missionDiamonds,missionTicketCount;
-        Image missionTicketIcon;
+        Image missionTicketIcon, profilePortrait;
         Text powerToast,cameraLabel,stageLabel;
         Button missionClaim, breakthroughButton;
         DoodleBreakthroughPulse breakthroughPulse;
@@ -70,7 +70,7 @@ namespace DoodleIdle
         {
             header=UiKit.Row(safe,"Profile and currencies",92,9); Anchor(header,new Vector2(.5f,1),new Vector2(0,-58),new Vector2(696,92));
             var p=UiKit.Box(header,"Profile",UiKit.Paper,84); var row=UiKit.Row(p,"Profile contents",80,7); UiKit.Stretch(row,9,2,9,2);
-            UiKit.Icon(row,"Player",72); profile=UiKit.Text(row,"",28,TextAnchor.MiddleLeft,76); UiKit.Flexible(p,1.75f);
+            profilePortrait=UiKit.Icon(row,EquippedAppearanceIcon,72); profile=UiKit.Text(row,"",28,TextAnchor.MiddleLeft,76); UiKit.Flexible(p,1.75f);
             var gold=UiKit.Box(header,"Gold wallet",UiKit.Paper,66); var g=UiKit.Row(gold,"Gold",62,2); UiKit.Stretch(g,7,2,7,2); UiKit.Icon(g,"Gold",38); walletGold=UiKit.Text(g,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(gold,1.05f);
             var diamond=UiKit.Box(header,"Diamond wallet",UiKit.Paper,66); var d=UiKit.Row(diamond,"Diamonds",62,2); UiKit.Stretch(d,7,2,7,2); UiKit.Icon(d,"Diamond",39); walletDiamond=UiKit.Text(d,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(diamond,.9f);
             var settings=IconButton(header,"Settings","","Settings",()=>ShowPage("Settings"),68); FixedWidth(settings.transform,64); settings.GetComponent<Image>().color=Color.clear; settings.GetComponent<Outline>().enabled=false; UiKit.Stretch(settings.transform.Find("Icon: Settings") as RectTransform,0,0,0,0);
@@ -359,7 +359,7 @@ namespace DoodleIdle
         }
         public void RefreshHud()
         {
-            if(!initialized)return; RefreshStatWallet(); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(PowerAmount); walletGold.text=UiNumber.Format(GoldAmount); walletDiamond.text=Diamonds.ToString("N0");
+            if(!initialized)return; RefreshStatWallet(); profilePortrait.sprite=UiKit.Art(EquippedAppearanceIcon); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(PowerAmount); walletGold.text=UiNumber.Format(GoldAmount); walletDiamond.text=Diamonds.ToString("N0");
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
             missionDiamonds.text=MainMissionReward.ToString();

@@ -78,6 +78,9 @@ public sealed class DoodleCharacterCatalogBuild
         EditorUtility.SetDirty(catalog); AssetDatabase.SaveAssets(); AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         CharacterRigVerifier.Run();
         CheckReportErrors("verification_report.json");
+        Directory.CreateDirectory("artifacts/character-reports");
+        foreach (string name in new[] { "build_report.json", "verification_report.json" })
+            File.Copy(Root + "Reports/" + name, "artifacts/character-reports/" + name, true);
         // Cloud-generated assets are downloaded into the checkout after validation.
         var generated = Directory.GetFiles(ResourcesRoot + "RigPortraits", "*", SearchOption.AllDirectories).Concat(new[] {catalogPath, catalogPath + ".meta", ResourcesRoot + "RigPortraits.meta", "Assets/DoodleIdle/Art/CharacterSprites/PSB/Companions/머리날개형/19_companion_brick.psb.meta", Root + "Appearances/Companions/floating/19_companion_brick.asset", Root + "Prefabs/Character_floating.prefab"});
         foreach (string path in generated.Where(File.Exists)) {
