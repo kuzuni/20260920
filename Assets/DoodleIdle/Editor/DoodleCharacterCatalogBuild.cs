@@ -6,10 +6,9 @@ using DoodleIdle;
 using DoodleIdle.CharacterRigs;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public sealed class DoodleCharacterCatalogBuild : IPrebuildSetup
+public sealed class DoodleCharacterCatalogBuild
 {
     const string Root = "Assets/DoodleIdle/CharacterRigs/";
     const string ResourcesRoot = "Assets/DoodleIdle/Resources/DoodleIdle/";

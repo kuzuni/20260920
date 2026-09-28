@@ -6,10 +6,20 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.U2D.Animation;
 
-[assembly: PrebuildSetup("DoodleCharacterCatalogBuild")]
+[assembly: PrebuildSetup(typeof(DoodleIdle.Tests.DoodleCharacterCatalogSetup))]
 
 namespace DoodleIdle.Tests
 {
+    public sealed class DoodleCharacterCatalogSetup : IPrebuildSetup
+    {
+        public void Setup()
+        {
+#if UNITY_EDITOR
+            var builder = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleCharacterCatalogBuild")).First(t => t != null);
+            builder.GetMethod("Build").Invoke(null, null);
+#endif
+        }
+    }
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
