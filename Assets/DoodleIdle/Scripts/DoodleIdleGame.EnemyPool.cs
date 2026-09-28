@@ -29,6 +29,8 @@ namespace DoodleIdle
             actor.art.transform.localPosition = Vector3.zero; actor.art.color = Color.white; actor.art.enabled = true;
             actor.art.flipY = false; actor.art.transform.localRotation = Quaternion.identity;
             SetSpriteArt(actor.art, enemyWalkFrames[kind][0]); NormalizeEnemyFrame(actor, actor.art.sprite);
+            // SpriteSkin initializes its renderer cache in OnEnable, including newly swapped rig types.
+            actor.root.SetActive(true);
             ConfigureActorRig(actor);
             actor.art.flipX = player.Position.x < position.x;
             actor.shadow.transform.localPosition = new Vector3(0, -.58f, 0);

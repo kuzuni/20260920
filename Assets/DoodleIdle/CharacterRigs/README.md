@@ -30,7 +30,9 @@ rig.Hit();
 rig.Die();
 ```
 
-각 Animator에는 Idle, Move, Attack, Hit, Death 클립이 있습니다. 파라미터는 Moving(bool), Attack/Hit/Die(trigger)입니다. Death는 마지막 자세를 유지합니다. 전투 판정, 이동 로직, 이펙트, 사망 후 제거는 게임 코드에서 연결해야 합니다.
+각 Animator에는 Idle, Move, Attack, Hit, Death 클립이 있습니다. 파라미터는 Moving(bool), Attack/Hit/Die(trigger)입니다. Death는 마지막 자세를 유지합니다. 게임의 플레이어·적·동료는 DoodleRigVisual로 이 프리팹을 생성하며 이동·공격·피격 애니메이션, 무기와 외형 교체를 연결했습니다. 사망한 적은 기존 전투 로직에 따라 풀로 반환합니다.
+
+UI는 Resources/DoodleIdle/CharacterCatalog와 RigPortraits의 프리팹 기반 초상화를 사용합니다. 통합 방식과 검증 절차는 Documentation/CHARACTER_PREFABS.md에 정리했습니다.
 
 무기 PNG 40개는 512×512 캔버스와 동일한 손잡이 기준점(이미지 좌표 96,416 / Unity pivot 96,96)을 사용합니다. `Weapon` 오브젝트는 팔2의 끝 본을 따라 움직입니다.
 

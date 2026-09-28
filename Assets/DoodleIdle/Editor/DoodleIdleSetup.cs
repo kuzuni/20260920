@@ -14,7 +14,9 @@ namespace DoodleIdle.Editor
         {
             if (!assetPath.StartsWith("Assets/DoodleIdle/Resources/DoodleIdle/")) return;
             var importer = (TextureImporter)assetImporter;
-            importer.textureType = TextureImporterType.Default;
+            bool portrait = assetPath.Contains("/RigPortraits/");
+            importer.textureType = portrait ? TextureImporterType.Sprite : TextureImporterType.Default;
+            if (portrait) { importer.spriteImportMode = SpriteImportMode.Single; importer.spritePixelsPerUnit = 256; }
             importer.isReadable = true;
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;

@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-28",
+  "unity": "6000.3.8f1",
+  "environment": "Windows local Unity batchmode with graphics",
+  "scope": "character-prefabs",
+  "integration": {
+    "passed": 14,
+    "failed": 0,
+    "duration_seconds": 66.854817
+  },
+  "final_ui_recheck": {
+    "passed": 1,
+    "failed": 0
+  },
+  "appearances": {
+    "Player": 41,
+    "Enemies": 69,
+    "Companions": 32
+  },
+  "rig_verification": {
+    "appearances": 142,
+    "parts": 699,
+    "swaps": 213,
+    "animationSamples": 150,
+    "nativeSkinChecks": 1900,
+    "animatorStates": 36,
+    "errors": []
+  },
+  "amethyst_mesh_coverage": {
+    "bad": [],
+    "parts": [
+      {
+        "source": "Companions/머리날개형/19_companion_brick.png",
+        "part": "머리",
+        "uncovered_fraction": 0.0
+      },
+      {
+        "source": "Companions/머리날개형/19_companion_brick.png",
+        "part": "날개1",
+        "uncovered_fraction": 0.0
+      },
+      {
+        "source": "Companions/머리날개형/19_companion_brick.png",
+        "part": "날개2",
+        "uncovered_fraction": 0.0
+      }
+    ]
+  },
+  "tests": [
+    "AllCostumesKeepOriginalBodyScaleFaceAndAnimationTimeline",
+    "ArtCachesRecoverDestroyedSpritesAndResetForFastPlayMode",
+    "AutomaticCombatCastsEquippedLoadoutsAndRefills",
+    "GrowthEquippedSkinsUpdateWorldWeaponSpriteAndPlayerTintAndRestoreBasics",
+    "PauseFreezesPhysicsAndRestartRestoresRemainingWave",
+    "PhysicsSeparatesOverlappingEnemies",
+    "PlayerAndThreeEnemySpeciesAnimateTwoMovementFrames",
+    "PrefabActorsUseSkinnedPartsFacingPauseAndPooledAppearanceChanges",
+    "PrefabCatalogCoversEveryFinalAppearanceAndPreservesAllFiveRigTypes",
+    "PrefabCompanionsAllSpawnTheirMatchingRigAndFireTheConfiguredProjectile",
+    "PrefabUiUsesFinalPlayerSkinsCompanionsAndAmethystProjectiles",
+    "SkinBulkUnlockAndEquipmentTabNotificationsFollowAvailableActions",
+    "StartsWith200SolidSeparatedEnemiesAndFiveBananas",
+    "ThemedSkinsHaveCompletePairedFramesAndWorldEquipmentUsesThem"
+  ],
+  "reviewed_screenshots": [
+    "prefab-live-combat.png",
+    "prefab-new-companions.png",
+    "prefab-ui-Skins.png",
+    "prefab-ui-Companions.png",
+    "prefab-ui-Chat.png",
+    "prefab-ui-Pvp.png"
+  ],
+  "cloud_runs": {
+    "36408596873": "Rig and catalog generation passed; PlayMode failed before portrait importer fix. Final integration validated locally."
+  }
+}

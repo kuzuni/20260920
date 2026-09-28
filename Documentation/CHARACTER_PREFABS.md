@@ -16,3 +16,9 @@ GitHub Actions `Doodle Idle Unity tests`에서 `validation: character-prefabs`�
 생성 에셋은 테스트 결과 아티팩트의 `character-assets/Assets`에, 실제 게임/UI 렌더는 `screenshots/prefab-*.png`에 저장된다. 검증 완료 후 생성 에셋을 원래 Assets 경로에 반영해야 일반 플레이어 빌드에서도 사용할 수 있다. 기존 씬의 수동 편집 내용은 별도로 보존한다.
 
 스킨 목록은 기본형+40종으로 맞췄으며, 기존 20개 스킨의 구매·장착 ID와 가격/능력치는 유지한다. 추가 테마에는 별도 ID를 부여한다. `SkinAppearance_N_0`과 `SkinWeapon_N`의 N은 최종 플레이어 파일 번호에서 1을 뺀 값이다.
+
+추가 20종은 2,100~4,000단계에서 해금된다. 프로필·내 PVP 순위·내 채팅·스탯·소환 결과의 플레이어 그림은 장착한 외형을 따른다. 스킨의 장착 표시는 얼굴을 가리지 않게 카드 상단에 배치한다.
+
+씬에 직접 배치한 독립 CharacterRig는 에디터 확인용으로 유지하며, 게임을 시작하면 숨긴다. 전투에서는 DoodleRigVisual이 생성한 리깅 프리팹만 표시한다. 적 풀에서 다시 활성화할 때는 SpriteSkin의 OnEnable 이후에 외형을 교체한다.
+
+로컬 검증도 같은 PlayMode 필터 `character-prefabs`를 사용한다. 생성된 CharacterCatalog와 RigPortraits는 Assets에 포함되므로 에디터나 플레이어 빌드가 별도 생성 절차 없이 읽을 수 있다.

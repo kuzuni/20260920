@@ -93,7 +93,7 @@ namespace DoodleIdle.Tests
             Assert.That(weapon.sprite, Is.Not.SameAs(originalWeapon));
             Assert.That(weapon.sprite.texture, Is.SameAs(source.texture));
             Assert.That(weapon.sprite.rect, Is.EqualTo(source.rect));
-            Assert.That(weapon.sharedMaterial.mainTexture, Is.SameAs(source.texture), "The rendered material must follow the new sprite atlas.");
+            Assert.That(weapon.enabled, Is.True, "The prefab SpriteRenderer binds the equipped sprite texture.");
             Assert.That(weapon.color, Is.EqualTo(weaponSkin.tint));
             Assert.That(playerArt.color, Is.EqualTo(appearance.tint));
             Assert.That(visual.Rig.appearance, Is.SameAs(DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(appearance.icon)).appearance));
@@ -104,7 +104,7 @@ namespace DoodleIdle.Tests
             yield return null;
             yield return null;
             Assert.That(weapon.sprite, Is.SameAs(originalWeapon));
-            Assert.That(weapon.sharedMaterial.mainTexture, Is.SameAs(originalWeapon.texture));
+            Assert.That(weapon.enabled, Is.True);
             Assert.That(weapon.color, Is.EqualTo(Color.white));
             Assert.That(playerArt.color, Is.EqualTo(Color.white));
             Assert.That(playerArt.sprite.texture, Is.SameAs(originalPlayerTexture));

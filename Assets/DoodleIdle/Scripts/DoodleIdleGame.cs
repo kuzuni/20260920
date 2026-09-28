@@ -113,6 +113,10 @@ namespace DoodleIdle
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 0;
             Application.runInBackground = true;
+            // Standalone rigs in this scene are editor previews; gameplay owns its spawned actors.
+            foreach (var root in gameObject.scene.GetRootGameObjects())
+                foreach (var preview in root.GetComponentsInChildren<DoodleIdle.CharacterRigs.CharacterRig>())
+                    if (!preview.GetComponentInParent<DoodleRigVisual>()) preview.gameObject.SetActive(false);
             sprites = LoadAtlas();
             LoadSkillArt();
             LoadSummonArt();
@@ -341,7 +345,8 @@ namespace DoodleIdle
             UpdateJoystick();
             if (paused) {
                 if (player != null && player.rigVisual) {
-                    AnimateActorFrames(player, 0);
+                    var entry = DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(Ui ? Ui.EquippedAppearanceIcon : "Player"));
+                    player.rigVisual.Configure(entry);
                     player.art.color = Ui ? Ui.EquippedAppearanceTint : Color.white;
                     player.rigVisual.Sync(); UpdateHeldClub();
                 }
@@ -619,7 +624,7 @@ namespace DoodleIdle
                 var renderer = player.rigVisual.Rig.weaponRenderer;
                 string key = Ui ? Ui.EquippedWeaponIcon : "Club";
                 var sprite = key == "Club" ? player.rigVisual.Entry.appearance.weapon : WorldSkinSprite(key, true);
-                if (sprite && renderer.sprite != sprite) SetSpriteArt(renderer, sprite);
+                if (sprite && renderer.sprite != sprite) renderer.sprite = sprite;
                 renderer.enabled = sprite;
                 renderer.color = Ui ? Ui.EquippedWeaponTint : Color.white;
                 return;

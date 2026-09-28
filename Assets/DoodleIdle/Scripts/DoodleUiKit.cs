@@ -157,7 +157,8 @@ namespace DoodleIdle
                 var label=Text(mark,"장착중",22,TextAnchor.MiddleCenter,30);label.color=Color.white;Stretch(label.rectTransform,3,1,3,1);
             }
             if(locked) { var mark=Rect(r,"Locked padlock"); mark.anchorMin=mark.anchorMax=new Vector2(1,0);mark.anchoredPosition=new Vector2(-17,41);mark.sizeDelta=new Vector2(20,25);mark.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget=false; }
-            var adaptive=r.gameObject.AddComponent<DoodleUiSlotLayout>();adaptive.grade=t;adaptive.art=im.rectTransform;adaptive.gauge=gauge;adaptive.Reflow();
+            var adaptive=r.gameObject.AddComponent<DoodleUiSlotLayout>();adaptive.grade=t;adaptive.art=im.rectTransform;adaptive.gauge=gauge;
+            adaptive.equippedLabelBelowArt=icon != null && icon.StartsWith("CompanionMon_",StringComparison.Ordinal);adaptive.Reflow();
             return b;
         }
         public static Sprite Circle => circle && circle.texture ? circle : circle=Shape(true);
@@ -334,7 +335,7 @@ namespace DoodleIdle
     {
         public Text grade;
         public RectTransform art,gauge;
-        public bool hideQuantity;
+        public bool hideQuantity, equippedLabelAtTop, equippedLabelBelowArt;
         Vector2 previousSize;
         void OnRectTransformDimensionsChange()=>Reflow();
         void LateUpdate()=>Reflow();
@@ -366,6 +367,14 @@ namespace DoodleIdle
             var mark=transform.Find("Equipped label") as RectTransform;
             if(mark) {
                 mark.sizeDelta=new Vector2(-10*scale,30*scale);mark.anchoredPosition=Vector2.zero;
+                if (equippedLabelAtTop) {
+                    mark.anchorMin=new Vector2(0,1);mark.anchorMax=Vector2.one;mark.pivot=new Vector2(.5f,1);
+                    mark.anchoredPosition=new Vector2(0,-5*scale);
+                }
+                if (equippedLabelBelowArt) {
+                    mark.anchorMin=Vector2.zero;mark.anchorMax=new Vector2(1,0);mark.pivot=new Vector2(.5f,0);
+                    mark.sizeDelta=new Vector2(-10*scale,18*scale);mark.anchoredPosition=new Vector2(0,bottom+7*scale);
+                }
                 var label=mark.GetComponentInChildren<Text>();label.resizeTextMinSize=9;label.resizeTextMaxSize=Mathf.RoundToInt(22*scale);
             }
             var locked=transform.Find("Locked padlock") as RectTransform;

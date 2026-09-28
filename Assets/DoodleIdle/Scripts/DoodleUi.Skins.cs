@@ -263,6 +263,8 @@ namespace DoodleIdle
         {
             var slot = UiKit.Slot(parent, skin.name, skin.icon, 0, skin.owned ? 1 : 0, 1, skin.equipped, !skin.owned, click, height);
             slot.GetComponent<DoodleUiSlotLayout>().grade.gameObject.SetActive(false);
+            slot.GetComponent<DoodleUiSlotLayout>().equippedLabelAtTop = true;
+            slot.GetComponent<DoodleUiSlotLayout>().Invalidate();
             slot.name = "SkinSlot_" + skin.id;
             Notify(slot.transform, () => CanUnlockSkin(skin));
             var icon = slot.transform.Find("Icon: " + skin.icon);

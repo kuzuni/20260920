@@ -66,6 +66,7 @@ public sealed class DoodleCharacterCatalogBuild
                     importer.spritePixelsPerUnit = 256; importer.alphaIsTransparency = true; importer.isReadable = true;
                     importer.mipmapEnabled = false; importer.textureCompression = TextureImporterCompression.Uncompressed;
                     importer.SaveAndReimport(); entry.portraits[pose] = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                    if (!entry.portraits[pose]) throw new Exception("Portrait was not imported as a Sprite: " + path);
                 }
             } finally { Object.DestroyImmediate(go); }
         }
