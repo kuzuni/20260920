@@ -48,6 +48,7 @@ namespace DoodleIdle.Tests
             finally { System.Globalization.CultureInfo.CurrentCulture = culture; }
         }
         static readonly string[] UiProfileKeys = {
+            "DoodleUi.PaymentWallet.v1",
             "DoodleUi.CommerceExtras.v1", "DoodleUi.Gold", "DoodleUi.Collections.v1", "DoodleUi.Services.v1", "DoodleUi.Skins",
             "DoodleUi.Commerce.Armor", "DoodleUi.Commerce.Club", "DoodleUi.Commerce.Necklace", "DoodleUi.Commerce.Skill",
             "DoodleUi.Commerce.Companion", "DoodleUi.Commerce.Relic", "DoodleUi.Commerce.DungeonRelic", "DoodleUi.SkillRefundRemainder", "DoodleUi.HideMaxStats"
@@ -237,7 +238,7 @@ namespace DoodleIdle.Tests
                 Assert.That(restored.FreeSummonsRemaining("Armor"),Is.EqualTo(3),"A new day restores all three attempts.");
                 Assert.That(restored.FreeSummonsRemaining("Club"),Is.EqualTo(3),"Each category has its own allowance.");
                 var legacy=new DoodleUi.SummonState{category="Armor",freeUsedDay=System.DateTime.UtcNow.ToString("yyyy-MM-dd")};
-                PlayerPrefs.SetString("DoodleUi.Commerce.Armor",JsonUtility.ToJson(legacy).Replace(",\"freeUsedCount\":0",""));
+                PlayerPrefs.SetString("DoodleUi.Commerce.Armor",DoodleJson.ToJson(legacy).Replace(",\"freeUsedCount\":0",""));
                 var migrated=GrowthProbe(probes);typeof(DoodleUi).GetMethod("InitCommerce",GrowthPrivate).Invoke(migrated,null);
                 Assert.That(migrated.FreeSummonsRemaining("Armor"),Is.EqualTo(2),"A legacy used day represents one consumed attempt.");
             } finally {foreach(var probe in probes)Object.Destroy(probe);ui.Save();}

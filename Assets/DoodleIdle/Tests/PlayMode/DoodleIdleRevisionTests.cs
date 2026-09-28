@@ -187,8 +187,8 @@ namespace DoodleIdle.Tests
             var camera=Camera.main;camera.orthographicSize=4.8f;camera.transform.position=new Vector3(0,0,-10);
             for(int theme=0;theme<10;theme++)
             {
-                state.GetType().GetField("mainStage").SetValue(state,theme*100);
-                state.GetType().GetField("mainStageKillProgress").SetValue(state,0);
+                ServiceSetSavedField(state, "mainStage",theme*100);
+                ServiceSetSavedField(state, "mainStageKillProgress",0);
                 game.RequestCombatWaveReset();game.paused=false;
                 typeof(DoodleIdleGame).GetMethod("FixedUpdate",GrowthPrivate).Invoke(game,null);
                 game.TogglePause();
@@ -245,7 +245,7 @@ namespace DoodleIdle.Tests
                 // Left column travels left; right column travels right, one row per species.
                 Object.Destroy(CaptureFrame("revision-facing-theme-"+theme+".png",1000,1000,false));
             }
-            state.GetType().GetField("mainStageKillProgress").SetValue(state,100);
+            ServiceSetSavedField(state, "mainStageKillProgress",100);
             game.RequestCombatWaveReset();game.paused=false;
             typeof(DoodleIdleGame).GetMethod("FixedUpdate",GrowthPrivate).Invoke(game,null);
             game.TogglePause();
@@ -431,8 +431,8 @@ namespace DoodleIdle.Tests
             var state = typeof(DoodleUi).GetField("services", GrowthPrivate).GetValue(game.Ui);
             for (int theme = 0; theme < 10; theme++)
             {
-                state.GetType().GetField("mainStage").SetValue(state, theme * 100);
-                state.GetType().GetField("mainStageKillProgress").SetValue(state, 0);
+                ServiceSetSavedField(state, "mainStage", theme * 100);
+                ServiceSetSavedField(state, "mainStageKillProgress", 0);
                 game.RequestCombatWaveReset(); game.paused = false;
                 typeof(DoodleIdleGame).GetMethod("FixedUpdate", GrowthPrivate).Invoke(game, null);
                 game.TogglePause();

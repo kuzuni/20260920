@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,8 +15,10 @@ namespace DoodleIdle
         GameNumber goldAmount;
         public GameNumber GoldAmount { get => goldAmount; set => goldAmount = GameNumber.Round(GameNumber.Max(0, value)); }
         public long Gold { get => (long)GameNumber.Round(GoldAmount); set => GoldAmount = value; }
-        public int Diamonds;
-        public string PlayerName = "먼지고양이";
+        ObscuredInt protectedDiamonds;
+        public int Diamonds { get => protectedDiamonds; set => protectedDiamonds = value; }
+        ObscuredString protectedName = "먼지고양이";
+        public string PlayerName { get => protectedName; set => protectedName = value; }
         public string ActivePage { get; private set; }
         public bool HasOverlay => overlayStack.Count>0;
         public bool BlocksGameplay => !string.IsNullOrEmpty(ActivePage) || HasOverlay || Time.frameCount<=consumeThroughFrame || releaseLatch;
@@ -28,7 +31,8 @@ namespace DoodleIdle
         Button missionClaim, breakthroughButton;
         DoodleBreakthroughPulse breakthroughPulse;
         RectTransform cameraControl,stageInfo;
-        public int CameraMode { get; private set; } = 1;
+        ObscuredInt cameraMode = 1;
+        public int CameraMode { get => cameraMode; private set => cameraMode = value; }
         float powerToastUntil;
         bool rebuildingPage;
         Image goldBuffSurface,attackBuffSurface;
@@ -44,7 +48,7 @@ namespace DoodleIdle
         int consumeThroughFrame,lastKills;
         bool releaseLatch,initialized,suppressSaving;
         float toastUntil;
-        float nextWalletSave=15;
+        readonly DoodleSaveSchedule localSave = new DoodleSaveSchedule(DoodleSaveSchedule.LocalInterval, DoodleSaveSchedule.LocalInterval);
         Vector2 previousSize;
         Rect previousSafe;
         Action<RectTransform> fullscreenBuilder;
@@ -54,9 +58,9 @@ namespace DoodleIdle
         {
             if(initialized)return; initialized=true; game=owner; root=(RectTransform)canvasRoot; Canvas=root.GetComponent<Canvas>();
             font=Resources.Load<Font>("DoodleIdle/UI/DisplayFont"); UiKit.Font=font;
-            GameNumber.TryParse(PlayerPrefs.GetString("DoodleUi.Gold","0"),out goldAmount); GoldAmount = goldAmount; Diamonds=PlayerPrefs.GetInt("DoodleUi.Diamonds",0);
+            GameNumber.TryParse(DoodlePrefs.GetString("DoodleUi.Gold","0"),out goldAmount); GoldAmount = goldAmount; Diamonds=DoodlePrefs.GetInt("DoodleUi.Diamonds",0);
             InitCollections(); InitSkins(); InitCommerce(); InitServices();
-            CameraMode=Mathf.Clamp(PlayerPrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
+            CameraMode=Mathf.Clamp(DoodlePrefs.GetInt("DoodleUi.CameraMode",1),1,3); ApplyCameraMode();
             safe=UiKit.Rect(root,"Safe area"); UiKit.Stretch(safe);
             BuildMain(); BuildBossHud();
             pageLayer=UiKit.Rect(root,"Primary modal layer"); UiKit.Stretch(pageLayer);
@@ -65,6 +69,8 @@ namespace DoodleIdle
             toast=BuildToast("Toast",24,0,70);
             powerToast=BuildToast("Power change toast",27,-86,76);
             Relayout(true); RefreshHud();
+            var session = DoodleBackendSession.Instance;
+            if (session && session.Ready) { PlayerName = BackEnd.Backend.UserNickName; session.SetStage(HighestMainStage); EnsurePayments(); }
         }
         void BuildMain()
         {
@@ -329,7 +335,7 @@ namespace DoodleIdle
             if(string.IsNullOrEmpty(message))motion.Hide();else motion.Show(3.5f);
         }
         internal void StopSavingForReset() { suppressSaving=true; }
-        public void Save() { if(suppressSaving)return; combatSavePending=false; PlayerPrefs.SetString("DoodleUi.Gold",(GoldAmount.Exponent < 15 ? Gold.ToString() : GoldAmount.ToString())); PlayerPrefs.SetInt("DoodleUi.Diamonds",Diamonds); PlayerPrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); PlayerPrefs.Save(); }
+        public void Save() { if(suppressSaving || DoodleSecurity.Compromised)return; combatSavePending=false; DoodlePrefs.SetString("DoodleUi.Gold",(GoldAmount.Exponent < 15 ? Gold.ToString() : GoldAmount.ToString())); DoodlePrefs.SetInt("DoodleUi.Diamonds",Diamonds); DoodlePrefs.SetInt("DoodleUi.CameraMode",CameraMode); SaveCollections(); SaveCommerce(); SaveServices(); SaveSkins(); DoodlePrefs.Save(); }
         public void NotifyPowerChanged(GameNumber before,string reason=null)
         {
             if(!powerToast)return;GameNumber after=PowerAmount,change=after-before;
@@ -340,8 +346,17 @@ namespace DoodleIdle
         void StopRepeating() { if(Canvas){var driver=Canvas.GetComponent<DoodleUiRepeatDriver>();if(driver)driver.Stop();} }
         void ApplyCameraMode() { if(game)game.SetUiCameraSize(new[]{8.5f,11f,14.5f}[CameraMode-1]);if(cameraLabel)cameraLabel.text="카메라  "+CameraMode; }
         public void CycleCameraMode() { CameraMode=CameraMode%3+1;ApplyCameraMode();Save(); }
-        void OnApplicationPause(bool paused) { if(initialized&&paused)Save(); }
-        void OnApplicationQuit() { if(initialized)Save(); }
+        void OnApplicationPause(bool paused) { if(initialized&&paused)PersistLocal(); }
+        void OnApplicationQuit() { if(initialized)PersistLocal(); }
+        void PersistLocal()
+        {
+            if (suppressSaving || DoodleSecurity.Compromised) return;
+            bool success = false;
+            try { Save(); DoodlePrefs.Flush(); success = true; }
+            catch (System.IO.IOException) { /* Retry next second; never discard the in-memory save. */ }
+            catch (UnauthorizedAccessException) { /* Storage may temporarily be unavailable. */ }
+            finally { localSave.Complete(Time.realtimeSinceStartupAsDouble, success); }
+        }
         void ConsumeGesture() { consumeThroughFrame=Time.frameCount+2; releaseLatch=Pointer.current!=null&&Pointer.current.press.isPressed; game.CancelUiPointer(); }
         void ClearOverlays() { foreach(var go in overlayStack) if(go){rewardCloseEffects.Remove(go);go.SetActive(false);Destroy(go);} overlayStack.Clear(); }
         static void ClearChildren(Transform parent) { if(!parent)return; foreach(Transform child in parent) { child.gameObject.SetActive(false); Destroy(child.gameObject); } }
@@ -355,7 +370,7 @@ namespace DoodleIdle
             if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
             else { RefreshStatWallet(); RefreshBossHud(); RefreshHudSkills(); }
             if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";
-            if(Time.unscaledTime>=nextWalletSave) { nextWalletSave=Time.unscaledTime+15; Save(); }
+            if(localSave.TryBegin(Time.realtimeSinceStartupAsDouble)) PersistLocal();
         }
         public void RefreshHud()
         {

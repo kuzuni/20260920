@@ -13,16 +13,24 @@ namespace DoodleIdle.Tests
     {
         const BindingFlags ServicePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
         object ServiceStateObject => typeof(DoodleUi).GetField("services", ServicePrivate).GetValue(game.Ui);
-        T ServiceStateValue<T>(string name) => (T)ServiceStateObject.GetType().GetField(name).GetValue(ServiceStateObject);
-        static void ServiceSetSavedField(object state, string name, object value) => state.GetType().GetField(name).SetValue(state, value);
+        T ServiceStateValue<T>(string name) => (T)(ServiceStateObject.GetType().GetProperty(name)?.GetValue(ServiceStateObject) ?? ServiceStateObject.GetType().GetField(name).GetValue(ServiceStateObject));
+        static void ServiceSetSavedField(object state, string name, object value)
+        {
+            var property = state.GetType().GetProperty(name);
+            if (property != null) { property.SetValue(state, value); return; }
+            var field = state.GetType().GetField(name);
+            if (value is int[] ints) value = System.Array.ConvertAll(ints, x => (CodeStage.AntiCheat.ObscuredTypes.ObscuredInt)x);
+            if (value is bool[] bools) value = System.Array.ConvertAll(bools, x => (CodeStage.AntiCheat.ObscuredTypes.ObscuredBool)x);
+            field.SetValue(state, value);
+        }
         DoodleUi.ServiceTuning ServiceTestTuning => JsonUtility.FromJson<DoodleUi.ServiceTuning>(Resources.Load<TextAsset>("DoodleIdle/UI/ServicesTuning").text);
 
         void LoadServiceSnapshot(Action<object> configure)
         {
             // Test a real persisted profile from an earlier session without changing UTC or production goals.
-            object saved = JsonUtility.FromJson(JsonUtility.ToJson(ServiceStateObject), ServiceStateObject.GetType());
+            object saved = DoodleJson.FromJson(DoodleJson.ToJson(ServiceStateObject), ServiceStateObject.GetType());
             configure(saved);
-            PlayerPrefs.SetString("DoodleUi.Services.v1", JsonUtility.ToJson(saved));
+            PlayerPrefs.SetString("DoodleUi.Services.v1", DoodleJson.ToJson(saved));
             typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(game.Ui, null);
         }
 
@@ -69,19 +77,19 @@ namespace DoodleIdle.Tests
                 ServiceSetSavedField(saved, "dungeonUsed", new[] { 3, 2, 1 });
                 ServiceSetSavedField(saved, "daily", Enumerable.Repeat(100, 8).ToArray());
                 ServiceSetSavedField(saved, "weekly", Enumerable.Repeat(200, 8).ToArray());
-                ServiceSetSavedField(saved, "repeat", Enumerable.Repeat(17, ServiceStateValue<int[]>("repeat").Length).ToArray());
+                ServiceSetSavedField(saved, "repeat", Enumerable.Repeat(17, ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat").Length).ToArray());
                 ServiceSetSavedField(saved, "dailyClaimed", Enumerable.Repeat(true, 4).ToArray());
                 ServiceSetSavedField(saved, "weeklyClaimed", Enumerable.Repeat(true, 4).ToArray());
             });
             Assert.That(ServiceStateValue<string>("day"), Is.EqualTo(DateTime.UtcNow.ToString("yyyy-MM-dd")));
             Assert.That(ServiceStateValue<int>("spins"), Is.Zero);
             Assert.That(ServiceStateValue<int>("pvpUsed"), Is.Zero);
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"), Is.All.EqualTo(0));
-            Assert.That(ServiceStateValue<int[]>("daily"), Is.All.EqualTo(0));
-            Assert.That(ServiceStateValue<int[]>("weekly"), Is.All.EqualTo(0));
-            Assert.That(ServiceStateValue<bool[]>("dailyClaimed"), Is.All.EqualTo(false));
-            Assert.That(ServiceStateValue<bool[]>("weeklyClaimed"), Is.All.EqualTo(false));
-            Assert.That(ServiceStateValue<int[]>("repeat"), Is.All.EqualTo(17), "Repeating quest progress must survive calendar boundaries.");
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"), Is.All.EqualTo(0));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("daily"), Is.All.EqualTo(0));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("weekly"), Is.All.EqualTo(0));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed"), Is.All.EqualTo(false));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("weeklyClaimed"), Is.All.EqualTo(false));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat"), Is.All.EqualTo(17), "Repeating quest progress must survive calendar boundaries.");
             ui.CloseDetail(); ui.ClaimAttendance();
             Assert.That(ui.Diamonds, Is.EqualTo(wallet + ServiceTestTuning.attendance[0] + ServiceTestTuning.attendance[1]));
             Assert.That(ServiceStateValue<int>("attendanceIndex"), Is.EqualTo(2), "Attendance advances to the next of seven rewards.");
@@ -235,12 +243,12 @@ namespace DoodleIdle.Tests
                 wallet += 3 * ui.QuestReward(1,i);
                 Assert.That(ui.Diamonds, Is.EqualTo(wallet));
                 AssertSingleDiamondReward();
-                Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(1));
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[metricIndices[i]], Is.EqualTo(1));
                 ui.CloseDetail();
                 ui.ClaimQuests(i);
                 Assert.That(ui.Diamonds, Is.EqualTo(wallet), "The paid cycles cannot be claimed twice.");
                 typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
-                Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(1), "Claim must persist the remainder without an extra test-side save.");
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[metricIndices[i]], Is.EqualTo(1), "Claim must persist the remainder without an extra test-side save.");
             }
             RefreshServiceTestBindings();
             for (int i = 0; i < 4; i++)
@@ -273,13 +281,13 @@ namespace DoodleIdle.Tests
             AssertSingleDiamondReward();
             ui.CloseDetail();
             typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
-            for (int i = 0; i < 4; i++) Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(i + 1));
+            for (int i = 0; i < 4; i++) Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[metricIndices[i]], Is.EqualTo(i + 1));
             UiClick("일괄받기");
             Assert.That(ui.Diamonds, Is.EqualTo(wallet + expectedReward));
             ui.RecordServiceProgress("kills", tuning.repeatGoals[0] - 1);
             UiClick("일괄받기");
             Assert.That(ui.Diamonds, Is.EqualTo(wallet + expectedReward + ui.QuestReward(1,0)));
-            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.Zero);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0], Is.Zero);
             yield return null;
         }
 
@@ -295,21 +303,21 @@ namespace DoodleIdle.Tests
             ui.Diamonds = int.MaxValue - 12;
             UiOpen("Quests"); UiClick("반복", UiNode("Quest tabs")); UiClick("일괄받기");
             Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 2));
-            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.EqualTo(int.MaxValue - tuning.repeatGoals[0] * 2));
-            for (int i = 1; i < 4; i++) Assert.That(ServiceStateValue<int[]>("repeat")[metricIndices[i]], Is.EqualTo(int.MaxValue));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0], Is.EqualTo(int.MaxValue - tuning.repeatGoals[0] * 2));
+            for (int i = 1; i < 4; i++) Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[metricIndices[i]], Is.EqualTo(int.MaxValue));
             ui.CloseDetail();
             typeof(DoodleUi).GetMethod("InitServices", ServicePrivate).Invoke(ui, null);
-            int[] before = (int[])ServiceStateValue<int[]>("repeat").Clone();
+            var before = (CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[])ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat").Clone();
             UiClick("일괄받기");
             Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue - 2));
-            Assert.That(ServiceStateValue<int[]>("repeat"), Is.EqualTo(before), "No full reward fits, so no pending cycle may be removed.");
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat"), Is.EqualTo(before), "No full reward fits, so no pending cycle may be removed.");
             ui.Diamonds = 0;
             UiClick("일괄받기");
             Assert.That(ui.Diamonds, Is.EqualTo(int.MaxValue / 5 * 5));
             long paid = 0;
             for (int i = 0; i < 4; i++)
             {
-                int after = ServiceStateValue<int[]>("repeat")[metricIndices[i]];
+                int after = ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[metricIndices[i]];
                 Assert.That(after % tuning.repeatGoals[i], Is.EqualTo(before[metricIndices[i]] % tuning.repeatGoals[i]));
                 paid += ((long)before[metricIndices[i]] - after) / tuning.repeatGoals[i] * ui.QuestReward(1,i);
             }
@@ -340,19 +348,19 @@ namespace DoodleIdle.Tests
             ui.ClaimQuests(0);
             int firstRepeatWallet = ui.Diamonds;
             Assert.That(firstRepeatWallet, Is.EqualTo(wallet + dailyReward + ui.QuestReward(1,0)));
-            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.Zero);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0], Is.Zero);
             ui.CloseDetail(); ui.ClaimQuests(0);
             Assert.That(ui.Diamonds, Is.EqualTo(firstRepeatWallet));
             ui.RecordServiceProgress("kills", tuning.repeatGoals[0] + 7);
             ui.ClaimQuests(0); ui.CloseDetail();
             Assert.That(ui.Diamonds, Is.EqualTo(firstRepeatWallet + ui.QuestReward(1,0)));
-            Assert.That(ServiceStateValue<int[]>("repeat")[0], Is.EqualTo(7), "Unconsumed progress belongs to the next cycle.");
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0], Is.EqualTo(7), "Unconsumed progress belongs to the next cycle.");
             UiClick("주간", UiNode("Quest tabs"));
             ui.RecordServiceProgress("kills", tuning.weeklyGoals[0]);
             int beforeWeekly = ui.Diamonds;
             ui.ClaimQuests(0); ui.CloseDetail(); ui.ClaimQuests(0);
             Assert.That(ui.Diamonds, Is.EqualTo(beforeWeekly + ui.QuestReward(2,0)));
-            Assert.That(ServiceStateValue<bool[]>("weeklyClaimed")[0], Is.True);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("weeklyClaimed")[0], Is.True);
             yield return null;
         }
 
@@ -390,7 +398,7 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.ActivePage,Is.Null);Assert.That(ui.HasOverlay,Is.False);
                 Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(dungeon));Assert.That(ui.CombatDifficultyStage,Is.EqualTo((attempt+1)*50));
                 Assert.That(ui.Gold,Is.EqualTo(gold));Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets));
-                Assert.That(ServiceStateValue<int[]>("dungeonUsed")[dungeon],Is.EqualTo(attempt+1));
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed")[dungeon],Is.EqualTo(attempt+1));
                 ui.EnterDungeon(dungeon==0?2:0);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(dungeon));
                 DefeatActualServiceEnemies(goal-1);yield return null;
                 Assert.That(ui.DungeonProgress,Is.EqualTo(goal-1));Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(dungeon));
@@ -408,7 +416,7 @@ namespace DoodleIdle.Tests
             foreach(int dungeon in new[]{0,2}){ui.EnterDungeon(dungeon);Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));}
             Assert.That(game.Kills-initialKills,Is.EqualTo(requiredKills));
             Assert.That(ui.MainStage,Is.EqualTo(mainStage));Assert.That(ui.MainStageKillProgress,Is.EqualTo(mainProgress));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,3,0,0,0,0,0}));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,3,0,0,0,0,0}));
             ReloadPersistedServices();Assert.That(ui.HighestDungeonStage,Is.EqualTo(3));Assert.That(ui.DungeonRelicTickets,Is.EqualTo(33));
         }
 
@@ -437,17 +445,18 @@ namespace DoodleIdle.Tests
             Assert.That(ui.Diamonds, Is.EqualTo(wallet));
             UiOpen("Chat");
             Assert.That(UiNode("Panel: 채팅").GetComponent<DoodleUiWindow>().full, Is.False);
-            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text.Contains("네트워크 미연결")), Is.True);
-            string message = "<b>로컬 입력 확인</b>";
-            UiNode("Chat input").GetComponent<InputField>().text = message;
-            UiClick("보내기"); yield return null; yield return null;
-            var posted = UiRoot.GetComponentsInChildren<Text>().Single(t => t.text == message);
-            Assert.That(posted.supportRichText, Is.False);
-            var chatScroll = UiTopScroll();
-            if (chatScroll.content.rect.height > chatScroll.viewport.rect.height + 1)
-                Assert.That(chatScroll.verticalNormalizedPosition, Is.EqualTo(0).Within(.01f));
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "Global / 글로벌"), Is.True);
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "한국 / Korea"), Is.True);
+            Assert.That(UiNode("Chat messages").GetComponentsInChildren<Text>().Any(t => t.text.Contains("예시")), Is.False);
+            var chat = DoodleChatService.Get();
+            string message = "<b>오프라인에서는 전송하지 않음</b>";
+            Assert.That(chat.Send(message), Is.False);
+            Assert.That(chat.Messages.Count, Is.Zero);
+            UiClick("한국 / Korea");
+            Assert.That(chat.Selected, Is.EqualTo(DoodleChatService.Korea));
             UiOpen("Settings"); UiOpen("Chat");
-            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text == message), Is.True, "Local messages survive navigating between pages.");
+            Assert.That(chat.Selected, Is.EqualTo(DoodleChatService.Korea));
+            Assert.That(chat.Messages.Count, Is.Zero);
             UiOpen("Settings");
             Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "계속하기" || b.name == "일시정지"), Is.False, "Settings must no longer expose pause controls.");
             Assert.That(game.paused, Is.True);
@@ -457,8 +466,8 @@ namespace DoodleIdle.Tests
             Assert.That(Application.targetFrameRate, Is.EqualTo(30));
             var slider = UiNode("배경음 slider").GetComponent<Slider>(); slider.value = .25f;
             Assert.That(ServiceStateValue<float>("music"), Is.EqualTo(.25f).Within(.001f));
-            UiClick("연동하기");
-            Assert.That(UiNode("Detail dim: 계정연동").GetComponentsInChildren<Text>().Any(t => t.text.Contains("서버가 연결되지 않았습니다")), Is.True);
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "English / 한국어"), Is.True);
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "로그아웃" || b.name == "Sign out"), Is.False, "Editor offline sessions must not offer a real account logout.");
             yield return null;
         }
     }

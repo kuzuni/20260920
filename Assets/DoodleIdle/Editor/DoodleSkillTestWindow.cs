@@ -28,7 +28,7 @@ namespace DoodleIdle.Editor
             skills.Clear();
             var source = Resources.Load<TextAsset>("DoodleIdle/UI/Collections");
             if (!source) return;
-            var items = JsonUtility.FromJson<UiCollectionTuning>(source.text)?.items;
+            var items = DoodleJson.FromJson<UiCollectionTuning>(source.text)?.items;
             if (items == null) return;
             foreach (var item in items)
                 if (item != null && item.category == "Skill") skills.Add(new SkillRow(item));

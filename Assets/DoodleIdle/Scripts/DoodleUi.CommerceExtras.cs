@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,20 +10,74 @@ namespace DoodleIdle
     {
         [Serializable] sealed class CommerceExtras
         {
-            public string freeDiamondDay="";
-            public int freeDiamondClaims,mileageCoupons;
+            [NonSerialized] private ObscuredString protected_freeDiamondDay = ""; public string freeDiamondDay { get => protected_freeDiamondDay; set => protected_freeDiamondDay = value; }
+            [NonSerialized] private ObscuredInt protected_freeDiamondClaims; public int freeDiamondClaims { get => protected_freeDiamondClaims; set => protected_freeDiamondClaims = value; }
+            [NonSerialized] private ObscuredInt protected_mileageCoupons; public int mileageCoupons { get => protected_mileageCoupons; set => protected_mileageCoupons = value; }
             public List<string> fulfilledTransactions=new List<string>();
+            public DoodlePurchaseLedger purchases = new DoodlePurchaseLedger();
         }
         CommerceExtras commerceExtras=new CommerceExtras();
         const string CommerceExtrasKey="DoodleUi.CommerceExtras.v1";
+        const string PaymentWalletKey="DoodleUi.PaymentWallet.v1";
+        [Serializable] sealed class PaymentWallet { public int diamonds; public CommerceExtras extras; }
         void InitCommerceExtras()
         {
-            string json=PlayerPrefs.GetString(CommerceExtrasKey,"");
-            if(!string.IsNullOrEmpty(json))try{JsonUtility.FromJsonOverwrite(json,commerceExtras);}catch(ArgumentException){commerceExtras=new CommerceExtras();}
+            string json=DoodlePrefs.GetString(CommerceExtrasKey,"");
+            if(!string.IsNullOrEmpty(json))try{DoodleJson.FromJsonOverwrite(json,commerceExtras);}catch(ArgumentException){commerceExtras=new CommerceExtras();}
             commerceExtras.freeDiamondClaims=Mathf.Clamp(commerceExtras.freeDiamondClaims,0,30);
-            commerceExtras.mileageCoupons=Math.Max(0,commerceExtras.mileageCoupons);
             if(commerceExtras.fulfilledTransactions==null)commerceExtras.fulfilledTransactions=new List<string>();
+            if (DoodlePrefs.HasKey(PaymentWalletKey))
+            {
+                var saved = DoodleJson.FromJson<PaymentWallet>(DoodlePrefs.GetString(PaymentWalletKey));
+                if (saved == null || saved.extras == null) throw new InvalidOperationException("Payment wallet is invalid; do not replace paid progress with an empty save.");
+                Diamonds = saved.diamonds; commerceExtras = saved.extras;
+            }
+            if (commerceExtras.purchases == null) commerceExtras.purchases = new DoodlePurchaseLedger();
         }
+        public CurrencyProduct[] CurrencyProducts => commerceTuning.products;
+        public DoodlePurchaseLedger.Attempt BeginPurchase(string token, string product, string account)
+        {
+            var attempt = commerceExtras.purchases.Begin(token, product, account);
+            Save(); DoodlePrefs.Flush(); // Persist recovery nonce before asking BACKND to validate the receipt.
+            return attempt;
+        }
+        public bool DeliverPurchase(int index, DoodlePurchaseLedger.Attempt attempt)
+        {
+            if (attempt == null || !commerceExtras.purchases.attempts.Contains(attempt)) return false;
+            if (attempt.delivered) return true;
+            if (index < 0 || index >= commerceTuning.products.Length) return false;
+            var product = commerceTuning.products[index];
+            if (DoodleIapCatalog.ProductId(product.amount) != attempt.productId ||
+                Diamonds > int.MaxValue - product.amount || MileageCoupons > int.MaxValue - product.mileageCoupons) return false;
+            int previousDiamonds = Diamonds, previousCoupons = MileageCoupons;
+            Diamonds += product.amount; commerceExtras.mileageCoupons += product.mileageCoupons;
+            attempt.grantedDiamonds = product.amount; attempt.grantedCoupons = product.mileageCoupons; attempt.delivered = true;
+            try { Save(); DoodlePrefs.Flush(); }
+            catch { Diamonds = previousDiamonds; commerceExtras.mileageCoupons = previousCoupons; attempt.delivered = false; throw; }
+            return true;
+        }
+        public void RecordPurchaseReceipt(DoodlePurchaseLedger.Attempt attempt, string orderId, string token, string receipt)
+        {
+            commerceExtras.purchases.SetReceipt(attempt, orderId, token, receipt); Save(); DoodlePrefs.Flush();
+        }
+        public DoodlePurchaseLedger.Attempt FindSavedPurchase(string orderId, string tokenHash, string accountId)
+            => commerceExtras.purchases.attempts.Find(a => a.delivered && a.orderId == orderId &&
+                a.tokenHash == tokenHash && a.accountId == accountId);
+        // Only call with a refund returned by the authenticated server reconciliation endpoint.
+        public bool RevokeVerifiedPurchase(string orderId, string tokenHash, string productId, string accountId)
+        {
+            var purchase = commerceExtras.purchases.FindRefund(orderId, tokenHash, productId, accountId);
+            if (purchase == null) return false;
+            if (purchase.revoked) return true;
+            int diamonds = checked(Diamonds - purchase.grantedDiamonds);
+            int coupons = checked(MileageCoupons - purchase.grantedCoupons);
+            int previousDiamonds = Diamonds, previousCoupons = MileageCoupons;
+            Diamonds = diamonds; commerceExtras.mileageCoupons = coupons; purchase.revoked = true;
+            try { Save(); DoodlePrefs.Flush(); }
+            catch { Diamonds = previousDiamonds; commerceExtras.mileageCoupons = previousCoupons; purchase.revoked = false; throw; }
+            return true;
+        }
+        void SavePaymentWallet() => DoodlePrefs.SetString(PaymentWalletKey, DoodleJson.ToJson(new PaymentWallet { diamonds = Diamonds, extras = commerceExtras }));
         public static string TicketIcon(string category) => "Ticket"+(category=="DungeonRelic"?"Relic":category);
         public int SummonTickets(string category) => category=="Relic"?RelicTickets:category=="DungeonRelic"?DungeonRelicTickets:summonStates.ContainsKey(category)?summonStates[category].tickets:0;
         public void GrantSummonTickets(string category,int amount)

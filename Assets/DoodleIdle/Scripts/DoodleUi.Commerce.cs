@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -86,12 +87,13 @@ namespace DoodleIdle
         [Serializable]
         public sealed class SummonState
         {
-            public string category;
-            public int level = 1, experience;
-            public string freeUsedDay = "";
-            public int freeUsedCount;
-            public int tickets;
-            public long lifetimeDraws;
+            [NonSerialized] private ObscuredString protected_category; public string category { get => protected_category; set => protected_category = value; }
+            [NonSerialized] private ObscuredInt protected_level = 1; public int level { get => protected_level; set => protected_level = value; }
+            [NonSerialized] private ObscuredInt protected_experience; public int experience { get => protected_experience; set => protected_experience = value; }
+            [NonSerialized] private ObscuredString protected_freeUsedDay = ""; public string freeUsedDay { get => protected_freeUsedDay; set => protected_freeUsedDay = value; }
+            [NonSerialized] private ObscuredInt protected_freeUsedCount; public int freeUsedCount { get => protected_freeUsedCount; set => protected_freeUsedCount = value; }
+            [NonSerialized] private ObscuredInt protected_tickets; public int tickets { get => protected_tickets; set => protected_tickets = value; }
+            [NonSerialized] private ObscuredLong protected_lifetimeDraws; public long lifetimeDraws { get => protected_lifetimeDraws; set => protected_lifetimeDraws = value; }
         }
 
         readonly string[] commerceCategories = { "Armor", "Club", "Necklace", "Skill", "Companion", "Relic" };
@@ -108,7 +110,7 @@ namespace DoodleIdle
             var tuning = Resources.Load<TextAsset>("DoodleIdle/UiCommerce");
             if (tuning != null)
             {
-                try { JsonUtility.FromJsonOverwrite(tuning.text, commerceTuning); }
+                try { DoodleJson.FromJsonOverwrite(tuning.text, commerceTuning); }
                 catch (ArgumentException) { Debug.LogWarning("Invalid UI commerce tuning; using defaults."); }
             }
             commerceTuning.freeCount = Mathf.Clamp(commerceTuning.freeCount, 1, 50);
@@ -135,10 +137,10 @@ namespace DoodleIdle
             foreach (string category in commerceCategories)
             {
                 var state = new SummonState { category = category };
-                string json = PlayerPrefs.GetString("DoodleUi.Commerce." + category, "");
+                string json = DoodlePrefs.GetString("DoodleUi.Commerce." + category, "");
                 if (!string.IsNullOrEmpty(json))
                 {
-                    try { JsonUtility.FromJsonOverwrite(json, state); }
+                    try { DoodleJson.FromJsonOverwrite(json, state); }
                     catch (ArgumentException) { Debug.LogWarning("Reset invalid local summon progress: " + category); }
                 }
                 if (!json.Contains("freeUsedCount") && state.freeUsedDay == CommerceDay()) state.freeUsedCount = 1;
@@ -158,9 +160,10 @@ namespace DoodleIdle
 
         void SaveCommerce()
         {
-            PlayerPrefs.SetString(CommerceExtrasKey,JsonUtility.ToJson(commerceExtras));
+            SavePaymentWallet();
+            DoodlePrefs.SetString(CommerceExtrasKey,DoodleJson.ToJson(commerceExtras));
             foreach (var state in summonStates.Values)
-                PlayerPrefs.SetString("DoodleUi.Commerce." + state.category, JsonUtility.ToJson(state));
+                DoodlePrefs.SetString("DoodleUi.Commerce." + state.category, DoodleJson.ToJson(state));
         }
 
         static bool IsRelicSummon(string category) => category=="Relic";
@@ -209,7 +212,7 @@ namespace DoodleIdle
         // Refunds use the same current unit price as skill summons; no bulk discount.
         // Fractional diamonds carry over between refunds and are persisted.
         public decimal SkillRefundUnitPrice => Math.Max(1, commerceTuning.skillUnitCost);
-        public bool SkipSummonAnimations { get => PlayerPrefs.GetInt("DoodleUi.SkipSummonAnimations", 0) != 0; set { PlayerPrefs.SetInt("DoodleUi.SkipSummonAnimations", value ? 1 : 0); PlayerPrefs.Save(); } }
+        public bool SkipSummonAnimations { get => DoodlePrefs.GetInt("DoodleUi.SkipSummonAnimations", 0) != 0; set { DoodlePrefs.SetInt("DoodleUi.SkipSummonAnimations", value ? 1 : 0); DoodlePrefs.Save(); } }
         public int SummonCost(string category, int count)
         {
             long unit = category == "Relic" ? commerceTuning.relicUnitCost : category == "Skill" ? commerceTuning.skillUnitCost : category == "Companion" ? commerceTuning.companionUnitCost : Math.Max(1, commerceTuning.tenCost / 10);
@@ -217,7 +220,7 @@ namespace DoodleIdle
         }
         public int SummonTicketCost(string category, int count) => Math.Min(Math.Max(0, count), SummonTickets(category));
         public int SummonDiamondCost(string category, int count) => SummonCost(category, Math.Max(0, count) - SummonTicketCost(category, count));
-        decimal SkillRefundRemainder => decimal.TryParse(PlayerPrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
+        decimal SkillRefundRemainder => decimal.TryParse(DoodlePrefs.GetString("DoodleUi.SkillRefundRemainder", "0"), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? Math.Max(0, Math.Min(.999999m, value)) : 0;
         decimal AbilityRefundUnitPrice(string category) => category == "Skill" ? SkillRefundUnitPrice : Math.Max(1, commerceTuning.companionUnitCost);
         decimal AbilityRefundRemainder(string category) => category == "Skill" ? SkillRefundRemainder : 0;
         int RefundableAbilityCopies(UiItem item)
@@ -237,7 +240,7 @@ namespace DoodleIdle
             decimal amount = copies * AbilityRefundUnitPrice(item.category) + AbilityRefundRemainder(item.category);
             int paid = (int)decimal.Floor(amount);
             item.count -= copies; Diamonds += paid;
-            if (item.category == "Skill") PlayerPrefs.SetString("DoodleUi.SkillRefundRemainder", (amount - paid).ToString(CultureInfo.InvariantCulture));
+            if (item.category == "Skill") DoodlePrefs.SetString("DoodleUi.SkillRefundRemainder", (amount - paid).ToString(CultureInfo.InvariantCulture));
             if (save) Save();
             return paid;
         }
@@ -610,7 +613,11 @@ namespace DoodleIdle
 
         void BuildCurrencyProducts(RectTransform body)
         {
-            UiKit.Text(body, "결제 서비스 미연결 · 구매할 수 없습니다", 19, TextAnchor.MiddleCenter, 30);
+            EnsurePayments();
+            var paymentStatus = UiKit.Text(body, payments.Status, 19, TextAnchor.MiddleCenter, 54);
+            var retry = UiKit.Button(body, "연결 / 미완료 구매 다시 확인", () => payments.Retry(), UiKit.Paper, 44);
+            var bindings = new List<Action>();
+            bindings.Add(() => { if (paymentStatus) paymentStatus.text = payments.Status; if (retry) retry.interactable = !payments.Busy; });
             string[] productArt = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
             var grid = UiKit.Grid(body, "Currency product cards", 2, 360);
             UiKit.PortraitGrid(grid);
@@ -629,11 +636,30 @@ namespace DoodleIdle
                     var coupon=UiKit.Row(card,"Mileage bonus",36,4);coupon.anchorMin=new Vector2(.07f,.23f);coupon.anchorMax=new Vector2(.93f,.36f);coupon.offsetMin=coupon.offsetMax=Vector2.zero;
                     UiKit.Icon(coupon,"MileageCoupon",32);UiKit.Text(coupon,"쿠폰 "+product.mileageCoupons+"개 추가",21,TextAnchor.MiddleCenter,32);
                 }
-                var purchase = UiKit.Button(card, "₩" + product.priceWon.ToString("N0"), () => Toast("결제 서비스가 연결되지 않아 구매할 수 없어요."), UiKit.Blue, 64);
+                string storeId = DoodleIapCatalog.ProductId(product.amount);
+                var purchase = UiKit.Button(card, payments.Price(storeId) ?? "연결 대기", () => payments.Buy(storeId), UiKit.Blue, 64);
+                Action refreshPurchase = () => {
+                    if (!purchase) return;
+                    purchase.interactable = payments.CanBuy(storeId);
+                    purchase.GetComponentInChildren<Text>().text = payments.Price(storeId) ?? "연결 대기";
+                };
+                bindings.Add(refreshPurchase); refreshPurchase();
                 CommerceButtonText(purchase, 30);
                 var price = (RectTransform)purchase.transform;
                 price.anchorMin = new Vector2(.06f, .04f); price.anchorMax = new Vector2(.94f, .21f); price.offsetMin = price.offsetMax = Vector2.zero;
             }
+            if (paymentUiChanged != null) payments.Changed -= paymentUiChanged;
+            paymentUiChanged = () => { foreach (var refresh in bindings) refresh(); };
+            payments.Changed += paymentUiChanged;
+            paymentUiChanged();
+        }
+        DoodleIapService payments;
+        Action paymentUiChanged;
+        void EnsurePayments()
+        {
+            if (payments) return;
+            payments = gameObject.AddComponent<DoodleIapService>();
+            payments.Initialize(this);
         }
     }
 

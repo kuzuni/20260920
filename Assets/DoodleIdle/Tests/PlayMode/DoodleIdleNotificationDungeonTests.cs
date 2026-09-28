@@ -23,7 +23,7 @@ namespace DoodleIdle.Tests
             long clear=ui.CareerProgress("dungeonClear"),entry=ui.CareerProgress("dungeonEnter:0");
             Assert.That(ui.SweepDungeon(0),Is.True);
             Assert.That((double)((ui.GoldAmount-gold)/reward),Is.EqualTo(1).Within(1e-9));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,0,0,0,0,0,0}));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,0,0,0,0,0,0}));
             Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.DungeonChallengeStage(0),Is.EqualTo(8));
             Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));Assert.That(ui.MainStage,Is.EqualTo(main));
             Assert.That(ui.CareerProgress("dungeonClear"),Is.EqualTo(clear+1));Assert.That(ui.CareerProgress("dungeonEnter:0"),Is.EqualTo(entry+1));
@@ -31,15 +31,15 @@ namespace DoodleIdle.Tests
             int tickets=ui.DungeonRelicTickets;
             Assert.That(ui.SweepDungeon(2),Is.True);ui.CloseDetail();
             Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets+ui.DungeonRelicReward(3)));
-            Assert.That(ui.GetDungeonStage(2),Is.EqualTo(3));Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,1,0,0,0,0,0}));
+            Assert.That(ui.GetDungeonStage(2),Is.EqualTo(3));Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{1,0,1,0,0,0,0,0}));
             Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();Assert.That(ui.SweepDungeon(0),Is.True);ui.CloseDetail();
             gold=ui.GoldAmount;Assert.That(ui.SweepDungeon(0),Is.False);Assert.That(ui.GoldAmount,Is.EqualTo(gold));
             ui.Save();ReloadPersistedServices();
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,1,0,0,0,0,0}));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{3,0,1,0,0,0,0,0}));
             LoadServiceSnapshot(saved=>ServiceSetSavedField(saved,"activeDungeon",2));
             Assert.That(ui.SweepDungeon(2),Is.False);
             LoadServiceSnapshot(saved=>{ServiceSetSavedField(saved,"activeDungeon",-1);ServiceSetSavedField(saved,"dungeonRelicTickets",int.MaxValue);});
-            Assert.That(ui.SweepDungeon(2),Is.False);Assert.That(ServiceStateValue<int[]>("dungeonUsed")[2],Is.EqualTo(1));
+            Assert.That(ui.SweepDungeon(2),Is.False);Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed")[2],Is.EqualTo(1));
             yield return null;
         }
 
@@ -181,7 +181,7 @@ namespace DoodleIdle.Tests
                 }
                 Assert.That(ui.SweepDungeon(index),Is.True);ui.CloseDetail();
                 Assert.That(ui.SummonTickets(category),Is.EqualTo(before+32));Assert.That(ui.GetDungeonStage(index),Is.EqualTo(2));
-                Assert.That(ServiceStateValue<int[]>("dungeonUsed")[index],Is.EqualTo(3));
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed")[index],Is.EqualTo(3));
                 Assert.That(ui.CanEnterDungeon(index),Is.False);Assert.That(ui.SweepDungeon(index),Is.False);
                 Assert.That(ui.MainStage,Is.EqualTo(main));
             }
@@ -189,7 +189,7 @@ namespace DoodleIdle.Tests
             foreach(int index in DoodleUi.DungeonIndices.Skip(1))Assert.That(ui.GetDungeonStage(index),Is.EqualTo(2));
             Assert.That(ui.HighestDungeonStage,Is.EqualTo(2));
             LoadServiceSnapshot(saved=>ServiceSetSavedField(saved,"day",System.DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd")));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.All.Zero);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.All.Zero);
         }
 
         [UnityTest]
@@ -205,10 +205,10 @@ namespace DoodleIdle.Tests
             });
             Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<int>("dungeonRelicTickets"),Is.Zero);
             Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.GetDungeonStage(2),Is.EqualTo(4));Assert.That(ui.HighestDungeonStage,Is.EqualTo(7));
-            Assert.That(ServiceStateValue<int[]>("dungeonUsed"),Is.EqualTo(new[]{2,0,1,0,0,0,0,0}));
-            Assert.That(ServiceStateValue<int[]>("repeat")[22],Is.EqualTo(10));
-            Assert.That(ServiceStateValue<bool[]>("dailyClaimed")[QuestIndex(0,"summon:Relic")],Is.True);
-            ReloadPersistedServices();Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<int[]>("repeat")[22],Is.EqualTo(10));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{2,0,1,0,0,0,0,0}));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[22],Is.EqualTo(10));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed")[QuestIndex(0,"summon:Relic")],Is.True);
+            ReloadPersistedServices();Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[22],Is.EqualTo(10));
             PlayerPrefs.SetString("DoodleUi.Collections.v1","{\"version\":3,\"items\":[{\"id\":\"dungeon_relic_strength\",\"level\":15000,\"count\":27,\"discovered\":true},{\"id\":\"relic_strength\",\"level\":123,\"count\":5,\"discovered\":true}]}");
             ReloadDungeonCollections();
             var merged=ui.Items("Relic").Single(x=>x.id=="relic_strength");

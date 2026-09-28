@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace DoodleIdle
         string equipmentCategory = "Armor", selectedArmor = "armor_4", selectedClub = "club_4", selectedNecklace = "necklace_0";
         float equipmentTabPosition;
         int statBatch = 1;
-        bool hideMaxStats;
+        ObscuredBool hideMaxStats;
         bool collectionBulkRunning;
         UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
@@ -112,7 +113,7 @@ namespace DoodleIdle
             }
             var hideMax = UiKit.Button(body, hideMaxStats ? "✓ MAX 숨기기" : "MAX 숨기기", () => {
                 hideMaxStats = !hideMaxStats;
-                PlayerPrefs.SetInt("DoodleUi.HideMaxStats", hideMaxStats ? 1 : 0); PlayerPrefs.Save(); RefreshPage();
+                DoodlePrefs.SetInt("DoodleUi.HideMaxStats", hideMaxStats ? 1 : 0); DoodlePrefs.Save(); RefreshPage();
             }, hideMaxStats ? UiKit.Green : UiKit.Paper, 42);
             hideMax.name = "Hide max stats";
             foreach (var definition in collectionTuning.stats)

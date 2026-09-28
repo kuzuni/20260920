@@ -1,0 +1,6 @@
+<linker>
+  <!-- Account snapshots contain private nested DTOs reached by Newtonsoft reflection. -->
+  <assembly fullname="DoodleIdle.Runtime" preserve="all" />
+  <!-- Java invokes AndroidJavaProxy callbacks by name rather than managed references. -->
+  <assembly fullname="TheBackend.ToolKit.GoogleLogin.Android" preserve="all" />
+</linker>

@@ -110,6 +110,10 @@ namespace DoodleIdle
 
         void Start()
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!DoodleBackendSession.Instance || !DoodleBackendSession.Instance.Ready)
+            { UnityEngine.SceneManagement.SceneManager.LoadScene(DoodleBackendSession.LoginScene); enabled = false; return; }
+#endif
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 0;
             Application.runInBackground = true;

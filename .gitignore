@@ -110,3 +110,12 @@ InitTestScene*.unity*
 
 # Unity test captures and generated CI export copies.
 /artifacts/
+
+# Local service configuration and signing material.
+/Assets/DoodleIdle/Resources/DoodleIdle/BackendSettings.json*
+/Assets/Resources/BackendSettings.asset*
+/Assets/TheBackend/Resources/TheBackendSettings.asset
+/Assets/TheBackend/Resources/TheBackendGoogleSettingsForAndroid.asset
+/Assets/BACKND/Resources/BackndChatSettings.asset
+*.keystore
+*.jks

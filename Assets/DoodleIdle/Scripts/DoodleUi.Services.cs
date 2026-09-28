@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -37,21 +38,35 @@ namespace DoodleIdle
 
         [Serializable] sealed class ServiceState
         {
-            public string day = "", week = "", attendanceDay = "";
-            public int attendanceIndex, spins, pvpUsed, pvpPoints = 1240;
-            public int[] dungeonUsed = new int[DungeonNames.Length];
-            public int[] daily = new int[ServiceMetrics.Length], weekly = new int[ServiceMetrics.Length], repeat = new int[ServiceMetrics.Length];
-            public bool[] dailyClaimed = new bool[11], weeklyClaimed = new bool[11];
-            public int questSchemaVersion;
-            public long goldExpiry, attackExpiry;
-            public bool powerSaving;
-            public float music = .6f, effects = .8f;
-            public int activeDungeon = -1, dungeonProgress;
-            public int mainStage, mainStageKillProgress, mainMissionIndex, relicTickets, dungeonRelicTickets;
-            public bool breakthroughMode = true;
-            public int[] dungeonStages = new int[DungeonNames.Length];
-            public long mainKills, earnedGold;
-            public int highestMainStage,missionVersion;
+            [NonSerialized] private ObscuredString protected_day = ""; public string day { get => protected_day; set => protected_day = value; }
+            [NonSerialized] private ObscuredString protected_week = ""; public string week { get => protected_week; set => protected_week = value; }
+            [NonSerialized] private ObscuredString protected_attendanceDay = ""; public string attendanceDay { get => protected_attendanceDay; set => protected_attendanceDay = value; }
+            [NonSerialized] private ObscuredInt protected_attendanceIndex; public int attendanceIndex { get => protected_attendanceIndex; set => protected_attendanceIndex = value; }
+            [NonSerialized] private ObscuredInt protected_spins; public int spins { get => protected_spins; set => protected_spins = value; }
+            [NonSerialized] private ObscuredInt protected_pvpUsed; public int pvpUsed { get => protected_pvpUsed; set => protected_pvpUsed = value; }
+            [NonSerialized] private ObscuredInt protected_pvpPoints = 1240; public int pvpPoints { get => protected_pvpPoints; set => protected_pvpPoints = value; }
+            public ObscuredInt[] dungeonUsed = new ObscuredInt[DungeonNames.Length];
+            public ObscuredInt[] daily = new ObscuredInt[ServiceMetrics.Length], weekly = new ObscuredInt[ServiceMetrics.Length], repeat = new ObscuredInt[ServiceMetrics.Length];
+            public ObscuredBool[] dailyClaimed = new ObscuredBool[11], weeklyClaimed = new ObscuredBool[11];
+            [NonSerialized] private ObscuredInt protected_questSchemaVersion; public int questSchemaVersion { get => protected_questSchemaVersion; set => protected_questSchemaVersion = value; }
+            [NonSerialized] private ObscuredLong protected_goldExpiry; public long goldExpiry { get => protected_goldExpiry; set => protected_goldExpiry = value; }
+            [NonSerialized] private ObscuredLong protected_attackExpiry; public long attackExpiry { get => protected_attackExpiry; set => protected_attackExpiry = value; }
+            [NonSerialized] private ObscuredBool protected_powerSaving; public bool powerSaving { get => protected_powerSaving; set => protected_powerSaving = value; }
+            [NonSerialized] private ObscuredFloat protected_music = .6f; public float music { get => protected_music; set => protected_music = value; }
+            [NonSerialized] private ObscuredFloat protected_effects = .8f; public float effects { get => protected_effects; set => protected_effects = value; }
+            [NonSerialized] private ObscuredInt protected_activeDungeon = -1; public int activeDungeon { get => protected_activeDungeon; set => protected_activeDungeon = value; }
+            [NonSerialized] private ObscuredInt protected_dungeonProgress; public int dungeonProgress { get => protected_dungeonProgress; set => protected_dungeonProgress = value; }
+            [NonSerialized] private ObscuredInt protected_mainStage; public int mainStage { get => protected_mainStage; set => protected_mainStage = value; }
+            [NonSerialized] private ObscuredInt protected_mainStageKillProgress; public int mainStageKillProgress { get => protected_mainStageKillProgress; set => protected_mainStageKillProgress = value; }
+            [NonSerialized] private ObscuredInt protected_mainMissionIndex; public int mainMissionIndex { get => protected_mainMissionIndex; set => protected_mainMissionIndex = value; }
+            [NonSerialized] private ObscuredInt protected_relicTickets; public int relicTickets { get => protected_relicTickets; set => protected_relicTickets = value; }
+            [NonSerialized] private ObscuredInt protected_dungeonRelicTickets; public int dungeonRelicTickets { get => protected_dungeonRelicTickets; set => protected_dungeonRelicTickets = value; }
+            [NonSerialized] private ObscuredBool protected_breakthroughMode = true; public bool breakthroughMode { get => protected_breakthroughMode; set => protected_breakthroughMode = value; }
+            public ObscuredInt[] dungeonStages = new ObscuredInt[DungeonNames.Length];
+            [NonSerialized] private ObscuredLong protected_mainKills; public long mainKills { get => protected_mainKills; set => protected_mainKills = value; }
+            [NonSerialized] private ObscuredLong protected_earnedGold; public long earnedGold { get => protected_earnedGold; set => protected_earnedGold = value; }
+            [NonSerialized] private ObscuredInt protected_highestMainStage; public int highestMainStage { get => protected_highestMainStage; set => protected_highestMainStage = value; }
+            [NonSerialized] private ObscuredInt protected_missionVersion; public int missionVersion { get => protected_missionVersion; set => protected_missionVersion = value; }
             public List<CareerCounter> career=new List<CareerCounter>();
         }
 
@@ -72,12 +87,6 @@ namespace DoodleIdle
             public bool self;
         }
 
-        sealed class LocalMessage
-        {
-            public string author, art, content;
-            public bool self;
-        }
-
         const string ServicesSaveKey = "DoodleUi.Services.v1";
         // Index 1 is a retired save slot; preserve indices of earned relic cave progress.
         static readonly string[] DungeonNames = { "골드 동굴", "", "유물 동굴", "갑옷 동굴", "몽둥이 동굴", "목걸이 동굴", "스킬 동굴", "동료 동굴" };
@@ -90,7 +99,6 @@ namespace DoodleIdle
         static Color DungeonColor(int index) => index == 0 ? new Color(1,.83f,.2f) : Color.HSVToRGB((index * .137f) % 1, .45f, .94f);
         readonly System.Random serviceRandom = new System.Random();
         readonly List<ServiceBinding> serviceBindings = new List<ServiceBinding>();
-        readonly List<LocalMessage> localMessages = new List<LocalMessage>();
         ServiceState services;
         ServiceTuning serviceTuning = new ServiceTuning();
         int lastServiceKills, questTab;
@@ -112,16 +120,16 @@ namespace DoodleIdle
         void InitServices()
         {
             var tuningAsset = Resources.Load<TextAsset>("DoodleIdle/UI/ServicesTuning");
-            if (tuningAsset) JsonUtility.FromJsonOverwrite(tuningAsset.text, serviceTuning);
+            if (tuningAsset) DoodleJson.FromJsonOverwrite(tuningAsset.text, serviceTuning);
             serviceTuning.buffSeconds = Mathf.Max(1, serviceTuning.buffSeconds);
             serviceTuning.dungeonKills = Mathf.Max(1, serviceTuning.dungeonKills);
             serviceTuning.mainStageKills = Mathf.Max(1, serviceTuning.mainStageKills);
             serviceTuning.relicDungeonKills = Mathf.Max(1, serviceTuning.relicDungeonKills);
             services = new ServiceState();
-            string json = PlayerPrefs.GetString(ServicesSaveKey, "");
+            string json = DoodlePrefs.GetString(ServicesSaveKey, "");
             if (!string.IsNullOrEmpty(json))
             {
-                try { JsonUtility.FromJsonOverwrite(json, services); }
+                try { DoodleJson.FromJsonOverwrite(json, services); }
                 catch (ArgumentException) { services = new ServiceState(); }
             }
             Array.Resize(ref services.dungeonUsed, DungeonNames.Length);
@@ -144,10 +152,6 @@ namespace DoodleIdle
             lastServiceKills = game ? game.Kills : 0;
             Application.targetFrameRate = services.powerSaving ? 30 : 60;
             ApplyServiceAudioSettings();
-            localMessages.Add(new LocalMessage { author = "구름발 · 예시", art = "StormCloud", content = "안녕하세요! 이 화면은 로컬 채팅 예시입니다." });
-            localMessages.Add(new LocalMessage { author = "내 메시지 · 예시", art = "Player", content = "안녕하세요!", self = true });
-            localMessages.Add(new LocalMessage { author = "버섯대장 · 예시", art = "MushroomA", content = "입력한 메시지는 이 기기에서만 표시돼요." });
-            localMessages.Add(new LocalMessage { author = "내 메시지 · 예시", art = "Player", content = "직접 입력해 볼게요.", self = true });
             SaveServices();
         }
 
@@ -155,7 +159,7 @@ namespace DoodleIdle
         float nextProgressSnapshot;
         void SaveServices()
         {
-            if (services != null) PlayerPrefs.SetString(ServicesSaveKey, JsonUtility.ToJson(services));
+            if (services != null) DoodlePrefs.SetString(ServicesSaveKey, DoodleJson.ToJson(services));
             serviceProgressDirty = false; nextProgressSnapshot = Time.unscaledTime + 1;
         }
 
@@ -213,7 +217,7 @@ namespace DoodleIdle
             if (Time.unscaledTime >= nextServiceSave)
             {
                 nextServiceSave = Time.unscaledTime + 15;
-                SaveServices(); PlayerPrefs.Save();
+                SaveServices(); DoodlePrefs.Save();
                 Application.targetFrameRate = services.powerSaving ? 30 : 60;
             }
         }
@@ -450,7 +454,7 @@ namespace DoodleIdle
         }
 
         int QuestGoal(int tab, int index) => Math.Max(1, (tab == 0 ? serviceTuning.dailyGoals : tab == 1 ? serviceTuning.repeatGoals : serviceTuning.weeklyGoals)[index]);
-        int[] QuestCounters(int tab) => tab == 0 ? services.daily : tab == 1 ? services.repeat : services.weekly;
+        ObscuredInt[] QuestCounters(int tab) => tab == 0 ? services.daily : tab == 1 ? services.repeat : services.weekly;
         bool QuestClaimed(int tab, int index) => tab == 0 ? services.dailyClaimed[index] : tab == 2 && services.weeklyClaimed[index];
         void QuestCard(Transform parent, int index)
         {
@@ -606,6 +610,7 @@ namespace DoodleIdle
 
         void BuildPvp(RectTransform body)
         {
+            UiKit.Button(body, L("스테이지 랭킹", "Stage leaderboard"), OpenStageLeaderboard, UiKit.Yellow, 62);
             UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 17, TextAnchor.MiddleCenter, 26);
             var ranks = LocalRanking();
             var podium = UiKit.Row(body, "Top three podium", 206);
@@ -684,43 +689,82 @@ namespace DoodleIdle
 
         void BuildChat(RectTransform body)
         {
-            var channel=UiKit.Box(body,"Chat channel",new Color(.91f,.91f,.91f),62);channel.GetComponent<Outline>().enabled=false;
-            var channelText=UiKit.Text(channel,"전체 채팅 · 로컬 데모",31,TextAnchor.MiddleCenter,62);UiKit.Stretch(channelText.rectTransform);
-            UiKit.Text(body, "네트워크 미연결 · 메시지는 다른 사람에게 전송되지 않습니다", 17, TextAnchor.MiddleCenter, 30);
-            foreach (var message in localMessages)
-            {
-                float messageHeight = Mathf.Max(162, 82 + Mathf.CeilToInt(message.content.Length / 16f) * 31);
-                var row = UiKit.Row(body, "Chat message", messageHeight, 10);
-                if(message.self) ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);else ChatPortrait(row,message.art);
-                var column=UiKit.Column(row,"Chat message text",5,0);
-                UiKit.Text(column, message.author, 26, message.self ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft, 38);
-                var bubble = ServiceCard(column, "Message bubble", message.self ? new Color(1,.95f,.7f) : UiKit.Paper);
-                var text = UiKit.Text(bubble, message.content, 29, TextAnchor.MiddleLeft, messageHeight - 70); text.supportRichText = false;
-                var tail=ServiceSymbol(bubble,message.self?"TailRight":"TailLeft",20);tail.anchorMin=tail.anchorMax=new Vector2(message.self?1:0,.5f);tail.anchoredPosition=new Vector2(message.self?8:-8,0);
-                tail.GetComponent<LayoutElement>().ignoreLayout=true;tail.GetComponent<DoodleServiceSymbol>().accent=message.self?new Color(1,.95f,.7f):UiKit.Paper;
-                if (message.self) ChatPortrait(row,EquippedAppearanceIcon);else ServiceWidth(UiKit.Rect(row,"Chat opposite margin"),52);
-            }
+            var chat = DoodleChatService.Get(); chat.EnsureConnected();
+            var tabs = UiKit.Row(body, "Chat channels", 58, 10);
+            var global = UiKit.Button(tabs, "Global / 글로벌", () => chat.Select(DoodleChatService.Global), UiKit.Blue, 58);
+            var korea = UiKit.Button(tabs, "한국 / Korea", () => chat.Select(DoodleChatService.Korea), UiKit.Blue, 58);
+            var status = UiKit.Text(body, chat.Status, 19, TextAnchor.MiddleCenter, 44);
+            var controls = UiKit.Row(body, "Chat controls", 42, 10);
+            UiKit.Button(controls, DoodleLanguage.Text("재접속", "Reconnect"), chat.Retry, UiKit.Paper, 42);
+            UiKit.Button(controls, DoodleLanguage.Text("차단 목록", "Blocked users"), () => ShowChatBlocks(chat), UiKit.Paper, 42);
+            var messages = UiKit.Column(body, "Chat messages", 8, 0);
             var footer = UiKit.Footer(body, "Chat footer", 96);
             var inputRow = UiKit.Row(footer, "Chat composer", 62);
             var field = UiKit.Box(inputRow, "Chat input", UiKit.Paper, 60); UiKit.Flexible(field, 4);
-            var input = field.gameObject.AddComponent<InputField>(); input.characterLimit = 140;
+            var input = field.gameObject.AddComponent<InputField>(); input.characterLimit = DoodleChatService.MaxCharacters;
             var content = UiKit.Text(field, "", 23, TextAnchor.MiddleLeft, 54); content.supportRichText = false;
             content.rectTransform.anchorMin = Vector2.zero; content.rectTransform.anchorMax = Vector2.one; content.rectTransform.offsetMin = new Vector2(12, 5); content.rectTransform.offsetMax = new Vector2(-12, -5);
             input.textComponent = content; input.targetGraphic = field.GetComponent<Image>();
-            var placeholder = UiKit.Text(field, "메시지를 입력하세요", 20, TextAnchor.MiddleLeft, 54); placeholder.color = Color.gray;
+            var placeholder = UiKit.Text(field, DoodleLanguage.Text("메시지를 입력하세요", "Enter a message"), 20, TextAnchor.MiddleLeft, 54); placeholder.color = Color.gray;
             placeholder.rectTransform.anchorMin = Vector2.zero; placeholder.rectTransform.anchorMax = Vector2.one; placeholder.rectTransform.offsetMin = new Vector2(12, 5); placeholder.rectTransform.offsetMax = new Vector2(-12, -5);
             input.placeholder = placeholder;
-            Action send = () =>
-            {
-                string message = input.text.Trim(); if (message.Length == 0) return;
-                localMessages.Add(new LocalMessage { author = PlayerName, art = "Player", content = message, self = true });
-                if (localMessages.Count > 30) localMessages.RemoveAt(0);
-                RefreshPage();
+            var send = UiKit.Button(inputRow, DoodleLanguage.Text("보내기", "Send"), () => {
+                if (chat.Send(input.text)) input.text = "";
+                status.text = chat.Status;
+            }, UiKit.Blue, 60);
+            UiKit.Text(footer, DoodleLanguage.Text("다른 이용자를 존중해 주세요 · 메시지를 눌러 신고/차단", "Respect others · Tap a message to report/block"), 16, TextAnchor.MiddleCenter, 26);
+            int revision = -1;
+            Action refresh = () => {
+                if (!messages || !chat) return;
+                global.interactable = chat.Selected != DoodleChatService.Global;
+                korea.interactable = chat.Selected != DoodleChatService.Korea;
+                send.interactable = chat.CanSend;
+                if (revision == chat.Revision) return;
+                revision = chat.Revision;
+                foreach (Transform child in messages) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+                foreach (var entry in chat.Messages) BuildChatMessage(messages, chat, entry);
+                if (chat.Messages.Count == 0) UiKit.Text(messages, DoodleLanguage.Text("아직 메시지가 없어요.", "No messages yet."), 23, TextAnchor.MiddleCenter, 70);
+                StartCoroutine(ScrollChatToLatest(body));
             };
-            UiKit.Button(inputRow, "보내기", send, UiKit.Blue, 60);
+            serviceBindings.Add(new ServiceBinding { text = status, value = () => chat ? chat.Status : "", refresh = refresh });
+            refresh();
+        }
 
-            UiKit.Text(footer, "메시지는 이 실행 동안만 보관됩니다", 17, TextAnchor.MiddleCenter, 26);
-            StartCoroutine(ScrollChatToLatest(body));
+        void BuildChatMessage(RectTransform body, DoodleChatService chat, DoodleChatService.Entry message)
+        {
+            float height = Mathf.Max(162, 82 + Mathf.CeilToInt((message.Content ?? "").Length / 16f) * 31);
+            var row = UiKit.Row(body, "Chat message", height, 10);
+            if (message.Self) ServiceWidth(UiKit.Rect(row, "Chat opposite margin"), 52); else ChatPortrait(row, "Player");
+            var column = UiKit.Column(row, "Chat message text", 5, 0);
+            var author = UiKit.Text(column, message.Author, 26, message.Self ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft, 38);
+            author.supportRichText = false;
+            var bubble = ServiceCard(column, "Message bubble", message.Self ? new Color(1,.95f,.7f) : UiKit.Paper);
+            var text = UiKit.Text(bubble, message.Content, 29, TextAnchor.MiddleLeft, height - 70); text.supportRichText = false;
+            if (!message.Self) {
+                var button = bubble.gameObject.AddComponent<Button>(); button.targetGraphic = bubble.GetComponent<Image>();
+                button.onClick.AddListener(() => ShowDetail(DoodleLanguage.Text("메시지 관리", "Message options"), panel => {
+                    var name = UiKit.Text(panel, message.Author, 23, TextAnchor.MiddleCenter, 42); name.supportRichText = false;
+                    UiKit.Button(panel, DoodleLanguage.Text("차단", "Block"), () => { chat.Block(message.Author); CloseDetail(); }, UiKit.Red, 52);
+                    foreach (var reason in chat.ReportReasons) {
+                        string key = reason.Key;
+                        var report = UiKit.Button(panel, DoodleLanguage.Text("신고: ", "Report: ") + reason.Value, () => { chat.Report(message, key); CloseDetail(); }, UiKit.Paper, 52);
+                        foreach (var label in report.GetComponentsInChildren<Text>()) label.supportRichText = false;
+                    }
+                }));
+            }
+            if (message.Self) ChatPortrait(row, EquippedAppearanceIcon); else ServiceWidth(UiKit.Rect(row, "Chat opposite margin"), 52);
+        }
+
+        void ShowChatBlocks(DoodleChatService chat)
+        {
+            ShowDetail(DoodleLanguage.Text("차단 목록", "Blocked users"), panel => {
+                if (chat.BlockedPlayers.Length == 0) UiKit.Text(panel, DoodleLanguage.Text("차단한 이용자가 없어요.", "No blocked users."), 23, TextAnchor.MiddleCenter, 60);
+                foreach (var blocked in chat.BlockedPlayers) {
+                    string name = blocked;
+                    var label = UiKit.Text(panel, name, 23, TextAnchor.MiddleCenter, 40); label.supportRichText = false;
+                    UiKit.Button(panel, DoodleLanguage.Text("차단 해제", "Unblock"), () => { chat.Unblock(name); CloseDetail(); }, UiKit.Paper, 48);
+                }
+            });
         }
 
         void ChatPortrait(Transform parent,string art)
@@ -739,10 +783,7 @@ namespace DoodleIdle
 
         void BuildSettings(RectTransform body)
         {
-            var account = ServiceCard(body, "Account connection", UiKit.Paper);
-            var accountRow=UiKit.Row(account,"Account row",88,12);ServiceSymbol(accountRow,"Account",58);
-            var accountInfo=UiKit.Column(accountRow,"Account status",2,0);UiKit.Text(accountInfo,"계정연동",27,TextAnchor.MiddleLeft,36);UiKit.Text(accountInfo,"연동 안 됨",23,TextAnchor.MiddleLeft,32).color=new Color(.8f,.12f,.1f);
-            var link=UiKit.Button(accountRow, "연동하기", () => ShowDetail("계정연동", panel => UiKit.Text(panel, "계정 제공자와 서버가 연결되지 않았습니다.\n진행 상황은 현재 기기에만 저장됩니다.", 23, TextAnchor.MiddleCenter, 104)), UiKit.Blue,64);ServiceWidth(link.transform,144);
+            BuildBackendAccount(body);
             var power = ServiceCard(body, "Power saving", UiKit.Paper);
             power.name="절전모드  " + (services.powerSaving ? "켜짐 · 30 FPS" : "꺼짐 · 60 FPS");
             var toggle=power.gameObject.AddComponent<Button>();toggle.targetGraphic=power.GetComponent<Image>();toggle.onClick.AddListener(()=>
@@ -761,7 +802,7 @@ namespace DoodleIdle
             UiKit.Button(body, "게임종료", () => ShowDetail("게임을 종료할까요?", panel =>
             {
                 UiKit.Text(panel, "현재 진행 상황을 저장합니다", 23, TextAnchor.MiddleCenter, 48);
-                UiKit.Button(panel, "게임종료", () => { Save(); PlayerPrefs.Save(); Application.Quit(); }, UiKit.Red, 58);
+                UiKit.Button(panel, "게임종료", () => { Save(); DoodlePrefs.Save(); Application.Quit(); }, UiKit.Red, 58);
             }), new Color(1,.56f,.57f), 68);
         }
 

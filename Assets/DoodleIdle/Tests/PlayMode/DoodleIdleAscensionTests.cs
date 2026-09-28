@@ -190,12 +190,12 @@ namespace DoodleIdle.Tests
                 Assert.That(game.Ui.ReadBalanceTuning().goldPerEnemy, Is.EqualTo(37));
                 Assert.That(game.Ui.PlayerKeepDistance, Is.EqualTo(1.25f));
                 Assert.That(game.Ui.ReadStatCostTuning().commonBaseCost, Is.EqualTo(123));
-                var saved = JsonUtility.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath));
+                var saved = DoodleJson.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath));
                 Assert.That(saved.goldPerEnemy, Is.EqualTo(37));
                 Assert.That(saved.enemyHealthGrowthSteps.Single().growth, Is.EqualTo(.07f));
-                var catalog = JsonUtility.FromJson<UiCollectionTuning>(System.IO.File.ReadAllText(collectionPath));
+                var catalog = DoodleJson.FromJson<UiCollectionTuning>(System.IO.File.ReadAllText(collectionPath));
                 Assert.That(catalog.statCosts.critical4GrowthSteps.Single().from, Is.EqualTo(42));
-                Assert.That(catalog.items.Length, Is.EqualTo(JsonUtility.FromJson<UiCollectionTuning>(collectionBefore).items.Length));
+                Assert.That(catalog.items.Length, Is.EqualTo(DoodleJson.FromJson<UiCollectionTuning>(collectionBefore).items.Length));
                 Object.DestroyImmediate(window); window = null;
                 var host = new GameObject("Balance restart fixture");
                 try {
@@ -208,7 +208,7 @@ namespace DoodleIdle.Tests
                 window = ScriptableObject.CreateInstance(type);
                 var restored = (DoodleUi.ServiceTuning)draftField.GetValue(window); restored.goldPerEnemy = 17;
                 type.GetMethod("AutoSaveChanges").Invoke(window, null);
-                Assert.That(JsonUtility.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath)).goldPerEnemy, Is.EqualTo(17), "Reopening must not disable autosave.");
+                Assert.That(DoodleJson.FromJson<DoodleUi.ServiceTuning>(System.IO.File.ReadAllText(tuningPath)).goldPerEnemy, Is.EqualTo(17), "Reopening must not disable autosave.");
                 string unchanged = System.IO.File.ReadAllText(tuningPath);
                 var stamp = System.IO.File.GetLastWriteTimeUtc(tuningPath);
                 type.GetMethod("AutoSaveChanges").Invoke(window, null);
@@ -218,8 +218,8 @@ namespace DoodleIdle.Tests
                 if (window) Object.DestroyImmediate(window);
                 System.IO.File.WriteAllText(tuningPath, tuningBefore); System.IO.File.WriteAllText(collectionPath, collectionBefore);
                 UnityEditor.AssetDatabase.ImportAsset(tuningPath); UnityEditor.AssetDatabase.ImportAsset(collectionPath);
-                game.Ui.ApplyBalanceTuning(JsonUtility.FromJson<DoodleUi.ServiceTuning>(tuningBefore));
-                game.Ui.ApplyStatCostTuning(JsonUtility.FromJson<UiCollectionTuning>(collectionBefore).statCosts);
+                game.Ui.ApplyBalanceTuning(DoodleJson.FromJson<DoodleUi.ServiceTuning>(tuningBefore));
+                game.Ui.ApplyStatCostTuning(DoodleJson.FromJson<UiCollectionTuning>(collectionBefore).statCosts);
             }
 #endif
             yield return null;

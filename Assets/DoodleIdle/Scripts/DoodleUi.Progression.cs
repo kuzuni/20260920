@@ -37,6 +37,7 @@ namespace DoodleIdle
                 if (MainBossPending)
                     services.mainStage = (int)Math.Min(int.MaxValue - 1L, (long)services.mainStage + 1);
                 services.highestMainStage=Math.Max(services.highestMainStage,services.mainStage);
+                DoodleBackendSession.Instance?.SetStage(HighestMainStage);
                 services.mainStageKillProgress = 0;
                 RequestCombatSave();
                 if (UnlockedSkillSlots != previousSkillSlots && ActivePage == "Skills") RefreshPage();

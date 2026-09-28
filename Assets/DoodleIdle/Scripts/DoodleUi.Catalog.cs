@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,15 +8,34 @@ namespace DoodleIdle
     [Serializable]
     public sealed class UiItem
     {
-        public string id, name, icon, category, effect, description, ability;
-        public int rarity, count, level, slot, tier;
-        public bool equipped, discovered, dungeonRelic;
-        public float ownedPercent, ownedGoldPercent, equipValue, cooldown;
-        public string projectile, trajectory;
-        public int volleyCount;
-        public float volleyGap, attackInterval, projectileSpeed, explosionRadius;
-        public float splashDamageMultiplier = 1;
-        public float damageMultiplier = 1;
+        [NonSerialized] private ObscuredString protected_id; public string id { get => protected_id; set => protected_id = value; }
+            [NonSerialized] private ObscuredString protected_name; public string name { get => protected_name; set => protected_name = value; }
+            [NonSerialized] private ObscuredString protected_icon; public string icon { get => protected_icon; set => protected_icon = value; }
+            [NonSerialized] private ObscuredString protected_category; public string category { get => protected_category; set => protected_category = value; }
+            [NonSerialized] private ObscuredString protected_effect; public string effect { get => protected_effect; set => protected_effect = value; }
+            [NonSerialized] private ObscuredString protected_description; public string description { get => protected_description; set => protected_description = value; }
+            [NonSerialized] private ObscuredString protected_ability; public string ability { get => protected_ability; set => protected_ability = value; }
+        [NonSerialized] private ObscuredInt protected_rarity; public int rarity { get => protected_rarity; set => protected_rarity = value; }
+            [NonSerialized] private ObscuredInt protected_count; public int count { get => protected_count; set => protected_count = value; }
+            [NonSerialized] private ObscuredInt protected_level; public int level { get => protected_level; set => protected_level = value; }
+            [NonSerialized] private ObscuredInt protected_slot; public int slot { get => protected_slot; set => protected_slot = value; }
+            [NonSerialized] private ObscuredInt protected_tier; public int tier { get => protected_tier; set => protected_tier = value; }
+        [NonSerialized] private ObscuredBool protected_equipped; public bool equipped { get => protected_equipped; set => protected_equipped = value; }
+            [NonSerialized] private ObscuredBool protected_discovered; public bool discovered { get => protected_discovered; set => protected_discovered = value; }
+            [NonSerialized] private ObscuredBool protected_dungeonRelic; public bool dungeonRelic { get => protected_dungeonRelic; set => protected_dungeonRelic = value; }
+        [NonSerialized] private ObscuredFloat protected_ownedPercent; public float ownedPercent { get => protected_ownedPercent; set => protected_ownedPercent = value; }
+            [NonSerialized] private ObscuredFloat protected_ownedGoldPercent; public float ownedGoldPercent { get => protected_ownedGoldPercent; set => protected_ownedGoldPercent = value; }
+            [NonSerialized] private ObscuredFloat protected_equipValue; public float equipValue { get => protected_equipValue; set => protected_equipValue = value; }
+            [NonSerialized] private ObscuredFloat protected_cooldown; public float cooldown { get => protected_cooldown; set => protected_cooldown = value; }
+        [NonSerialized] private ObscuredString protected_projectile; public string projectile { get => protected_projectile; set => protected_projectile = value; }
+            [NonSerialized] private ObscuredString protected_trajectory; public string trajectory { get => protected_trajectory; set => protected_trajectory = value; }
+        [NonSerialized] private ObscuredInt protected_volleyCount; public int volleyCount { get => protected_volleyCount; set => protected_volleyCount = value; }
+        [NonSerialized] private ObscuredFloat protected_volleyGap; public float volleyGap { get => protected_volleyGap; set => protected_volleyGap = value; }
+            [NonSerialized] private ObscuredFloat protected_attackInterval; public float attackInterval { get => protected_attackInterval; set => protected_attackInterval = value; }
+            [NonSerialized] private ObscuredFloat protected_projectileSpeed; public float projectileSpeed { get => protected_projectileSpeed; set => protected_projectileSpeed = value; }
+            [NonSerialized] private ObscuredFloat protected_explosionRadius; public float explosionRadius { get => protected_explosionRadius; set => protected_explosionRadius = value; }
+        [NonSerialized] private ObscuredFloat protected_splashDamageMultiplier = 1; public float splashDamageMultiplier { get => protected_splashDamageMultiplier; set => protected_splashDamageMultiplier = value; }
+        [NonSerialized] private ObscuredFloat protected_damageMultiplier = 1; public float damageMultiplier { get => protected_damageMultiplier; set => protected_damageMultiplier = value; }
     }
 
     [Serializable]
@@ -53,7 +73,7 @@ namespace DoodleIdle
         const string CollectionsSaveKey = "DoodleUi.Collections.v1";
         public static readonly string[] GradeNames = { "일반", "고급", "희귀", "영웅", "전설", "신화", "근원", "초월", "갓" };
         readonly List<UiItem> collectionItems = new List<UiItem>();
-        readonly Dictionary<string, int> statLevels = new Dictionary<string, int>();
+        readonly Dictionary<string, ObscuredInt> statLevels = new Dictionary<string, ObscuredInt>();
         UiCollectionTuning collectionTuning;
         GameNumber starterDamageBaseline = 1;
         readonly System.Random collectionRandom = new System.Random();
@@ -67,8 +87,8 @@ namespace DoodleIdle
             if (collectionTuning != null) return;
             var asset = Resources.Load<TextAsset>("DoodleIdle/UI/Collections");
             if (asset == null) throw new InvalidOperationException("Missing DoodleIdle/UI/Collections tuning data.");
-            collectionTuning = JsonUtility.FromJson<UiCollectionTuning>(asset.text);
-            hideMaxStats = PlayerPrefs.GetInt("DoodleUi.HideMaxStats", 0) != 0;
+            collectionTuning = DoodleJson.FromJson<UiCollectionTuning>(asset.text);
+            hideMaxStats = DoodlePrefs.GetInt("DoodleUi.HideMaxStats", 0) != 0;
             if (collectionTuning == null || collectionTuning.items == null || collectionTuning.stats == null)
                 throw new InvalidOperationException("Invalid collection tuning data.");
             collectionItems.AddRange(collectionTuning.items);
@@ -81,12 +101,12 @@ namespace DoodleIdle
             foreach (var stat in collectionTuning.stats) statLevels[stat.id] = 0;
             // Use the empty new-game profile as the baseline before restoring earned upgrades.
             starterDamageBaseline = CollectionDamageAmount(false);
-            string saved = PlayerPrefs.GetString(CollectionsSaveKey, "");
+            string saved = DoodlePrefs.GetString(CollectionsSaveKey, "");
             if (!string.IsNullOrEmpty(saved))
             {
                 try
                 {
-                    var state = JsonUtility.FromJson<CollectionSave>(saved);
+                    var state = DoodleJson.FromJson<CollectionSave>(saved);
                     if (state != null && state.items != null)
                         foreach (var entry in state.items)
                         {
@@ -135,7 +155,7 @@ namespace DoodleIdle
             foreach (var item in collectionItems)
                 saved.items.Add(new ItemSave { id = item.id, count = item.count, level = item.level, slot = item.slot, equipped = item.equipped, discovered = item.discovered });
             foreach (var pair in statLevels) saved.stats.Add(new StatSave { id = pair.Key, level = pair.Value });
-            PlayerPrefs.SetString(CollectionsSaveKey, JsonUtility.ToJson(saved));
+            DoodlePrefs.SetString(CollectionsSaveKey, DoodleJson.ToJson(saved));
         }
 
         public List<UiItem> Items(string category)
@@ -233,7 +253,7 @@ namespace DoodleIdle
             for (int i = 0; i < equipped.Count; i++) { equipped[i].equipped = i < limit; equipped[i].slot = i; }
         }
 
-        public int StatLevel(string id) { InitCollections(); return statLevels.TryGetValue(id, out int level) ? level : 0; }
+        public int StatLevel(string id) { InitCollections(); return statLevels.TryGetValue(id, out ObscuredInt level) ? level : 0; }
         public int AttackStatLevel => StatLevel("attack");
         // Finite adapters for editor integrations; gameplay and labels use the Amount APIs.
         public float StatValue(string id) => (float)StatAmount(id);

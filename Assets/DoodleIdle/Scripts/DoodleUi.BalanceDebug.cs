@@ -6,10 +6,10 @@ namespace DoodleIdle
     public sealed partial class DoodleUi
     {
         // Return a copy: editing the Odin form does not alter live combat until Apply.
-        public ServiceTuning ReadBalanceTuning() => JsonUtility.FromJson<ServiceTuning>(JsonUtility.ToJson(serviceTuning));
+        public ServiceTuning ReadBalanceTuning() => DoodleJson.FromJson<ServiceTuning>(DoodleJson.ToJson(serviceTuning));
         public float PlayerKeepDistance => BalanceValue(serviceTuning.playerKeepDistance, 0, .6f);
 
-        public UiStatCostTuning ReadStatCostTuning() => JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(collectionTuning.statCosts));
+        public UiStatCostTuning ReadStatCostTuning() => DoodleJson.FromJson<UiStatCostTuning>(DoodleJson.ToJson(collectionTuning.statCosts));
 
         public static void CopyStatCostTuning(UiStatCostTuning source, UiStatCostTuning destination)
         {

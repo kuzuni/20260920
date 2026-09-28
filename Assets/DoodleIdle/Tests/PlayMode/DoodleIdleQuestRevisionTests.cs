@@ -19,25 +19,25 @@ namespace DoodleIdle.Tests
                 for(int p=0;p<i;p++)GrowthLevels[DoodleUi.CriticalStatIds[p]]=DoodleUi.CriticalLevelCap(p);
                 string id=DoodleUi.CriticalStatIds[i];GrowthLevels[id]=0;ui.GoldAmount=new GameNumber(1,1000);
                 Assert.That(ui.UpgradeStat(id,3),Is.True);
-                Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo((i+1)*3));
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo((i+1)*3));
             }
             Assert.That(ui.UpgradeStat("health",5),Is.True);
-            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(51));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo(51));
             ui.GoldAmount=0;Assert.That(ui.UpgradeStat("crit131072Chance",1),Is.False);
-            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(51));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo(51));
             LoadServiceSnapshot(saved=> {
                 var old=new int[25];old[15]=7;old[16]=8;
                 ServiceSetSavedField(saved,"repeat",old);ServiceSetSavedField(saved,"questSchemaVersion",2);
             });
-            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(15));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo(15));
             Assert.That(ui.CanClaimQuest(1,quest),Is.True);
             UiOpen("Quests");UiClick("반복",UiNode("Quest tabs"));
             Assert.That(UiNode("Quest 1 "+quest).GetComponentsInChildren<UnityEngine.UI.Text>().Any(x=>x.text.Contains("치명타 확률 스탯")),Is.True);
             int wallet=ui.Diamonds;ui.ClaimQuests(quest);ui.CloseDetail();
             Assert.That(ui.Diamonds,Is.EqualTo(wallet+ui.QuestReward(1,quest)));
-            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(5));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo(5));
             ui.Save();ReloadPersistedServices();
-            Assert.That(ServiceStateValue<int[]>("repeat")[25],Is.EqualTo(5));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[25],Is.EqualTo(5));
             Assert.That(ui.CanClaimQuest(1,quest),Is.False);
             ServiceSetSavedField(ServiceStateObject,"mainMissionIndex",13);
             Assert.That(ui.CurrentMainMission.label,Does.Contain("치명타 확률 스탯").And.Not.Contain("x2"));
@@ -100,22 +100,22 @@ namespace DoodleIdle.Tests
                 ServiceSetSavedField(saved,"dailyClaimed",new[]{true,true,true,false});
                 ServiceSetSavedField(saved,"weeklyClaimed",new[]{true,true,true,true});
             });
-            Assert.That(ServiceStateValue<int[]>("repeat")[0],Is.EqualTo(1501));
-            Assert.That(ServiceStateValue<int[]>("repeat")[4],Is.EqualTo(25));
-            Assert.That(ServiceStateValue<bool[]>("dailyClaimed").Count(x=>x),Is.EqualTo(1));
-            Assert.That(ServiceStateValue<bool[]>("weeklyClaimed").Count(x=>x),Is.EqualTo(1));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0],Is.EqualTo(1501));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[4],Is.EqualTo(25));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed").Count(x=>x),Is.EqualTo(1));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("weeklyClaimed").Count(x=>x),Is.EqualTo(1));
             Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"dungeonEnter:0")),Is.False);
             Assert.That(ui.CanClaimQuest(0,QuestIndex(0,"summon:Armor")),Is.False,"Aggregate legacy draws cannot become six category rewards.");
-            int pending=ServiceStateValue<int[]>("repeat")[0];
+            int pending=ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0];
             LoadServiceSnapshot(saved=>{
                 ServiceSetSavedField(saved,"day",DateTime.UtcNow.AddDays(-8).ToString("yyyy-MM-dd"));
                 ServiceSetSavedField(saved,"week",DateTime.UtcNow.AddDays(-14).ToString("yyyy-MM-dd"));
             });
-            Assert.That(ServiceStateValue<int[]>("daily"),Is.All.Zero);
-            Assert.That(ServiceStateValue<int[]>("weekly"),Is.All.Zero);
-            Assert.That(ServiceStateValue<bool[]>("dailyClaimed"),Is.All.False);
-            Assert.That(ServiceStateValue<bool[]>("weeklyClaimed"),Is.All.False);
-            Assert.That(ServiceStateValue<int[]>("repeat")[0],Is.EqualTo(pending));
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("daily"),Is.All.Zero);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("weekly"),Is.All.Zero);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed"),Is.All.False);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("weeklyClaimed"),Is.All.False);
+            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[0],Is.EqualTo(pending));
             yield return null;
         }
     }

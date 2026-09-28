@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +7,8 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleUi
     {
-        [Serializable] public sealed class CareerCounter { public string key; public long value; }
+        [Serializable] public sealed class CareerCounter { [NonSerialized] private ObscuredString protected_key; public string key { get => protected_key; set => protected_key = value; }
+            [NonSerialized] private ObscuredLong protected_value; public long value { get => protected_value; set => protected_value = value; } }
         public sealed class MissionDefinition
         {
             public string key,label,ticket;

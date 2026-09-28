@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,12 +9,21 @@ namespace DoodleIdle
     [Serializable]
     public sealed class UiSkin
     {
-        public string id, name, category, icon, description, effect, acquisition;
-        public int rarity, diamondCost, requiredStage = 100;
-        public float ownedBonus;
+        [NonSerialized] private ObscuredString protected_id; public string id { get => protected_id; set => protected_id = value; }
+            [NonSerialized] private ObscuredString protected_name; public string name { get => protected_name; set => protected_name = value; }
+            [NonSerialized] private ObscuredString protected_category; public string category { get => protected_category; set => protected_category = value; }
+            [NonSerialized] private ObscuredString protected_icon; public string icon { get => protected_icon; set => protected_icon = value; }
+            [NonSerialized] private ObscuredString protected_description; public string description { get => protected_description; set => protected_description = value; }
+            [NonSerialized] private ObscuredString protected_effect; public string effect { get => protected_effect; set => protected_effect = value; }
+            [NonSerialized] private ObscuredString protected_acquisition; public string acquisition { get => protected_acquisition; set => protected_acquisition = value; }
+        [NonSerialized] private ObscuredInt protected_rarity; public int rarity { get => protected_rarity; set => protected_rarity = value; }
+            [NonSerialized] private ObscuredInt protected_diamondCost; public int diamondCost { get => protected_diamondCost; set => protected_diamondCost = value; }
+            [NonSerialized] private ObscuredInt protected_requiredStage = 100; public int requiredStage { get => protected_requiredStage; set => protected_requiredStage = value; }
+        [NonSerialized] private ObscuredFloat protected_ownedBonus; public float ownedBonus { get => protected_ownedBonus; set => protected_ownedBonus = value; }
         public Color tint = Color.white;
-        public bool initiallyOwned;
-        [NonSerialized] public bool owned, equipped;
+        [NonSerialized] private ObscuredBool protected_initiallyOwned; public bool initiallyOwned { get => protected_initiallyOwned; set => protected_initiallyOwned = value; }
+        [NonSerialized] private ObscuredBool protected_owned; public bool owned { get => protected_owned; set => protected_owned = value; }
+            [NonSerialized] private ObscuredBool protected_equipped; public bool equipped { get => protected_equipped; set => protected_equipped = value; }
     }
 
     public sealed partial class DoodleUi
@@ -31,7 +41,7 @@ namespace DoodleIdle
             skinsInitialized = true;
             var asset = Resources.Load<TextAsset>("DoodleIdle/UI/Skins");
             SkinTuning tuning = null;
-            try { if (asset) tuning = JsonUtility.FromJson<SkinTuning>(asset.text); }
+            try { if (asset) tuning = DoodleJson.FromJson<SkinTuning>(asset.text); }
             catch (ArgumentException) { Debug.LogWarning("Invalid skin catalog; using basic appearances."); }
             var ids = new HashSet<string>();
             if (tuning != null && tuning.skins != null)
@@ -58,8 +68,8 @@ namespace DoodleIdle
             SkinSave saved = null;
             try
             {
-                string json = PlayerPrefs.GetString("DoodleUi.Skins", "");
-                if (!string.IsNullOrEmpty(json)) saved = JsonUtility.FromJson<SkinSave>(json);
+                string json = DoodlePrefs.GetString("DoodleUi.Skins", "");
+                if (!string.IsNullOrEmpty(json)) saved = DoodleJson.FromJson<SkinSave>(json);
             }
             catch (ArgumentException) { Debug.LogWarning("Invalid saved skins; keeping basic appearances."); }
             if (saved != null && saved.owned != null)
@@ -84,7 +94,7 @@ namespace DoodleIdle
                 if (!skin.equipped) continue;
                 if (skin.category == "Weapon") saved.weapon = skin.id; else saved.appearance = skin.id;
             }
-            PlayerPrefs.SetString("DoodleUi.Skins", JsonUtility.ToJson(saved));
+            DoodlePrefs.SetString("DoodleUi.Skins", DoodleJson.ToJson(saved));
         }
 
         public IReadOnlyList<UiSkin> Skins(string category) { InitSkins(); return skinCatalog.FindAll(x => x.category == category); }

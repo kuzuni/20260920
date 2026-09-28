@@ -10,7 +10,7 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
-        void DayOneState(string key, object value) => ServiceStateObject.GetType().GetField(key).SetValue(ServiceStateObject, value);
+        void DayOneState(string key, object value) => ServiceSetSavedField(ServiceStateObject, key, value);
 
         [UnityTest]
         public IEnumerator StageDebugImmediatelyReplacesPausedCombatAndPreservesProgress()
@@ -59,13 +59,13 @@ namespace DoodleIdle.Tests
                 Assert.That(ui.HighestMainStage,Is.EqualTo(799));
                 Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(8));
                 ui.EnterDungeon(2);
-                int used = ServiceStateValue<int[]>("dungeonUsed")[2];
+                int used = ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed")[2];
                 int tickets = ui.DungeonRelicTickets;
                 ServiceSetSavedField(ServiceStateObject,"dungeonProgress",5);
                 Assert.That(ui.DebugSetMainStage(301),Is.True);
                 Assert.That(ui.ActiveDungeonIndex,Is.EqualTo(-1));
                 Assert.That(ServiceStateValue<int>("dungeonProgress"),Is.Zero);
-                Assert.That(ServiceStateValue<int[]>("dungeonUsed")[2],Is.EqualTo(used));
+                Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed")[2],Is.EqualTo(used));
                 Assert.That(ui.DungeonRelicTickets,Is.EqualTo(tickets));
                 Assert.That(game.CurrentThemeIndex,Is.EqualTo(3));
                 Assert.That((int)typeof(DoodleIdleGame).GetField("activeTheme",GrowthPrivate).GetValue(game),Is.EqualTo(3));

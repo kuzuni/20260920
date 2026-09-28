@@ -49,7 +49,7 @@ namespace DoodleIdle.Editor
         public void AutoSaveChanges()
         {
             if (!EditorApplication.isPlaying) return;
-            if (JsonUtility.ToJson(draft) == savedDraft && JsonUtility.ToJson(statDraft) == savedStatDraft) return;
+            if (DoodleJson.ToJson(draft) == savedDraft && DoodleJson.ToJson(statDraft) == savedStatDraft) return;
             SaveDefaults(false);
         }
         void Record(string action) => Undo.RecordObject(this, action);
@@ -237,26 +237,26 @@ namespace DoodleIdle.Editor
         public void SaveDefaults() => SaveDefaults(true);
         void SaveDefaults(bool notify)
         {
-            var services = JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath));
-            var collections = JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath));
+            var services = DoodleJson.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath));
+            var collections = DoodleJson.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath));
             DoodleUi.CopyBalanceTuning(draft, services); DoodleUi.CopyStatCostTuning(statDraft, collections.statCosts);
-            File.WriteAllText(TuningPath, JsonUtility.ToJson(services, true) + "\n");
-            File.WriteAllText(CollectionPath, JsonUtility.ToJson(collections, true) + "\n");
+            File.WriteAllText(TuningPath, DoodleJson.ToJson(services, true) + "\n");
+            File.WriteAllText(CollectionPath, DoodleJson.ToJson(collections, true) + "\n");
             AssetDatabase.ImportAsset(TuningPath); AssetDatabase.ImportAsset(CollectionPath);
             if (Ui) { Ui.ApplyBalanceTuning(services); Ui.ApplyStatCostTuning(collections.statCosts); }
             draft = services; statDraft = collections.statCosts;
-            loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(services));
-            statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
-            savedDraft = JsonUtility.ToJson(draft); savedStatDraft = JsonUtility.ToJson(statDraft);
+            loaded = DoodleJson.FromJson<DoodleUi.ServiceTuning>(DoodleJson.ToJson(services));
+            statLoaded = DoodleJson.FromJson<UiStatCostTuning>(DoodleJson.ToJson(statDraft));
+            savedDraft = DoodleJson.ToJson(draft); savedStatDraft = DoodleJson.ToJson(statDraft);
             if (notify) ShowNotification(new GUIContent("모든 수치를 적용하고 기본값으로 저장했습니다."));
         }
         public void LoadCurrent()
         {
-            draft = Ui ? Ui.ReadBalanceTuning() : File.Exists(TuningPath) ? JsonUtility.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath)) : new DoodleUi.ServiceTuning();
-            statDraft = Ui ? Ui.ReadStatCostTuning() : File.Exists(CollectionPath) ? JsonUtility.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath)).statCosts : new UiStatCostTuning();
-            loaded = JsonUtility.FromJson<DoodleUi.ServiceTuning>(JsonUtility.ToJson(draft));
-            statLoaded = JsonUtility.FromJson<UiStatCostTuning>(JsonUtility.ToJson(statDraft));
-            savedDraft = JsonUtility.ToJson(draft); savedStatDraft = JsonUtility.ToJson(statDraft);
+            draft = Ui ? Ui.ReadBalanceTuning() : File.Exists(TuningPath) ? DoodleJson.FromJson<DoodleUi.ServiceTuning>(File.ReadAllText(TuningPath)) : new DoodleUi.ServiceTuning();
+            statDraft = Ui ? Ui.ReadStatCostTuning() : File.Exists(CollectionPath) ? DoodleJson.FromJson<UiCollectionTuning>(File.ReadAllText(CollectionPath)).statCosts : new UiStatCostTuning();
+            loaded = DoodleJson.FromJson<DoodleUi.ServiceTuning>(DoodleJson.ToJson(draft));
+            statLoaded = DoodleJson.FromJson<UiStatCostTuning>(DoodleJson.ToJson(statDraft));
+            savedDraft = DoodleJson.ToJson(draft); savedStatDraft = DoodleJson.ToJson(statDraft);
         }
     }
 }

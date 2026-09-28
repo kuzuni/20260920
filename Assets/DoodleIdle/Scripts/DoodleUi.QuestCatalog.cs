@@ -1,3 +1,4 @@
+using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 
 namespace DoodleIdle
@@ -46,8 +47,8 @@ namespace DoodleIdle
                 // old gold or aggregate dungeon flag onto an unrelated new quest.
                 var daily = services.dailyClaimed;
                 var weekly = services.weeklyClaimed;
-                services.dailyClaimed = new bool[QuestCount(0)];
-                services.weeklyClaimed = new bool[QuestCount(2)];
+                services.dailyClaimed = new ObscuredBool[QuestCount(0)];
+                services.weeklyClaimed = new ObscuredBool[QuestCount(2)];
                 if (daily != null && daily.Length > 0) services.dailyClaimed[0] = daily[0];
                 if (daily != null && daily.Length > 3) services.dailyClaimed[1] = daily[3];
                 if (weekly != null && weekly.Length > 0) services.weeklyClaimed[0] = weekly[0];

@@ -124,7 +124,7 @@ namespace DoodleIdle.Tests
                 if(canvas.renderMode==RenderMode.WorldSpace)canvas.enabled=false;
             var camera=Camera.main;camera.backgroundColor=Color.magenta;camera.orthographicSize=6;
             for(int theme=0;theme<10;theme++) {
-                state.GetType().GetField("mainStage").SetValue(state,theme*100);
+                ServiceSetSavedField(state, "mainStage",theme*100);
                 typeof(DoodleIdleGame).GetMethod("ApplyStageTheme",GrowthPrivate).Invoke(game,null);
                 camera.transform.position=new Vector3(13.0f,13.0f,-10);
                 var capture=CaptureFrame("expansion-ground-"+theme+".png",720,720,false);
@@ -133,7 +133,7 @@ namespace DoodleIdle.Tests
             }
             // Adjacent repeats must keep the same orientation, including negative world positions.
             // The former triangle-wave sampler alternated upright/upside-down grass every tile.
-            state.GetType().GetField("mainStage").SetValue(state,0);
+            ServiceSetSavedField(state, "mainStage",0);
             typeof(DoodleIdleGame).GetMethod("ApplyStageTheme",GrowthPrivate).Invoke(game,null);
             camera.orthographicSize=1.5f;
             camera.transform.position=new Vector3(13.5f,13.5f,-10);

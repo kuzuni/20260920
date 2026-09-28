@@ -15,7 +15,7 @@ namespace DoodleIdle.Tests
     {
         const BindingFlags GrowthPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
         UiCollectionTuning GrowthTuning => (UiCollectionTuning)typeof(DoodleUi).GetField("collectionTuning", GrowthPrivate).GetValue(game.Ui);
-        Dictionary<string, int> GrowthLevels => (Dictionary<string, int>)typeof(DoodleUi).GetField("statLevels", GrowthPrivate).GetValue(game.Ui);
+        Dictionary<string, CodeStage.AntiCheat.ObscuredTypes.ObscuredInt> GrowthLevels => (Dictionary<string, CodeStage.AntiCheat.ObscuredTypes.ObscuredInt>)typeof(DoodleUi).GetField("statLevels", GrowthPrivate).GetValue(game.Ui);
         bool GrowthBulkRunning => (bool)typeof(DoodleUi).GetField("collectionBulkRunning", GrowthPrivate).GetValue(game.Ui);
 
         [UnityTest]
@@ -69,8 +69,8 @@ namespace DoodleIdle.Tests
             draft.critical2BaseCost = 13; draft.critical2Growth = .25f;
             draft.critical4BaseCost = 17; draft.critical4Growth = 1;
             Assert.That(ui.ReadStatCostTuning().commonBaseCost, Is.EqualTo(20), "Draft edits must not change live prices.");
-            string statValues = string.Join("|", GrowthTuning.stats.Select(JsonUtility.ToJson));
-            string itemBefore = JsonUtility.ToJson(GrowthTuning.items[0]);
+            string statValues = string.Join("|", GrowthTuning.stats.Select(x => DoodleJson.ToJson(x)));
+            string itemBefore = DoodleJson.ToJson(GrowthTuning.items[0]);
             foreach (string id in new[] { "attack", "health", "healthRegen", "crit2Chance", "crit4Chance" }) GrowthLevels[id] = 2;
             ui.ShowPage("Stats");
             ui.ApplyStatCostTuning(draft);
@@ -100,9 +100,9 @@ namespace DoodleIdle.Tests
             Assert.That(ui.UpgradeStat("attack", -1), Is.True);
             Assert.That(ui.Gold, Is.EqualTo(1));
             Assert.That(ui.StatLevel("attack"), Is.EqualTo(4));
-            Assert.That(string.Join("|", GrowthTuning.stats.Select(JsonUtility.ToJson)), Is.EqualTo(statValues));
-            Assert.That(JsonUtility.ToJson(GrowthTuning.items[0]), Is.EqualTo(itemBefore));
-            var restored = JsonUtility.FromJson<UiCollectionTuning>(JsonUtility.ToJson(GrowthTuning));
+            Assert.That(string.Join("|", GrowthTuning.stats.Select(x => DoodleJson.ToJson(x))), Is.EqualTo(statValues));
+            Assert.That(DoodleJson.ToJson(GrowthTuning.items[0]), Is.EqualTo(itemBefore));
+            var restored = DoodleJson.FromJson<UiCollectionTuning>(DoodleJson.ToJson(GrowthTuning));
             Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "healthRegen", 2), Is.EqualTo(23));
             Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit2Chance", 2), Is.EqualTo(13));
             Assert.That(DoodleUi.StatUpgradePrice(restored.statCosts, "crit4Chance", 2), Is.EqualTo(13));

@@ -13,8 +13,8 @@ namespace DoodleIdle
         };
         public static void ResetSavedProgress()
         {
-            foreach (var key in SaveKeys) PlayerPrefs.DeleteKey(key);
-            PlayerPrefs.Save();
+            foreach (var key in SaveKeys) DoodlePrefs.DeleteKey(key);
+            DoodlePrefs.Save();
         }
         public static void ResetAndRestart(DoodleIdleGame game)
         {
