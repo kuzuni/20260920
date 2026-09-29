@@ -123,9 +123,9 @@ namespace DoodleIdle
 
         void UpdateExtraVisuals(float dt)
         {
-            Vector2 desired = player.Position + new Vector2(-1.4f, 1.2f + Mathf.Sin(Elapsed * 4) * .12f);
+            Vector2 desired = player.Position + new Vector2(-1.4f, 1.2f);
             drone.position = Vector2.Lerp(drone.position, desired, 1 - Mathf.Exp(-dt * 12));
-            drone.rotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5) * 4);
+            drone.rotation = Quaternion.identity;
             SetSpriteArt(drone.GetComponent<SpriteRenderer>(), (int)(Elapsed * 8) % 2 == 0 ? skillArt[3] : droneFrameB);
         }
 

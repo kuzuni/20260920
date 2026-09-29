@@ -56,8 +56,8 @@ public static class CharacterRigVerifier
                 var imagePath=Root+"Previews/"+prefab.name+".png";Render(go,imagePath);report.previews.Add(imagePath);
                 var attack=clips.Single(c=>c.name=="Attack");attack.SampleAnimation(go,attack.length*.5f);Render(go,Root+"Previews/"+prefab.name+"_attack.png");
                 rig.animator.Rebind();rig.animator.Update(0);
-                void State(string expected){for(int i=0;i<30;i++){rig.animator.Update(.02f);if(rig.animator.GetCurrentAnimatorStateInfo(0).IsName(expected)){report.animatorStates++;return;}}throw new Exception("Animator transition failed: "+prefab.name+"/"+expected);}
-                State("Idle");rig.SetMoving(true);State("Move");rig.SetMoving(false);State("Idle");rig.Attack();State("Attack");rig.Hit();State("Hit");rig.Die();State("Death");
+                void State(string expected,int layer=0){for(int i=0;i<30;i++){rig.animator.Update(.02f);if(rig.animator.GetCurrentAnimatorStateInfo(layer).IsName(expected)){report.animatorStates++;return;}}throw new Exception("Animator transition failed: "+prefab.name+"/"+expected);}
+                State("Idle");rig.SetMoving(true);State("Move");rig.SetMoving(false);State("Idle");rig.Attack();State("Attack",1);rig.Hit();State("Hit");rig.Die();State("Death");
                 Object.DestroyImmediate(go);previews.Remove(go);
             }
             var catalog=JsonUtility.FromJson<Catalog>("{\"items\":"+File.ReadAllText("Assets/DoodleIdle/Art/CharacterSprites/PSB/layer_manifest.json")+"}").items;

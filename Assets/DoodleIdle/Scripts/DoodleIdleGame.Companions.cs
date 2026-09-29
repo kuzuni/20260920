@@ -66,6 +66,7 @@ namespace DoodleIdle
                     companion.shadow = Visual("Companion shadow: " + item.id, disc, player.Position + companion.shadowOffset,
                         new Vector2(Mathf.Clamp(bounds.size.x * .85f, .5f, .9f), .27f), -900);
                     companion.shadow.color = new Color(.08f, .07f, .06f, .32f);
+                    companion.rigVisual.GroundShadow = companion.shadow;
                     companions[item.id] = companion;
                 }
                 int index = DoodleCollectionArt.CompanionIndex(item.icon);
@@ -74,7 +75,6 @@ namespace DoodleIdle
                 Vector2 old = companion.art.transform.position;
                 companion.art.transform.position = Vector2.Lerp(old, home, 1 - Mathf.Exp(-dt * 14));
                 // Follow the ground position only; animation frames never move or pulse the shadow.
-                companion.shadow.transform.position = (Vector2)companion.art.transform.position + companion.shadowOffset;
                 if (Mathf.Abs(home.x - old.x) > .01f) companion.facingLeft = home.x < old.x;
                 companion.frameClock += dt;
                 var frame = DoodleCollectionArt.CompanionFrame(index, (int)(companion.frameClock * 6) % 2);

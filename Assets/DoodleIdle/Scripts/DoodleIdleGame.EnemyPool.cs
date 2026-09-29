@@ -33,8 +33,8 @@ namespace DoodleIdle
             actor.root.SetActive(true);
             ConfigureActorRig(actor);
             actor.art.flipX = player.Position.x < position.x;
-            actor.shadow.transform.localPosition = new Vector3(0, -.58f, 0);
-            actor.shadow.transform.localScale = new Vector3(1.15f, .42f, 1);
+            actor.shadow.transform.localScale = new Vector3(2.30f, .84f, 1);
+            actor.rigVisual.Sync();
             actor.hp = actor.maxHp = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
             actor.dashCooldown = 2 + actor.phase * .4f;
             RefreshHealthBar(actor);

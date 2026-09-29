@@ -310,7 +310,7 @@ namespace DoodleIdle
         void TickSummons(float dt)
         {
             TickRedVolleys(dt);
-            guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f + Mathf.Sin(Elapsed * 3) * .12f), 1 - Mathf.Exp(-dt * 12));
+            guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f), 1 - Mathf.Exp(-dt * 12));
             if (guardianSwing > 0)
             {
                 guardianSwing = Mathf.Max(0, guardianSwing - dt);

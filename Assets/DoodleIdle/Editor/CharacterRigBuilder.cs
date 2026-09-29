@@ -222,7 +222,12 @@ public static class CharacterRigBuilder
             if(p.two){var second=new GameObject(p.name+"_끝").transform;second.SetParent(t,false);second.localPosition=new Vector3(Vector2.Distance(p.start,p.joint)/Ppu,0);}
         }
         var renderers=new List<SpriteRenderer>();
-        foreach(var part in appearance.parts){var child=new GameObject(part.name);child.transform.SetParent(go.transform,false);renderers.Add(child.AddComponent<SpriteRenderer>());child.AddComponent<SpriteSkin>();}
+        foreach(var part in appearance.parts)
+        {
+            var child=new GameObject(part.name);child.transform.SetParent(go.transform,false);
+            var renderer=child.AddComponent<SpriteRenderer>();renderer.sortingOrder=part.sortingOrder;
+            renderers.Add(renderer);child.AddComponent<SpriteSkin>();
+        }
         rig.partRenderers=renderers.ToArray();
         if(name=="Player_Standard")
         {
@@ -232,6 +237,7 @@ public static class CharacterRigBuilder
         }
         rig.animator=go.AddComponent<Animator>();rig.animator.runtimeAnimatorController=MakeAnimations(go,d,name);rig.animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
         rig.SetAppearance(AssetDatabase.LoadAssetAtPath<CharacterAppearance>(appearancePath));
+        CharacterRigPresentation.Configure(rig);
         Directory.CreateDirectory(Output+"Prefabs");PrefabUtility.SaveAsPrefabAsset(go,Output+"Prefabs/"+name+".prefab");report.prefabs++;return go;
     }
     static RuntimeAnimatorController MakeAnimations(GameObject go,Definition d,string name)

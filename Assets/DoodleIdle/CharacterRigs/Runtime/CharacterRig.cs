@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.U2D.Animation;
 
 namespace DoodleIdle.CharacterRigs
 {
+    [RequireComponent(typeof(SortingGroup))]
     public sealed class CharacterRig : MonoBehaviour
     {
         public string rigType;
         public CharacterAppearance appearance;
         public Transform skeleton;
+        public Transform groundContact;
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer[] partRenderers;
         public Animator animator;
@@ -30,7 +33,7 @@ namespace DoodleIdle.CharacterRigs
                 var skin = renderer.GetComponent<SpriteSkin>();
                 renderer.sprite = part.sprite;
                 renderer.transform.localPosition = part.rendererPosition;
-                renderer.sortingOrder = part.sortingOrder;
+                // Layer/order belong to the rig prefab, not the interchangeable skin.
                 skin.SetRootBone(skeleton);
                 var state = skin.SetBoneTransforms(transforms);
                 skin.alwaysUpdate = true;

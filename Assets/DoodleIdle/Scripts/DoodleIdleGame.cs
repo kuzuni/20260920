@@ -274,13 +274,14 @@ namespace DoodleIdle
             var collider = root.AddComponent<CircleCollider2D>();
             collider.radius = isPlayer ? .61f : .56f;
             collider.sharedMaterial = frictionless;
-            var shadow = Visual("Soft ground shadow", disc, p + new Vector2(0, -.58f), new Vector2(1.15f, .42f), -900);
+            var shadow = Visual("Soft ground shadow", disc, p, new Vector2(2.30f, .84f), -900);
             shadow.color = new Color(.08f, .07f, .06f, .32f);
             shadow.transform.SetParent(root.transform, true);
             var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
             var actor = new Actor { root = root, body = body, art = art, shadow = shadow, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
             actor.rigVisual = art.gameObject.AddComponent<DoodleRigVisual>();
+            actor.rigVisual.GroundShadow = shadow;
             ConfigureActorRig(actor);
             if (!isPlayer)
             {
@@ -614,8 +615,6 @@ namespace DoodleIdle
             actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
             if (!actor.isPlayer && actor.dashWindup > 0 && actor.flash <= 0) actor.art.color = new Color(1, .75f, .65f);
             if (actor.isPlayer) ApplyPlayerHitAppearance();
-            actor.art.transform.localPosition = new Vector3(0, Mathf.Sin(Elapsed * 7 + actor.phase) * .045f, 0);
-            actor.art.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Elapsed * 5 + actor.phase) * 3);
             actor.art.sortingOrder = Order(actor.Position);
             actor.rigVisual.Sync();
             RefreshHealthBar(actor);
@@ -629,6 +628,10 @@ namespace DoodleIdle
                 string key = Ui ? Ui.EquippedWeaponIcon : "Club";
                 var sprite = key == "Club" ? player.rigVisual.Entry.appearance.weapon : WorldSkinSprite(key, true);
                 if (sprite && renderer.sprite != sprite) renderer.sprite = sprite;
+                var appearance = player.rigVisual.Entry.appearance;
+                float referenceLength = appearance.weapon ? Mathf.Max(appearance.weapon.bounds.size.x, appearance.weapon.bounds.size.y) : 1;
+                float spriteLength = sprite ? Mathf.Max(sprite.bounds.size.x, sprite.bounds.size.y) : 1;
+                renderer.transform.localScale = Vector3.one * (appearance.weaponScale * referenceLength / Mathf.Max(.01f, spriteLength));
                 renderer.enabled = sprite;
                 renderer.color = Ui ? Ui.EquippedWeaponTint : Color.white;
                 return;

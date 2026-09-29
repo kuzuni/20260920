@@ -102,7 +102,18 @@ namespace DoodleIdle
         UiSkin EquippedSkin(string category) { InitSkins(); return skinCatalog.Find(x => x.category == category && x.equipped); }
         public string EquippedSkinId(string category) { var skin = EquippedSkin(category); return skin == null ? null : skin.id; }
         public string EquippedAppearanceIcon => EquippedSkin("Appearance")?.icon ?? "Player";
-        public string EquippedWeaponIcon => EquippedSkin("Weapon")?.icon ?? "Club";
+        public string EquippedWeaponIcon
+        {
+            get
+            {
+                string skin = EquippedSkin("Weapon")?.icon ?? "Club";
+                if (skin != "Club") return skin;
+                InitCollections();
+                foreach (var item in collectionItems)
+                    if (item.category == "Club" && item.equipped) return item.icon;
+                return "Club";
+            }
+        }
         public Color EquippedAppearanceTint => EquippedSkin("Appearance")?.tint ?? Color.white;
         public Color EquippedWeaponTint => EquippedSkin("Weapon")?.tint ?? Color.white;
 

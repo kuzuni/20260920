@@ -26,9 +26,9 @@ namespace DoodleIdle
         void AddHealthBar(Actor actor)
         {
             var frame = summonArt["HealthBarFrame"]; var fill = summonArt["HealthBarFill"];
-            actor.healthBack = Visual("Enemy HP background", frame, actor.Position + Vector2.up * .78f, new Vector2(.98f, .14f / frame.bounds.size.y), Order(actor.Position) + 3);
+            actor.healthBack = Visual("Enemy HP background", frame, actor.Position + Vector2.up * 1.56f, new Vector2(.98f, .14f / frame.bounds.size.y), Order(actor.Position) + 3);
             actor.healthBack.transform.SetParent(actor.root.transform, true);
-            actor.healthFill = Visual("Enemy HP fill", fill, actor.Position + Vector2.up * .78f, new Vector2(.9f, .08f / fill.bounds.size.y), Order(actor.Position) + 4);
+            actor.healthFill = Visual("Enemy HP fill", fill, actor.Position + Vector2.up * 1.56f, new Vector2(.9f, .08f / fill.bounds.size.y), Order(actor.Position) + 4);
             actor.healthFill.transform.SetParent(actor.root.transform, true);
             RefreshHealthBar(actor);
         }
@@ -37,7 +37,7 @@ namespace DoodleIdle
             if (!actor.healthFill) return;
             float fraction = (float)GameNumber.Clamp(actor.hp / actor.maxHp, 0, 1);
             actor.healthFill.transform.localScale = new Vector3(.9f * fraction, .08f / actor.healthFill.sprite.bounds.size.y, 1);
-            actor.healthFill.transform.localPosition = new Vector3(-.45f * (1 - fraction), .78f, 0);
+            actor.healthFill.transform.localPosition = new Vector3(-.45f * (1 - fraction), 1.56f, 0);
             actor.healthFill.color = Color.Lerp(new Color(1, .45f, .45f), Color.white, fraction);
             actor.healthBack.sortingOrder = Order(actor.Position) + 3;
             actor.healthFill.sortingOrder = Order(actor.Position) + 4;

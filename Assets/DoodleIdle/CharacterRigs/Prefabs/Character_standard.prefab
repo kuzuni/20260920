@@ -70,6 +70,7 @@ Transform:
   - {fileID: 1670660205889741557}
   - {fileID: 8746580549204851671}
   - {fileID: 3731707332152901759}
+  - {fileID: 7163805200694203787}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!210 &7645709785691919800
@@ -100,6 +101,7 @@ MonoBehaviour:
   rigType: standard
   appearance: {fileID: 11400000, guid: 08ce260c0268fa94a8ecce43d942a037, type: 2}
   skeleton: {fileID: 7843887716089016118}
+  groundContact: {fileID: 7163805200694203787}
   weaponRenderer: {fileID: 0}
   partRenderers:
   - {fileID: 3312487682698378680}
@@ -869,6 +871,37 @@ Transform:
   m_Children:
   - {fileID: 9003081556644173883}
   m_Father: {fileID: 7843887716089016118}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6467644161257321988
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7163805200694203787}
+  m_Layer: 0
+  m_Name: GroundContact
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7163805200694203787
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6467644161257321988}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.09873515, y: 0.71907055, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5409240790235460951}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7837618986196601516
 GameObject:
