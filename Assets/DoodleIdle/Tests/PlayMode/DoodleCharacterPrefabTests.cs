@@ -13,8 +13,10 @@ namespace DoodleIdle.Tests
         public void Setup()
         {
 #if UNITY_EDITOR
-            var builder = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleCharacterCatalogBuild")).First(t => t != null);
-            builder.GetMethod("Build").Invoke(null, null);
+            // Verify the delivered assets. Running combat tests must never regenerate
+            // the user's authored rigs, animation assets, or portrait catalog.
+            if (!UnityEditor.AssetDatabase.LoadAssetAtPath<DoodleCharacterCatalog>("Assets/DoodleIdle/Resources/DoodleIdle/CharacterCatalog.asset"))
+                throw new System.InvalidOperationException("The delivered character catalog is missing.");
 #endif
         }
     }

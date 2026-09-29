@@ -16,6 +16,47 @@ namespace DoodleIdle.CharacterRigs
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer[] partRenderers;
         public Animator animator;
+        Action attackImpact;
+        bool attackQueued, attackObserved;
+
+        bool InAttack()
+        {
+            int layer = animator.GetLayerIndex("Upper Body");
+            if (layer < 0) layer = 0;
+            return animator.GetCurrentAnimatorStateInfo(layer).IsName("Attack")
+                || (animator.IsInTransition(layer) && animator.GetNextAnimatorStateInfo(layer).IsName("Attack"));
+        }
+
+        void LateUpdate()
+        {
+            if (!attackQueued) return;
+            if (InAttack()) attackObserved = true;
+            else if (attackObserved) CancelAttack();
+        }
+
+        public void CancelAttack()
+        {
+            attackImpact = null;
+            attackQueued = attackObserved = false;
+            if (animator && animator.isInitialized)
+                foreach (var parameter in animator.parameters)
+                    if (parameter.type == AnimatorControllerParameterType.Trigger
+                        && (parameter.name == "Attack" || parameter.name == "UpperAttack"))
+                        animator.ResetTrigger(parameter.nameHash);
+        }
+
+        void OnDisable() => CancelAttack();
+
+        // Called only by the authored Attack clip's impact event. Consume before invoking:
+        // a second event or an outgoing animation blend must never deal damage twice.
+        public void OnAttackImpact()
+        {
+            if (!attackQueued || !isActiveAndEnabled) return;
+            attackObserved = true;
+            var impact = attackImpact;
+            attackImpact = null;
+            impact?.Invoke();
+        }
 
         public void SetAppearance(CharacterAppearance next)
         {
@@ -49,17 +90,25 @@ namespace DoodleIdle.CharacterRigs
         }
 
         public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
-        public void Attack()
+        public void Attack() => TryAttack(null);
+
+        public bool TryAttack(Action impact)
         {
+            LateUpdate();
+            if (!isActiveAndEnabled || attackQueued || InAttack()) return false;
+            attackQueued = true;
+            attackObserved = false;
+            attackImpact = impact;
             // Armed/winged biped Animators blend the existing Attack on their limb layer.
             // Other authored controllers retain their original Attack trigger.
             int upperAttack = Animator.StringToHash("UpperAttack");
             foreach (var parameter in animator.parameters)
                 if (parameter.nameHash == upperAttack && parameter.type == AnimatorControllerParameterType.Trigger)
-                { animator.SetTrigger(upperAttack); return; }
+                { animator.SetTrigger(upperAttack); return true; }
             animator.SetTrigger("Attack");
+            return true;
         }
-        public void Hit() => animator.SetTrigger("Hit");
-        public void Die() => animator.SetTrigger("Die");
+        public void Hit() { CancelAttack(); animator.SetTrigger("Hit"); }
+        public void Die() { CancelAttack(); animator.SetTrigger("Die"); }
     }
 }

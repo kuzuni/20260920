@@ -29,6 +29,7 @@ namespace DoodleIdle
         {
             BasicAttackEnabled = enabled;
             if (enabled) return;
+            if (player != null && player.rigVisual) player.rigVisual.Rig.CancelAttack();
             dashRemaining = swing = 0;
             if (player != null) player.body.linearVelocity = Vector2.zero;
             for (int i = shots.Count - 1; i >= 0; i--)
@@ -59,6 +60,7 @@ namespace DoodleIdle
             public float flash, phase;
             public bool returnedToPool;
             public float walkClock;
+            public float meleeCooldown;
             public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
             public Vector2 enemyDashDirection;
             public bool isPlayer, isBoss;
@@ -416,7 +418,10 @@ namespace DoodleIdle
             TickPlayerContactDamage(dt);
             if (combatWaveResetRequested) return;
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
-            { FireSlash(facing); attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1); }
+            {
+                if (BeginPlayerAttack(facing))
+                    attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1);
+            }
             TickEquippedSkills(dt);
             OrbitBananas(dt);
             TickCompanions(dt);
@@ -472,10 +477,18 @@ namespace DoodleIdle
             DashCasts++;
         }
 
+        bool BeginPlayerAttack(Vector2 direction)
+        {
+            return player.rigVisual.TryAttack(() =>
+            {
+                if (Ready && !paused && BasicAttackEnabled && basicSkillsEnabled && Alive(player))
+                    FireSlash(direction);
+            });
+        }
+
         void FireSlash(Vector2 direction)
         {
             swing = 1;
-            player.rigVisual.Attack();
             var sprite = Visual("Club slash wave", slash, player.Position + direction * .65f, Vector2.one * 1.6f, 500);
             VisualTrigger(sprite);
             sprite.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);

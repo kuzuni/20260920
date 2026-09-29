@@ -6,6 +6,8 @@ namespace DoodleIdle
     {
         [Header("Player contact damage")]
         [Min(0)] public float enemyContactDamage = 64;
+        [Min(.1f)] public float enemyAttackInterval = 1;
+        [Min(0)] public float enemyAttackReach = .65f;
         public const float ContactInvulnerabilityDuration = 1;
         float contactInvulnerability;
         Material playerHitMaterial;
@@ -33,29 +35,42 @@ namespace DoodleIdle
             // Preserve missing HP when equipment/stat maximum health changes.
             player.hp = GameNumber.Clamp(player.hp + maxHealth - player.maxHp + (Ui ? Ui.HealthRegenAmount * dt : 0), 0, maxHealth);
             player.maxHp = maxHealth;
-            GameNumber damage=enemyContactDamage*(Ui?Ui.EnemyDamageAmount(Ui.CombatDifficultyStage)/64:1);
-            if (!PlayerInvulnerable && damage > 0) {
-                foreach (var enemy in enemies) {
-                    if (!Alive(enemy)) continue;
-                    Vector2 relative = enemy.Position - player.Position;
-                    Vector2 next = relative + (enemy.body.linearVelocity - player.body.linearVelocity) * dt;
-                    float radius = player.collider.radius * Mathf.Abs(player.root.transform.lossyScale.x)
-                        + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
-                    if (SegmentDistance(Vector2.zero, relative, next) > radius + .02f) continue;
-                    if (enemy.rigVisual && (enemy.rigVisual.Rig.rigType == "standard" || enemy.rigVisual.Rig.rigType == "wing"))
-                        enemy.rigVisual.Attack();
-                    player.hp = GameNumber.Max(0, player.hp - damage);
-                    ShowDamageNumber(player.Position, damage, true);
-                    PlayerContactHits++; contactInvulnerability = ContactInvulnerabilityDuration;
-                    if (player.hp <= 0) {
-                        player.hp = player.maxHp;
-                        player.body.position = Vector2.zero;
-                        player.body.linearVelocity = Vector2.zero;
-                        dashRemaining = 0;
-                        if(Ui)Ui.HandlePlayerDefeat();
-                    }
-                    break; // One shared immunity window, including contact with other enemies.
-                }
+            foreach (var enemy in enemies)
+            {
+                if (!Alive(enemy) || enemy.returnedToPool) continue;
+                enemy.meleeCooldown = Mathf.Max(0, enemy.meleeCooldown - dt);
+                if (enemy.meleeCooldown > 0 || !EnemyInAttackRange(enemy)) continue;
+                // Even harmless tutorial enemies play their attack. Damage is resolved
+                // only when their clip reaches OnAttackImpact, after the wind-up.
+                if (enemy.rigVisual && enemy.rigVisual.TryAttack(() => ResolveEnemyAttack(enemy)))
+                    enemy.meleeCooldown = enemyAttackInterval;
+            }
+            UpdatePlayerHealthBar();
+        }
+
+        bool EnemyInAttackRange(Actor enemy)
+        {
+            float radius = ActorRadius(player) + ActorRadius(enemy) + enemyAttackReach;
+            return (enemy.Position - player.Position).sqrMagnitude <= radius * radius;
+        }
+
+        void ResolveEnemyAttack(Actor enemy)
+        {
+            if (!Ready || paused || !Alive(player) || !Alive(enemy) || enemy.returnedToPool
+                || !enemy.root.activeInHierarchy || PlayerInvulnerable || !EnemyInAttackRange(enemy)) return;
+            GameNumber damage = enemyContactDamage * (Ui ? Ui.EnemyDamageAmount(Ui.CombatDifficultyStage) / 64 : 1);
+            if (damage <= 0) return;
+            player.hp = GameNumber.Max(0, player.hp - damage);
+            ShowDamageNumber(player.Position, damage, true);
+            PlayerContactHits++;
+            contactInvulnerability = ContactInvulnerabilityDuration;
+            if (player.hp <= 0)
+            {
+                player.hp = player.maxHp;
+                player.body.position = Vector2.zero;
+                player.body.linearVelocity = Vector2.zero;
+                dashRemaining = 0;
+                if (Ui) Ui.HandlePlayerDefeat();
             }
             UpdatePlayerHealthBar();
         }

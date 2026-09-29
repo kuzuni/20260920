@@ -159,7 +159,7 @@ namespace DoodleIdle.Tests
             player.GetType().GetField("hp").SetValue(player, (GameNumber)(1f));
             typeof(DoodleIdleGame).GetField("contactInvulnerability",GrowthPrivate).SetValue(game,0f);
             game.enemyContactDamage=1e10f;
-            typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage",GrowthPrivate).Invoke(game,new object[]{.02f});
+            StepEnemyAttackEvents(.02f);
             Assert.That(ui.MainStage,Is.EqualTo(99)); Assert.That(ui.BreakthroughMode,Is.True);
             Assert.That(game.PlayerHealth,Is.EqualTo(game.PlayerMaxHealth));
             ui.DebugSetMainStage(100);

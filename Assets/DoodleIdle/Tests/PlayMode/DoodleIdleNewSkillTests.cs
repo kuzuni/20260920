@@ -119,7 +119,9 @@ namespace DoodleIdle.Tests
             game.basicSkillsEnabled = true;
             // Bootstrap may already have consumed the initial attack cooldown.
             typeof(DoodleIdleGame).GetField("attackTimer", GrowthPrivate).SetValue(game, 0f);
-            yield return PhysicsTicks(1);
+            // The slash now waits for the authored Attack clip's impact event.
+            for (int i = 0; i < 120 && NamedArt("Club slash wave").Length == 0; i++)
+                yield return PhysicsTicks(1);
             Assert.That(NamedArt("Club slash wave").Length, Is.GreaterThan(0));
 #if UNITY_EDITOR
             var type = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("DoodleIdle.Editor.DoodleSkillTestWindow")).First(t => t != null);

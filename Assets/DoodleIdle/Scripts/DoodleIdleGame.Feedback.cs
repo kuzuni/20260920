@@ -6,6 +6,11 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
+        [Header("Overhead HP bar position")]
+        [Tooltip("플레이어 머리 위 HP바 위치 (캐릭터 기준). 실행 중에도 조절 가능합니다.")]
+        public Vector2 playerHealthBarOffset = new Vector2(0, 1.56f);
+        [Tooltip("일반 적 머리 위 HP바 위치. 보스는 머리 위 HP바를 표시하지 않습니다.")]
+        public Vector2 enemyHealthBarOffset = new Vector2(0, 1.56f);
         const float EnemyMaxHealth = 68;
         const int MaxDamageNumbers = 128;
         Transform damageCanvas;
@@ -35,9 +40,13 @@ namespace DoodleIdle
         void RefreshHealthBar(Actor actor)
         {
             if (!actor.healthFill) return;
+            bool visible = !actor.isBoss && (!actor.isPlayer || actor.hp < actor.maxHp || PlayerInvulnerable);
+            actor.healthBack.enabled = actor.healthFill.enabled = visible;
+            Vector2 offset = actor.isPlayer ? playerHealthBarOffset : enemyHealthBarOffset;
+            actor.healthBack.transform.localPosition = offset;
             float fraction = (float)GameNumber.Clamp(actor.hp / actor.maxHp, 0, 1);
             actor.healthFill.transform.localScale = new Vector3(.9f * fraction, .08f / actor.healthFill.sprite.bounds.size.y, 1);
-            actor.healthFill.transform.localPosition = new Vector3(-.45f * (1 - fraction), 1.56f, 0);
+            actor.healthFill.transform.localPosition = new Vector3(offset.x - .45f * (1 - fraction), offset.y, 0);
             actor.healthFill.color = Color.Lerp(new Color(1, .45f, .45f), Color.white, fraction);
             actor.healthBack.sortingOrder = Order(actor.Position) + 3;
             actor.healthFill.sortingOrder = Order(actor.Position) + 4;

@@ -28,7 +28,8 @@ namespace DoodleIdle
                 Rig = Instantiate(entry.prefab, transform, false);
                 sorting = Rig.GetComponent<SortingGroup>() ?? Rig.gameObject.AddComponent<SortingGroup>();
                 prefabSortingOrder = sorting.sortingOrder;
-                Rig.animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                // Combat impact events must also run when a character is off camera.
+                Rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             }
             Rig.SetAppearance(entry.appearance);
             Entry = entry;
@@ -39,6 +40,7 @@ namespace DoodleIdle
         }
         public void Moving(bool moving) { if (Rig) Rig.SetMoving(moving); }
         public void Attack() { if (Rig && !Paused) Rig.Attack(); }
+        public bool TryAttack(System.Action impact) => Rig && !Paused && Rig.TryAttack(impact);
         public void Hit() { if (Rig && !Paused) Rig.Hit(); }
         public void Sync()
         {

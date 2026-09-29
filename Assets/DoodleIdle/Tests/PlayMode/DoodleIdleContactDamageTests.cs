@@ -9,10 +9,29 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        // Contact now starts a wind-up. Existing damage/immunity fixtures must also
+        // advance the actual Animator until its clip emits the impact event.
+        void StepEnemyAttackEvents(float dt)
+        {
+            bool paused = game.paused;
+            var visuals = game.GetComponentsInChildren<DoodleRigVisual>().Where(v => v.Entry.group == "Enemies").ToArray();
+            try
+            {
+                game.paused = false;
+                foreach (var visual in visuals) { visual.Sync(); visual.Rig.animator.Update(0); }
+                typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate).Invoke(game, new object[] { dt });
+                for (int i = 0; i < 130; i++)
+                    foreach (var visual in visuals)
+                        if (visual && visual.gameObject.activeInHierarchy) visual.Rig.animator.Update(.01f);
+            }
+            finally { game.paused = paused; foreach (var visual in visuals) if (visual) visual.Sync(); }
+        }
+
         [UnityTest]
         public IEnumerator AutoMovementKeepsConfigurableBodyClearanceAndStopsDashes()
         {
             var bodies = DurableSkillTargets();
+            game.enemyContactDamage = 0; // This fixture measures body clearance, not melee reach.
             game.autoPlay = true; game.moveSpeed = 3.1f;
             var tuning = game.Ui.ReadBalanceTuning(); tuning.playerKeepDistance = .6f;
             game.Ui.ApplyBalanceTuning(tuning);
@@ -63,12 +82,15 @@ namespace DoodleIdle.Tests
         {
             var bodies = DurableSkillTargets(); game.TogglePause();
             DayOneState("mainStage", 1); // First-stage enemies are intentionally harmless.
-            ((DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning", ServicePrivate).GetValue(game.Ui)).earlyEnemyDamageMax = 64 * 69;
+            var damageTuning = game.Ui.ReadBalanceTuning();
+            damageTuning.enemyStartingDamage = damageTuning.earlyEnemyDamageMax = 64;
+            damageTuning.earlyEnemyDamageEndStage = 70;
+            game.Ui.ApplyBalanceTuning(damageTuning);
             var player = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
             var reset = typeof(DoodleIdleGame).GetMethod("ResetPlayerContactDamage", GrowthPrivate);
             var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate);
             var tint = typeof(DoodleIdleGame).GetMethod("PlayerInvulnerabilityTint", GrowthPrivate);
-            void Step(float dt) => tick.Invoke(game, new object[] { dt });
+            void Step(float dt) => StepEnemyAttackEvents(dt);
             reset.Invoke(game, null);
             float full = game.PlayerHealth;
             Place(bodies[0], new Vector2(1.16f, 0));
@@ -92,12 +114,8 @@ namespace DoodleIdle.Tests
             var appearance = typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate);
             art.color = original; appearance.Invoke(game, null);
             Assert.That(art.color, Is.EqualTo(faded));
-            Color materialTint=art.sharedMaterial.GetColor("_TintColor");
-            Assert.That(materialTint.r,Is.EqualTo(original.r).Within(.00001));
-            Assert.That(materialTint.g,Is.EqualTo(original.g).Within(.00001));
-            Assert.That(materialTint.b,Is.EqualTo(original.b).Within(.00001));
-            Assert.That(art.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Player Hit Fade"));
-            Assert.That(art.sharedMaterial.GetFloat("_Opacity"), Is.EqualTo(.6f).Within(.001f));
+            var rig = ((DoodleRigVisual)player.GetType().GetField("rigVisual").GetValue(player)).Rig;
+            foreach (var part in rig.partRenderers) Assert.That(part.color, Is.EqualTo(faded));
             art.color = Color.white; appearance.Invoke(game, null);
             Object.Destroy(CaptureFrame("player-contact-invulnerability-faded.png", 1000, 1000, false));
             Step(.2f);
@@ -146,14 +164,21 @@ namespace DoodleIdle.Tests
         public IEnumerator EarlyEnemiesRampFromZeroTo100WithoutFakeHitsAtStageOne()
         {
             var bodies = DurableSkillTargets(); game.TogglePause(); var ui = game.Ui;
+            var damageTuning = ui.ReadBalanceTuning();
+            damageTuning.enemyStartingDamage = 0;
+            damageTuning.earlyEnemyDamageEndStage = 70;
+            damageTuning.earlyEnemyDamageMax = 100;
+            damageTuning.enemyDamageStageGrowth = .02f;
+            damageTuning.enemyDamageGrowthSteps = System.Array.Empty<DoodleGrowthStep>();
+            ui.ApplyBalanceTuning(damageTuning);
             var reset = typeof(DoodleIdleGame).GetMethod("ResetPlayerContactDamage", GrowthPrivate);
             var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate);
             DayOneState("mainStage", 0); reset.Invoke(game, null);
             Place(bodies[0], Vector2.zero);
             float full = game.PlayerHealth;
-            tick.Invoke(game, new object[] { 0f });
+            StepEnemyAttackEvents(0);
             bodies[0].transform.localScale = Vector3.one * 3;
-            tick.Invoke(game, new object[] { 1.1f });
+            StepEnemyAttackEvents(1.1f);
             Assert.That(game.PlayerHealth, Is.EqualTo(full));
             Assert.That(game.PlayerContactHits, Is.Zero);
             Assert.That(game.PlayerInvulnerable, Is.False);
@@ -174,7 +199,7 @@ namespace DoodleIdle.Tests
                 previous = damage;
             }
             DayOneState("mainStage", 69); reset.Invoke(game, null);
-            tick.Invoke(game, new object[] { 0f });
+            StepEnemyAttackEvents(1.1f);
             Assert.That(game.PlayerHealth, Is.EqualTo(full - 100).Within(.01));
             Assert.That(game.PlayerContactHits, Is.EqualTo(1));
             DayOneState("mainStage", 0); DayOneState("activeDungeon", 0);

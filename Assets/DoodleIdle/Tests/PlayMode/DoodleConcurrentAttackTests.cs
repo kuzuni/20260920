@@ -10,6 +10,49 @@ namespace DoodleIdle.Tests
     // Read-only tests of the user's original clips through native Animator layers.
     public sealed class DoodleConcurrentAttackTests
     {
+        [TestCase("Player_Standard")]
+        [TestCase("Character_standard")]
+        [TestCase("Character_wing")]
+        [TestCase("Character_biped")]
+        [TestCase("Character_floating")]
+        [TestCase("Character_quad")]
+        public void AuthoredAttackEventFiresOnceAndCancelsOnHitOrPoolReturn(string prefabName)
+        {
+            var source = DoodleCharacterCatalog.Current.entries.Select(e => e.prefab).First(p => p.name == prefabName);
+            var rig = Object.Instantiate(source);
+            try
+            {
+                var clip = rig.animator.runtimeAnimatorController.animationClips.First(c => c.name == "Attack");
+                Assert.That(clip.events.Count(e => e.functionName == "OnAttackImpact"), Is.EqualTo(1));
+                float impactTime = clip.events.Single(e => e.functionName == "OnAttackImpact").time;
+                rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                rig.animator.Update(0);
+                int impacts = 0;
+                Assert.That(rig.TryAttack(() => impacts++), Is.True);
+                Assert.That(rig.TryAttack(() => impacts += 100), Is.False, "Do not restart the wind-up each physics tick");
+                rig.animator.Update(.01f);
+                rig.animator.Update(impactTime * .4f);
+                Assert.That(impacts, Is.Zero, "Starting an attack must not apply damage");
+                rig.animator.speed = 0;
+                rig.animator.Update(2);
+                Assert.That(impacts, Is.Zero, "Pause must hold the impact");
+                rig.animator.speed = 1;
+                for (int i = 0; i < 120; i++) rig.animator.Update(.01f);
+                Assert.That(impacts, Is.EqualTo(1), "The actual Animator must dispatch the clip event");
+                rig.OnAttackImpact();
+                Assert.That(impacts, Is.EqualTo(1), "Duplicate events must not repeat damage");
+                Assert.That(rig.TryAttack(() => impacts++), Is.True);
+                rig.animator.Update(.02f); rig.Hit();
+                for (int i = 0; i < 120; i++) rig.animator.Update(.01f);
+                Assert.That(impacts, Is.EqualTo(1));
+                Assert.That(rig.TryAttack(() => impacts++), Is.True);
+                rig.animator.Update(.02f); rig.gameObject.SetActive(false); rig.gameObject.SetActive(true);
+                for (int i = 0; i < 120; i++) rig.animator.Update(.01f);
+                Assert.That(impacts, Is.EqualTo(1), "Pool reuse must not retain the previous actor's hit");
+            }
+            finally { Object.DestroyImmediate(rig.gameObject); }
+        }
+
         [TestCase("Player_Standard", false)]
         [TestCase("Player_Standard", true)]
         [TestCase("Character_standard", false)]
@@ -49,9 +92,17 @@ namespace DoodleIdle.Tests
                         Assert.That(Vector3.Distance(bone.localPosition, mixed.localPosition), Is.LessThan(.001f), bone.name);
                         Assert.That(Quaternion.Angle(bone.localRotation, mixed.localRotation), Is.LessThan(.05f), bone.name);
                     }
-                    if (bone.name.StartsWith(limb))
+                    // Only compare rotations actually keyed by this clip. Unkeyed tip
+                    // bones retain locomotion; sampling Attack cannot supply their pose.
+                    bool keyedLimb = bone.name.StartsWith(limb);
+#if UNITY_EDITOR
+                    keyedLimb &= UnityEditor.AnimationUtility.GetCurveBindings(clip).Any(b =>
+                        (b.propertyName.Contains("Euler") || b.propertyName.Contains("Rotation"))
+                        && b.path == UnityEditor.AnimationUtility.CalculateTransformPath(bone, control.transform));
+#endif
+                    if (keyedLimb)
                     {
-                        Assert.That(Quaternion.Angle(reference[bone.name].localRotation, mixed.localRotation), Is.LessThan(.05f), "Attack must drive the actual attacking arm at full weight");
+                        Assert.That(Quaternion.Angle(reference[bone.name].localRotation, mixed.localRotation), Is.LessThan(.05f), "Attack must drive keyed limb " + bone.name + " at full weight");
                         armChanged |= Quaternion.Angle(bone.localRotation, mixed.localRotation) > 1;
                     }
                 }
@@ -85,7 +136,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator EnemyContactTriggersArmsOrWingsAttackLayer()
+        public IEnumerator EnemyAndPlayerDamageWaitForAnimationEventsAndHpBarsAreConfigurable()
         {
             Assert.That(DoodlePrefs.HasAccount, Is.False);
             DoodlePrefs.UseAccount("biped-attack-test-" + System.Guid.NewGuid());
@@ -114,17 +165,80 @@ namespace DoodleIdle.Tests
                     body.simulated = false; body.position = new Vector2(100, 100);
                 }
                 var target = enemies[0];
-                foreach (string type in new[] { "standard", "wing" })
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", flags);
+                var enemyActors = (IList)typeof(DoodleIdleGame).GetField("enemies", flags).GetValue(game);
+                var targetActor = enemyActors.Cast<object>().Single(a => (DoodleRigVisual)a.GetType().GetField("rigVisual").GetValue(a) == target);
+                foreach (string type in new[] { "standard", "wing", "biped", "floating", "quad" })
                 {
                     target.Configure(DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == type));
                     target.GetComponentInParent<Rigidbody2D>().position = player.GetComponentInParent<Rigidbody2D>().position;
                     target.Rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    target.Rig.animator.Update(0);
                     int hits = game.PlayerContactHits;
-                    typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(game, new object[] { 2f });
-                    Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1), type);
+                    tick.Invoke(game, new object[] { 2f });
+                    Assert.That(game.PlayerContactHits, Is.EqualTo(hits), "No damage before the event: " + type);
                     target.Rig.animator.Update(.1f);
-                    Assert.That(target.Rig.animator.GetCurrentAnimatorStateInfo(target.Rig.animator.GetLayerIndex("Upper Body")).IsName("Attack"), Is.True, type);
+                    int layer = Mathf.Max(0, target.Rig.animator.GetLayerIndex("Upper Body"));
+                    Assert.That(target.Rig.animator.GetCurrentAnimatorStateInfo(layer).IsName("Attack")
+                        || target.Rig.animator.GetNextAnimatorStateInfo(layer).IsName("Attack"), Is.True, type);
+                    for (int i = 0; i < 120; i++) target.Rig.animator.Update(.01f);
+                    Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1), type);
+                    target.Rig.OnAttackImpact();
+                    Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1));
                 }
+                // A player who leaves melee range during the wind-up avoids the hit.
+                int previousHits = game.PlayerContactHits;
+                tick.Invoke(game, new object[] { 2f });
+                target.GetComponentInParent<Rigidbody2D>().position = new Vector2(100, 100);
+                for (int i = 0; i < 120; i++) target.Rig.animator.Update(.01f);
+                Assert.That(game.PlayerContactHits, Is.EqualTo(previousHits));
+
+                player.Rig.CancelAttack(); player.Rig.animator.Rebind(); player.Rig.animator.Update(0);
+                var shots = (IList)typeof(DoodleIdleGame).GetField("shots", flags).GetValue(game);
+                int shotCount = shots.Count;
+                Assert.That((bool)typeof(DoodleIdleGame).GetMethod("BeginPlayerAttack", flags).Invoke(game, new object[] { Vector2.right }), Is.True);
+                Assert.That(shots.Count, Is.EqualTo(shotCount));
+                player.Rig.animator.Update(.2f);
+                Assert.That(shots.Count, Is.EqualTo(shotCount));
+                for (int i = 0; i < 120; i++) player.Rig.animator.Update(.01f);
+                Assert.That(shots.Count, Is.EqualTo(shotCount + 1));
+                Assert.That((bool)typeof(DoodleIdleGame).GetMethod("BeginPlayerAttack", flags).Invoke(game, new object[] { Vector2.right }), Is.True);
+                game.SetBasicAttackEnabled(false);
+                int disabledCount = shots.Count;
+                for (int i = 0; i < 120; i++) player.Rig.animator.Update(.01f);
+                Assert.That(shots.Count, Is.EqualTo(disabledCount), "Disabling basic attacks must cancel the pending slash");
+
+                game.enemyContactDamage = 0;
+                target.GetComponentInParent<Rigidbody2D>().position = player.GetComponentInParent<Rigidbody2D>().position;
+                tick.Invoke(game, new object[] { 2f });
+                target.Rig.animator.Update(.1f);
+                Assert.That(target.Rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Attack")
+                    || target.Rig.animator.GetNextAnimatorStateInfo(0).IsName("Attack"), Is.True, "Harmless enemies still animate");
+                for (int i = 0; i < 120; i++) target.Rig.animator.Update(.01f);
+                Assert.That(game.PlayerContactHits, Is.EqualTo(previousHits), "Harmless enemies do not fake damage");
+
+                game.playerHealthBarOffset = new Vector2(.2f, 2.8f);
+                game.enemyHealthBarOffset = new Vector2(-.3f, 3.2f);
+                var playerActor = typeof(DoodleIdleGame).GetField("player", flags).GetValue(game);
+                var refresh = typeof(DoodleIdleGame).GetMethod("RefreshHealthBar", flags);
+                foreach (var actor in new[] { playerActor, targetActor })
+                {
+                    refresh.Invoke(game, new[] { actor });
+                    var back = (SpriteRenderer)actor.GetType().GetField("healthBack").GetValue(actor);
+                    var fill = (SpriteRenderer)actor.GetType().GetField("healthFill").GetValue(actor);
+                    Vector2 expected = actor == playerActor ? game.playerHealthBarOffset : game.enemyHealthBarOffset;
+                    Assert.That((Vector2)back.transform.localPosition, Is.EqualTo(expected));
+                    Assert.That(fill.transform.localPosition.y, Is.EqualTo(expected.y));
+                }
+                var targetType = targetActor.GetType();
+                targetType.GetField("isBoss").SetValue(targetActor, true);
+                refresh.Invoke(game, new[] { targetActor });
+                Assert.That(((SpriteRenderer)targetType.GetField("healthBack").GetValue(targetActor)).enabled, Is.False);
+                Assert.That(((SpriteRenderer)targetType.GetField("healthFill").GetValue(targetActor)).enabled, Is.False);
+                targetType.GetField("isBoss").SetValue(targetActor, false);
+                refresh.Invoke(game, new[] { targetActor });
+                Assert.That(((SpriteRenderer)targetType.GetField("healthFill").GetValue(targetActor)).enabled, Is.True, "Pooled normal enemies must recover their HP bar");
             }
             finally
             {
