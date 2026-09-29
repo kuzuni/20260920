@@ -113,8 +113,8 @@ namespace DoodleIdle.CharacterRigs
             // Damage may have queued Hit earlier in this frame. It must not consume
             // the new attack before the Animator has evaluated its trigger.
             animator.ResetTrigger("Hit");
-            // Armed/winged biped Animators blend the existing Attack on their limb layer.
-            // Other authored controllers retain their original Attack trigger.
+            // Only the player has an UpperAttack layer; monsters play the original
+            // full-body Attack on their Base Layer.
             int upperAttack = Animator.StringToHash("UpperAttack");
             foreach (var parameter in animator.parameters)
                 if (parameter.nameHash == upperAttack && parameter.type == AnimatorControllerParameterType.Trigger)

@@ -180,7 +180,7 @@ namespace DoodleIdle.Tests
         [TestCase("Character_standard", true)]
         [TestCase("Character_wing", false)]
         [TestCase("Character_wing", true)]
-        public void AnimatorBlendsAttackingLimbsWithUninterruptedIdleOrMove(string prefabName, bool moving)
+        public void PlayerBlendsUpperBodyWhileMonstersPlayTheWholeAttack(string prefabName, bool moving)
         {
             var source = DoodleCharacterCatalog.Current.entries.Select(e => e.prefab).First(p => p.name == prefabName);
             string limb = source.rigType == "wing" ? "날개" : "팔";
@@ -189,8 +189,10 @@ namespace DoodleIdle.Tests
             {
                 var clip = source.animator.runtimeAnimatorController.animationClips.First(c => c.name == "Attack");
                 int upper = combined.animator.GetLayerIndex("Upper Body");
-                Assert.That(upper, Is.GreaterThan(0));
-                Assert.That(combined.animator.GetLayerWeight(upper), Is.EqualTo(1));
+                bool blend = prefabName == "Player_Standard";
+                Assert.That(upper, blend ? Is.GreaterThan(0) : Is.EqualTo(-1));
+                int attackLayer = blend ? upper : 0;
+                if (blend) Assert.That(combined.animator.GetLayerWeight(upper), Is.EqualTo(1));
                 foreach (var rig in new[] { control, combined })
                 {
                     rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -199,24 +201,28 @@ namespace DoodleIdle.Tests
                 for (int i = 0; i < 20; i++) { control.animator.Update(.05f); combined.animator.Update(.05f); }
                 combined.Attack();
                 for (int i = 0; i < 4; i++) { control.animator.Update(.04f); combined.animator.Update(.04f); }
-                Assert.That(combined.animator.GetCurrentAnimatorStateInfo(0).IsName(moving ? "Move" : "Idle"), Is.True);
-                Assert.That(combined.animator.GetCurrentAnimatorStateInfo(upper).IsName("Attack"), Is.True);
-                clip.SampleAnimation(sample.gameObject, combined.animator.GetCurrentAnimatorStateInfo(upper).normalizedTime * clip.length);
+                if (blend) Assert.That(combined.animator.GetCurrentAnimatorStateInfo(0).IsName(moving ? "Move" : "Idle"), Is.True);
+                Assert.That(combined.animator.GetCurrentAnimatorStateInfo(attackLayer).IsName("Attack"), Is.True);
+                clip.SampleAnimation(sample.gameObject, combined.animator.GetCurrentAnimatorStateInfo(attackLayer).normalizedTime * clip.length);
                 var attackBones = combined.skeleton.GetComponentsInChildren<Transform>().ToDictionary(t => t.name);
                 var reference = sample.skeleton.GetComponentsInChildren<Transform>().ToDictionary(t => t.name);
                 bool armChanged = false;
                 foreach (var bone in control.skeleton.GetComponentsInChildren<Transform>())
                 {
                     var mixed = attackBones[bone.name];
-                    if (bone.name.StartsWith("다리") || bone.name == "몸통")
+                    if (blend && (bone.name.StartsWith("다리") || bone.name == "몸통"))
                     {
                         Assert.That(Vector3.Distance(bone.localPosition, mixed.localPosition), Is.LessThan(.001f), bone.name);
                         Assert.That(Quaternion.Angle(bone.localRotation, mixed.localRotation), Is.LessThan(.05f), bone.name);
                     }
                     // Only compare rotations actually keyed by this clip. Unkeyed tip
                     // bones retain locomotion; sampling Attack cannot supply their pose.
-                    bool keyedLimb = bone.name.StartsWith(limb);
+                    bool keyedLimb = !blend || bone.name.StartsWith(limb) || bone.name == "머리";
 #if UNITY_EDITOR
+                    string path = UnityEditor.AnimationUtility.CalculateTransformPath(bone, control.transform);
+                    var bindings = UnityEditor.AnimationUtility.GetCurveBindings(clip).Where(b => b.path == path).ToArray();
+                    if ((!blend || bone.name == "머리") && bindings.Any(b => b.propertyName.StartsWith("m_LocalPosition")))
+                        Assert.That(Vector3.Distance(reference[bone.name].localPosition, mixed.localPosition), Is.LessThan(.001f), "Attack position: " + bone.name);
                     keyedLimb &= UnityEditor.AnimationUtility.GetCurveBindings(clip).Any(b =>
                         (b.propertyName.Contains("Euler") || b.propertyName.Contains("Rotation"))
                         && b.path == UnityEditor.AnimationUtility.CalculateTransformPath(bone, control.transform));
@@ -230,16 +236,17 @@ namespace DoodleIdle.Tests
                 Assert.That(armChanged, Is.True);
                 control.SetMoving(!moving); combined.SetMoving(!moving);
                 for (int i = 0; i < 4; i++) { control.animator.Update(.04f); combined.animator.Update(.04f); }
-                foreach (var bone in control.skeleton.GetComponentsInChildren<Transform>().Where(t => t.name.StartsWith("다리")))
-                    Assert.That(Quaternion.Angle(bone.localRotation, attackBones[bone.name].localRotation), Is.LessThan(.05f));
-                combined.animator.Update(clip.length + .1f); combined.animator.Update(.01f);
-                Assert.That(combined.animator.GetCurrentAnimatorStateInfo(upper).IsName("Locomotion"), Is.True);
+                if (blend)
+                    foreach (var bone in control.skeleton.GetComponentsInChildren<Transform>().Where(t => t.name.StartsWith("다리")))
+                        Assert.That(Quaternion.Angle(bone.localRotation, attackBones[bone.name].localRotation), Is.LessThan(.05f));
+                for (int i = 0; i < 120; i++) combined.animator.Update(.01f);
+                Assert.That(combined.animator.GetCurrentAnimatorStateInfo(attackLayer).IsName(blend ? "Locomotion" : moving ? "Idle" : "Move"), Is.True);
             }
             finally { Object.DestroyImmediate(control.gameObject); Object.DestroyImmediate(combined.gameObject); Object.DestroyImmediate(sample.gameObject); }
         }
 
         [Test]
-        public void EveryArmedOrWingedBipedAppearanceUsesTheBlendingController()
+        public void OnlyPlayerAppearancesUseUpperBodyBlendingAndIncludeTheHead()
         {
             var entries = DoodleCharacterCatalog.Current.entries.Where(e => e.appearance.rigType == "standard" || e.appearance.rigType == "wing").ToArray();
             Assert.That(entries.Select(e => e.prefab).Distinct().Count(), Is.EqualTo(3));
@@ -249,8 +256,19 @@ namespace DoodleIdle.Tests
                 try
                 {
                     instance.SetAppearance(entry.appearance);
-                    Assert.That(instance.animator.GetLayerIndex("Upper Body"), Is.GreaterThan(0), entry.id);
-                    Assert.That(instance.animator.parameters.Any(p => p.name == "UpperAttack"), Is.True, entry.id);
+                    bool player = entry.group == "Player";
+                    Assert.That(instance.animator.GetLayerIndex("Upper Body"), player ? Is.GreaterThan(0) : Is.EqualTo(-1), entry.id);
+                    Assert.That(instance.animator.parameters.Any(p => p.name == "UpperAttack"), Is.EqualTo(player), entry.id);
+#if UNITY_EDITOR
+                    if (player)
+                    {
+                        var mask = ((UnityEditor.Animations.AnimatorController)instance.animator.runtimeAnimatorController).layers[1].avatarMask;
+                        var head = instance.skeleton.GetComponentsInChildren<Transform>().Single(t => t.name == "머리");
+                        string headPath = UnityEditor.AnimationUtility.CalculateTransformPath(head, instance.transform);
+                        int index = Enumerable.Range(0, mask.transformCount).Single(i => mask.GetTransformPath(i) == headPath);
+                        Assert.That(mask.GetTransformActive(index), Is.True, "Player Attack must include authored head curves");
+                    }
+#endif
                 }
                 finally { Object.DestroyImmediate(instance.gameObject); }
             }
@@ -297,6 +315,8 @@ namespace DoodleIdle.Tests
                     target.Configure(DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == type));
                     target.GetComponentInParent<Rigidbody2D>().position = player.GetComponentInParent<Rigidbody2D>().position;
                     target.Rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    // Isolate this attack from combat that ran while the scene loaded.
+                    target.Rig.CancelAttack(); target.Rig.animator.Rebind();
                     target.Rig.animator.Update(0);
                     int hits = game.PlayerContactHits;
                     tick.Invoke(game, new object[] { 2f });

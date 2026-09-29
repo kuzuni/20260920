@@ -10,11 +10,8 @@ public static class PlayerAttackLayerSetup
     [MenuItem("Doodle Idle/Character Rigs/Add Player Arm Attack Layer")]
     public static void Apply() => ApplyTo("Player_Standard");
 
-    [MenuItem("Doodle Idle/Character Rigs/Add Attack Layers To Armed And Winged Bipeds")]
-    public static void ApplySupportedTypes()
-    {
-        foreach (var name in new[] { "Player_Standard", "Character_standard", "Character_wing" }) ApplyTo(name);
-    }
+    // Retain the old entry point for callers, but only the player uses limb blending.
+    public static void ApplySupportedTypes() => Apply();
 
     static void ApplyTo(string prefabName)
     {
@@ -39,7 +36,7 @@ public static class PlayerAttackLayerSetup
             for (int i = 0; i < transforms.Length; i++)
             {
                 mask.SetTransformPath(i, AnimationUtility.CalculateTransformPath(transforms[i], prefab.transform));
-                mask.SetTransformActive(i, transforms[i].name.StartsWith(limb) || transforms[i].name == "Weapon");
+                mask.SetTransformActive(i, transforms[i].name.StartsWith(limb) || transforms[i].name == "머리" || transforms[i].name == "Weapon");
             }
             AssetDatabase.CreateAsset(mask, maskPath);
         }
