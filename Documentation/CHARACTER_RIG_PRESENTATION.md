@@ -3,10 +3,10 @@
 - All six rig prefabs have an enabled root `SortingGroup`. Appearance swaps replace
   sprites and skin bindings while retaining each prefab renderer's sorting layer/order.
   Runtime depth offsets the group; it does not rewrite part order.
-- `Base Layer` owns locomotion, hit and death. The masked `Upper Body` layer owns
-  upper-body locomotion, attack, hit and death. Set `Moving` independently of the
-  `Attack` trigger: attacks leave the legs in Idle or Move. Leg roots are siblings
-  of the torso, preserving their authored world pose without inheriting torso attacks.
+- Animation clips and Animator controllers are authored by the user. Appearance
+  changes and presentation tools must not rewrite their curves, states, masks or
+  bone hierarchy. The automatic upper-body animation rewrite from commit `1e2e120`
+  was reverted to the pre-change animation assets in `83dffd9`.
 - `GroundContact` is a rest-pose foot reference outside the animated skeleton.
   The runtime shadow follows this reference, including facing and visual scale.
 - Player and enemy rig visuals use twice their previous scale. Companion scale and
@@ -17,12 +17,10 @@
   immediately restores the equipment appearance, with its grip and displayed size
   fitted to the prefab weapon.
 
-After changing a prefab skeleton, use **Doodle Idle > Character Rigs > Apply Sorting
-Upper Body Attack And Ground Contacts**. This preserves rest poses and sorting,
-rebinds animation paths/angles, rebuilds the upper-body masks and recalculates ground
-contacts. Do not use Rebuild Prefabs Only to preserve manually edited poses.
+Use **Doodle Idle > Character Rigs > Apply Sorting And Ground Contacts** to enable
+sorting groups and recalculate ground references. It does not modify animations or
+bone hierarchies. Do not use Rebuild Prefabs Only on manually authored prefabs.
 
 Validation: `DoodleIdle.Tests.DoodleRigPresentationTests` covers all 142 appearances,
-both attacking locomotion states on all six prefabs (including world-space legs),
 equipment/cosmetic switching, shadow facing, and absence of script-driven bobbing.
-The same suite also passes after reapplying the editor migration to existing output.
+Tests do not regenerate or migrate the authored animation assets.

@@ -8,18 +8,6 @@ using UnityEngine.TestTools;
 
 namespace DoodleIdle.Tests
 {
-    public sealed class RigPresentationSetup : IPrebuildSetup
-    {
-        public void Setup()
-        {
-#if UNITY_EDITOR
-            var type = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("CharacterRigPresentation")).First(t => t != null);
-            type.GetMethod("ApplyAll").Invoke(null, null);
-#endif
-        }
-    }
-
-    [PrebuildSetup(typeof(RigPresentationSetup))]
     public sealed class DoodleRigPresentationTests
     {
         [Test]
@@ -52,48 +40,6 @@ namespace DoodleIdle.Tests
                     }
                 }
                 finally { Object.DestroyImmediate(root); }
-            }
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void AttackingKeepsLowerBodyOnIdleOrMove(bool moving)
-        {
-            foreach (var prefab in DoodleCharacterCatalog.Current.entries.Select(e => e.prefab).Distinct())
-            {
-                var control = Object.Instantiate(prefab); var attack = Object.Instantiate(prefab);
-                try
-                {
-                    string state = moving ? "Move" : "Idle";
-                    foreach (var rig in new[] { control, attack })
-                    {
-                        rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                        Assert.That(rig.animator.layerCount, Is.EqualTo(2), prefab.name);
-                        rig.SetMoving(moving);
-                        rig.animator.Play(state, 0, 0); rig.animator.Play(state, 1, 0); rig.animator.Update(.1f);
-                    }
-                    attack.Attack();
-                    for (int i = 0; i < 6; i++) { control.animator.Update(.03f); attack.animator.Update(.03f); }
-                    Assert.That(attack.animator.GetCurrentAnimatorStateInfo(0).IsName(state), Is.True, prefab.name);
-                    Assert.That(attack.animator.GetCurrentAnimatorStateInfo(1).IsName("Attack"), Is.True, prefab.name);
-                    var attackBones = attack.skeleton.GetComponentsInChildren<Transform>().ToDictionary(t => t.name);
-                    bool upperChanged = false;
-                    foreach (var bone in control.skeleton.GetComponentsInChildren<Transform>())
-                    {
-                        var other = attackBones[bone.name];
-                        if (bone.name.StartsWith("다리") || bone == control.skeleton)
-                        {
-                            Assert.That(Vector3.Distance(bone.localPosition, other.localPosition), Is.LessThan(.0001f), prefab.name + "/" + bone.name);
-                            Assert.That(Quaternion.Angle(bone.localRotation, other.localRotation), Is.LessThan(.01f), prefab.name + "/" + bone.name);
-                            Assert.That(Vector3.Distance(bone.position, other.position), Is.LessThan(.0001f), "World-space legs must not inherit torso attacks: " + prefab.name + "/" + bone.name);
-                        }
-                        else upperChanged |= Quaternion.Angle(bone.localRotation, other.localRotation) > .5f;
-                    }
-                    Assert.That(upperChanged, Is.True, "Attack must animate upper bones: " + prefab.name);
-                    for (int i = 0; i < 24; i++) attack.animator.Update(.03f);
-                    Assert.That(attack.animator.GetCurrentAnimatorStateInfo(1).IsName(state), Is.True, prefab.name + " must resume upper locomotion");
-                }
-                finally { Object.DestroyImmediate(control.gameObject); Object.DestroyImmediate(attack.gameObject); }
             }
         }
 
