@@ -7,12 +7,16 @@
   changes and presentation tools must not rewrite their curves, states, masks or
   bone hierarchy. The automatic upper-body animation rewrite from commit `1e2e120`
   was reverted to the pre-change animation assets in `83dffd9`.
-- `CharacterRig.Attack()` now creates a runtime Playables graph on the first attack.
-  The existing controller continues Idle/Move; the original Attack clip overlays
-  upper-body transforms at full weight. Moving can change during the attack without
-  interrupting it. Hit/Death cancel the overlay and use the existing controller.
-  Pausing freezes both clocks; disabling a pooled actor disposes its runtime graph.
-  The graph and its mask exist only in memory. No animation or prefab asset is saved.
+- At the user's request, the player uses native **Animator layer blending**:
+  Base Layer keeps the original Idle/Move and other existing states. Upper Body is
+  an Override layer at weight 1 with the Arms Avatar Mask (arms and weapon only).
+  Its Attack state references the existing Attack clip; no clip curves are edited.
+  `CharacterRig.Attack()` sends `UpperAttack` to this layer, leaving locomotion
+  uninterrupted. Other controllers retain their original Attack trigger. Hit/Die
+  return the arm layer to its empty Locomotion state. The prior Playables code is
+  removed. The one-time setup menu adds this layer without rebuilding existing
+  layers, states, animation clips, or prefabs, and leaves an existing Upper Body
+  layer untouched on subsequent runs.
 - `GroundContact` is a rest-pose foot reference outside the animated skeleton.
   The runtime shadow follows this reference, including facing and visual scale.
 - Player and enemy rig visuals use twice their previous scale. Companion scale and
