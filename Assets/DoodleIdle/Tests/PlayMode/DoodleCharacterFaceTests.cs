@@ -10,6 +10,49 @@ namespace DoodleIdle.Tests
 {
     public sealed class DoodleCharacterFaceTests
     {
+        [Test]
+        public void EyeHighlightsStayWholeAtEveryGazeEdgeAndRespectClosedEyes()
+        {
+            foreach(var prefab in DoodleCharacterCatalog.Current.entries.Select(e=>e.prefab).Distinct())
+            {
+                var rig=Object.Instantiate(prefab);
+                try
+                {
+                    rig.face.gameObject.SetActive(true);rig.animator.enabled=false;
+                    var face=rig.face;
+                    foreach(float side in new[]{1f,-1f})
+                    {
+                        rig.transform.localScale=new Vector3(side*.7f,1.2f,1);rig.transform.rotation=Quaternion.Euler(0,0,17);
+                        for(int i=0;i<16;i++)
+                        {
+                            var direction=new Vector2(Mathf.Cos(i*Mathf.PI/8),Mathf.Sin(i*Mathf.PI/8));
+                            foreach(var eye in new[]{face.leftEye,face.rightEye})eye.pupilMotion.localPosition=Vector2.Scale(direction,eye.travel);
+                            face.RefreshHighlights();
+                            foreach(var eye in new[]{face.leftEye,face.rightEye})
+                            {
+                                Assert.That(eye.highlight.enabled,Is.True,prefab.name+" direction "+i);
+                                Assert.That(eye.highlight.maskInteraction,Is.EqualTo(SpriteMaskInteraction.None));
+                                var h=eye.highlight;var bounds=h.sprite.bounds;
+                                foreach(var shape in new[]{(eye.pupilMask.transform,eye.pupilMask.sprite),(eye.pupil.transform,eye.pupil.sprite)})
+                                foreach(float x in new[]{-1f,1f})foreach(float y in new[]{-1f,1f})
+                                {
+                                    var point=h.transform.TransformPoint(bounds.center+new Vector3(x*bounds.extents.x,y*bounds.extents.y,0));
+                                    var local=(Vector2)(shape.Item1.InverseTransformPoint(point)-shape.Item2.bounds.center);
+                                    Assert.That(local.magnitude,Is.LessThanOrEqualTo(Mathf.Min(shape.Item2.bounds.extents.x,shape.Item2.bounds.extents.y)*.90f+.001f));
+                                }
+                            }
+                        }
+                    }
+                    face.SetTint(new Color(1,.4f,.4f,.3f));Assert.That(face.leftEye.highlight.color.a,Is.EqualTo(.3f));
+                    face.ShowHit();Assert.That(face.leftEye.highlight.enabled,Is.False);
+                    face.ResetExpression();Assert.That(face.leftEye.highlight.enabled,Is.True);
+                    face.leftEye.lidMotion.localScale=new Vector3(1,.045f,1);face.RefreshHighlights();
+                    Assert.That(face.leftEye.highlight.enabled,Is.False,"A closed eyelid must not have a floating white dot");
+                }
+                finally{Object.DestroyImmediate(rig.gameObject);}
+            }
+        }
+
         [UnityTest]
         public IEnumerator QuadMovingHeadNeverCoversFace()
         {
@@ -80,6 +123,7 @@ namespace DoodleIdle.Tests
                 eye.transform.localPosition = Vector3.zero; eye.transform.localRotation = Quaternion.identity; eye.transform.localScale = Vector3.one;
                 var white = eye.transform.Find("EyelidMotion/White").GetComponent<SpriteRenderer>();
                 var pupil = eye.transform.Find("PupilMotion/Pupil").GetComponent<SpriteRenderer>();
+                eye.GetComponentsInChildren<SpriteRenderer>().First(r=>r.name=="Highlight").enabled=false;
                 float width = white.sprite.bounds.size.x*white.transform.localScale.x;
                 eye.transform.Find("PupilMotion").localPosition = new Vector3(width*.34f,0,0);
                 var other = Object.Instantiate(eye,root.transform);

@@ -144,6 +144,38 @@ public static class CharacterFaceSetup
         }
         MaskEye(eye);
         RelaxedBlinkEye(eye);
+        HighlightEye(eye);
+    }
+
+    [MenuItem("Doodle Idle/Character Rigs/Apply Separate Eye Highlights")]
+    public static void ApplySeparateHighlights()
+    {
+        var importer = (TextureImporter)AssetImporter.GetAtPath(Art+"eye_highlight.png");
+        importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = 100; importer.alphaIsTransparency = true; importer.mipmapEnabled = false;
+        importer.textureCompression = TextureImporterCompression.Uncompressed; importer.SaveAndReimport();
+        foreach (var path in Directory.GetFiles(Root+"Prefabs","*.prefab"))
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var face = root.GetComponent<CharacterRig>().face;
+                HighlightEye(face.leftEye); HighlightEye(face.rightEye); face.RefreshHighlights();
+                PrefabUtility.SaveAsPrefabAsset(root,path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        AssetDatabase.SaveAssets();
+    }
+
+    static void HighlightEye(CharacterFace.Eye eye)
+    {
+        if (eye.highlight) return;
+        float width = eye.white.transform.localScale.x * eye.normal.bounds.size.x;
+        eye.highlightMotion = Child(eye.pupilMotion,"HighlightMotion",Vector3.zero);
+        eye.highlight = Renderer(eye.highlightMotion,"Highlight",Sprite("eye_highlight"),Vector2.one*width*.16f,eye.pupil.sortingOrder+1,eye.pupil.sortingLayerID);
+        eye.highlight.transform.localPosition = new Vector3(width*.09f,width*.11f,0);
+        eye.highlight.maskInteraction = SpriteMaskInteraction.None;
     }
 
     [MenuItem("Doodle Idle/Character Rigs/Apply Relaxed Blinks")]
@@ -272,6 +304,7 @@ public static class CharacterFaceSetup
         var clip = rig.animator.runtimeAnimatorController.animationClips.First(c => c.name == (pose == 0 ? "Idle" : "Move"));
         clip.SampleAnimation(rig.gameObject, pose == 0 ? 0 : clip.length*.25f);
         if (rig.face) rig.face.SyncSorting();
+        if (rig.face) rig.face.RefreshHighlights();
     }
 
     [MenuItem("Doodle Idle/Character Rigs/Preview Face Expressions")]
@@ -295,6 +328,7 @@ public static class CharacterFaceSetup
                         foreach (var eye in new[] { rig.face.leftEye, rig.face.rightEye })
                             if (eye.lidMotion) eye.lidMotion.localScale = new Vector3(1,.045f,1);
                     }
+                    rig.face.RefreshHighlights();
                     CharacterRigVerifier.RenderPortrait(rig.gameObject,"artifacts/character-faces/"+id+"_"+hurt+".png",entry.center,entry.extent*.55f);
                 }
             }

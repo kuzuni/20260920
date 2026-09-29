@@ -19,6 +19,8 @@ namespace DoodleIdle.CharacterRigs
             public Transform lidMotion;
             public SpriteRenderer brow;
             public SpriteMask pupilMask;
+            public SpriteRenderer highlight;
+            public Transform highlightMotion;
             [Tooltip("눈 로컬 좌표 기준 눈동자의 최대 이동 범위")]
             public Vector2 travel = new Vector2(.12f, .08f);
         }
@@ -67,6 +69,7 @@ namespace DoodleIdle.CharacterRigs
             SetExpression(false);
             if (leftEye.pupilMotion) leftEye.pupilMotion.localPosition = Vector3.zero;
             if (rightEye.pupilMotion) rightEye.pupilMotion.localPosition = Vector3.zero;
+            RefreshHighlights();
         }
 
         public void ShowHit()
@@ -99,6 +102,7 @@ namespace DoodleIdle.CharacterRigs
             SetEye(leftEye, hurt); SetEye(rightEye, hurt);
             UpdateLids();
             if (mouth) mouth.sprite = hurt ? hurtMouth : normalMouth;
+            RefreshHighlights();
         }
 
         static void SetEye(Eye eye, bool hurt)
@@ -138,6 +142,7 @@ namespace DoodleIdle.CharacterRigs
             if (eye.white) eye.white.color = color;
             if (eye.pupil) eye.pupil.color = color;
             if (eye.brow) eye.brow.color = color;
+            if (eye.highlight) eye.highlight.color = color;
         }
 
         void LateUpdate()
@@ -168,6 +173,52 @@ namespace DoodleIdle.CharacterRigs
             }
             UpdateLids();
             UpdateEye(leftEye); UpdateEye(rightEye);
+            RefreshHighlights();
+        }
+
+        public void RefreshHighlights()
+        {
+            UpdateHighlight(leftEye); UpdateHighlight(rightEye);
+        }
+
+        void UpdateHighlight(Eye eye)
+        {
+            if (!eye.highlight || !eye.highlightMotion || !eye.pupilMask || !eye.pupil) return;
+            eye.highlightMotion.localPosition = Vector3.zero;
+            if (IsHurt || !eye.pupil.enabled) { eye.highlight.enabled = false; return; }
+            var highlight = eye.highlight;
+            var original = highlight.transform.TransformPoint(highlight.sprite.bounds.center);
+            var position = original;
+            bool fits = true;
+            // Keep the whole glint in the intersection of the visible eye and pupil.
+            // It is drawn without stencil clipping, so looking to an edge cannot cut it.
+            for (int i = 0; i < 6; i++)
+            {
+                var before = position;
+                position = FitCircle(position, eye.pupilMask.transform, eye.pupilMask.sprite, highlight, ref fits);
+                position = FitCircle(position, eye.pupil.transform, eye.pupil.sprite, highlight, ref fits);
+                if ((position - before).sqrMagnitude < .0000000001f) break;
+            }
+            var maskPosition = FitCircle(position, eye.pupilMask.transform, eye.pupilMask.sprite, highlight, ref fits);
+            // Very narrow lids leave no room for a whole glint; hide it with the blink.
+            eye.highlight.enabled = fits && (maskPosition - position).sqrMagnitude < .000001f;
+            eye.highlightMotion.position += position - original;
+        }
+
+        static Vector3 FitCircle(Vector3 point, Transform shape, Sprite sprite, SpriteRenderer glint, ref bool fits)
+        {
+            var bounds = sprite.bounds;
+            var radius = Mathf.Min(bounds.extents.x, bounds.extents.y) * .89f;
+            var half = glint.sprite.bounds.extents;
+            var x = shape.InverseTransformVector(glint.transform.TransformVector(new Vector3(half.x,0,0)));
+            var y = shape.InverseTransformVector(glint.transform.TransformVector(new Vector3(0,half.y,0)));
+            // Conservative bound also supports rotated, mirrored and non-uniform prefab scales.
+            radius -= Mathf.Sqrt(x.sqrMagnitude + y.sqrMagnitude);
+            if (radius <= 0) { fits = false; return point; }
+            var local = shape.InverseTransformPoint(point);
+            var offset = Vector2.ClampMagnitude((Vector2)local - (Vector2)bounds.center, radius);
+            local.x = bounds.center.x + offset.x; local.y = bounds.center.y + offset.y;
+            return shape.TransformPoint(local);
         }
 
         void UpdateEye(Eye eye)
