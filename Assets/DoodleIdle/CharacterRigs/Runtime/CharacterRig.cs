@@ -16,6 +16,7 @@ namespace DoodleIdle.CharacterRigs
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer[] partRenderers;
         public Animator animator;
+        RigAttackMixer attackMixer;
 
         public void SetAppearance(CharacterAppearance next)
         {
@@ -48,9 +49,22 @@ namespace DoodleIdle.CharacterRigs
             appearance = next;
         }
 
-        public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
-        public void Attack() => animator.SetTrigger("Attack");
-        public void Hit() => animator.SetTrigger("Hit");
-        public void Die() => animator.SetTrigger("Die");
+        public void SetMoving(bool moving)
+        {
+            animator.SetBool("Moving", moving);
+            attackMixer?.SetMoving(moving);
+        }
+        public void Attack()
+        {
+            if (!Application.isPlaying) { animator.SetTrigger("Attack"); return; }
+            if (attackMixer == null) attackMixer = RigAttackMixer.Create(animator);
+            if (attackMixer != null) attackMixer.Attack();
+            else animator.SetTrigger("Attack");
+        }
+        public void Hit() { if (attackMixer != null) attackMixer.Hit(); else animator.SetTrigger("Hit"); }
+        public void Die() { if (attackMixer != null) attackMixer.Die(); else animator.SetTrigger("Die"); }
+        void Update() => attackMixer?.Evaluate(Time.deltaTime);
+        void OnDisable() { attackMixer?.Dispose(); attackMixer = null; }
+        void OnDestroy() { attackMixer?.Dispose(); attackMixer = null; }
     }
 }

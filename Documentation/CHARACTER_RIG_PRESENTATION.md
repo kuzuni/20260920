@@ -7,6 +7,12 @@
   changes and presentation tools must not rewrite their curves, states, masks or
   bone hierarchy. The automatic upper-body animation rewrite from commit `1e2e120`
   was reverted to the pre-change animation assets in `83dffd9`.
+- `CharacterRig.Attack()` now creates a runtime Playables graph on the first attack.
+  The existing controller continues Idle/Move; the original Attack clip overlays
+  upper-body transforms at full weight. Moving can change during the attack without
+  interrupting it. Hit/Death cancel the overlay and use the existing controller.
+  Pausing freezes both clocks; disabling a pooled actor disposes its runtime graph.
+  The graph and its mask exist only in memory. No animation or prefab asset is saved.
 - `GroundContact` is a rest-pose foot reference outside the animated skeleton.
   The runtime shadow follows this reference, including facing and visual scale.
 - Player and enemy rig visuals use twice their previous scale. Companion scale and
@@ -24,3 +30,6 @@ bone hierarchies. Do not use Rebuild Prefabs Only on manually authored prefabs.
 Validation: `DoodleIdle.Tests.DoodleRigPresentationTests` covers all 142 appearances,
 equipment/cosmetic switching, shadow facing, and absence of script-driven bobbing.
 Tests do not regenerate or migrate the authored animation assets.
+`DoodleConcurrentAttackTests` compares combined locomotion against uninterrupted
+locomotion and the original Attack pose, including movement changes during attacks,
+pause, repeat attacks, and pooling.
