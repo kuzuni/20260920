@@ -26,6 +26,11 @@ namespace DoodleIdle.Tests
                     foreach (var entry in group)
                     {
                         visual.Configure(entry);
+                        proxy.flipX = false; visual.Sync();
+                        var rightPosition = visual.Rig.transform.localPosition;
+                        var sample = new Vector3(.75f, 2, 0);
+                        var rightPoint = root.transform.InverseTransformPoint(visual.Rig.transform.TransformPoint(sample));
+                        Assert.That(rightPosition.x, Is.Zero, entry.id + " must use the authored X pivot");
                         foreach (var part in visual.Rig.partRenderers)
                         {
                             var original = authored.partRenderers.Single(p => p.name == part.name);
@@ -33,6 +38,10 @@ namespace DoodleIdle.Tests
                             Assert.That(part.sortingLayerID, Is.EqualTo(original.sortingLayerID));
                         }
                         proxy.sortingOrder = 137; proxy.flipX = true; visual.Sync(); visual.Sync();
+                        Assert.That(visual.Rig.transform.localPosition, Is.EqualTo(rightPosition), entry.id + " must not shift when turning");
+                        var leftPoint = root.transform.InverseTransformPoint(visual.Rig.transform.TransformPoint(sample));
+                        Assert.That(leftPoint.x, Is.EqualTo(-rightPoint.x).Within(.0001f));
+                        Assert.That(leftPoint.y, Is.EqualTo(rightPoint.y).Within(.0001f));
                         Assert.That(visual.Rig.GetComponent<SortingGroup>().sortingOrder, Is.EqualTo(137 + authored.GetComponent<SortingGroup>().sortingOrder));
                         Assert.That(visual.Rig.GetComponent<SortingGroup>().sortingLayerID, Is.EqualTo(authored.GetComponent<SortingGroup>().sortingLayerID));
                         float multiplier = entry.group == "Companions" ? 1 : 2;
@@ -139,6 +148,8 @@ namespace DoodleIdle.Tests
             try
             {
                 root.transform.position = new Vector3(3, -4, 0); art.transform.localScale = Vector3.one * 1.28f;
+                root.transform.localScale = new Vector3(1.5f, .9f, 1);
+                root.transform.rotation = Quaternion.Euler(0, 0, 17);
                 var visual = art.GetComponent<DoodleRigVisual>(); visual.GroundShadow = shadow.GetComponent<SpriteRenderer>();
                 var entry = DoodleCharacterCatalog.Current.Player(-1); visual.Configure(entry);
                 Assert.That(visual.Rig.groundContact, Is.Not.Null);
@@ -147,9 +158,11 @@ namespace DoodleIdle.Tests
                 foreach (bool left in new[] { false, true })
                 {
                     art.GetComponent<SpriteRenderer>().flipX = left; visual.Sync();
-                    var contact = (visual.Rig.groundContact.localPosition - entry.center) * (2 / entry.extent);
+                    var contact = visual.Rig.groundContact.localPosition * (2 / entry.extent);
+                    contact.y -= entry.center.y * (2 / entry.extent);
                     contact.x *= left ? -1 : 1;
                     Assert.That(Vector3.Distance(shadow.transform.position, root.transform.TransformPoint(contact * 1.28f)), Is.LessThan(.0001f));
+                    Assert.That(Vector3.Distance(shadow.transform.position, visual.Rig.groundContact.position), Is.LessThan(.0001f));
                     var before = art.transform.localPosition; var rotation = art.transform.localRotation; var ground = shadow.transform.position;
                     yield return new WaitForSeconds(.15f);
                     Assert.That(art.transform.localPosition, Is.EqualTo(before));

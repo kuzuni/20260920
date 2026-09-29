@@ -49,7 +49,9 @@ namespace DoodleIdle
             proxy.enabled = false;
             float side = proxy.flipX ? -1 : 1;
             Rig.transform.localScale = new Vector3(side * scale, scale, scale);
-            Rig.transform.localPosition = new Vector3(-Entry.center.x * side * scale, -Entry.center.y * scale, 0);
+            // Portrait bounds include asymmetric hats/weapons. Their horizontal center
+            // is not the authored rig pivot: mirroring it moves the whole character.
+            Rig.transform.localPosition = new Vector3(0, -Entry.center.y * scale, 0);
             // World depth moves the whole character; authored part ordering stays intact.
             sorting.sortingOrder = prefabSortingOrder + proxy.sortingOrder;
             Rig.animator.speed = Paused ? 0 : 1;
@@ -57,11 +59,8 @@ namespace DoodleIdle
             if (Rig.weaponRenderer) Rig.weaponRenderer.color = proxy.color;
             if (GroundShadow && Rig.groundContact)
             {
-                var contact = (Rig.groundContact.localPosition - Entry.center) * scale;
-                contact.x *= side;
-                contact = Vector3.Scale(contact, transform.localScale);
                 // GroundContact is outside the animated skeleton, so gait does not move it.
-                GroundShadow.transform.position = transform.position + (transform.parent ? transform.parent.TransformVector(contact) : contact);
+                GroundShadow.transform.position = Rig.groundContact.position;
             }
         }
         void LateUpdate() => Sync();
