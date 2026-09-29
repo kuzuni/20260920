@@ -16,6 +16,17 @@ namespace DoodleIdle.CharacterRigs
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer[] partRenderers;
         public Animator animator;
+        [Tooltip("적 공격 범위. AttackRange 자식의 Trigger Collider2D 크기와 위치로 조절합니다.")]
+        public Collider2D attackRange;
+
+        public bool ContainsAttackTarget(Collider2D target)
+        {
+            if (!attackRange || !attackRange.enabled || !attackRange.isTrigger
+                || !attackRange.gameObject.activeInHierarchy || !target || !target.enabled
+                || !target.gameObject.activeInHierarchy) return false;
+            var distance = attackRange.Distance(target);
+            return distance.isValid && distance.isOverlapped;
+        }
         Action attackImpact;
         bool attackQueued, attackObserved;
 

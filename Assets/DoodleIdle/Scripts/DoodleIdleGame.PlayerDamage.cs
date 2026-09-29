@@ -7,7 +7,6 @@ namespace DoodleIdle
         [Header("Player contact damage")]
         [Min(0)] public float enemyContactDamage = 64;
         [Min(.1f)] public float enemyAttackInterval = 1;
-        [Min(0)] public float enemyAttackReach = .65f;
         public const float ContactInvulnerabilityDuration = 1;
         float contactInvulnerability;
         Material playerHitMaterial;
@@ -30,6 +29,8 @@ namespace DoodleIdle
 
         void TickPlayerContactDamage(float dt)
         {
+            // Include inspector edits and newly spawned/scaled prefab triggers before querying.
+            Physics2D.SyncTransforms();
             contactInvulnerability = Mathf.Max(0, contactInvulnerability - dt);
             GameNumber maxHealth = Ui ? Ui.MaxHealthAmount : 1280;
             // Preserve missing HP when equipment/stat maximum health changes.
@@ -50,12 +51,12 @@ namespace DoodleIdle
 
         bool EnemyInAttackRange(Actor enemy)
         {
-            float radius = ActorRadius(player) + ActorRadius(enemy) + enemyAttackReach;
-            return (enemy.Position - player.Position).sqrMagnitude <= radius * radius;
+            return enemy.rigVisual && enemy.rigVisual.Rig.ContainsAttackTarget(player.collider);
         }
 
         void ResolveEnemyAttack(Actor enemy)
         {
+            Physics2D.SyncTransforms();
             if (!Ready || paused || !Alive(player) || !Alive(enemy) || enemy.returnedToPool
                 || !enemy.root.activeInHierarchy || PlayerInvulnerable || !EnemyInAttackRange(enemy)) return;
             GameNumber damage = enemyContactDamage * (Ui ? Ui.EnemyDamageAmount(Ui.CombatDifficultyStage) / 64 : 1);

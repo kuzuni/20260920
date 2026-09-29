@@ -10,6 +10,59 @@ namespace DoodleIdle.Tests
     // Read-only tests of the user's original clips through native Animator layers.
     public sealed class DoodleConcurrentAttackTests
     {
+        [TestCase("standard")]
+        [TestCase("wing")]
+        [TestCase("biped")]
+        [TestCase("floating")]
+        [TestCase("quad")]
+        public void PrefabTriggerControlsAttackRangeAndRuntimeResizing(string rigType)
+        {
+            var actor = new GameObject("Range test enemy", typeof(SpriteRenderer), typeof(Rigidbody2D), typeof(DoodleRigVisual));
+            var target = new GameObject("Range test player", typeof(Rigidbody2D), typeof(CircleCollider2D));
+            try
+            {
+                actor.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+                target.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+                var collider = target.GetComponent<CircleCollider2D>(); collider.radius = .61f;
+                var visual = actor.GetComponent<DoodleRigVisual>();
+                var entry = DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == rigType);
+                visual.Configure(entry); visual.Rig.animator.enabled = false;
+                var range = visual.Rig.attackRange as CircleCollider2D;
+                Assert.That(range, Is.Not.Null, rigType);
+                Assert.That(range.isTrigger, Is.True);
+                Assert.That(range.name, Is.EqualTo("AttackRange"));
+                foreach (float size in new[] { 1f, 3f })
+                {
+                    actor.transform.localScale = Vector3.one * size;
+                    float radius = range.radius * Mathf.Abs(range.transform.lossyScale.x);
+                    Vector2 center = range.transform.TransformPoint(range.offset);
+                    target.transform.position = center + Vector2.right * (radius + collider.radius + .05f);
+                    Physics2D.SyncTransforms();
+                    Assert.That(visual.Rig.ContainsAttackTarget(collider), Is.False, "Outside must not attack");
+                    target.transform.position = center + Vector2.right * (radius + collider.radius - .05f);
+                    Physics2D.SyncTransforms();
+                    Assert.That(visual.Rig.ContainsAttackTarget(collider), Is.True, "Entering the trigger enables attack");
+                    float original = range.radius;
+                    range.radius *= .5f; Physics2D.SyncTransforms();
+                    Assert.That(visual.Rig.ContainsAttackTarget(collider), Is.False, "Inspector radius edits immediately change reach");
+                    range.radius = original; Physics2D.SyncTransforms();
+                    Assert.That(visual.Rig.ContainsAttackTarget(collider), Is.True);
+                    range.enabled = false;
+                    Assert.That(visual.Rig.ContainsAttackTarget(collider), Is.False);
+                    range.enabled = true;
+                }
+                var companion = DoodleCharacterCatalog.Current.entries.FirstOrDefault(e => e.group == "Companions" && e.prefab == entry.prefab);
+                if (companion != null)
+                {
+                    visual.Configure(companion);
+                    Assert.That(visual.Rig.attackRange.enabled, Is.False, "Shared companion rigs must not enable enemy sensors");
+                    visual.Configure(entry);
+                    Assert.That(visual.Rig.attackRange.enabled, Is.True);
+                }
+            }
+            finally { Object.DestroyImmediate(actor); Object.DestroyImmediate(target); }
+        }
+
         [UnityTest]
         public IEnumerator LiveEnemiesCompleteAttacksWhileTakingRepeatedDamage()
         {
@@ -233,6 +286,8 @@ namespace DoodleIdle.Tests
                     body.simulated = false; body.position = new Vector2(100, 100);
                 }
                 var target = enemies[0];
+                target.GetComponentInParent<Rigidbody2D>().simulated = true;
+                target.GetComponentInParent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
                 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
                 var tick = typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", flags);
                 var enemyActors = (IList)typeof(DoodleIdleGame).GetField("enemies", flags).GetValue(game);

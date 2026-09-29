@@ -33,6 +33,8 @@ namespace DoodleIdle
             }
             Rig.SetAppearance(entry.appearance);
             Entry = entry;
+            // Enemies and companions share rig prefabs; only enemies use this sensor.
+            if (Rig.attackRange) Rig.attackRange.enabled = entry.group == "Enemies";
             scale = (entry.group == "Player" || entry.group == "Enemies" ? 2f : 1f) / Mathf.Max(.01f, entry.extent);
             proxy.sprite = DoodleCharacterCatalog.Portrait(entry);
             proxy.enabled = false;

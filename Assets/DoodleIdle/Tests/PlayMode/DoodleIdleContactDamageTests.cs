@@ -15,16 +15,23 @@ namespace DoodleIdle.Tests
         {
             bool paused = game.paused;
             var visuals = game.GetComponentsInChildren<DoodleRigVisual>().Where(v => v.Entry.group == "Enemies").ToArray();
+            var bodies = visuals.Select(v => v.GetComponentInParent<Rigidbody2D>()).Concat(new[] { PlayerBody() }).Distinct().ToArray();
+            var simulated = bodies.Select(b => b.simulated).ToArray();
             try
             {
                 game.paused = false;
+                foreach (var body in bodies) body.simulated = true;
                 foreach (var visual in visuals) { visual.Sync(); visual.Rig.animator.Update(0); }
                 typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", GrowthPrivate).Invoke(game, new object[] { dt });
                 for (int i = 0; i < 130; i++)
                     foreach (var visual in visuals)
                         if (visual && visual.gameObject.activeInHierarchy) visual.Rig.animator.Update(.01f);
             }
-            finally { game.paused = paused; foreach (var visual in visuals) if (visual) visual.Sync(); }
+            finally
+            {
+                for (int i = 0; i < bodies.Length; i++) if (bodies[i]) bodies[i].simulated = simulated[i];
+                game.paused = paused; foreach (var visual in visuals) if (visual) visual.Sync();
+            }
         }
 
         [UnityTest]
