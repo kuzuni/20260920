@@ -42,6 +42,7 @@ namespace DoodleIdle
         public void Attack() { if (Rig && !Paused) Rig.Attack(); }
         public bool TryAttack(System.Action impact) => Rig && !Paused && Rig.TryAttack(impact);
         public void Hit() { if (Rig && !Paused) Rig.Hit(); }
+        public void ReactToDamage() { if (Rig && !Paused) Rig.ReactToDamage(); }
         public void Sync()
         {
             if (!Rig || !proxy) return;

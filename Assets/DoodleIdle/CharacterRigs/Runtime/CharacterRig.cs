@@ -99,6 +99,9 @@ namespace DoodleIdle.CharacterRigs
             attackQueued = true;
             attackObserved = false;
             attackImpact = impact;
+            // Damage may have queued Hit earlier in this frame. It must not consume
+            // the new attack before the Animator has evaluated its trigger.
+            animator.ResetTrigger("Hit");
             // Armed/winged biped Animators blend the existing Attack on their limb layer.
             // Other authored controllers retain their original Attack trigger.
             int upperAttack = Animator.StringToHash("UpperAttack");
@@ -109,6 +112,13 @@ namespace DoodleIdle.CharacterRigs
             return true;
         }
         public void Hit() { CancelAttack(); animator.SetTrigger("Hit"); }
+        public void ReactToDamage()
+        {
+            // Ordinary damage still flashes/tints the actor, but cannot permanently
+            // stunlock attacks under rapid skill/companion hits. Hit() remains the
+            // explicit interrupt path; death and pooling still cancel the impact.
+            if (!attackQueued && !InAttack()) Hit();
+        }
         public void Die() { CancelAttack(); animator.SetTrigger("Die"); }
     }
 }

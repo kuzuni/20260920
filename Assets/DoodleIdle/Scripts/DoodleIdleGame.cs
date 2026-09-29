@@ -604,7 +604,7 @@ namespace DoodleIdle
             if (enemy.hp <= 0) return;
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
-            enemy.rigVisual.Hit();
+            enemy.rigVisual.ReactToDamage();
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
