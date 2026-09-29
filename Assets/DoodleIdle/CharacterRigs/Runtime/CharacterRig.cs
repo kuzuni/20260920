@@ -51,7 +51,7 @@ namespace DoodleIdle.CharacterRigs
         public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
         public void Attack()
         {
-            // The player Animator blends its existing Attack clip on the arm layer.
+            // Armed/winged biped Animators blend the existing Attack on their limb layer.
             // Other authored controllers retain their original Attack trigger.
             int upperAttack = Animator.StringToHash("UpperAttack");
             foreach (var parameter in animator.parameters)

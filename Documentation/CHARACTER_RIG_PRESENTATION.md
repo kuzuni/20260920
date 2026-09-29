@@ -7,9 +7,9 @@
   changes and presentation tools must not rewrite their curves, states, masks or
   bone hierarchy. The automatic upper-body animation rewrite from commit `1e2e120`
   was reverted to the pre-change animation assets in `83dffd9`.
-- At the user's request, the player uses native **Animator layer blending**:
+- At the user's request, the player and all armed/winged bipeds use native **Animator layer blending**:
   Base Layer keeps the original Idle/Move and other existing states. Upper Body is
-  an Override layer at weight 1 with the Arms Avatar Mask (arms and weapon only).
+  an Override layer at weight 1 with the Arms or Wings Avatar Mask (arms/wings and weapon only).
   Its Attack state references the existing Attack clip; no clip curves are edited.
   `CharacterRig.Attack()` sends `UpperAttack` to this layer, leaving locomotion
   uninterrupted. Other controllers retain their original Attack trigger. Hit/Die
@@ -17,6 +17,10 @@
   removed. The one-time setup menu adds this layer without rebuilding existing
   layers, states, animation clips, or prefabs, and leaves an existing Upper Body
   layer untouched on subsequent runs.
+  This covers Player_Standard, Character_standard and Character_wing and all their
+  interchangeable appearances. Successful contact attacks trigger the matching enemy
+  limb animation; companions already trigger it when firing. Head-only winged types,
+  head-and-feet types and quadrupeds keep their existing controllers.
 - `GroundContact` is a rest-pose foot reference outside the animated skeleton.
   The runtime shadow follows this reference, including facing and visual scale.
 - Player and enemy rig visuals use twice their previous scale. Companion scale and

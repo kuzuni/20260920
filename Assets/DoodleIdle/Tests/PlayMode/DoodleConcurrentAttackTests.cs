@@ -10,11 +10,16 @@ namespace DoodleIdle.Tests
     // Read-only tests of the user's original clips through native Animator layers.
     public sealed class DoodleConcurrentAttackTests
     {
-        [TestCase(false)]
-        [TestCase(true)]
-        public void AnimatorBlendsAttackArmsWithUninterruptedIdleOrMove(bool moving)
+        [TestCase("Player_Standard", false)]
+        [TestCase("Player_Standard", true)]
+        [TestCase("Character_standard", false)]
+        [TestCase("Character_standard", true)]
+        [TestCase("Character_wing", false)]
+        [TestCase("Character_wing", true)]
+        public void AnimatorBlendsAttackingLimbsWithUninterruptedIdleOrMove(string prefabName, bool moving)
         {
-            var source = DoodleCharacterCatalog.Current.Player(-1).prefab;
+            var source = DoodleCharacterCatalog.Current.entries.Select(e => e.prefab).First(p => p.name == prefabName);
+            string limb = source.rigType == "wing" ? "날개" : "팔";
             var control = Object.Instantiate(source); var combined = Object.Instantiate(source); var sample = Object.Instantiate(source);
             try
             {
@@ -44,10 +49,10 @@ namespace DoodleIdle.Tests
                         Assert.That(Vector3.Distance(bone.localPosition, mixed.localPosition), Is.LessThan(.001f), bone.name);
                         Assert.That(Quaternion.Angle(bone.localRotation, mixed.localRotation), Is.LessThan(.05f), bone.name);
                     }
-                    if (bone.name == "팔2")
+                    if (bone.name.StartsWith(limb))
                     {
                         Assert.That(Quaternion.Angle(reference[bone.name].localRotation, mixed.localRotation), Is.LessThan(.05f), "Attack must drive the actual attacking arm at full weight");
-                        armChanged = Quaternion.Angle(bone.localRotation, mixed.localRotation) > 1;
+                        armChanged |= Quaternion.Angle(bone.localRotation, mixed.localRotation) > 1;
                     }
                 }
                 Assert.That(armChanged, Is.True);
@@ -59,6 +64,75 @@ namespace DoodleIdle.Tests
                 Assert.That(combined.animator.GetCurrentAnimatorStateInfo(upper).IsName("Locomotion"), Is.True);
             }
             finally { Object.DestroyImmediate(control.gameObject); Object.DestroyImmediate(combined.gameObject); Object.DestroyImmediate(sample.gameObject); }
+        }
+
+        [Test]
+        public void EveryArmedOrWingedBipedAppearanceUsesTheBlendingController()
+        {
+            var entries = DoodleCharacterCatalog.Current.entries.Where(e => e.appearance.rigType == "standard" || e.appearance.rigType == "wing").ToArray();
+            Assert.That(entries.Select(e => e.prefab).Distinct().Count(), Is.EqualTo(3));
+            foreach (var entry in entries)
+            {
+                var instance = Object.Instantiate(entry.prefab);
+                try
+                {
+                    instance.SetAppearance(entry.appearance);
+                    Assert.That(instance.animator.GetLayerIndex("Upper Body"), Is.GreaterThan(0), entry.id);
+                    Assert.That(instance.animator.parameters.Any(p => p.name == "UpperAttack"), Is.True, entry.id);
+                }
+                finally { Object.DestroyImmediate(instance.gameObject); }
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EnemyContactTriggersArmsOrWingsAttackLayer()
+        {
+            Assert.That(DoodlePrefs.HasAccount, Is.False);
+            DoodlePrefs.UseAccount("biped-attack-test-" + System.Guid.NewGuid());
+            var original = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+#if UNITY_EDITOR
+            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/DoodleIdle/DoodleIdle.unity", new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Additive));
+#else
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("DoodleIdle", UnityEngine.SceneManagement.LoadSceneMode.Additive);
+#endif
+            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("DoodleIdle");
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            try
+            {
+                yield return null; yield return null;
+                var game = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<DoodleIdleGame>()).Single();
+                Assert.That(game.Ready, Is.True);
+                game.enabled = false; game.enemyContactDamage = 1;
+                var tuning = game.Ui.ReadBalanceTuning(); tuning.enemyStartingDamage = 64;
+                game.Ui.ApplyBalanceTuning(tuning); // Production stage 1 is intentionally harmless.
+                var actors = game.GetComponentsInChildren<DoodleRigVisual>();
+                var player = actors.Single(v => v.Entry.group == "Player");
+                var enemies = actors.Where(v => v.Entry.group == "Enemies").ToArray();
+                foreach (var enemy in enemies)
+                {
+                    var body = enemy.GetComponentInParent<Rigidbody2D>();
+                    body.simulated = false; body.position = new Vector2(100, 100);
+                }
+                var target = enemies[0];
+                foreach (string type in new[] { "standard", "wing" })
+                {
+                    target.Configure(DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == type));
+                    target.GetComponentInParent<Rigidbody2D>().position = player.GetComponentInParent<Rigidbody2D>().position;
+                    target.Rig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    int hits = game.PlayerContactHits;
+                    typeof(DoodleIdleGame).GetMethod("TickPlayerContactDamage", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(game, new object[] { 2f });
+                    Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1), type);
+                    target.Rig.animator.Update(.1f);
+                    Assert.That(target.Rig.animator.GetCurrentAnimatorStateInfo(target.Rig.animator.GetLayerIndex("Upper Body")).IsName("Attack"), Is.True, type);
+                }
+            }
+            finally
+            {
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
+                foreach (var go in scene.GetRootGameObjects()) Object.DestroyImmediate(go);
+                DoodlePrefs.DeleteAccountCache();
+            }
+            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
         }
 
         [UnityTest]

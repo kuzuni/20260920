@@ -42,6 +42,8 @@ namespace DoodleIdle
                     float radius = player.collider.radius * Mathf.Abs(player.root.transform.lossyScale.x)
                         + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
                     if (SegmentDistance(Vector2.zero, relative, next) > radius + .02f) continue;
+                    if (enemy.rigVisual && (enemy.rigVisual.Rig.rigType == "standard" || enemy.rigVisual.Rig.rigType == "wing"))
+                        enemy.rigVisual.Attack();
                     player.hp = GameNumber.Max(0, player.hp - damage);
                     ShowDamageNumber(player.Position, damage, true);
                     PlayerContactHits++; contactInvulnerability = ContactInvulnerabilityDuration;
