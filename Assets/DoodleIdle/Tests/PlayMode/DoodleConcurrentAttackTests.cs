@@ -232,13 +232,22 @@ namespace DoodleIdle.Tests
                     Assert.That(fill.transform.localPosition.y, Is.EqualTo(expected.y));
                 }
                 var targetType = targetActor.GetType();
+                var hpBack = (SpriteRenderer)targetType.GetField("healthBack").GetValue(targetActor);
+                var hpFill = (SpriteRenderer)targetType.GetField("healthFill").GetValue(targetActor);
+                targetType.GetField("hp").SetValue(targetActor, (GameNumber)1000000);
+                targetType.GetField("maxHp").SetValue(targetActor, (GameNumber)1000000);
+                refresh.Invoke(game, new[] { targetActor });
+                Assert.That(hpBack.enabled || hpFill.enabled, Is.False, "Unhurt enemies must not display an HP bar");
+                typeof(DoodleIdleGame).GetMethod("Damage", flags).Invoke(game, new object[] { targetActor, 1f, Vector2.zero });
+                Assert.That(hpBack.enabled && hpFill.enabled, Is.True, "Taking damage reveals the enemy HP bar");
                 targetType.GetField("isBoss").SetValue(targetActor, true);
                 refresh.Invoke(game, new[] { targetActor });
                 Assert.That(((SpriteRenderer)targetType.GetField("healthBack").GetValue(targetActor)).enabled, Is.False);
                 Assert.That(((SpriteRenderer)targetType.GetField("healthFill").GetValue(targetActor)).enabled, Is.False);
                 targetType.GetField("isBoss").SetValue(targetActor, false);
+                targetType.GetField("hp").SetValue(targetActor, targetType.GetField("maxHp").GetValue(targetActor));
                 refresh.Invoke(game, new[] { targetActor });
-                Assert.That(((SpriteRenderer)targetType.GetField("healthFill").GetValue(targetActor)).enabled, Is.True, "Pooled normal enemies must recover their HP bar");
+                Assert.That(hpBack.enabled || hpFill.enabled, Is.False, "Respawned full-health enemies must start with the bar hidden again");
             }
             finally
             {

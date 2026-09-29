@@ -40,7 +40,7 @@ namespace DoodleIdle
         void RefreshHealthBar(Actor actor)
         {
             if (!actor.healthFill) return;
-            bool visible = !actor.isBoss && (!actor.isPlayer || actor.hp < actor.maxHp || PlayerInvulnerable);
+            bool visible = !actor.isBoss && (actor.hp < actor.maxHp || (actor.isPlayer && PlayerInvulnerable));
             actor.healthBack.enabled = actor.healthFill.enabled = visible;
             Vector2 offset = actor.isPlayer ? playerHealthBarOffset : enemyHealthBarOffset;
             actor.healthBack.transform.localPosition = offset;
