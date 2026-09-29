@@ -177,7 +177,11 @@ MonoBehaviour:
   paused: 0
   enemyDashEnabled: 1
   enemyDashSpeed: 8
+  playerHealthBarOffset: {x: 0, y: 1}
+  enemyHealthBarOffset: {x: 0, y: 1}
   enemyContactDamage: 64
+  enemyAttackInterval: 0
+  enemyAttackReach: 0
   extraSkillsEnabled: 1
   arrowInterval: 4.5
   ballInterval: 7

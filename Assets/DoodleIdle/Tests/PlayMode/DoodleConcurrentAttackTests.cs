@@ -10,6 +10,74 @@ namespace DoodleIdle.Tests
     // Read-only tests of the user's original clips through native Animator layers.
     public sealed class DoodleConcurrentAttackTests
     {
+        [UnityTest]
+        public IEnumerator LiveEnemiesCompleteAttacksWhileTakingRepeatedDamage()
+        {
+            DoodlePrefs.UseAccount("live-enemy-attack-" + System.Guid.NewGuid());
+            var original = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+#if UNITY_EDITOR
+            yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/DoodleIdle/DoodleIdle.unity", new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Additive));
+#else
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("DoodleIdle", UnityEngine.SceneManagement.LoadSceneMode.Additive);
+#endif
+            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("DoodleIdle");
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            try
+            {
+                yield return null;
+                var game = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<DoodleIdleGame>()).Single();
+                game.autoPlay = false; game.moveSpeed = 0; game.enemyContactDamage = 1;
+                game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.companionsEnabled = false;
+                game.refillBelow = 0;
+                foreach (var item in game.Ui.Items("Skill")) item.equipped = false;
+                var tuning = game.Ui.ReadBalanceTuning(); tuning.enemyStartingDamage = 64;
+                game.Ui.ApplyBalanceTuning(tuning);
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var actors = (IList)typeof(DoodleIdleGame).GetField("enemies", flags).GetValue(game);
+                foreach (var actor in actors)
+                {
+                    var body = (Rigidbody2D)actor.GetType().GetField("body").GetValue(actor);
+                    body.simulated = false; body.position = new Vector2(100, 100);
+                }
+                var target = actors[0]; var type = target.GetType();
+                var enemyBody = (Rigidbody2D)type.GetField("body").GetValue(target);
+                var visual = (DoodleRigVisual)type.GetField("rigVisual").GetValue(target);
+                var player = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
+                var playerBody = player.GetComponentInParent<Rigidbody2D>();
+                var damage = typeof(DoodleIdleGame).GetMethod("Damage", flags);
+                foreach (string rigType in new[] { "standard", "wing", "biped", "floating", "quad" })
+                {
+                    visual.Configure(DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == rigType));
+                    type.GetField("hp").SetValue(target, (GameNumber)1e12);
+                    type.GetField("maxHp").SetValue(target, (GameNumber)1e12);
+                    type.GetField("meleeCooldown").SetValue(target, 0f);
+                    enemyBody.simulated = true;
+                    enemyBody.position = playerBody.position + Vector2.right * 1.3f;
+                    int before = game.PlayerContactHits;
+                    bool sawAttack = false;
+                    float until = Time.time + 3;
+                    while (Time.time < until)
+                    {
+                        // Exercise production FixedUpdate and frame-driven Animator,
+                        // including the frequent hits from equipped skills/companions.
+                        damage.Invoke(game, new object[] { target, 1f, Vector2.zero });
+                        yield return new WaitForSeconds(.05f);
+                        int layer = Mathf.Max(0, visual.Rig.animator.GetLayerIndex("Upper Body"));
+                        sawAttack |= visual.Rig.animator.GetCurrentAnimatorStateInfo(layer).IsName("Attack");
+                    }
+                    Assert.That(sawAttack, Is.True, rigType + " must visibly enter Attack during actual combat");
+                    Assert.That(game.PlayerContactHits, Is.GreaterThan(before), rigType + " must reach its impact event despite repeated incoming hits");
+                }
+            }
+            finally
+            {
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
+                foreach (var go in scene.GetRootGameObjects()) Object.DestroyImmediate(go);
+                DoodlePrefs.DeleteAccountCache();
+            }
+            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+        }
+
         [TestCase("Player_Standard")]
         [TestCase("Character_standard")]
         [TestCase("Character_wing")]
