@@ -16,6 +16,7 @@ namespace DoodleIdle.CharacterRigs
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer[] partRenderers;
         public Animator animator;
+        public CharacterFace face;
         [Tooltip("적 공격 범위. AttackRange 자식의 Trigger Collider2D 크기와 위치로 조절합니다.")]
         public Collider2D attackRange;
 
@@ -74,7 +75,12 @@ namespace DoodleIdle.CharacterRigs
             if (next == null || next.rigType != rigType)
                 throw new ArgumentException("Appearance must use rig type " + rigType + "; received " + (next ? next.rigType : "null") + ".", nameof(next));
             var bones = new Dictionary<string, Transform>();
-            foreach (var bone in skeleton.GetComponentsInChildren<Transform>(true)) bones.Add(bone.name, bone);
+            foreach (var bone in skeleton.GetComponentsInChildren<Transform>(true))
+            {
+                // Face attachments contain repeated names (White/Pupil), not skin bones.
+                if (face && bone.IsChildOf(face.transform)) continue;
+                bones.Add(bone.name, bone);
+            }
             if (next.parts.Length != partRenderers.Length) throw new InvalidOperationException("Part count mismatch.");
             foreach (var part in next.parts)
             {
@@ -98,6 +104,7 @@ namespace DoodleIdle.CharacterRigs
                 weaponRenderer.transform.localScale = Vector3.one * next.weaponScale;
             }
             appearance = next;
+            if (face) face.gameObject.SetActive(next.separatedFace);
         }
 
         public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
@@ -122,9 +129,10 @@ namespace DoodleIdle.CharacterRigs
             animator.SetTrigger("Attack");
             return true;
         }
-        public void Hit() { CancelAttack(); animator.SetTrigger("Hit"); }
+        public void Hit() { if (face) face.ShowHit(); CancelAttack(); animator.SetTrigger("Hit"); }
         public void ReactToDamage()
         {
+            if (face) face.ShowHit();
             // Ordinary damage still flashes/tints the actor, but cannot permanently
             // stunlock attacks under rapid skill/companion hits. Hit() remains the
             // explicit interrupt path; death and pooling still cancel the impact.

@@ -49,7 +49,8 @@ public static class CharacterRigVerifier
                     }
                 }
                 rig.SetAppearance(prefab.GetComponent<CharacterRig>().appearance);
-                var clips=rig.animator.runtimeAnimatorController.animationClips;
+                // Layered controllers can reference the same authored clip more than once.
+                var clips=rig.animator.runtimeAnimatorController.animationClips.Distinct().ToArray();
                 if(clips.Length!=5||clips.Any(c=>AnimationUtility.GetCurveBindings(c).Length==0))throw new Exception("Missing animation clips: "+path);
                 foreach(var clip in clips)for(int frame=0;frame<5;frame++){clip.SampleAnimation(go,clip.length*frame/4);VerifyNativeSkin(go,report);var baked=Bake(go);if(baked.GetComponentsInChildren<MeshFilter>().Length<rig.partRenderers.Length)throw new Exception("Missing rendered part");DestroyBake(baked);report.animationSamples++;}
                 var idle=clips.Single(c=>c.name=="Idle");idle.SampleAnimation(go,0);
@@ -94,7 +95,7 @@ public static class CharacterRigVerifier
     public static Bounds PreviewBounds(GameObject go)
     {
         var baked = Bake(go);
-        try { var rs = baked.GetComponentsInChildren<MeshRenderer>(); var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); return b; }
+        try { var rs = baked.GetComponentsInChildren<Renderer>().Where(r=>r is MeshRenderer || r is SpriteRenderer).ToArray(); var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); return b; }
         finally { DestroyBake(baked); }
     }
     public static void RenderPortrait(GameObject source, string path, Vector3 center, float radius)
@@ -112,9 +113,65 @@ public static class CharacterRigVerifier
     static GameObject Bake(GameObject go)
     {
         var output=new GameObject("BakedRigPreview");output.hideFlags=HideFlags.HideAndDontSave;
+        var sprites = go.GetComponentsInChildren<SpriteRenderer>();
+        int[] SortKey(SpriteRenderer renderer)
+        {
+            var path = new List<int> { renderer.sortingOrder };
+            for (var t = renderer.transform; t && t != go.transform; t = t.parent)
+            {
+                var group = t.GetComponent<SortingGroup>();
+                if (group) path.Add(group.sortingOrder);
+            }
+            path.Reverse(); return path.ToArray();
+        }
+        var keys = sprites.ToDictionary(r=>r, SortKey);
+        var ordered = sprites.OrderBy(r=>keys[r], Comparer<int[]>.Create((a,b)=>
+        {
+            for(int i=0;i<Math.Min(a.Length,b.Length);i++) if(a[i]!=b[i])return a[i].CompareTo(b[i]);
+            return a.Length.CompareTo(b.Length);
+        })).ToArray();
+        var ranks = ordered.Select((r,i)=>(r,i)).ToDictionary(x=>x.r,x=>x.i);
+        var groups = new Dictionary<SortingGroup, Transform>();
+        Transform GroupParent(Transform original)
+        {
+            var group = original.GetComponentInParent<SortingGroup>();
+            if (!group || group.gameObject == go) return output.transform;
+            if (groups.TryGetValue(group, out var found)) return found;
+            var copy = new GameObject(group.name + " Sorting");
+            // Flatten group order for mixed MeshRenderer/SpriteRenderer previews,
+            // while retaining each eye's independent native stencil scope.
+            copy.transform.SetParent(output.transform, false);
+            var sorting = copy.AddComponent<SortingGroup>();
+            sorting.sortingLayerID = group.sortingLayerID;
+            sorting.sortingOrder = sprites.Where(r=>r.GetComponentInParent<SortingGroup>()==group).Select(r=>ranks[r]).DefaultIfEmpty(0).Min();
+            groups[group] = copy.transform;
+            return copy.transform;
+        }
+        foreach (var mask in go.GetComponentsInChildren<SpriteMask>())
+        {
+            if (!mask.enabled) continue;
+            var child = new GameObject(mask.name); child.transform.SetParent(GroupParent(mask.transform), false);
+            child.transform.SetPositionAndRotation(mask.transform.position, mask.transform.rotation);
+            child.transform.localScale = mask.transform.lossyScale;
+            var copy = child.AddComponent<SpriteMask>(); copy.sprite = mask.sprite; copy.alphaCutoff = mask.alphaCutoff;
+            copy.isCustomRangeActive = mask.isCustomRangeActive;
+            copy.backSortingLayerID = mask.backSortingLayerID; copy.frontSortingLayerID = mask.frontSortingLayerID;
+            copy.backSortingOrder = mask.backSortingOrder; copy.frontSortingOrder = mask.frontSortingOrder;
+        }
         foreach(var renderer in go.GetComponentsInChildren<SpriteRenderer>())
         {
             var sprite=renderer.sprite;if(!sprite||!renderer.enabled)continue;
+            if (!renderer.GetComponent<SpriteSkin>())
+            {
+                var copy = new GameObject(renderer.name); copy.transform.SetParent(GroupParent(renderer.transform), false);
+                copy.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
+                copy.transform.localScale = renderer.transform.lossyScale;
+                var sr = copy.AddComponent<SpriteRenderer>(); sr.sprite = sprite; sr.color = renderer.color;
+                sr.sortingLayerID = renderer.sortingLayerID; sr.sortingOrder = copy.transform.parent==output.transform ? ranks[renderer] : renderer.sortingOrder;
+                sr.maskInteraction = renderer.maskInteraction; sr.flipX = renderer.flipX; sr.flipY = renderer.flipY;
+                sr.sharedMaterial = renderer.sharedMaterial;
+                continue;
+            }
             var source=sprite.GetVertexAttribute<Vector3>(VertexAttribute.Position).ToArray();var uv=sprite.GetVertexAttribute<Vector2>(VertexAttribute.TexCoord0).ToArray();var ind=sprite.GetIndices().ToArray();var vertices=new Vector3[source.Length];var uvs=new Vector2[source.Length];
             var skin=renderer.GetComponent<SpriteSkin>();
             if(skin)
@@ -130,8 +187,8 @@ public static class CharacterRigVerifier
             else for(int i=0;i<source.Length;i++)vertices[i]=renderer.transform.TransformPoint(source[i]);
             for(int i=0;i<uvs.Length;i++)uvs[i]=uv[i];var triangles=new int[ind.Length];for(int i=0;i<ind.Length;i++)triangles[i]=ind[i];
             var mesh=new Mesh{name=renderer.name};mesh.vertices=vertices;mesh.uv=uvs;mesh.triangles=triangles;mesh.RecalculateBounds();
-            var child=new GameObject(renderer.name);child.transform.SetParent(output.transform,false);child.AddComponent<MeshFilter>().sharedMesh=mesh;
-            var mr=child.AddComponent<MeshRenderer>();mr.sharedMaterial=new Material(Shader.Find("Sprites/Default")){mainTexture=sprite.texture};mr.sortingOrder=renderer.sortingOrder;
+            var child=new GameObject(renderer.name);child.transform.SetParent(GroupParent(renderer.transform),false);child.AddComponent<MeshFilter>().sharedMesh=mesh;
+            var mr=child.AddComponent<MeshRenderer>();mr.sharedMaterial=new Material(Shader.Find("Sprites/Default")){mainTexture=sprite.texture};mr.sortingOrder=ranks[renderer];mr.sortingLayerID=renderer.sortingLayerID;
         }
         return output;
     }
@@ -146,7 +203,7 @@ public static class CharacterRigVerifier
         var baked=Bake(source);var preview=new PreviewRenderUtility();
         try
         {
-            var renderers=baked.GetComponentsInChildren<MeshRenderer>();var bounds=renderers[0].bounds;foreach(var r in renderers)bounds.Encapsulate(r.bounds);
+            var renderers=baked.GetComponentsInChildren<Renderer>().Where(r=>r is MeshRenderer || r is SpriteRenderer).ToArray();var bounds=renderers[0].bounds;foreach(var r in renderers)bounds.Encapsulate(r.bounds);
             preview.AddSingleGO(baked);preview.camera.orthographic=true;preview.camera.orthographicSize=Mathf.Max(bounds.extents.y,bounds.extents.x)*1.15f;
             preview.camera.transform.position=new Vector3(bounds.center.x,bounds.center.y,-30);preview.camera.transform.rotation=Quaternion.identity;preview.camera.nearClipPlane=.1f;preview.camera.farClipPlane=100;preview.camera.clearFlags=CameraClearFlags.SolidColor;preview.camera.backgroundColor=new Color(.86f,.89f,.91f,1);
             preview.BeginPreview(new Rect(0,0,720,720),GUIStyle.none);preview.camera.Render();var texture=preview.EndPreview();

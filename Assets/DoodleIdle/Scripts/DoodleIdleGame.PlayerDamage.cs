@@ -64,6 +64,7 @@ namespace DoodleIdle
             player.hp = GameNumber.Max(0, player.hp - damage);
             ShowDamageNumber(player.Position, damage, true);
             PlayerContactHits++;
+            player.rigVisual.ShowHitFace();
             contactInvulnerability = ContactInvulnerabilityDuration;
             if (player.hp <= 0)
             {

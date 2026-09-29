@@ -62,6 +62,12 @@ namespace DoodleIdle
                 actor.art.flipX = facing.x < 0;
             }
             actor.rigVisual.Moving(moving); actor.rigVisual.Paused = paused;
+            Actor gazeTarget = actor.isPlayer ? Closest(player.Position) : player;
+            Transform gaze = null;
+            if (Alive(gazeTarget) && gazeTarget.root.activeInHierarchy)
+                gaze = gazeTarget.rigVisual && gazeTarget.rigVisual.Rig.face
+                    ? gazeTarget.rigVisual.Rig.face.transform : gazeTarget.art.transform;
+            actor.rigVisual.LookAt(gaze);
             // Follow this actor's actual travel, not the player's facing or target position.
             // Keep the last direction at rest or during vertical motion to avoid left/right flicker.
             if (!actor.isPlayer && moving && Mathf.Abs(actor.body.linearVelocity.x) > .05f)

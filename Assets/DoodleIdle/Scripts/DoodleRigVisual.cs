@@ -45,6 +45,8 @@ namespace DoodleIdle
         public bool TryAttack(System.Action impact) => Rig && !Paused && Rig.TryAttack(impact);
         public void Hit() { if (Rig && !Paused) Rig.Hit(); }
         public void ReactToDamage() { if (Rig && !Paused) Rig.ReactToDamage(); }
+        public void LookAt(Transform target) { if (Rig && Rig.face) Rig.face.target = target; }
+        public void ShowHitFace() { if (Rig && Rig.face && !Paused) Rig.face.ShowHit(); }
         public void Sync()
         {
             if (!Rig || !proxy) return;
@@ -58,6 +60,7 @@ namespace DoodleIdle
             // World depth moves the whole character; authored part ordering stays intact.
             sorting.sortingOrder = prefabSortingOrder + proxy.sortingOrder;
             Rig.animator.speed = Paused ? 0 : 1;
+            if (Rig.face) { Rig.face.Paused = Paused; Rig.face.SetTint(proxy.color); }
             foreach (var renderer in Rig.partRenderers) renderer.color = proxy.color;
             if (Rig.weaponRenderer) Rig.weaponRenderer.color = proxy.color;
             if (GroundShadow && Rig.groundContact)

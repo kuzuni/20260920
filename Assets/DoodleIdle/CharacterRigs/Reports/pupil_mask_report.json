@@ -1,0 +1,14 @@
+{
+  "prefabs": 6,
+  "pupilMasks": 12,
+  "maskScope": "one SortingGroup per eye",
+  "faceSorting": "follow animated head layer and order + 1 in LateUpdate",
+  "regression": "quad Move changes head sorting order from 8 to 68 while old face renderers stayed at 9..11",
+  "validation": {
+    "playModeTestsPassed": 7,
+    "playModeTestsFailed": 0,
+    "pixelTests": ["pupil clipped inside eye", "neighbor mask cannot reveal escaped pupil", "face visible over animated quad head"],
+    "animationFilesUnchanged": 84,
+    "results": "artifacts/character-reports/pupil-mask-playmode.xml"
+  }
+}

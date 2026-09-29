@@ -11,6 +11,7 @@ namespace DoodleIdle.CharacterRigs
         public Part[] parts;
         public Sprite weapon;
         public float weaponScale = 1f;
+        public bool separatedFace;
 
         [Serializable]
         public struct Part

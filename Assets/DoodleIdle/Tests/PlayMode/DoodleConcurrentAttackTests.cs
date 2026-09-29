@@ -327,6 +327,7 @@ namespace DoodleIdle.Tests
                         || target.Rig.animator.GetNextAnimatorStateInfo(layer).IsName("Attack"), Is.True, type);
                     for (int i = 0; i < 120; i++) target.Rig.animator.Update(.01f);
                     Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1), type);
+                    Assert.That(player.Rig.face.IsHurt, Is.True, "The real contact-damage path must change the player's face: " + type);
                     target.Rig.OnAttackImpact();
                     Assert.That(game.PlayerContactHits, Is.EqualTo(hits + 1));
                 }
