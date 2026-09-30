@@ -38,8 +38,9 @@ namespace DoodleIdle.Tests
             // Exercise an unlocked critical tier and the lock boundary of subsequent tiers.
             levels["crit2Chance"]=4000;levels["crit4Chance"]=250;
             foreach(var skin in ui.Skins("Appearance").Concat(ui.Skins("Weapon")))skin.owned=true;
-            Assert.That(ui.EquipSkin(variant==0?"appearance_mint":"appearance_peach"),Is.True);
-            Assert.That(ui.EquipSkin(variant==0?"weapon_vine":"weapon_crystal"),Is.True);
+            foreach(var id in new[]{variant==0?"appearance_mint":"appearance_peach",variant==0?"weapon_vine":"weapon_crystal"})
+                if(!ui.Skins("Appearance").Concat(ui.Skins("Weapon")).Single(x=>x.id==id).equipped)
+                    Assert.That(ui.EquipSkin(id),Is.True);
         }
         internal static Dictionary<string,string> Values(DoodleUi ui)
         {

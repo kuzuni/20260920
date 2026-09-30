@@ -23,7 +23,7 @@ namespace DoodleIdle
                 UiKit.Button(account, L("로그아웃", "Sign out"), () => AccountDialog(false), UiKit.Blue, 58);
                 UiKit.Button(account, L("회원탈퇴", "Delete account"), () => AccountDialog(true), UiKit.Red, 58);
             }
-            UiKit.Button(account, L("스테이지 랭킹", "Stage leaderboard"), OpenStageLeaderboard, UiKit.Yellow, 58);
+            UiKit.Button(account, L("랭킹", "Rankings"), ()=>OpenRankings(), UiKit.Yellow, 58);
             var links = UiKit.Row(body, "Policy links", 58, 10);
             UiKit.Button(links, L("이용약관", "Terms of Service"), () => Application.OpenURL(DoodleBackendSession.TermsUrl), UiKit.Paper, 58);
             UiKit.Button(links, L("개인정보처리방침", "Privacy Policy"), () => Application.OpenURL(DoodleBackendSession.PrivacyUrl), UiKit.Paper, 58);
@@ -68,56 +68,6 @@ namespace DoodleIdle
                 }, delete ? UiKit.Red : UiKit.Blue, 64);
             });
         }
-        public void OpenStageLeaderboard()
-        {
-            ShowDetail(L("스테이지 랭킹", "Stage leaderboard"), panel =>
-            {
-                var status = UiKit.Text(panel, L("불러오는 중…", "Loading…"), 24, TextAnchor.MiddleCenter, 66);
-                status.name = "Stage leaderboard status";
-                var rows = UiKit.Column(panel, "Stage leaderboard rows", 8, 0);
-                var footer = UiKit.Footer(panel, "Stage leaderboard actions", 60);
-                Button refresh = null;
-                refresh = UiKit.Button(footer, L("새로고침", "Refresh"), () =>
-                    _ = LoadStageLeaderboard(rows, status, refresh), UiKit.Blue, 56);
-                _ = LoadStageLeaderboard(rows, status, refresh);
-            });
-        }
-        async Task LoadStageLeaderboard(RectTransform panel, Text status, Button refresh)
-        {
-            if (!refresh.interactable) return;
-            refresh.interactable = false;
-            foreach (Transform child in panel) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
-            status.text = L("불러오는 중…", "Loading…");
-            var session = DoodleBackendSession.Instance;
-            if (!session || !session.Ready || string.IsNullOrEmpty(session.Config.stageLeaderboardUuid))
-            { status.text = L("로그인 후 랭킹을 확인해 주세요.", "Sign in to view the leaderboard."); refresh.interactable = true; return; }
-            try
-            {
-                session.SetStage(HighestMainStage);
-                bool published = await session.PublishStage();
-                var result = new TaskCompletionSource<BackEnd.Leaderboard.BackendUserLeaderboardReturnObject>();
-                Backend.Leaderboard.User.GetLeaderboard(session.Config.stageLeaderboardUuid, 50, 0, response => result.TrySetResult(response));
-                if (await Task.WhenAny(result.Task, Task.Delay(30000)) != result.Task)
-                    throw new TimeoutException();
-                var response = await result.Task;
-                if (!panel || !status) return;
-                if (!response.IsSuccess()) { status.text = L("랭킹 조회 실패 · 새로고침해 주세요. ", "Could not load rankings. Please refresh. ") + response.GetStatusCode(); return; }
-                status.text = published ? L("최고 클리어 스테이지 · 상위 50명", "Highest stage cleared · Top 50") : L("기록 업로드 지연 · 상위 50명", "Score upload pending · Top 50");
-                UiKit.Text(panel, L("내 최고 클리어: ", "My best clear: ") + HighestMainStage, 24, TextAnchor.MiddleCenter, 48);
-                UiKit.Text(panel, L("순위    닉네임    클리어 스테이지", "Rank    Player    Stage cleared"), 21, TextAnchor.MiddleCenter, 40);
-                var entries = response.GetUserLeaderboardList();
-                if (entries.Count == 0) UiKit.Text(panel, L("아직 등록된 기록이 없어요.", "No scores yet."), 23, TextAnchor.MiddleCenter, 64);
-                foreach (var entry in entries)
-                {
-                    var label = UiKit.Text(panel, $"#{entry.rank}   {entry.nickname}   —   {entry.score}", 23, TextAnchor.MiddleLeft, 48);
-                    label.name = "Stage leaderboard entry " + entry.rank;
-                    label.supportRichText = false;
-                    if (entry.gamerInDate == session.AccountId) label.color = new Color(.12f,.4f,.65f);
-                }
-                Relayout(true);
-            }
-            catch (Exception) { if (status) status.text = L("랭킹 연결에 실패했어요.", "Could not connect to the leaderboard."); }
-            finally { if (refresh) refresh.interactable = true; }
-        }
+        public void OpenStageLeaderboard() => OpenRankings(0);
     }
 }

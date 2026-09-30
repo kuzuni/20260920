@@ -14,6 +14,7 @@ namespace DoodleIdle
         {
             public string clientAppId = "", signatureKey = "", googleWebClientId = "";
             public string profileTable = "PlayerProfile", stageTable = "StageProgress", stageLeaderboardUuid = "";
+            public string powerLeaderboardUuid = "";
             public string chatUuid = "";
             public string pvpDatabaseUuid = "", pvpLeaderboardUuid = "";
             public bool paymentsEnabled;
@@ -32,6 +33,8 @@ namespace DoodleIdle
         int publishedStage = -1, desiredStage;
         Task<bool> saving;
         Task<bool> publishing;
+        Task<bool> publishingPower;
+        string publishedRankMetadata,publishedPowerMetadata;
         Task<bool> initializingBackend;
         bool backendInitialized;
         readonly DoodleSaveSchedule serverSave = new DoodleSaveSchedule(DoodleSaveSchedule.ServerInterval, DoodleSaveSchedule.RetryInterval);
@@ -245,6 +248,7 @@ namespace DoodleIdle
                 if (!nickname.IsSuccess()) { Message("닉네임을 준비하지 못했어요. 다시 로그인해 주세요."); return; }
             }
             Ready = true; stageRow = null; desiredStage = 0; publishedStage = -1;
+            publishedRankMetadata=publishedPowerMetadata=null;
             serverSave.Reset(Time.realtimeSinceStartupAsDouble);
             SceneManager.LoadScene(GameScene);
             AuthDiagnostic("game_scene_entered");
@@ -300,7 +304,7 @@ namespace DoodleIdle
         async void Update()
         {
             if (DoodleSecurity.Compromised || !Ready || Busy || !serverSave.TryBegin(Time.realtimeSinceStartupAsDouble)) return;
-            try { await SaveCloud(); await PublishStage(); }
+            try { await SaveCloud(); await PublishStage(); await PublishPower(); }
             catch (Exception) { serverSave.Complete(Time.realtimeSinceStartupAsDouble, false); Message("서버 동기화를 다시 시도하고 있어요."); }
         }
         public void SetStage(int cleared) { desiredStage = Math.Max(desiredStage, cleared); }
@@ -312,7 +316,9 @@ namespace DoodleIdle
         async Task<bool> PublishStageNow()
         {
             if (!Ready || string.IsNullOrEmpty(Config.stageLeaderboardUuid)) return false;
-            if (desiredStage <= publishedStage) return true;
+            var ui=FindPlayerUi();var power=ui?ui.PowerAmount:(GameNumber)0;
+            string metadata=DoodleRankMetadata.Encode(power,ui?DoodlePlayerLook.From(ui):new DoodlePlayerLook());
+            if (desiredStage <= publishedStage && publishedRankMetadata==metadata) return true;
             if (string.IsNullOrEmpty(stageRow))
             {
                 var read = await Request(cb => Backend.GameData.GetMyData(Config.stageTable, new Where(), 1, cb));
@@ -328,9 +334,30 @@ namespace DoodleIdle
                 }
             }
             int value = desiredStage;
+            // The existing stage leaderboard cannot change its extra-data column after creation.
+            // Keep its records and publish only display metadata in an owner-writable Database row.
+            await PublishRankLook(metadata);
             var param = new Param(); param.Add("stage", value);
+            param.Add("powerScore",DoodleRankMetadata.PowerScore(power));param.Add("rankMeta",metadata);
             var result = await Request(cb => Backend.Leaderboard.User.UpdateMyDataAndRefreshLeaderboard(Config.stageLeaderboardUuid, Config.stageTable, stageRow, param, result => cb(result)));
-            if (result.IsSuccess()) publishedStage = value;
+            if (result.IsSuccess()) { publishedStage = value;publishedRankMetadata=metadata; }
+            return result.IsSuccess();
+        }
+        public Task<bool> PublishPower()
+        {
+            if(publishingPower!=null && !publishingPower.IsCompleted)return publishingPower;
+            return publishingPower=PublishPowerNow();
+        }
+        async Task<bool> PublishPowerNow()
+        {
+            if(!Ready || string.IsNullOrEmpty(Config.powerLeaderboardUuid))return false;
+            if(!await PublishStage() || string.IsNullOrEmpty(stageRow))return false;
+            var ui=FindPlayerUi();if(!ui)return false;
+            string metadata=DoodleRankMetadata.Encode(ui.PowerAmount,DoodlePlayerLook.From(ui));
+            if(publishedPowerMetadata==metadata)return true;
+            var param=new Param();param.Add("powerScore",DoodleRankMetadata.PowerScore(ui.PowerAmount));param.Add("rankMeta",metadata);
+            var result=await Request(cb=>Backend.Leaderboard.User.UpdateMyDataAndRefreshLeaderboard(Config.powerLeaderboardUuid,Config.stageTable,stageRow,param,r=>cb(r)));
+            if(result.IsSuccess())publishedPowerMetadata=metadata;
             return result.IsSuccess();
         }
         public async Task<bool> LeaveAccount(bool delete)

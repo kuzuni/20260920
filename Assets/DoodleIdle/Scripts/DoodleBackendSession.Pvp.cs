@@ -69,11 +69,12 @@ namespace DoodleIdle
                 int.TryParse(entry.rank.ToString(),out int rank);int.TryParse(entry.score.ToString(),out int points);
                 ranks.Add(new PvpRank{account=entry.gamerInDate,name=entry.nickname,rank=rank,points=points});
             }
-            // Only podium portraits require full summary metadata; the leaderboard provides the remaining rows.
-            foreach(var rank in ranks.Take(3)){
-                string account=rank.account;
-                var row=await db.From<DoodlePvpListing>().Where(x=>x.Account==account).FirstOrDefault();
-                rank.summary=row?.Summary;
+            // Fetch summaries for the exact ranked accounts in one request, including tied scores.
+            if(ranks.Count>0){
+                var accounts=ranks.Select(x=>x.account).ToList();
+                var summaries=await db.From<DoodlePvpListing>().Where(x=>accounts.Contains(x.Account)).Take(100).ToList();
+                var byAccount=summaries.ToDictionary(x=>x.Account);
+                foreach(var rank in ranks)if(byAccount.TryGetValue(rank.account,out var row))rank.summary=row.Summary;
             }
             return ranks;
         }

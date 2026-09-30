@@ -12,7 +12,7 @@ namespace DoodleIdle
     [RequireComponent(typeof(Image))]
     public sealed class DoodleIdlePortrait : MonoBehaviour
     {
-        public enum View { Stats, Profile, Pvp }
+        public enum View { Stats, Profile, Pvp, Ranking }
         public View view;
         public DoodlePortraitSettings settings;
         public DoodlePlayerLook playerLook;
@@ -50,7 +50,8 @@ namespace DoodleIdle
             PreviewCamera.orthographic = true; PreviewCamera.clearFlags = CameraClearFlags.SolidColor;
             PreviewCamera.backgroundColor = Color.clear; PreviewCamera.nearClipPlane = .1f; PreviewCamera.farClipPlane = 60;
             PreviewCamera.allowHDR = false; PreviewCamera.allowMSAA = false; PreviewCamera.cullingMask = 1 << 31;
-            texture = new RenderTexture(kind == View.Profile ? 192 : 512, kind == View.Profile ? 192 : 512, 24, RenderTextureFormat.ARGB32);
+            int resolution=kind==View.Profile || kind==View.Ranking ? 192 : 512;
+            texture = new RenderTexture(resolution, resolution, 24, RenderTextureFormat.ARGB32);
             texture.name = "Live portrait " + kind; texture.Create(); image.texture = texture; PreviewCamera.targetTexture = texture;
             renderRequest = new UniversalRenderPipeline.SingleCameraRequest { destination = texture };
             RefreshLook();
@@ -72,7 +73,7 @@ namespace DoodleIdle
                 PreviewRig.animator.updateMode = AnimatorUpdateMode.UnscaledTime;
                 PreviewRig.animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 PreviewRig.SetMoving(false); PreviewRig.face.horizontalGazeOnly = true;
-                if(view==View.Profile){PreviewRig.animator.speed=0;PreviewRig.face.blinking=false;}
+                if(view==View.Profile || view==View.Ranking){PreviewRig.animator.speed=0;PreviewRig.face.blinking=false;}
             }
             if (entry != next) {
                 entry = next; PreviewRig.SetAppearance(next.appearance); lastWeapon = null;dirty=true;
@@ -141,6 +142,7 @@ namespace DoodleIdle
         {
             if (!stage || !settings) return;
             RefreshLook();
+            if(view==View.Ranking && !dirty)return;
             if(view==View.Profile){
                 if(lastZoom!=settings.profileZoom||lastOffset!=settings.profileCameraOffset||lastProfileSize!=settings.profileSize)dirty=true;
                 if(!dirty)return;
@@ -164,7 +166,7 @@ namespace DoodleIdle
                 UiKit.Height(transform,settings.profileSize);
                 var layout = GetComponent<LayoutElement>(); layout.minWidth = layout.preferredWidth = settings.profileSize;
             }
-            else if (view == View.Pvp)
+            else if (view == View.Pvp || view == View.Ranking)
             {
                 zoom = settings.pvpZoom; offset = settings.pvpCameraOffset;
                 radius /= Mathf.Max(.1f,zoom); zoom = 1;

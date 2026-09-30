@@ -128,11 +128,11 @@ namespace DoodleIdle.Tests
                 ui.ShowPage("Settings");
                 Assert.That(ui.Canvas.GetComponentsInChildren<Button>().Any(b => b.name == "Google 계정 연동" || b.name == "Link Google account"), Is.True);
                 ui.OpenStageLeaderboard();
-                Text rankStatus = ui.Canvas.GetComponentsInChildren<Text>().Single(t => t.name == "Stage leaderboard status");
+                Text rankStatus = ui.Canvas.GetComponentsInChildren<Text>().Single(t => t.name == "Ranking status");
                 double rankDeadline = Time.realtimeSinceStartupAsDouble + 90;
                 while ((rankStatus.text == "불러오는 중…" || rankStatus.text == "Loading…") && Time.realtimeSinceStartupAsDouble < rankDeadline) yield return null;
-                Assert.That(rankStatus.text.Contains("상위 50명") || rankStatus.text.Contains("Top 50"), Is.True, rankStatus.text);
-                Assert.That(ui.Canvas.GetComponentsInChildren<Text>().Any(t => t.name.StartsWith("Stage leaderboard entry ")), Is.True, "Server rows must be rendered in the popup.");
+                Assert.That(rankStatus.text.Contains("상위 100명") || rankStatus.text.Contains("Top 100"), Is.True, rankStatus.text);
+                Assert.That(ui.Canvas.GetComponentsInChildren<Transform>().Any(t => t.name.StartsWith("Ranking entry ")), Is.True, "Server rows must be rendered in the popup.");
                 Assert.That(rankStatus.GetComponentInParent<ScrollRect>(), Is.Not.Null);
                 ui.CloseDetail();
                 var save = session.SaveCloud();

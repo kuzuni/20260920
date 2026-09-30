@@ -85,6 +85,7 @@ namespace DoodleIdle
             var buffs=UiKit.Row(safe,"Timed buffs",86,12); Anchor(buffs,new Vector2(0,1),new Vector2(88,-160),new Vector2(142,86));
             buffGold=BuildBuff(buffs,"Gold buff","Gold"); buffAttack=BuildBuff(buffs,"Attack buff","Club");
             shortcuts=UiKit.Column(safe,"Activities",12,0); Anchor(shortcuts,new Vector2(0,1),new Vector2(16,-215),new Vector2(84,528)); shortcuts.pivot=new Vector2(0,1);
+            IconButton(shortcuts,"Ranking","랭킹","NavColosseum",()=>OpenRankings(),96);
             string[] ids={"Attendance","Roulette","Buffs","Quests","Chat"},names={"출석","룰렛","버프","퀘스트","채팅"};
             for(int i=0;i<ids.Length;i++) { string id=ids[i]; IconButton(shortcuts,id,names[i],id,()=>ShowPage(id),96); }
             mission=UiKit.Box(safe,"Mission",UiKit.Paper,144); Anchor(mission,new Vector2(1,0),new Vector2(-160,396),new Vector2(300,144));

@@ -612,7 +612,7 @@ namespace DoodleIdle
 
         void DrawPvpRanking(RectTransform body, List<LocalRank> ranks)
         {
-            UiKit.Button(body, L("스테이지 랭킹", "Stage leaderboard"), OpenStageLeaderboard, UiKit.Yellow, 62);
+            UiKit.Button(body, L("전체 랭킹", "All rankings"), ()=>OpenRankings(1), UiKit.Yellow, 62);
             UiKit.Text(body, "누적 승점 랭킹", 17, TextAnchor.MiddleCenter, 26);
             var podium = UiKit.Row(body, "Top three podium", DoodlePortraitSettings.Current.pvpRowHeight);
             foreach (int position in new[] { 1, 0, 2 })
@@ -667,7 +667,8 @@ namespace DoodleIdle
                 card.GetComponent<VerticalLayoutGroup>().padding=new RectOffset(7,7,2,2);
                 var row = UiKit.Row(card, "Player rank", 44, 4);
                 var number = UiKit.Text(row, rank.rank.ToString(), 22, TextAnchor.MiddleCenter, 42); UiKit.Flexible(number.transform, .45f);
-                UiKit.Icon(row, rank.art, 41);
+                var rowPortrait=UiKit.Icon(row,rank.art,41);
+                rowPortrait.gameObject.AddComponent<DoodleRankingPortrait>().Configure(this,rank.look);
                 var name = UiKit.Text(row, rank.name, 21, TextAnchor.MiddleLeft, 42); UiKit.Flexible(name.transform, 1.4f);
                 UiKit.Text(row, UiNumber.Format(rank.points), 21, TextAnchor.MiddleCenter, 42);
                 UiKit.Text(row, (rank.power>0?UiNumber.Format(rank.power):"—"), 21, TextAnchor.MiddleCenter, 42);
