@@ -207,7 +207,7 @@ namespace DoodleIdle.Tests
             Assert.That(ui.GetDungeonStage(0),Is.EqualTo(7));Assert.That(ui.GetDungeonStage(2),Is.EqualTo(4));Assert.That(ui.HighestDungeonStage,Is.EqualTo(7));
             Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("dungeonUsed"),Is.EqualTo(new[]{2,0,1,0,0,0,0,0}));
             Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[22],Is.EqualTo(10));
-            Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed")[QuestIndex(0,"summon:Relic")],Is.True);
+            Assert.That((bool)ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredBool[]>("dailyClaimed")[QuestIndex(0,"summon:Relic")],Is.True);
             ReloadPersistedServices();Assert.That(ui.RelicTickets,Is.EqualTo(26));Assert.That(ServiceStateValue<CodeStage.AntiCheat.ObscuredTypes.ObscuredInt[]>("repeat")[22],Is.EqualTo(10));
             PlayerPrefs.SetString("DoodleUi.Collections.v1","{\"version\":3,\"items\":[{\"id\":\"dungeon_relic_strength\",\"level\":15000,\"count\":27,\"discovered\":true},{\"id\":\"relic_strength\",\"level\":123,\"count\":5,\"discovered\":true}]}");
             ReloadDungeonCollections();

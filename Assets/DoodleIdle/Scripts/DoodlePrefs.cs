@@ -36,7 +36,11 @@ namespace DoodleIdle
             Dirty = HasAccount && state.dirty;
             Revision = 0;
         }
-        static Entry Find(string key) => state.entries.Find(e => e.key == key);
+        static Entry Find(string key)
+        {
+            foreach (var entry in state.entries) if (entry.key == key) return entry;
+            return null;
+        }
         public static bool HasKey(string key) => HasAccount ? Find(key) != null : PlayerPrefs.HasKey(key);
         public static string GetString(string key, string fallback = "") => HasAccount ? Find(key)?.value ?? fallback : PlayerPrefs.GetString(key, fallback);
         public static int GetInt(string key, int fallback = 0) => HasAccount ? int.TryParse(Find(key)?.value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n) ? n : fallback : PlayerPrefs.GetInt(key, fallback);

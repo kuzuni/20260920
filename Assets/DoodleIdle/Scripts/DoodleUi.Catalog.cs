@@ -1,6 +1,10 @@
 using CodeStage.AntiCheat.ObscuredTypes;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace DoodleIdle
@@ -148,14 +152,46 @@ namespace DoodleIdle
             foreach (string category in new[] { "Armor", "Club", "Necklace", "Skill", "Companion" }) NormalizeEquipment(category);
         }
 
+        static readonly Unity.Profiling.ProfilerMarker saveCollectionsMarker = new Unity.Profiling.ProfilerMarker("Doodle/SaveCollections");
+        StringBuilder collectionSaveBuffer;
         public void SaveCollections()
         {
+            using var sample = saveCollectionsMarker.Auto();
             if (collectionTuning == null) return;
-            var saved = new CollectionSave { version = 3 };
-            foreach (var item in collectionItems)
-                saved.items.Add(new ItemSave { id = item.id, count = item.count, level = item.level, slot = item.slot, equipped = item.equipped, discovered = item.discovered });
-            foreach (var pair in statLevels) saved.stats.Add(new StatSave { id = pair.Key, level = pair.Value });
-            DoodlePrefs.SetString(CollectionsSaveKey, DoodleJson.ToJson(saved));
+            collectionSaveBuffer ??= new StringBuilder(32768);
+            collectionSaveBuffer.Clear();
+            // Read every protected value on every save. Reuse only the output buffer,
+            // avoiding a temporary object graph while keeping the version 3 JSON schema.
+            using (var output = new StringWriter(collectionSaveBuffer, CultureInfo.InvariantCulture))
+            using (var writer = new JsonTextWriter(output))
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("version"); writer.WriteValue(3);
+                writer.WritePropertyName("items"); writer.WriteStartArray();
+                foreach (var item in collectionItems)
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("id"); writer.WriteValue(item.id);
+                    writer.WritePropertyName("count"); writer.WriteValue(item.count);
+                    writer.WritePropertyName("level"); writer.WriteValue(item.level);
+                    writer.WritePropertyName("slot"); writer.WriteValue(item.slot);
+                    writer.WritePropertyName("equipped"); writer.WriteValue(item.equipped);
+                    writer.WritePropertyName("discovered"); writer.WriteValue(item.discovered);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                writer.WritePropertyName("stats"); writer.WriteStartArray();
+                foreach (var pair in statLevels)
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("id"); writer.WriteValue(pair.Key);
+                    writer.WritePropertyName("level"); writer.WriteValue((int)pair.Value);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray(); writer.WriteEndObject();
+            }
+            DoodlePrefs.SetString(CollectionsSaveKey, collectionSaveBuffer.ToString());
+            collectionSaveBuffer.Clear();
         }
 
         public List<UiItem> Items(string category)

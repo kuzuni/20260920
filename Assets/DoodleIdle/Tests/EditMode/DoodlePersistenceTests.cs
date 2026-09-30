@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using CodeStage.AntiCheat.ObscuredTypes;
@@ -106,6 +108,60 @@ namespace DoodleIdle.Tests
             var daily = (ObscuredInt[])stateType.GetField("daily").GetValue(state);
             Assert.That((int)daily[1], Is.EqualTo(2));
             Assert.That(JObject.Parse(DoodleJson.ToJson(state))["daily"][0].Value<int>(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void CollectionSaveKeepsSchemaEscapingAndLiveProtectedValuesAcrossBufferReuse()
+        {
+            const string key = "DoodleUi.Collections.v1";
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var host = new UnityEngine.GameObject("Collection save regression");
+            host.SetActive(false);
+            try
+            {
+                DoodlePrefs.UseAccount("collection-save-test-" + Guid.NewGuid().ToString("N"));
+                var ui = host.AddComponent<DoodleUi>();
+                ui.SaveCollections();
+                Assert.That(DoodlePrefs.HasKey(key), Is.False, "An uninitialized catalog must not overwrite progress.");
+                typeof(DoodleUi).GetField("collectionTuning", flags).SetValue(ui, new UiCollectionTuning());
+                var items = (List<UiItem>)typeof(DoodleUi).GetField("collectionItems", flags).GetValue(ui);
+                var levels = (Dictionary<string, ObscuredInt>)typeof(DoodleUi).GetField("statLevels", flags).GetValue(ui);
+                for (int i = 0; i < 512; i++)
+                    items.Add(new UiItem { id = "아이템\"\\\n\t\u0001\u2028🌟" + i, count = i, level = i + 1, slot = i % 8, equipped = i % 2 == 0, discovered = i % 3 == 0 });
+                items.Add(new UiItem { id = null, count = int.MinValue, level = int.MaxValue });
+                levels["치명타\"\\\r\n"] = int.MaxValue;
+                levels["attack"] = 0;
+
+                void AssertCurrentSnapshot()
+                {
+                    ui.SaveCollections();
+                    var actual = JObject.Parse(DoodlePrefs.GetString(key));
+                    var expected = JObject.Parse(DoodleJson.ToJson(new {
+                        version = 3,
+                        items = items.Select(item => new { item.id, item.count, item.level, item.slot, item.equipped, item.discovered }).ToArray(),
+                        stats = levels.Select(pair => new { id = pair.Key, level = (int)pair.Value }).ToArray()
+                    }));
+                    Assert.That(JToken.DeepEquals(actual, expected), Is.True, "Every field must retain the existing JSON representation.");
+                    var restored = DoodleJson.FromJson(actual.ToString(), typeof(DoodleUi).GetNestedType("CollectionSave", BindingFlags.NonPublic));
+                    Assert.That(JToken.DeepEquals(JObject.Parse(DoodleJson.ToJson(restored)), expected), Is.True, "The existing save reader must read the streamed output.");
+                }
+
+                AssertCurrentSnapshot(); // Grows beyond the initial buffer capacity.
+                items[0].id = "updated"; items[0].count = 7; items[0].level = 13; items[0].slot = 6;
+                items[0].equipped = false; items[0].discovered = true;
+                levels["attack"] = 99;
+                AssertCurrentSnapshot(); // No cached plaintext snapshot after a mutation.
+                items.RemoveRange(1, items.Count - 1);
+                levels.Clear(); levels["health"] = 17;
+                AssertCurrentSnapshot(); // A shorter save must not retain the previous suffix.
+                items.Clear(); levels.Clear();
+                AssertCurrentSnapshot();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+                DoodlePrefs.DeleteAccountCache();
+            }
         }
 
         [Test]
