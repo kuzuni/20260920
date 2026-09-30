@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BackEnd;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace DoodleIdle
             public string clientAppId = "", signatureKey = "", googleWebClientId = "";
             public string profileTable = "PlayerProfile", stageTable = "StageProgress", stageLeaderboardUuid = "";
             public string chatUuid = "";
+            public string pvpDatabaseUuid = "", pvpLeaderboardUuid = "";
             public bool paymentsEnabled;
         }
         public const string PrivacyUrl = "https://semobobo.netlify.app/privacy";
@@ -45,7 +47,7 @@ namespace DoodleIdle
             var text = Resources.Load<TextAsset>("DoodleIdle/BackendSettings");
             Config = text ? JsonUtility.FromJson<Settings>(text.text) : new Settings();
         }
-        void OnDestroy() { if (Instance == this) Instance = null; }
+        void OnDestroy() { pvpDatabase?.Dispose(); if (Instance == this) Instance = null; }
         void Message(string text) { Status = text; Changed?.Invoke(); }
         [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         static void AuthDiagnostic(string step) => Debug.Log("[DoodleAuth] " + step);
@@ -243,7 +245,7 @@ namespace DoodleIdle
         {
             if (Busy || !Ready || DoodleSecurity.Compromised || !Backend.IsLogin || Backend.UserInDate != AccountId)
                 return false;
-            var ui = FindFirstObjectByType<DoodleUi>();
+            var ui = FindPlayerUi();
             if (!ui) return false;
             Busy = true;
             try
@@ -261,6 +263,7 @@ namespace DoodleIdle
             await saving;
             return await SaveCloud();
         }
+        static DoodleUi FindPlayerUi() => FindObjectsByType<DoodleUi>(FindObjectsSortMode.None).FirstOrDefault(ui=>ui.Canvas);
         async Task<bool> SaveNow()
         {
             serverSave.TryBegin(Time.realtimeSinceStartupAsDouble, true);
@@ -268,7 +271,7 @@ namespace DoodleIdle
             string account = AccountId;
             try
             {
-                var ui = FindFirstObjectByType<DoodleUi>(); if (ui) ui.Save();
+                var ui = FindPlayerUi(); if (ui) ui.Save();
                 if (!DoodlePrefs.Dirty) return success = true;
                 long revision = DoodlePrefs.Revision;
                 var param = new Param(); param.Add("save", DoodlePrefs.Export());
@@ -324,13 +327,14 @@ namespace DoodleIdle
             Busy = true;
             try
             {
-                var ui = FindFirstObjectByType<DoodleUi>(); if (ui) ui.Save();
+                var ui = FindPlayerUi(); if (ui) ui.Save();
                 if (!delete) DoodlePrefs.Flush();
                 if (saving != null && !saving.IsCompleted) await saving;
                 var result = delete ? await Request(cb => Backend.BMember.WithdrawAccount(0, cb)) : await Request(cb => Backend.BMember.Logout(cb));
                 if (!result.IsSuccess()) { Message("계정 처리를 완료하지 못했어요. 다시 시도해 주세요."); return false; }
                 AuthDiagnostic(delete ? "backnd_withdraw_succeeded" : "backnd_logout_succeeded");
                 Ready = false;
+                pvpDatabase?.Dispose();pvpDatabase=null;pvpAccount=null;
                 var chat = GetComponent<DoodleChatService>(); if (chat) { chat.Disconnect(); Destroy(chat); }
                 if (ui) { ui.StopSavingForReset(); ui.gameObject.SetActive(false); }
 #if UNITY_ANDROID && !UNITY_EDITOR

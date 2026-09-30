@@ -1,6 +1,7 @@
 {
   "name": "DoodleIdle.Runtime",
   "rootNamespace": "DoodleIdle",
-  "references": ["Unity.InputSystem", "Unity.ugui", "DoodleIdle.CharacterRigs", "Unity.Purchasing", "ACTk.Runtime", "Unity.Newtonsoft.Json", "Unity.RenderPipelines.Core.Runtime", "Unity.RenderPipelines.Universal.Runtime"],
-  "autoReferenced": true
+  "references": ["Unity.InputSystem", "Unity.ugui", "DoodleIdle.CharacterRigs", "Unity.Purchasing", "ACTk.Runtime", "Unity.Newtonsoft.Json", "Unity.RenderPipelines.Core.Runtime", "Unity.RenderPipelines.Universal.Runtime", "BACKND.Database"],
+  "autoReferenced": true,
+  "overrideReferences": false
 }

@@ -44,7 +44,8 @@ namespace DoodleIdle
             [NonSerialized] private ObscuredInt protected_attendanceIndex; public int attendanceIndex { get => protected_attendanceIndex; set => protected_attendanceIndex = value; }
             [NonSerialized] private ObscuredInt protected_spins; public int spins { get => protected_spins; set => protected_spins = value; }
             [NonSerialized] private ObscuredInt protected_pvpUsed; public int pvpUsed { get => protected_pvpUsed; set => protected_pvpUsed = value; }
-            [NonSerialized] private ObscuredInt protected_pvpPoints = 1240; public int pvpPoints { get => protected_pvpPoints; set => protected_pvpPoints = value; }
+            [NonSerialized] private ObscuredInt protected_pvpPoints = 0; public int pvpPoints { get => protected_pvpPoints; set => protected_pvpPoints = value; }
+            public string lastAppliedPvpMatch;
             public ObscuredInt[] dungeonUsed = new ObscuredInt[DungeonNames.Length];
             public ObscuredInt[] daily = new ObscuredInt[ServiceMetrics.Length], weekly = new ObscuredInt[ServiceMetrics.Length], repeat = new ObscuredInt[ServiceMetrics.Length];
             public ObscuredBool[] dailyClaimed = new ObscuredBool[11], weeklyClaimed = new ObscuredBool[11];
@@ -84,6 +85,7 @@ namespace DoodleIdle
         sealed class LocalRank
         {
             public string name, art;
+            public int rank;
             public DoodlePlayerLook look;
             public GameNumber power;
             public int points;
@@ -117,7 +119,7 @@ namespace DoodleIdle
         public int GoldBuffSeconds => services == null ? 0 : SecondsUntil(services.goldExpiry);
         public int AttackBuffSeconds => services == null ? 0 : SecondsUntil(services.attackExpiry);
         public float GoldBuffMultiplier => GoldBuffSeconds > 0 ? 1 + serviceTuning.goldBuff : 1;
-        public float AttackBuffMultiplier => AttackBuffSeconds > 0 ? 1 + serviceTuning.attackBuff : 1;
+        public float AttackBuffMultiplier => pvpLoadout!=null ? Mathf.Clamp(pvpLoadout.attackBuff,1,1+serviceTuning.attackBuff) : AttackBuffSeconds > 0 ? 1 + serviceTuning.attackBuff : 1;
         public int ActiveDungeonIndex => services == null ? -1 : services.activeDungeon;
         public int DungeonProgress => services == null ? 0 : services.dungeonProgress;
         public int DungeonKillGoal => DungeonKillsFor(ActiveDungeonIndex);
@@ -608,31 +610,21 @@ namespace DoodleIdle
             ShowRewards(title+"\n"+DungeonNames[index]+" · "+stage+"단계",rewards);
         }
 
-        List<LocalRank> LocalRanking()
-        {
-            string[] names = { "밤톨왕", "구름발", "버섯대장", "콩알", "밤비", "동실" };
-            var ranks = new List<LocalRank>();
-            for (int i = 0; i < 100; i++) ranks.Add(new LocalRank { name = i < names.Length ? names[i] : names[i % names.Length] + (i + 1), art = "Player", look = new DoodlePlayerLook(), points = 2840 - i * 17, power = 58200 - i * 460 });
-            ranks.Add(new LocalRank { name = PlayerName, art = EquippedAppearanceIcon, look = DoodlePlayerLook.From(this), points = services.pvpPoints, power = PowerAmount, self = true });
-            ranks.Sort((a, b) => { int points = b.points.CompareTo(a.points); return points != 0 ? points : b.power.CompareTo(a.power); });
-            return ranks;
-        }
-
-        void BuildPvp(RectTransform body)
+        void DrawPvpRanking(RectTransform body, List<LocalRank> ranks)
         {
             UiKit.Button(body, L("스테이지 랭킹", "Stage leaderboard"), OpenStageLeaderboard, UiKit.Yellow, 62);
-            UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 17, TextAnchor.MiddleCenter, 26);
-            var ranks = LocalRanking();
+            UiKit.Text(body, "누적 승점 랭킹", 17, TextAnchor.MiddleCenter, 26);
             var podium = UiKit.Row(body, "Top three podium", DoodlePortraitSettings.Current.pvpRowHeight);
             foreach (int position in new[] { 1, 0, 2 })
             {
+                if(position>=ranks.Count)continue;
                 var rank = ranks[position];
                 var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,DoodlePortraitSettings.Current.pvpRowHeight);
                 float stepHeight=position==0?84:position==1?57:42;
                 var step=UiKit.Box(card,"Podium pedestal",position==0?UiKit.Yellow:position==1?new Color(.84f,.85f,.87f):new Color(.87f,.70f,.53f));
                 step.GetComponent<Image>().raycastTarget=false;
                 step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
-                var number=UiKit.Text(step,(position+1).ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,0);
+                var number=UiKit.Text(step,rank.rank.ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,0);
                 float contactY=stepHeight-2,portraitSize=position==0?DoodlePortraitSettings.Current.pvpFirstSize:DoodlePortraitSettings.Current.pvpOtherSize;
                 var shadow=UiKit.Rect(card,"Podium contact shadow");shadow.anchorMin=shadow.anchorMax=new Vector2(.5f,0);shadow.anchoredPosition=new Vector2(0,contactY+1);shadow.sizeDelta=new Vector2(portraitSize*.62f,7);
                 var shade=shadow.gameObject.AddComponent<Image>();shade.sprite=UiKit.Circle;shade.color=new Color(0,0,0,.18f);shade.raycastTarget=false;
@@ -643,17 +635,17 @@ namespace DoodleIdle
                 var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,contactY+drawn.y+5);
                 var layout=card.gameObject.AddComponent<DoodlePodiumPortraitLayout>();layout.rank=position;layout.portrait=image;layout.label=name;layout.shadow=shadow;layout.podium=podium;layout.Apply();
             }
-            int selfIndex = ranks.FindIndex(r => r.self);
+            if(ranks.Count==0)UiKit.Text(body,"첫 도전으로 랭킹에 등록해 보세요.",22,TextAnchor.MiddleCenter,60);
             var mine = ServiceCard(body, "My rank", UiKit.Yellow);
             var myRow = UiKit.Row(mine, "My ranking", 64);
             UiKit.Icon(myRow, EquippedAppearanceIcon, 62);
-            UiKit.Text(myRow, "내 순위 " + (selfIndex + 1) + "위\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
+            UiKit.Text(myRow, "내 순위 " + (pvpMyRank>0?pvpMyRank+"위":"미등록") + "\n" + PlayerName, 22, TextAnchor.MiddleLeft, 66);
             UiKit.Text(myRow, "승점 " + UiNumber.Format(services.pvpPoints) + "\n전투력 " + UiNumber.Format(PowerAmount), 20, TextAnchor.MiddleRight, 66);
             var actions=UiKit.Row(body,"PVP actions",66,10);
-            var challenge = UiKit.Button(actions, "모의 대전 시작", PlayLocalPvp, UiKit.Blue, 66);UiKit.Flexible(challenge.transform,1.6f);
+            var challenge = UiKit.Button(actions, "도전", OpenPvpChallenge, UiKit.Blue, 66);UiKit.Flexible(challenge.transform,1.6f);
             var attempts=UiKit.Box(actions,"PVP remaining attempts",new Color(.96f,.94f,.9f),66);
             var attemptLabel=UiKit.Text(attempts,"오늘 도전 "+Math.Max(0,serviceTuning.pvpAttempts-services.pvpUsed)+"/"+serviceTuning.pvpAttempts,23,TextAnchor.MiddleCenter,66);UiKit.Stretch(attemptLabel.rectTransform,5,3,5,3);
-            challenge.interactable = services.pvpUsed < serviceTuning.pvpAttempts;
+            challenge.interactable = !pvpBusy && services.pvpUsed < serviceTuning.pvpAttempts;
             var banner=UiKit.Box(body,"Ranking title",new Color(1,.97f,.85f),42); var title=UiKit.Text(banner,"랭킹 1~100위",29,TextAnchor.MiddleCenter,42);UiKit.Stretch(title.rectTransform);
             var header = UiKit.Row(body, "Ranking columns", 32);
             UiKit.Text(header, "순위", 18, TextAnchor.MiddleCenter, 30);
@@ -668,35 +660,19 @@ namespace DoodleIdle
             rankingBody.anchorMin = new Vector2(0, 1); rankingBody.anchorMax = Vector2.one; rankingBody.pivot = new Vector2(.5f, 1); rankingBody.sizeDelta = Vector2.zero;
             var rankingScroll = listFrame.gameObject.AddComponent<ScrollRect>(); rankingScroll.viewport = viewport; rankingScroll.content = rankingBody; rankingScroll.horizontal = false;
             rankingScroll.movementType = ScrollRect.MovementType.Clamped; rankingScroll.scrollSensitivity = 35;
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < ranks.Count; i++)
             {
                 var rank = ranks[i];
                 var card = ServiceCard(rankingBody, "Rank " + (i + 1), rank.self ? UiKit.Yellow : UiKit.Paper);
                 card.GetComponent<VerticalLayoutGroup>().padding=new RectOffset(7,7,2,2);
                 var row = UiKit.Row(card, "Player rank", 44, 4);
-                var number = UiKit.Text(row, (i + 1).ToString(), 22, TextAnchor.MiddleCenter, 42); UiKit.Flexible(number.transform, .45f);
+                var number = UiKit.Text(row, rank.rank.ToString(), 22, TextAnchor.MiddleCenter, 42); UiKit.Flexible(number.transform, .45f);
                 UiKit.Icon(row, rank.art, 41);
                 var name = UiKit.Text(row, rank.name, 21, TextAnchor.MiddleLeft, 42); UiKit.Flexible(name.transform, 1.4f);
                 UiKit.Text(row, UiNumber.Format(rank.points), 21, TextAnchor.MiddleCenter, 42);
-                UiKit.Text(row, UiNumber.Format(rank.power), 21, TextAnchor.MiddleCenter, 42);
+                UiKit.Text(row, (rank.power>0?UiNumber.Format(rank.power):"—"), 21, TextAnchor.MiddleCenter, 42);
             }
             mine.SetAsLastSibling(); actions.SetAsLastSibling();
-        }
-
-        public void PlayLocalPvp()
-        {
-            ResetServicePeriods(); if (services.pvpUsed >= serviceTuning.pvpAttempts) return;
-            var ranks = LocalRanking(); int own = ranks.FindIndex(r => r.self);
-            var opponent = ranks[own > 0 ? own - 1 : 1];
-            bool won = PowerAmount * (0.85 + serviceRandom.NextDouble() * .3) >= opponent.power;
-            services.pvpUsed++; services.pvpPoints = (int)Math.Max(0, Math.Min(int.MaxValue, (long)services.pvpPoints + (won ? 35 : -10)));
-            RecordServiceProgress("pvp", 1); Save(); RefreshPage();
-            ShowDetail("모의 대전 결과", panel =>
-            {
-                UiKit.Icon(panel, opponent.art, 94);
-                UiKit.Text(panel, opponent.name + " 상대 " + (won ? "승리! +35점" : "패배 · -10점"), 26, TextAnchor.MiddleCenter, 52);
-                UiKit.Text(panel, "로컬 전투력 비교 시뮬레이션입니다.\n실제 상대나 서버 랭킹에는 영향을 주지 않습니다.", 20, TextAnchor.MiddleCenter, 76);
-            });
         }
 
         void BuildChat(RectTransform body)

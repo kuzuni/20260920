@@ -1,5 +1,21 @@
 {
   "dependencies": {
+    "com.backnd.database": {
+      "version": "file:com.backnd.database",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.2",
+        "com.backnd.tools": "0.0.5"
+      }
+    },
+    "com.backnd.tools": {
+      "version": "0.0.5",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://registry.npmjs.org"
+    },
     "com.gamelovers.mcp-unity": {
       "version": "https://github.com/CoderGamester/mcp-unity.git",
       "depth": 0,

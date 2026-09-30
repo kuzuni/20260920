@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <assembly fullname="BACKND.Database" preserve="all">
+    <type fullname="BACKND.Database.Internal.NullableHelper" preserve="all"/>
+  </assembly>
+  <assembly fullname="System.Core">
+    <type fullname="System.Linq.Expressions.Interpreter.LightLambda" preserve="all"/>
+  </assembly>
+</linker>

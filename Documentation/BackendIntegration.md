@@ -195,3 +195,8 @@ The eight reviewed combat captures were uploaded to Play and saved as the Englis
 The signed Android version-code-3 build succeeded in `validation/internal-v3-build.log`. Output: `Documents/ArtArchives/20260928-google-play-iap/game20260920-internal-v3.aab` (205,040,042 bytes, SHA-256 `61627AC94B9EAE9993D9A0D982D2AE3757ACA4DF641BAFF0DAB3A46B74504124`). All 694 tracked C# files and package manifests/locks compared between the main checkout and build checkout matched. The source integration was committed and pushed to main as `eab1222`; both local and remote branch inventories contain only main.
 
 Play published version code 3 as '0.1.0 Internal Test 3 - Rankings and combat fixes' on 2026-09-29 at 07:18 KST. The internal track explicitly shows it available to internal testers. No production release was published. The two non-blocking diagnostic warnings are missing R8 mapping and native debug symbols. Evidence: artifacts/service-setup/play-internal-v3.png.
+
+
+### PVP Database (2026-10-01)
+
+20260920 프로젝트의 BACKND Database와 PvpRanking 리더보드를 사용한다. 스키마, 권한, 저장 재시도, 클라이언트 전투 판정의 범위는 [PvpDatabase.md](PvpDatabase.md)를 참고한다.

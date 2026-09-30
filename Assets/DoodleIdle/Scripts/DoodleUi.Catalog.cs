@@ -92,7 +92,7 @@ namespace DoodleIdle
             var asset = Resources.Load<TextAsset>("DoodleIdle/UI/Collections");
             if (asset == null) throw new InvalidOperationException("Missing DoodleIdle/UI/Collections tuning data.");
             collectionTuning = DoodleJson.FromJson<UiCollectionTuning>(asset.text);
-            hideMaxStats = DoodlePrefs.GetInt("DoodleUi.HideMaxStats", 0) != 0;
+            hideMaxStats = pvpLoadout==null && DoodlePrefs.GetInt("DoodleUi.HideMaxStats", 0) != 0;
             if (collectionTuning == null || collectionTuning.items == null || collectionTuning.stats == null)
                 throw new InvalidOperationException("Invalid collection tuning data.");
             collectionItems.AddRange(collectionTuning.items);
@@ -105,7 +105,7 @@ namespace DoodleIdle
             foreach (var stat in collectionTuning.stats) statLevels[stat.id] = 0;
             // Use the empty new-game profile as the baseline before restoring earned upgrades.
             starterDamageBaseline = CollectionDamageAmount(false);
-            string saved = DoodlePrefs.GetString(CollectionsSaveKey, "");
+            string saved = pvpLoadout!=null ? pvpLoadout.collections : DoodlePrefs.GetString(CollectionsSaveKey, "");
             if (!string.IsNullOrEmpty(saved))
             {
                 try

@@ -68,7 +68,7 @@ namespace DoodleIdle
             SkinSave saved = null;
             try
             {
-                string json = DoodlePrefs.GetString("DoodleUi.Skins", "");
+                string json = pvpLoadout!=null ? pvpLoadout.skins : DoodlePrefs.GetString("DoodleUi.Skins", "");
                 if (!string.IsNullOrEmpty(json)) saved = DoodleJson.FromJson<SkinSave>(json);
             }
             catch (ArgumentException) { Debug.LogWarning("Invalid saved skins; keeping basic appearances."); }

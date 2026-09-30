@@ -311,3 +311,13 @@ Unity 6000.3.8f1 Development Build, RTX 4070 SUPER, **720×1080**, 실제 창을
 스탯/프로필/PVP 색상 픽셀 검사와 장착 외형·레이아웃·Idle 검사 2건, 눈동자 마스킹/움직이는 머리 정렬/풀링 후 하이라이트 검사 3건을 통과했습니다(`portrait-lighting-after.xml`, `portrait-mask-regression.xml`). 실제 렌더링 이미지에서도 세 위치의 피부색·흰 눈·장비를 확인했습니다. 애니메이션·컨트롤러·마스크 39개 해시 차이는 0건입니다.
 
 별도 계정으로 실행한 Windows Development Build에서도 스탯·프로필·PVP 1~3위의 색상 픽셀 검사가 모두 통과했습니다(`artifacts/portrait-native/results.txt`, PNG). 네이티브 로그에 예외/셰이더 오류가 없었습니다. 최초 계측 빌드는 성공 상태와 함께 Hot Reload 에디터 창의 `GUIHelper.ConvertToGrayscale` 예외 4건을 보고했으며, 계측 코드를 제거한 최종 빌드는 오류 0건입니다. 재현용 임시 코드는 `artifacts/performance/PortraitBuildCheck.cs.txt`에 보관하고 Assets에서 제거했습니다.
+
+## 로딩 전투 일러스트와 던전 제한시간 (2026-10-01)
+
+현재 플레이어 외형을 참고한 전투 일러스트를 LoadingBattle.png로 추가했습니다. 사용자의 최종 요청에 따라 일러스트와 제목은 고정하고, 실제 HP바의 HealthBarFrame/HealthBarFill 아트를 재사용한 로딩 게이지만 애니메이션을 적용합니다. 부드러운 채움과 채워진 영역 안에서만 흐르는 하이라이트는 unscaledDeltaTime을 사용하며 전투 난수, 매 프레임 오브젝트/배열 생성을 사용하지 않습니다. 일러스트는 CPU 읽기 사본 없이 최대 2048 텍스처로 압축합니다. 실제 준비가 끝나면 기존과 같이 전투를 시작하며 연출을 위해 기다리는 시간을 추가하지 않았습니다.
+
+모든 유효 던전은 30초의 전투 시간 제한을 사용합니다. 앞선 물리 프레임에서 완료한 처치를 먼저 정산하고, 제한시간 소진 시 실패합니다. 사망도 같은 실패 처리로 합쳤습니다. 입장 때 예약한 열쇠 한 개는 실패 시 같은 날짜의 사용량에서 정확히 한 번 되돌립니다. 성공과 소탕은 계속 한 개를 소비합니다. 남은 시간은 기존 서비스 저장에 포함되며, UTC 날짜 변경 뒤 이전 날짜의 입장권을 현재 날짜에 추가 지급하지 않습니다. 열쇠는 더 굵고 크게 그리며 금색·보라·파랑·빨강·청록·분홍·연두로 구분합니다.
+
+PlayMode 7건 통과: 전체 7종 던전 제한시간/저장 재개/실패 보상 없음/중복 반환 방지, 사망 반환과 성공 소비, 일시정지와 날짜 경계, 로딩 중 물리/쿨다운/난수 보존과 고정 일러스트/게이지 애니메이션, 기존 클리어·소탕·티켓 보상 회귀. 보고서 artifacts/character-reports/loading-dungeon-final-tests.xml. 실제 UI 렌더 artifacts/screenshots/loading-battle-motion.png 및 dungeon-new-list.png를 확인했습니다. 기존 애니메이션·컨트롤러·마스크 39개 해시는 모두 동일합니다.
+
+최종 로딩 요청은 일러스트 고정 + HP바 아트 재사용으로 변경했습니다. 이를 검사하는 로딩 회귀 테스트 1건을 다시 통과했고(`loading-gauge-final-test.xml`), 최종 Windows Development Build는 오류 0건으로 성공했습니다. 위 7건의 던전/로딩 보고서에서 로딩 검사의 최종 버전은 이 단일 보고서로 대체합니다.

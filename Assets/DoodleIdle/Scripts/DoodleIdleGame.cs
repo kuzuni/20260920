@@ -116,6 +116,7 @@ namespace DoodleIdle
 
         System.Collections.IEnumerator Start()
         {
+            if(IsPvpEngine)yield break;
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (!DoodleBackendSession.Instance || !DoodleBackendSession.Instance.Ready)
             { UnityEngine.SceneManagement.SceneManager.LoadScene(DoodleBackendSession.LoginScene); enabled = false; yield break; }
@@ -332,6 +333,7 @@ namespace DoodleIdle
         static readonly Unity.Profiling.ProfilerMarker spawnSearchMarker=new Unity.Profiling.ProfilerMarker("Doodle/SpawnSearch");
         void Refill()
         {
+            if(IsPvpEngine)return;
             using var sample=refillMarker.Auto();
             ApplyStageTheme();
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
@@ -383,16 +385,16 @@ namespace DoodleIdle
         void Update()
         {
             if (!Ready) return;
+            if(pvpSessionActive)return;
             var keyboard = Keyboard.current;
-            if (keyboard != null && (!Ui || !Ui.BlocksGameplay))
+            if (!IsPvpEngine && keyboard != null && (!Ui || !Ui.BlocksGameplay))
             {
                 if (keyboard.spaceKey.wasPressedThisFrame) TogglePause();
                 if (keyboard.rKey.wasPressedThisFrame) ResetGame();
                 if (keyboard.tabKey.wasPressedThisFrame) autoPlay = !autoPlay;
                 manualInput = new Vector2((keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1 : 0), (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1 : 0)).normalized;
             }
-            RefreshHudLayout();
-            UpdateJoystick();
+            if(!IsPvpEngine){RefreshHudLayout();UpdateJoystick();}
             if (paused) {
                 if (player != null && player.rigVisual) {
                     var entry = DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(Ui ? Ui.EquippedAppearanceIcon : "Player"));
@@ -408,7 +410,7 @@ namespace DoodleIdle
             swing = Mathf.MoveTowards(swing, 0, dt * 5);
             Animate(player);
             UpdateHeldClub();
-            foreach (var enemy in enemies) Animate(enemy);
+            if(!IsPvpEngine)foreach (var enemy in enemies) Animate(enemy);
         }
 
         static readonly Unity.Profiling.ProfilerMarker[] combatMarkers = {
@@ -429,7 +431,7 @@ namespace DoodleIdle
         };
         void FixedUpdate()
         {
-            if (!Ready || paused) return;
+            if (!Ready || paused || IsPvpEngine && (!Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) return;
             try {
             if (Ui) Ui.BeginCombatSnapshot();
             if (combatWaveResetRequested)
@@ -441,8 +443,8 @@ namespace DoodleIdle
             }
             float dt = Time.fixedDeltaTime;
             Elapsed += dt;
-            if (TickBossChallenge(dt)) return;
-            if (Ui && Ui.TickDungeonChallenge(dt)) return;
+            if (!IsPvpEngine && TickBossChallenge(dt)) return;
+            if (!IsPvpEngine && Ui && Ui.TickDungeonChallenge(dt)) return;
             var target = Closest(player.Position);
             if (target == null) { Refill(); return; }
             Vector2 delta = target.Position - player.Position;
@@ -474,8 +476,11 @@ namespace DoodleIdle
                 Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
                 player.body.linearVelocity = desired;
             }
-            using(combatMarkers[0].Auto()) TickEnemyMovement(dt);
-            using(combatMarkers[1].Auto()) TickPlayerContactDamage(dt);
+            if(IsPvpEngine)TickPvpRegeneration(dt);
+            else {
+                using(combatMarkers[0].Auto()) TickEnemyMovement(dt);
+                using(combatMarkers[1].Auto()) TickPlayerContactDamage(dt);
+            }
             if (combatWaveResetRequested) return;
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             {
@@ -496,13 +501,15 @@ namespace DoodleIdle
             // A slow render frame must not extend a slash beyond its intended lifetime/range.
             using(combatMarkers[12].Auto()) UpdateShots(dt);
             if (enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
-            using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
+            if(!IsPvpEngine)using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
             } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }
 
         void LateUpdate()
         {
             if (!Ready) return;
+            if(IsPvpEngine){FaceView.Update(gameCamera);return;}
+            if(pvpSessionActive)return;
             Vector3 desired = new Vector3(player.Position.x, player.Position.y, -10);
             gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 9));
             FaceView.Update(gameCamera);
@@ -672,6 +679,7 @@ namespace DoodleIdle
             ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
+            if(IsPvpEngine){enemy.hp=GameNumber.Max(0,enemy.hp);return;}
             if (enemy.hp > 0) return;
             Kills++;
             if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);

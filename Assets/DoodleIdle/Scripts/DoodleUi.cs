@@ -387,7 +387,7 @@ namespace DoodleIdle
         {
             if(!initialized || !game.Ready)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
             Relayout(); CreditPendingFieldGold(); TickServices(); FlushCombatSave();
-            if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
+            if(!game.PvpSessionActive && Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
             else { RefreshStatWallet(); RefreshBossHud(); RefreshHudSkills(); }
             if(toast&&Time.unscaledTime>toastUntil)toast.text="";if(powerToast&&Time.unscaledTime>powerToastUntil)powerToast.text="";

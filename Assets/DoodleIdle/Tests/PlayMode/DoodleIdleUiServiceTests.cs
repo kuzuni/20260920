@@ -430,23 +430,12 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var ui = game.Ui;
             UiOpen("Pvp");
-            var ranking = UiNode("Ranking content");
-            Assert.That(ranking.childCount, Is.EqualTo(100));
-            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text.Contains("서버 미연결")), Is.True);
-            for (int rank = 1; rank <= 3; rank++)
-            {
-                var podium = UiNode("Podium rank " + rank);
-                var entry = UiNode("Rank " + rank, ranking);
-                var podiumArt = podium.GetComponentsInChildren<Image>().Single(i => i.name.StartsWith("Icon: "));
-                var listArt = entry.GetComponentsInChildren<Image>().Single(i => i.name.StartsWith("Icon: "));
-                Assert.That(podiumArt.sprite, Is.SameAs(listArt.sprite), "Each podium must show that ranked player's actual listed art.");
-            }
-            int wallet = ui.Diamonds;
-            for (int i = 0; i < 5; i++) { ui.PlayLocalPvp(); Assert.That(ui.HasOverlay, Is.True); ui.CloseDetail(); }
-            int points = ServiceStateValue<int>("pvpPoints"); ui.PlayLocalPvp();
-            Assert.That(ServiceStateValue<int>("pvpUsed"), Is.EqualTo(5));
+            Assert.That(UiRoot.GetComponentsInChildren<Text>().Any(t => t.text.Contains("PVP 서버")), Is.True);
+            Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name.Contains("모의 대전")), Is.False);
+            int points = ServiceStateValue<int>("pvpPoints");
+            ui.OpenPvpChallenge();
             Assert.That(ServiceStateValue<int>("pvpPoints"), Is.EqualTo(points));
-            Assert.That(ui.Diamonds, Is.EqualTo(wallet));
+            Assert.That(ServiceStateValue<int>("pvpUsed"), Is.EqualTo(0));
             UiOpen("Chat");
             Assert.That(UiNode("Panel: 채팅").GetComponent<DoodleUiWindow>().full, Is.False);
             Assert.That(UiRoot.GetComponentsInChildren<Button>().Any(b => b.name == "Global / 글로벌"), Is.True);

@@ -1,0 +1,25 @@
+{
+  "name": "com.backnd.database",
+  "version": "0.0.18",
+  "displayName": "BACKND Database",
+  "description": "BACKND Database is a Unity SDK for seamless integration with BACKND cloud database services.\n\nEasily manage and synchronize game data such as player profiles, game states, and leaderboards across multiple platforms.\nIdeal for Unity developers looking to implement robust database solutions without complex backend setups.",
+  "unity": "2021.3",
+  "documentationUrl": "https://docs.backnd.com/sdk-docs/database/intro",
+  "keywords": [
+    "backnd",
+    "unity",
+    "database",
+    "networking"
+  ],
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.2",
+    "com.backnd.tools": "0.0.5"
+  },
+  "category": "SDK",
+  "author": {
+    "name": "backnd",
+    "email": "help@thebackend.io",
+    "url": "https://backnd.com"
+  },
+  "_fingerprint": "ecd14e70f42541fef55b91092af0478197fa356b"
+}
