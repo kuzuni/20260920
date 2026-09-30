@@ -83,6 +83,7 @@ namespace DoodleIdle.Tests
         public IEnumerator ExpansionEquippedCompanionsFollowAttackAndUnequipRemovesThem()
         {
             var bodies=IsolateSummonTest();for(int i=0;i<8;i++)Place(bodies[i],new Vector2(3+i*.4f,1));
+            PlayerBody().simulated=false; // Keep the stationary-shadow fixture still when a refill spawns solid bodies.
             game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1), 1);
             var items=game.Ui.Items("Companion");string[] selected={"drone","sword","orbit","companion_frost","companion_bee"};
             foreach(var item in items){item.equipped=selected.Contains(item.id);if(item.equipped){item.discovered=true;item.level=1;item.slot=System.Array.IndexOf(selected,item.id);}}
@@ -96,9 +97,13 @@ namespace DoodleIdle.Tests
             var shadows = game.GetComponentsInChildren<SpriteRenderer>().Where(s => s.name.StartsWith("Companion shadow: ")).ToArray();
             Assert.That(shadows.Length, Is.EqualTo(5));
             Assert.That(shadows.All(s => s.sortingOrder == -900 && s.color.a > 0 && s.color.a < .5f), Is.True);
-            var shadowPositions = shadows.Select(s => s.transform.position).ToArray();
+            var shadowContacts=shadows.Select(s=>game.GetComponentsInChildren<DoodleRigVisual>().Single(v=>v.GroundShadow==s).Rig.groundContact).ToArray();
+            var contactPositions=shadowContacts.Select(t=>t.localPosition).ToArray();
             yield return PhysicsTicks(20);
-            for (int i = 0; i < shadows.Length; i++) Assert.That(Vector3.Distance(shadows[i].transform.position, shadowPositions[i]), Is.LessThan(.001f), "Stationary companions keep a fixed ground shadow through both poses.");
+            for (int i = 0; i < shadows.Length; i++) {
+                Assert.That(shadowContacts[i].localPosition,Is.EqualTo(contactPositions[i]),"Animation must not move the authored ground contact.");
+                Assert.That(Vector3.Distance(shadows[i].transform.position,shadowContacts[i].position),Is.LessThan(.001f),"The shadow follows the authored foot anchor, including its mirrored offset when turning.");
+            }
             Assert.That(game.GetComponentsInChildren<SpriteRenderer>().Any(s => s.name.StartsWith("Companion explosion: ")), Is.False);
             Place(PlayerBody(),new Vector2(-3,-3));yield return PhysicsTicks(30);
             foreach(var renderer in game.GetComponentsInChildren<SpriteRenderer>().Where(s=>s.name.StartsWith("Companion: ")))

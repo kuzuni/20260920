@@ -17,6 +17,7 @@ namespace DoodleIdle.CharacterRigs
         public SpriteRenderer[] partRenderers;
         public Animator animator;
         public CharacterFace face;
+        public CharacterFootDust footDust;
         [Tooltip("적 공격 범위. AttackRange 자식의 Trigger Collider2D 크기와 위치로 조절합니다.")]
         public Collider2D attackRange;
 
@@ -30,11 +31,25 @@ namespace DoodleIdle.CharacterRigs
         }
         Action attackImpact;
         bool attackQueued, attackObserved;
+        RuntimeAnimatorController parameterController;
+        AnimatorControllerParameter[] parameters;
+        int attackLayer, attackTrigger;
+        void CacheParameters()
+        {
+            if (parameters != null && parameterController == animator.runtimeAnimatorController) return;
+            parameterController = animator.runtimeAnimatorController;
+            parameters = animator.parameters;
+            attackLayer = Mathf.Max(0, animator.GetLayerIndex("Upper Body"));
+            attackTrigger = Animator.StringToHash("Attack");
+            int upper = Animator.StringToHash("UpperAttack");
+            foreach (var parameter in parameters)
+                if (parameter.nameHash == upper && parameter.type == AnimatorControllerParameterType.Trigger) attackTrigger = upper;
+        }
 
         bool InAttack()
         {
-            int layer = animator.GetLayerIndex("Upper Body");
-            if (layer < 0) layer = 0;
+            CacheParameters();
+            int layer = attackLayer;
             return animator.GetCurrentAnimatorStateInfo(layer).IsName("Attack")
                 || (animator.IsInTransition(layer) && animator.GetNextAnimatorStateInfo(layer).IsName("Attack"));
         }
@@ -50,11 +65,33 @@ namespace DoodleIdle.CharacterRigs
         {
             attackImpact = null;
             attackQueued = attackObserved = false;
-            if (animator && animator.isInitialized)
-                foreach (var parameter in animator.parameters)
+            if (animator && animator.isInitialized) {
+                CacheParameters();
+                foreach (var parameter in parameters)
                     if (parameter.type == AnimatorControllerParameterType.Trigger
                         && (parameter.name == "Attack" || parameter.name == "UpperAttack"))
                         animator.ResetTrigger(parameter.nameHash);
+            }
+        }
+
+        // Pooling preserves the hierarchy and bound graph. Reset all parameters so
+        // queued Hit/Die transitions and old attack callbacks cannot survive reuse.
+        public void ResetPooledAnimation()
+        {
+            CancelAttack();
+            int idle = Animator.StringToHash("Idle");
+            if (animator.layerCount != 1 || !animator.HasState(0, idle)) { animator.Rebind(); SetMoving(false); animator.Update(0); return; }
+            CacheParameters();
+            foreach (var parameter in parameters) {
+                switch (parameter.type) {
+                    case AnimatorControllerParameterType.Trigger: animator.ResetTrigger(parameter.nameHash); break;
+                    case AnimatorControllerParameterType.Bool: animator.SetBool(parameter.nameHash, parameter.defaultBool); break;
+                    case AnimatorControllerParameterType.Float: animator.SetFloat(parameter.nameHash, parameter.defaultFloat); break;
+                    case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.nameHash, parameter.defaultInt); break;
+                }
+            }
+            animator.Play(idle, 0, 0);
+            animator.Update(0);
         }
 
         void OnDisable() => CancelAttack();
@@ -92,8 +129,15 @@ namespace DoodleIdle.CharacterRigs
                 renderer.sprite = part.sprite;
                 renderer.transform.localPosition = part.rendererPosition;
                 // Layer/order belong to the rig prefab, not the interchangeable skin.
-                skin.SetRootBone(skeleton);
-                var state = skin.SetBoneTransforms(transforms);
+                // Re-registering unchanged bones makes the deformation system rebuild
+                // native transform arrays on every pooled appearance swap.
+                if (skin.rootBone != skeleton) skin.SetRootBone(skeleton);
+                bool changed = skin.boneTransforms == null || skin.boneTransforms.Length != transforms.Length;
+                if (!changed) for (int i=0;i<transforms.Length;i++) if (skin.boneTransforms[i]!=transforms[i]) { changed=true;break; }
+                var state = changed ? skin.SetBoneTransforms(transforms) : SpriteSkinState.Ready;
+                // A reused rig can re-enter the camera with last frame's culled
+                // deformation buffer. Keep active parts current; pooled parts are
+                // still skipped because their renderers are disabled.
                 skin.alwaysUpdate = true;
                 if (state != SpriteSkinState.Ready) throw new InvalidOperationException("Invalid skin: " + part.name + " (" + state + ")");
             }
@@ -104,10 +148,21 @@ namespace DoodleIdle.CharacterRigs
                 weaponRenderer.transform.localScale = Vector3.one * next.weaponScale;
             }
             appearance = next;
-            if (face) face.gameObject.SetActive(next.separatedFace);
+            if (face)
+            {
+                face.SetFaceParts(true, !next.friendlyEyes);
+                face.gameObject.SetActive(next.separatedFace);
+            }
         }
 
         public void SetMoving(bool moving) => animator.SetBool("Moving", moving);
+        public void UpdateOffscreenMeshes(bool update)
+        {
+            foreach(var renderer in partRenderers) {
+                var skin=renderer.GetComponent<SpriteSkin>();
+                if(skin)skin.alwaysUpdate=update;
+            }
+        }
         public void Attack() => TryAttack(null);
 
         public bool TryAttack(Action impact)
@@ -122,11 +177,8 @@ namespace DoodleIdle.CharacterRigs
             animator.ResetTrigger("Hit");
             // Only the player has an UpperAttack layer; monsters play the original
             // full-body Attack on their Base Layer.
-            int upperAttack = Animator.StringToHash("UpperAttack");
-            foreach (var parameter in animator.parameters)
-                if (parameter.nameHash == upperAttack && parameter.type == AnimatorControllerParameterType.Trigger)
-                { animator.SetTrigger(upperAttack); return true; }
-            animator.SetTrigger("Attack");
+            CacheParameters();
+            animator.SetTrigger(attackTrigger);
             return true;
         }
         public void Hit() { if (face) face.ShowHit(); CancelAttack(); animator.SetTrigger("Hit"); }

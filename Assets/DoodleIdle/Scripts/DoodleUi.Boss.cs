@@ -7,6 +7,9 @@ namespace DoodleIdle
     {
         RectTransform bossHud, bossHealthFill, bossTimerFill;
         Text bossHealthLabel, bossTimerLabel;
+        bool bossLayoutValid, displayedBossActive;
+        int displayedBossPercent = int.MinValue;
+        double displayedBossTenths = double.NaN;
         void BuildBossHud()
         {
             bossHud = UiKit.Rect(stageInfo, "Boss challenge HUD");
@@ -32,17 +35,24 @@ namespace DoodleIdle
         void RefreshBossHud()
         {
             bool active = game && game.BossActive && MainBossPending && BreakthroughMode && ActiveDungeonIndex < 0;
-            bossHud.gameObject.SetActive(active);
-            stageInfo.sizeDelta = new Vector2(active ? 280 : 230, active ? 224 : 140);
-            stageInfo.anchoredPosition = new Vector2(0, active ? -233 : -191);
-            UiKit.Stretch(stageLabel.rectTransform,0,active ? 130 : 44,0,0);
+            if (!bossLayoutValid || displayedBossActive != active) {
+                bossLayoutValid = true; displayedBossActive = active;
+                bossHud.gameObject.SetActive(active);
+                stageInfo.sizeDelta = new Vector2(active ? 280 : 230, active ? 224 : 140);
+                stageInfo.anchoredPosition = new Vector2(0, active ? -233 : -191);
+                UiKit.Stretch(stageLabel.rectTransform,0,active ? 130 : 44,0,0);
+                bossHud.anchorMin = new Vector2(0,1); bossHud.anchorMax = Vector2.one; bossHud.pivot = new Vector2(.5f,1);
+                bossHud.offsetMin = new Vector2(0,-180); bossHud.offsetMax = new Vector2(0,-96);
+            }
             if (!active) return;
-            bossHud.anchorMin = new Vector2(0,1); bossHud.anchorMax = Vector2.one; bossHud.pivot = new Vector2(.5f,1);
-            bossHud.offsetMin = new Vector2(0,-180); bossHud.offsetMax = new Vector2(0,-96);
-            bossHealthFill.anchorMax = new Vector2(game.BossHealthFraction,1);
-            bossTimerFill.anchorMax = new Vector2(game.BossTimeRemaining / DoodleIdleGame.BossTimeLimit,1);
-            bossHealthLabel.text = "보스 체력  " + (game.BossHealthFraction * 100).ToString("0") + "%";
-            bossTimerLabel.text = "남은 시간  " + game.BossTimeRemaining.ToString("0.0") + "초";
+            float fraction = game.BossHealthFraction, remaining = game.BossTimeRemaining;
+            var hpAnchor = new Vector2(fraction,1); var timeAnchor = new Vector2(remaining / DoodleIdleGame.BossTimeLimit,1);
+            if (!bossHealthFill.anchorMax.Equals(hpAnchor)) bossHealthFill.anchorMax = hpAnchor;
+            if (!bossTimerFill.anchorMax.Equals(timeAnchor)) bossTimerFill.anchorMax = timeAnchor;
+            int percent = (int)System.Math.Round(fraction * 100, System.MidpointRounding.AwayFromZero);
+            double tenths = System.Math.Round((double)remaining, 1, System.MidpointRounding.AwayFromZero);
+            if (displayedBossPercent != percent) { displayedBossPercent = percent; bossHealthLabel.text = "보스 체력  " + (fraction * 100).ToString("0") + "%"; }
+            if (displayedBossTenths != tenths) { displayedBossTenths = tenths; bossTimerLabel.text = "남은 시간  " + remaining.ToString("0.0") + "초"; }
         }
         public void FailBossChallenge(string reason)
         {

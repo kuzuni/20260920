@@ -99,11 +99,12 @@ namespace DoodleIdle
         {
             statWalletBindings.Clear(); displayedStatGold = GoldAmount;
             body.GetComponent<VerticalLayoutGroup>().spacing = 12;
-            var power = UiKit.Row(body, "Combat power", 126, 16);
-            power.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(42, 0, 0, 0);
-            UiKit.Icon(power, EquippedAppearanceIcon, 124);
+            var power = UiKit.Rect(body, "Combat power"); UiKit.Flexible(power);
+            var playerPortrait = UiKit.Icon(power, EquippedAppearanceIcon, 248);
+            playerPortrait.gameObject.AddComponent<DoodleIdlePortrait>().Configure(this,DoodleIdlePortrait.View.Stats);
             var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(PowerAmount), 35, TextAnchor.MiddleCenter, 108);
-            CollectionWidth(powerText.transform, 286);
+            var portraitLayout = power.gameObject.AddComponent<DoodleStatsPortraitLayout>();
+            portraitLayout.settings = DoodlePortraitSettings.Current; portraitLayout.portrait = playerPortrait.rectTransform; portraitLayout.power = powerText; portraitLayout.Apply();
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);
             foreach (int amount in new[] { 1, 10, 100, -1 })
             {
@@ -179,7 +180,7 @@ namespace DoodleIdle
         public GameNumber StatUpgradeQuoteAmount(string id, int requested, out int upgrades)
         {
             InitCollections();
-            var stat = Array.Find(collectionTuning.stats, x => x.id == id);
+            var stat = FindStat(id);
             upgrades = 0;
             if (stat == null || (IsCriticalChance(id) && !CriticalUnlocked(id))) return 0;
             int available = Math.Max(0, StatMaxLevel(id) - StatLevel(id));

@@ -10,6 +10,42 @@ namespace DoodleIdle.Tests
 {
     public sealed class DoodleCharacterFaceTests
     {
+        [UnityTest]
+        public IEnumerator AllCompanionsTrackTargetsAndBlinkWithSeparateMouthAndFriendlyEyes()
+        {
+            var target = new GameObject("Companion gaze target");
+            try
+            {
+                var entries = DoodleCharacterCatalog.Current.entries.Where(e => e.group == "Companions").ToArray();
+                Assert.That(entries.Length, Is.EqualTo(32));
+                foreach (var entry in entries)
+                {
+                    var rig = Object.Instantiate(entry.prefab);
+                    try
+                    {
+                        rig.SetAppearance(entry.appearance); rig.animator.enabled = false;
+                        var face = rig.face; face.gazeSpeed = 1000;
+                        face.target = target.transform;
+                        target.transform.position = face.transform.position + new Vector3(10, 3, 0);
+                        yield return null; yield return null;
+                        Assert.That(face.isActiveAndEnabled, Is.True, entry.id);
+                        Assert.That(face.leftEye.pupilMotion.localPosition.sqrMagnitude, Is.GreaterThan(.001f), entry.id);
+                        Assert.That(face.leftEye.highlight.enabled, Is.True, entry.id);
+                        face.Blink(); Assert.That(face.IsBlinking, Is.True);
+                        face.ShowHit();
+                        Assert.That(face.mouth.sprite, Is.SameAs(face.hurtMouth), entry.id);
+                        face.ResetExpression();
+                        Assert.That(face.mouth.sprite, Is.SameAs(face.normalMouth), entry.id);
+                        Assert.That(face.mouth.enabled, Is.True, entry.id);
+                        foreach (var eye in new[] {face.leftEye, face.rightEye})
+                            if (eye.brow) Assert.That(eye.brow.enabled, Is.False, entry.id);
+                    }
+                    finally { Object.DestroyImmediate(rig.gameObject); }
+                }
+            }
+            finally { Object.DestroyImmediate(target); }
+        }
+
         [Test]
         public void EyeHighlightsStayWholeAtEveryGazeEdgeAndRespectClosedEyes()
         {
@@ -23,11 +59,17 @@ namespace DoodleIdle.Tests
                     foreach(float side in new[]{1f,-1f})
                     {
                         rig.transform.localScale=new Vector3(side*.7f,1.2f,1);rig.transform.rotation=Quaternion.Euler(0,0,17);
+                        rig.transform.position=new Vector3(7,-11,0);
                         for(int i=0;i<16;i++)
                         {
                             var direction=new Vector2(Mathf.Cos(i*Mathf.PI/8),Mathf.Sin(i*Mathf.PI/8));
                             foreach(var eye in new[]{face.leftEye,face.rightEye})eye.pupilMotion.localPosition=Vector2.Scale(direction,eye.travel);
                             face.RefreshHighlights();
+                            var beforeLeft=face.leftEye.highlightMotion.position;
+                            var beforeRight=face.rightEye.highlightMotion.position;
+                            for(int repeat=0;repeat<16;repeat++)face.RefreshHighlights();
+                            Assert.That(Vector3.Distance(beforeLeft,face.leftEye.highlightMotion.position),Is.LessThan(.0001f),"Left glint must not drift");
+                            Assert.That(Vector3.Distance(beforeRight,face.rightEye.highlightMotion.position),Is.LessThan(.0001f),"Right glint must not drift");
                             foreach(var eye in new[]{face.leftEye,face.rightEye})
                             {
                                 Assert.That(eye.highlight.enabled,Is.True,prefab.name+" direction "+i);
@@ -210,7 +252,7 @@ namespace DoodleIdle.Tests
         }
 
         [Test]
-        public void AllPlayerAndEnemySkinsUsePrefabFaceAnchors()
+        public void AllSkinsIncludingCompanionsUsePrefabFaceAnchors()
         {
             foreach (var group in DoodleCharacterCatalog.Current.entries.GroupBy(e => e.prefab))
             {
@@ -225,16 +267,22 @@ namespace DoodleIdle.Tests
                     foreach (var eye in new[] { face.leftEye, face.rightEye })
                     {
                         Assert.That(eye.pupilMask, Is.Not.Null);
-                        Assert.That(eye.pupil.maskInteraction, Is.EqualTo(SpriteMaskInteraction.VisibleInsideMask));
+                        Assert.That(eye.pupil.sharedMaterial.shader.name, Is.EqualTo("DoodleIdle/Pupil Clip"));
+                        Assert.That(eye.pupilMask.enabled, Is.False, "The authored mask is sampled by the pupil shader");
                         Assert.That(eye.white.GetComponentInParent<SortingGroup>(), Is.SameAs(eye.pupil.GetComponentInParent<SortingGroup>()));
                     }
                     face.leftEye.pupilMotion.parent.localPosition += new Vector3(.17f,.23f,0);
-                    var positions = face.GetComponentsInChildren<Transform>(true).ToDictionary(t=>t,t=>t.localPosition);
+                    var positions = face.GetComponentsInChildren<Transform>(true)
+                        .Where(t => t != face.leftEye.highlightMotion && t != face.rightEye.highlightMotion)
+                        .ToDictionary(t=>t,t=>t.localPosition);
                     var controller = rig.animator.runtimeAnimatorController;
                     foreach (var entry in group)
                     {
                         rig.SetAppearance(entry.appearance);
-                        Assert.That(face.gameObject.activeSelf, Is.EqualTo(entry.group != "Companions"), entry.id);
+                        Assert.That(face.gameObject.activeSelf, Is.True, entry.id);
+                        Assert.That(face.mouth.enabled, Is.True, entry.id);
+                        foreach (var eye in new[] {face.leftEye, face.rightEye})
+                            if (eye.brow) Assert.That(eye.brow.enabled, Is.EqualTo(entry.group != "Companions"), entry.id);
                         Assert.That(rig.animator.runtimeAnimatorController, Is.SameAs(controller));
                         foreach (var item in positions)
                             Assert.That(item.Key.localPosition, Is.EqualTo(item.Value), entry.id + "/" + item.Key.name);
@@ -247,7 +295,7 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator GazeTracksWorldTargetAcrossMirroringAndHeadRotation()
         {
-            var rig = Object.Instantiate(DoodleCharacterCatalog.Current.entries.First(e=>e.group=="Player").prefab);
+            var rig = Object.Instantiate(DoodleCharacterCatalog.Current.entries.First(e=>e.group=="Enemies").prefab);
             var target = new GameObject("Face test target");
             try
             {
@@ -299,6 +347,33 @@ namespace DoodleIdle.Tests
                 Assert.That(face.target, Is.Null);
             }
             finally { Object.DestroyImmediate(rig.gameObject); }
+        }
+
+        [UnityTest]
+        public IEnumerator PooledFacesRestoreGlintsBeforeTheirFirstVisibleFrame()
+        {
+            foreach (var entry in DoodleCharacterCatalog.Current.entries.Where(e => e.group == "Enemies").GroupBy(e => e.appearance.rigType).Select(g => g.First())) {
+                var root = new GameObject("Pooled face regression", typeof(SpriteRenderer));
+                try {
+                    var visual = root.AddComponent<DoodleRigVisual>(); visual.Configure(entry);
+                    var face = visual.Rig.face;
+                    face.ShowHit(); visual.ParkRig();
+                    Assert.That(face.IsHurt, Is.False); Assert.That(face.enabled, Is.False);
+                    root.transform.position = new Vector3(12, -7, 0);
+                    root.transform.rotation = Quaternion.Euler(0, 0, 23);
+                    root.transform.localScale = new Vector3(-1.3f, .8f, 1);
+                    visual.RestoreRig();
+                    Assert.That(face.enabled, Is.True);
+                    Assert.That(face.mouth.sprite, Is.SameAs(face.normalMouth));
+                    foreach (var eye in new[] { face.leftEye, face.rightEye }) {
+                        Assert.That(eye.highlight.enabled, Is.True, entry.id);
+                        var first = eye.highlightMotion.localPosition;
+                        face.RefreshHighlights();
+                        Assert.That(Vector3.Distance(first, eye.highlightMotion.localPosition), Is.LessThan(.0001f), "No deferred visible-frame correction: " + entry.id);
+                    }
+                } finally { Object.DestroyImmediate(root); }
+            }
+            yield return null;
         }
     }
 }

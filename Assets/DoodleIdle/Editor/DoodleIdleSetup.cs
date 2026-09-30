@@ -14,14 +14,16 @@ namespace DoodleIdle.Editor
         {
             if (!assetPath.StartsWith("Assets/DoodleIdle/Resources/DoodleIdle/")) return;
             var importer = (TextureImporter)assetImporter;
-            bool portrait = assetPath.Contains("/RigPortraits/");
+            bool popup = assetPath.Contains("/PopupPortraits/");
+            bool idleAtlas = popup && assetPath.EndsWith("_idle.png", StringComparison.Ordinal);
+            bool portrait = assetPath.Contains("/RigPortraits/") || popup && !idleAtlas;
             importer.textureType = portrait ? TextureImporterType.Sprite : TextureImporterType.Default;
             if (portrait) { importer.spriteImportMode = SpriteImportMode.Single; importer.spritePixelsPerUnit = 256; }
-            importer.isReadable = true;
+            importer.isReadable = !popup;
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
             importer.filterMode = FilterMode.Bilinear;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.textureCompression = idleAtlas ? TextureImporterCompression.CompressedHQ : TextureImporterCompression.Uncompressed;
             importer.maxTextureSize = 2048;
         }
     }

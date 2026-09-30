@@ -23,6 +23,7 @@ namespace DoodleIdle.CharacterRigs
             public Transform highlightMotion;
             [Tooltip("눈 로컬 좌표 기준 눈동자의 최대 이동 범위")]
             public Vector2 travel = new Vector2(.12f, .08f);
+            [System.NonSerialized] internal CharacterPupilClip clip;
         }
 
         public Eye leftEye = new Eye();
@@ -36,17 +37,32 @@ namespace DoodleIdle.CharacterRigs
         [Min(.01f)] public float hurtDuration = .3f;
         [Min(0)] public float gazeSpeed = 14f;
         [Min(.01f)] public float gazeDistance = 2f;
+        [Tooltip("시선을 좌우 두 방향으로 고정하고 타겟이 없으면 마지막 방향을 유지합니다.")]
+        public bool horizontalGazeOnly;
+        float horizontalDirection = 1;
         public bool blinking = true;
         public Vector2 blinkInterval = new Vector2(2.5f, 5.5f);
         [Min(.01f)] public float blinkDuration = .13f;
         public Transform target;
         public bool Paused { get; set; }
+        public CharacterFaceView View { get; set; }
         public bool IsHurt => hurtRemaining > 0;
         public bool IsBlinking => blinkRemaining > 0 && !IsHurt;
         float hurtRemaining;
         float blinkRemaining;
         float activeBlinkDuration;
         float nextBlink;
+        bool showMouth = true, showBrows = true;
+        bool tintValid;
+        Color previousTint;
+        bool suspendingForPool;
+        bool highlightsPending;
+
+        public void SetFaceParts(bool mouthVisible, bool browsVisible)
+        {
+            showMouth = mouthVisible; showBrows = browsVisible;
+            SetExpression(IsHurt);
+        }
         // Cosmetic randomness must not consume the combat RNG sequence.
         System.Random blinkRandom;
 
@@ -59,57 +75,89 @@ namespace DoodleIdle.CharacterRigs
         }
 
         void OnEnable() { ResetExpression(); SyncSorting(); }
-        void OnDisable() { target = null; ResetExpression(); }
+        void OnDisable() { target = null; ResetExpressionState(gameObject.activeInHierarchy && !suspendingForPool); }
+
+        public void SuspendForPool()
+        {
+            // The whole rig is hidden immediately after this call. Defer glint fitting
+            // until OnEnable, after its new position and idle bones have been restored.
+            suspendingForPool = true;
+            enabled = false;
+            suspendingForPool = false;
+        }
 
         public void ResetExpression()
+        {
+            ResetExpressionState(true);
+        }
+
+        void ResetExpressionState(bool refreshHighlights)
         {
             hurtRemaining = 0;
             blinkRemaining = 0;
             ScheduleBlink();
-            SetExpression(false);
-            if (leftEye.pupilMotion) leftEye.pupilMotion.localPosition = Vector3.zero;
-            if (rightEye.pupilMotion) rightEye.pupilMotion.localPosition = Vector3.zero;
-            RefreshHighlights();
+            if (leftEye.pupilMotion) leftEye.pupilMotion.localPosition = horizontalGazeOnly ? new Vector3(horizontalDirection * leftEye.travel.x, 0, 0) : Vector3.zero;
+            if (rightEye.pupilMotion) rightEye.pupilMotion.localPosition = horizontalGazeOnly ? new Vector3(horizontalDirection * rightEye.travel.x, 0, 0) : Vector3.zero;
+            SetExpression(false, refreshHighlights); // Fits after the pupils reach their reset positions.
         }
 
         public void ShowHit()
         {
             if (!isActiveAndEnabled) return;
+            bool alreadyHurt = IsHurt;
             blinkRemaining = 0;
             ScheduleBlink();
             hurtRemaining = hurtDuration;
-            SetExpression(true);
+            // Repeated hits extend the reaction without reassigning the same sprites
+            // and fitting two already hidden glints for every damage event.
+            if (!alreadyHurt) SetExpression(true);
         }
 
         public void Blink()
         {
+            BeginBlink(true);
+        }
+
+        void BeginBlink(bool refreshHighlights)
+        {
             if (!isActiveAndEnabled || IsHurt || Paused) return;
             blinkRemaining = Mathf.Max(.01f, blinkDuration);
             activeBlinkDuration = blinkRemaining;
-            SetExpression(false);
+            SetExpression(false, refreshHighlights);
         }
 
         // Run after Animator evaluation: quad Move animates the head's sorting order.
         public void SyncSorting()
         {
             if (!headRenderer || !sortingGroup) return;
-            sortingGroup.sortingLayerID = headRenderer.sortingLayerID;
-            sortingGroup.sortingOrder = Mathf.Clamp(headRenderer.sortingOrder + Mathf.Max(1, sortingOffset), -32768, 32767);
+            if(sortingGroup.sortingLayerID!=headRenderer.sortingLayerID)sortingGroup.sortingLayerID=headRenderer.sortingLayerID;
+            int order=Mathf.Clamp(headRenderer.sortingOrder+Mathf.Max(1,sortingOffset),-32768,32767);
+            if(sortingGroup.sortingOrder!=order)sortingGroup.sortingOrder=order;
         }
 
-        void SetExpression(bool hurt)
+        void SetExpression(bool hurt, bool refreshHighlights = true)
         {
             SetEye(leftEye, hurt); SetEye(rightEye, hurt);
             UpdateLids();
-            if (mouth) mouth.sprite = hurt ? hurtMouth : normalMouth;
-            RefreshHighlights();
+            if (mouth) { mouth.enabled = showMouth; mouth.sprite = hurt ? hurtMouth : normalMouth; }
+            // Bound world faces get their final pose/camera in LateUpdate. Fitting
+            // here as well repeats the work for every pooled respawn in FixedUpdate.
+            // Unbound portraits/tools still refresh synchronously.
+            if (refreshHighlights && (View == null || Paused || !isActiveAndEnabled)) RefreshHighlights();
+            else {
+                highlightsPending |= refreshHighlights;
+                if (hurt) {
+                    if (leftEye.highlight) leftEye.highlight.enabled = false;
+                    if (rightEye.highlight) rightEye.highlight.enabled = false;
+                }
+            }
         }
 
-        static void SetEye(Eye eye, bool hurt)
+        void SetEye(Eye eye, bool hurt)
         {
             if (eye.white) eye.white.sprite = hurt ? eye.hurt : eye.normal;
             if (eye.pupil) eye.pupil.enabled = !hurt;
-            if (eye.brow) eye.brow.enabled = !hurt;
+            if (eye.brow) eye.brow.enabled = showBrows && !hurt;
         }
 
         void UpdateLids()
@@ -128,11 +176,13 @@ namespace DoodleIdle.CharacterRigs
 
         static void SetLid(Eye eye, float openness)
         {
-            if (eye.lidMotion) eye.lidMotion.localScale = new Vector3(1, openness, 1);
+            if (eye.lidMotion) { var scale=new Vector3(1,openness,1);if(!eye.lidMotion.localScale.Equals(scale))eye.lidMotion.localScale=scale; }
         }
 
         public void SetTint(Color color)
         {
+            if(tintValid && previousTint==color)return;
+            tintValid=true;previousTint=color;
             TintEye(leftEye, color); TintEye(rightEye, color);
             if (mouth) mouth.color = color;
         }
@@ -145,85 +195,142 @@ namespace DoodleIdle.CharacterRigs
             if (eye.highlight) eye.highlight.color = color;
         }
 
+        static readonly Unity.Profiling.ProfilerMarker faceMarker = new Unity.Profiling.ProfilerMarker("Doodle/FaceLate");
         void LateUpdate()
         {
+            using var sample = faceMarker.Auto();
             SyncSorting();
-            if (Paused) return;
+            if (Paused) {
+                // A rig can be restored just before its owner publishes the pause.
+                // Finish that one pending visual update without advancing any timers.
+                if (highlightsPending) RefreshHighlights();
+                return;
+            }
             if (hurtRemaining > 0)
             {
                 hurtRemaining = Mathf.Max(0, hurtRemaining - Time.deltaTime);
-                if (hurtRemaining == 0) SetExpression(false);
+                if (hurtRemaining == 0) SetExpression(false, false);
             }
             else if (!blinking)
             {
-                if (blinkRemaining > 0) { blinkRemaining = 0; SetExpression(false); }
+                if (blinkRemaining > 0) { blinkRemaining = 0; SetExpression(false, false); }
             }
             else if (blinkRemaining > 0)
             {
                 blinkRemaining = Mathf.Max(0, blinkRemaining - Time.deltaTime);
-                if (blinkRemaining == 0) { ScheduleBlink(); SetExpression(false); }
+                if (blinkRemaining == 0) { ScheduleBlink(); SetExpression(false, false); }
             }
             else
             {
                 nextBlink -= Time.deltaTime;
                 if (nextBlink <= 0)
                 {
-                    Blink();
+                    BeginBlink(false);
                 }
             }
             UpdateLids();
             UpdateEye(leftEye); UpdateEye(rightEye);
-            RefreshHighlights();
+            // Timers and gaze continue off screen. Only the expensive visual fit is
+            // skipped; the current camera/eye bounds restore it on the first visible frame.
+            if (View == null || View.MaySee(leftEye.pupilMask) || View.MaySee(rightEye.pupilMask)) RefreshHighlights();
         }
 
         public void RefreshHighlights()
         {
+            UpdatePupilClip(leftEye); UpdatePupilClip(rightEye);
             UpdateHighlight(leftEye); UpdateHighlight(rightEye);
+            highlightsPending = false;
+        }
+
+        static void UpdatePupilClip(Eye eye)
+        {
+            // Editor portrait/setup tools must keep the authored prefab mask intact.
+            // A hidden pupil gets its updated matrix when its expression reopens.
+            if (!Application.isPlaying || !eye.pupil || !eye.pupil.enabled) return;
+            if (eye.clip == null) eye.clip = new CharacterPupilClip();
+            eye.clip.Apply(eye);
         }
 
         void UpdateHighlight(Eye eye)
         {
             if (!eye.highlight || !eye.highlightMotion || !eye.pupilMask || !eye.pupil) return;
-            eye.highlightMotion.localPosition = Vector3.zero;
-            if (IsHurt || !eye.pupil.enabled) { eye.highlight.enabled = false; return; }
+            var motion = eye.highlightMotion;
+            var previousOffset = motion.localPosition;
+            if (IsHurt || !eye.pupil.enabled) {
+                if (!previousOffset.Equals(Vector3.zero)) motion.localPosition = Vector3.zero;
+                if (eye.highlight.enabled) eye.highlight.enabled = false;
+                return;
+            }
             var highlight = eye.highlight;
-            var original = highlight.transform.TransformPoint(highlight.sprite.bounds.center);
+            var glintBounds = highlight.sprite.bounds;
+            var glintMatrix = highlight.transform.localToWorldMatrix;
+            var parent = motion.parent;
+            // Solve from the unshifted authored position without first moving the
+            // live hierarchy back to zero. Rewriting both positions every frame
+            // dirties the animated head and its descendant transforms twice.
+            var worldOffset = parent ? parent.TransformVector(previousOffset) : previousOffset;
+            glintMatrix.m03 -= worldOffset.x; glintMatrix.m13 -= worldOffset.y; glintMatrix.m23 -= worldOffset.z;
+            var mask = new GlintBoundary(eye.pupilMask.transform, eye.pupilMask.sprite, glintMatrix, glintBounds.extents);
+            var pupil = new GlintBoundary(eye.pupil.transform, eye.pupil.sprite, glintMatrix, glintBounds.extents);
+            var original = glintMatrix.MultiplyPoint3x4(glintBounds.center);
             var position = original;
-            bool fits = true;
+            bool fits = mask.radius > 0 && pupil.radius > 0;
             // Keep the whole glint in the intersection of the visible eye and pupil.
             // It is drawn without stencil clipping, so looking to an edge cannot cut it.
             for (int i = 0; i < 6; i++)
             {
                 var before = position;
-                position = FitCircle(position, eye.pupilMask.transform, eye.pupilMask.sprite, highlight, ref fits);
-                position = FitCircle(position, eye.pupil.transform, eye.pupil.sprite, highlight, ref fits);
+                position = mask.Fit(position);
+                position = pupil.Fit(position);
                 if ((position - before).sqrMagnitude < .0000000001f) break;
             }
-            var maskPosition = FitCircle(position, eye.pupilMask.transform, eye.pupilMask.sprite, highlight, ref fits);
+            var maskPosition = mask.Fit(position);
             // Very narrow lids leave no room for a whole glint; hide it with the blink.
-            eye.highlight.enabled = fits && (maskPosition - position).sqrMagnitude < .000001f;
-            eye.highlightMotion.position += position - original;
+            bool visible = fits && (maskPosition - position).sqrMagnitude < .000001f;
+            if (eye.highlight.enabled != visible) eye.highlight.enabled = visible;
+            var nextOffset = parent ? parent.InverseTransformVector(position - original) : position - original;
+            if (!previousOffset.Equals(nextOffset)) motion.localPosition = nextOffset;
         }
 
-        static Vector3 FitCircle(Vector3 point, Transform shape, Sprite sprite, SpriteRenderer glint, ref bool fits)
+        readonly struct GlintBoundary
         {
-            var bounds = sprite.bounds;
-            var radius = Mathf.Min(bounds.extents.x, bounds.extents.y) * .89f;
-            var half = glint.sprite.bounds.extents;
-            var x = shape.InverseTransformVector(glint.transform.TransformVector(new Vector3(half.x,0,0)));
-            var y = shape.InverseTransformVector(glint.transform.TransformVector(new Vector3(0,half.y,0)));
-            // Conservative bound also supports rotated, mirrored and non-uniform prefab scales.
-            radius -= Mathf.Sqrt(x.sqrMagnitude + y.sqrMagnitude);
-            if (radius <= 0) { fits = false; return point; }
-            var local = shape.InverseTransformPoint(point);
-            var offset = Vector2.ClampMagnitude((Vector2)local - (Vector2)bounds.center, radius);
-            local.x = bounds.center.x + offset.x; local.y = bounds.center.y + offset.y;
-            return shape.TransformPoint(local);
+            readonly Matrix4x4 toLocal, toWorld;
+            readonly Vector2 center;
+            public readonly float radius;
+            public GlintBoundary(Transform shape, Sprite sprite, Matrix4x4 glintMatrix, Vector3 half)
+            {
+                // Read native transform/bounds data once per eye, not on every
+                // intersection iteration. Still reflects all prefab edits this frame.
+                toLocal = shape.worldToLocalMatrix; toWorld = shape.localToWorldMatrix;
+                var bounds = sprite.bounds; center = bounds.center;
+                var x = toLocal.MultiplyVector(glintMatrix.MultiplyVector(new Vector3(half.x,0,0)));
+                var y = toLocal.MultiplyVector(glintMatrix.MultiplyVector(new Vector3(0,half.y,0)));
+                radius = Mathf.Min(bounds.extents.x, bounds.extents.y) * .89f - Mathf.Sqrt(x.sqrMagnitude + y.sqrMagnitude);
+            }
+            public Vector3 Fit(Vector3 point)
+            {
+                if (radius <= 0) return point;
+                var local = toLocal.MultiplyPoint3x4(point);
+                var offset = Vector2.ClampMagnitude((Vector2)local - center, radius);
+                local.x = center.x + offset.x; local.y = center.y + offset.y;
+                return toWorld.MultiplyPoint3x4(local);
+            }
         }
 
         void UpdateEye(Eye eye)
         {
             if (!eye.pupilMotion) return;
+            if (horizontalGazeOnly)
+            {
+                if (target && target.gameObject.activeInHierarchy)
+                {
+                    float side = transform.InverseTransformPoint(target.position).x;
+                    if (Mathf.Abs(side) > .05f) horizontalDirection = Mathf.Sign(side);
+                }
+                var horizontalOffset = new Vector3(horizontalDirection * eye.travel.x, 0, 0);
+                if (!eye.pupilMotion.localPosition.Equals(horizontalOffset)) eye.pupilMotion.localPosition = horizontalOffset;
+                return;
+            }
             Vector2 direction = Vector2.zero;
             if (target && target.gameObject.activeInHierarchy)
             {
@@ -234,7 +341,9 @@ namespace DoodleIdle.CharacterRigs
             }
             var offset = new Vector3(direction.x * eye.travel.x, direction.y * eye.travel.y, 0);
             float blend = 1 - Mathf.Exp(-gazeSpeed * Time.deltaTime);
-            eye.pupilMotion.localPosition = Vector3.Lerp(eye.pupilMotion.localPosition, offset, blend);
+            var previousPosition = eye.pupilMotion.localPosition;
+            var nextPosition = Vector3.Lerp(previousPosition, offset, blend);
+            if (!previousPosition.Equals(nextPosition)) eye.pupilMotion.localPosition = nextPosition;
         }
     }
 }

@@ -9,6 +9,43 @@ using Object = UnityEngine.Object;
 
 namespace DoodleIdle.Tests
 {
+    public sealed class DoodleGameNumberBoundaryTests
+    {
+        [TestCase(int.MinValue)]
+        [TestCase(int.MinValue + 1)]
+        [TestCase(-1000)]
+        [TestCase(0)]
+        [TestCase(1000)]
+        [TestCase(int.MaxValue - 1)]
+        [TestCase(int.MaxValue)]
+        public void ArithmeticCrossesCompactExponentBoundaryWithoutChangingValues(int exponent)
+        {
+            var value = new GameNumber(9.25, new System.Numerics.BigInteger(exponent));
+            foreach (int shift in new[] { -10, -1, 0, 1, 10 }) {
+                var shifted = value * new GameNumber(1, shift);
+                Assert.That(shifted.Exponent, Is.EqualTo(new System.Numerics.BigInteger(exponent) + shift));
+                Assert.That(shifted.Mantissa, Is.EqualTo(9.25));
+                Assert.That(shifted / value, Is.EqualTo(new GameNumber(1, shift)));
+                Assert.That(GameNumber.TryParse(shifted.ToString(), out var restored), Is.True);
+                Assert.That(restored, Is.EqualTo(shifted));
+                Assert.That(restored.GetHashCode(), Is.EqualTo(shifted.GetHashCode()));
+                Assert.That(-shifted < 0, Is.True);
+            }
+            Assert.That(value - value, Is.EqualTo(default(GameNumber)));
+            Assert.That(GameNumber.Pow(value, 2).Exponent, Is.EqualTo(new System.Numerics.BigInteger(exponent) * 2 + 1));
+        }
+        [Test]
+        public void CommonCombatArithmeticDoesNotAllocateExponentStrings()
+        {
+            GameNumber value = 123.5;
+            for (int i = 0; i < 10; i++) value = (value + 2) * 3 / 3 - 2;
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 1000; i++) value = (value + 2) * 3 / 3 - 2;
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.That((double)value, Is.EqualTo(123.5).Within(1e-8));
+            Assert.That(allocated, Is.EqualTo(0), "Protected common exponents should use value storage.");
+        }
+    }
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
@@ -259,17 +296,33 @@ namespace DoodleIdle.Tests
             type.GetField("isBoss").SetValue(oldActor, true); oldRoot.GetComponent<Rigidbody2D>().mass = 50;
             release.Invoke(game, new[] { oldActor }); release.Invoke(game, new[] { oldActor });
             int created = game.EnemyObjectsCreated, reused = game.EnemyObjectsReused;
+            var rootsByType=new System.Collections.Generic.Dictionary<string,GameObject>();
+            var initialVisual=(DoodleRigVisual)type.GetField("rigVisual").GetValue(oldActor);
+            rootsByType[initialVisual.Rig.rigType]=oldRoot;
             for (int i = 0; i < 200; i++) {
                 var actor = create.Invoke(game, new object[] { false, new Vector2(i, 2), i % 3 });
                 Assert.That(ReferenceEquals(actor, oldActor), Is.False);
-                Assert.That(type.GetField("root").GetValue(actor), Is.SameAs(oldRoot));
-                Assert.That(oldRoot.transform.localScale, Is.EqualTo(Vector3.one));
-                Assert.That(oldRoot.GetComponent<Rigidbody2D>().mass, Is.EqualTo(1));
+                var root=(GameObject)type.GetField("root").GetValue(actor);
+                var visual=(DoodleRigVisual)type.GetField("rigVisual").GetValue(actor);
+                if(rootsByType.TryGetValue(visual.Rig.rigType,out var expected))Assert.That(root,Is.SameAs(expected));
+                else rootsByType[visual.Rig.rigType]=root;
+                Assert.That(root.transform.localScale, Is.EqualTo(Vector3.one));
+                Assert.That(root.GetComponent<Rigidbody2D>().mass, Is.EqualTo(1));
                 Assert.That((bool)type.GetField("isBoss").GetValue(actor), Is.False);
                 Assert.That((GameNumber)type.GetField("hp").GetValue(oldActor), Is.EqualTo((GameNumber)0));
+                Assert.That(visual.Rig.face.enabled,Is.True);
+                Assert.That(visual.Rig.animator.enabled,Is.True);
+                Assert.That(visual.Rig.attackRange.enabled,Is.True);
                 release.Invoke(game, new[] { actor });
+                Assert.That(root.GetComponent<Rigidbody2D>().simulated, Is.False);
+                Assert.That(root.GetComponent<Collider2D>().enabled, Is.False);
+                Assert.That(visual.Rig.animator.speed, Is.Zero);
+                Assert.That(visual.Rig.animator.cullingMode, Is.EqualTo(AnimatorCullingMode.CullCompletely));
+                Assert.That(visual.Rig.attackRange.enabled,Is.False,"Parked native rigs must not keep attack sensors active.");
+                Assert.That(root.GetComponentsInChildren<SpriteRenderer>().All(r=>!r.enabled),Is.True,"Pooled roots must hide shadows and HP too.");
             }
-            Assert.That(game.EnemyObjectsCreated, Is.EqualTo(created)); Assert.That(game.EnemyObjectsReused - reused, Is.EqualTo(200));
+            Assert.That(game.EnemyObjectsCreated-created, Is.EqualTo(rootsByType.Count-1));
+            Assert.That(game.EnemyObjectsReused-reused,Is.EqualTo(200-(rootsByType.Count-1)));
             var rent = typeof(DoodleIdleGame).GetMethod("RentVisual", GrowthPrivate);
             var giveBack = typeof(DoodleIdleGame).GetMethod("ReleaseVisual", GrowthPrivate);
             var sprite = oldRoot.GetComponentsInChildren<SpriteRenderer>(true).First().sprite;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -363,6 +363,8 @@ namespace DoodleIdle.Tests
             UnityEngine.SceneManagement.SceneManager.SetActiveScene(testScene);
             yield return null;
             game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
+            float readyDeadline = Time.realtimeSinceStartup + 60;
+            while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
             Assert.That(game.Ready, Is.True);
             Assert.That(game.Ui, Is.Not.Null);
             Assert.That(game.Ui.Canvas.isActiveAndEnabled, Is.True);

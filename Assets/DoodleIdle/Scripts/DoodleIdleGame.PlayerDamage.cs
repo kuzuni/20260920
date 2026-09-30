@@ -43,11 +43,15 @@ namespace DoodleIdle
                 if (enemy.meleeCooldown > 0 || !EnemyInAttackRange(enemy)) continue;
                 // Even harmless tutorial enemies play their attack. Damage is resolved
                 // only when their clip reaches OnAttackImpact, after the wind-up.
-                if (enemy.rigVisual && enemy.rigVisual.TryAttack(() => ResolveEnemyAttack(enemy)))
+                if (enemy.rigVisual && enemy.rigVisual.TryAttack(enemy.attackImpact ??= CreateEnemyAttackImpact(enemy)))
                     enemy.meleeCooldown = enemyAttackInterval;
             }
             UpdatePlayerHealthBar();
         }
+
+        // Construct the closure only for an enemy that actually attacks. Capturing the
+        // foreach variable inline allocates a closure for every enemy on every physics step.
+        System.Action CreateEnemyAttackImpact(Actor enemy) => () => ResolveEnemyAttack(enemy);
 
         bool EnemyInAttackRange(Actor enemy)
         {

@@ -11,6 +11,7 @@ namespace DoodleIdle
     public sealed partial class DoodleUi : MonoBehaviour
     {
         DoodleIdleGame game;
+        public DoodleIdle.CharacterRigs.CharacterRig PortraitSourceRig => game ? game.PlayerPortraitRig : null;
         Font font;
         GameNumber goldAmount;
         public GameNumber GoldAmount { get => goldAmount; set => goldAmount = GameNumber.Round(GameNumber.Max(0, value)); }
@@ -77,6 +78,7 @@ namespace DoodleIdle
             header=UiKit.Row(safe,"Profile and currencies",92,9); Anchor(header,new Vector2(.5f,1),new Vector2(0,-58),new Vector2(696,92));
             var p=UiKit.Box(header,"Profile",UiKit.Paper,84); var row=UiKit.Row(p,"Profile contents",80,7); UiKit.Stretch(row,9,2,9,2);
             profilePortrait=UiKit.Icon(row,EquippedAppearanceIcon,72); profile=UiKit.Text(row,"",28,TextAnchor.MiddleLeft,76); UiKit.Flexible(p,1.75f);
+            profilePortrait.gameObject.AddComponent<DoodleIdlePortrait>().Configure(this,DoodleIdlePortrait.View.Profile);
             var gold=UiKit.Box(header,"Gold wallet",UiKit.Paper,66); var g=UiKit.Row(gold,"Gold",62,2); UiKit.Stretch(g,7,2,7,2); UiKit.Icon(g,"Gold",38); walletGold=UiKit.Text(g,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(gold,1.05f);
             var diamond=UiKit.Box(header,"Diamond wallet",UiKit.Paper,66); var d=UiKit.Row(diamond,"Diamonds",62,2); UiKit.Stretch(d,7,2,7,2); UiKit.Icon(d,"Diamond",39); walletDiamond=UiKit.Text(d,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(diamond,.9f);
             var settings=IconButton(header,"Settings","","Settings",()=>ShowPage("Settings"),68); FixedWidth(settings.transform,64); settings.GetComponent<Image>().color=Color.clear; settings.GetComponent<Outline>().enabled=false; UiKit.Stretch(settings.transform.Find("Icon: Settings") as RectTransform,0,0,0,0);
@@ -175,6 +177,7 @@ namespace DoodleIdle
             mission.sizeDelta=new Vector2(tall?300:270,tall?184:152);mission.anchoredPosition=new Vector2(tall?-160:-145,tall?408:278);missionText.resizeTextMaxSize=tall?24:19;UiKit.Height(missionText.transform,tall?96:68);
             Anchor(cameraControl,new Vector2(0,0),new Vector2(96,tall?329:208),new Vector2(164,tall?42:34));
             Anchor(stageInfo,new Vector2(.5f,1),new Vector2(0,-191),new Vector2(230,140));
+            bossLayoutValid = false;
             RefreshBossHud();
             foreach(var window in root.GetComponentsInChildren<DoodleUiWindow>()) if(!window.GetComponent<DoodlePopupMotion>() || !window.GetComponent<DoodlePopupMotion>().IsClosing) window.Reflow(safe);
             foreach(var rewards in root.GetComponentsInChildren<DoodleUiRewardLayout>()) rewards.Reflow();
@@ -362,9 +365,14 @@ namespace DoodleIdle
         static void ClearChildren(Transform parent) { if(!parent)return; foreach(Transform child in parent) { child.gameObject.SetActive(false); Destroy(child.gameObject); } }
         float nextHudTextRefresh;
         readonly List<UiItem> hudSkillBuffer = new List<UiItem>(8);
+        bool hudValuesValid;
+        GameNumber displayedHudPower, displayedHudGold;
+        int displayedHudDiamonds;
+        string displayedHudName, displayedHudAppearance;
+        readonly string[] hudSkillIcons = new string[8];
         void LateUpdate()
         {
-            if(!initialized)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
+            if(!initialized || !game.Ready)return; if(releaseLatch&&(Pointer.current==null||!Pointer.current.press.isPressed))releaseLatch=false;
             Relayout(); CreditPendingFieldGold(); TickServices(); FlushCombatSave();
             if(Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){if(HasOverlay)CloseDetail();else if(ActivePage!=null)ClosePage();}
             if (Time.unscaledTime >= nextHudTextRefresh) { nextHudTextRefresh = Time.unscaledTime + .1f; RefreshHud(); }
@@ -374,7 +382,14 @@ namespace DoodleIdle
         }
         public void RefreshHud()
         {
-            if(!initialized)return; RefreshStatWallet(); profilePortrait.sprite=UiKit.Art(EquippedAppearanceIcon); profile.text=PlayerName+"\n전투력 "+UiNumber.Format(PowerAmount); walletGold.text=UiNumber.Format(GoldAmount); walletDiamond.text=Diamonds.ToString("N0");
+            if(!initialized)return; RefreshStatWallet();
+            var power = PowerAmount; var gold = GoldAmount; int diamonds = Diamonds;
+            string playerName = PlayerName, appearance = EquippedAppearanceIcon;
+            if (!hudValuesValid || displayedHudAppearance != appearance) { displayedHudAppearance = appearance; profilePortrait.sprite = UiKit.Art(appearance); }
+            if (!hudValuesValid || displayedHudPower != power || displayedHudName != playerName) { displayedHudPower = power; displayedHudName = playerName; profile.text = playerName+"\n전투력 "+UiNumber.Format(power); }
+            if (!hudValuesValid || displayedHudGold != gold) { displayedHudGold = gold; walletGold.text = UiNumber.Format(gold); }
+            if (!hudValuesValid || displayedHudDiamonds != diamonds) { displayedHudDiamonds = diamonds; walletDiamond.text = diamonds.ToString("N0"); }
+            hudValuesValid = true;
             buffGold.text=GoldBuffSeconds>0?Duration(GoldBuffSeconds):"비활성"; buffAttack.text=AttackBuffSeconds>0?Duration(AttackBuffSeconds):"비활성"; missionText.text=MainMissionText;
             missionClaim.interactable=CanClaimMainMission;cameraLabel.text="카메라  "+CameraMode;
             missionDiamonds.text=MainMissionReward.ToString();
@@ -389,7 +404,16 @@ namespace DoodleIdle
         }
         void RefreshHudSkills()
         {
-            var skills=hudSkillBuffer; FillEquippedItems("Skill",skills); for(int i=0;i<8;i++) { bool locked=i>=UnlockedSkillSlots; bool found=i<skills.Count; hudIcons[i].enabled=!locked; hudLocks[i].gameObject.SetActive(locked); hudIcons[i].sprite=UiKit.Art(found?skills[i].icon:"AddSlot"); hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f); hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0; }
+            var skills=hudSkillBuffer; FillEquippedItems("Skill",skills); int slots = UnlockedSkillSlots;
+            for(int i=0;i<8;i++) {
+                bool locked=i>=slots, found=i<skills.Count;
+                if (hudIcons[i].enabled == locked) hudIcons[i].enabled = !locked;
+                if (hudLocks[i].gameObject.activeSelf != locked) hudLocks[i].gameObject.SetActive(locked);
+                string icon = found ? skills[i].icon : "AddSlot";
+                if (hudSkillIcons[i] != icon) { hudSkillIcons[i] = icon; hudIcons[i].sprite = UiKit.Art(icon); }
+                hudIcons[i].color=found?Color.white:new Color(1,1,1,.65f);
+                hudMasks[i].fillAmount=found?game.UiCooldown(skills[i].ability):0;
+            }
         }
         static string Duration(double seconds) => ServiceClock((int)Math.Max(0,Math.Min(int.MaxValue,Math.Ceiling(seconds))));
         public float UiDamageMultiplier => (float)(CombatDamageAmount*AttackBuffMultiplier);

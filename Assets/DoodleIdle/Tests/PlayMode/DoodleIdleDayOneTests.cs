@@ -47,7 +47,7 @@ namespace DoodleIdle.Tests
                 var enemies = (IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
                 foreach (var enemy in enemies) {
                     var type = enemy.GetType();
-                    Assert.That(((SpriteRenderer)type.GetField("art").GetValue(enemy)).sprite.name,Does.StartWith("Desert"));
+                    Assert.That(((DoodleRigVisual)type.GetField("rigVisual").GetValue(enemy)).Entry.theme,Is.EqualTo(1),"Desert enemies use the current prefab catalog.");
                     Assert.That((float)(GameNumber)type.GetField("maxHp").GetValue(enemy),Is.EqualTo(68 * ui.EnemyHealthMultiplier(101)).Within(.1));
                 }
                 Assert.That(ui.UnlockedSkillSlots,Is.EqualTo(4));

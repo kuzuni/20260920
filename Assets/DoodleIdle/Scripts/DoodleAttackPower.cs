@@ -110,8 +110,12 @@ namespace DoodleIdle
         public float SkillPowerMultiplier(string ability) => (float)SkillPowerAmount(ability);
         public GameNumber SkillPowerAmount(string ability)
         {
-            foreach (var item in collectionItems) if (item.category == "Skill" && item.ability == ability) return SkillItemAmount(item);
-            return 1;
+            if (combatSnapshot && snapshotSkillPowers.TryGetValue(ability, out var cached)) return cached;
+            GameNumber power = 1;
+            foreach (var item in collectionItems) if (item.category == "Skill" && item.ability == ability) { power = SkillItemAmount(item); break; }
+            // All hits in this physics step use the same inventory and tuning snapshot.
+            if (combatSnapshot) snapshotSkillPowers[ability] = power;
+            return power;
         }
         public GameNumber ItemHitPercentAmount(UiItem item) => (item.category == "Companion" ? CompanionWeightAmount(item) : DoodleAttackPower.Skill(item.ability).hitWeight * SkillItemAmount(item)) * 100 / DoodleAttackPower.ReferenceAttack;
         public float ItemHitPercent(UiItem item) => (float)ItemHitPercentAmount(item);

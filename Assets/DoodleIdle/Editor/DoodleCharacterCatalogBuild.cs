@@ -77,6 +77,7 @@ public sealed class DoodleCharacterCatalogBuild
             catalog.companionIds[index] = entries.Single(e => e.group == "Companions" && e.id.Substring(3) == item.id).id;
         }
         EditorUtility.SetDirty(catalog); AssetDatabase.SaveAssets(); AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        CharacterPopupPortraitSetup.Build();
         CharacterRigVerifier.Run();
         CheckReportErrors("verification_report.json");
         Directory.CreateDirectory("artifacts/character-reports");
@@ -97,6 +98,7 @@ public sealed class DoodleCharacterCatalogBuild
     static void Sample(CharacterRig rig, int pose) {
         rig.animator.enabled = false;
         rig.animator.runtimeAnimatorController.animationClips.First(c => c.name == (pose == 0 ? "Idle" : "Move")).SampleAnimation(rig.gameObject, pose == 0 ? 0 : .25f);
+        CharacterPopupPortraitSetup.LookRight(rig);
     }
     static int Theme(string id) {
         string[] names = {"meadow", "desert", "forest", "swamp", "volcano", "coast", "crystal", "twilight", "ruins", "glacier"};

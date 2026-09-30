@@ -353,6 +353,7 @@ namespace DoodleIdle.Tests
         [UnityTest]
         public IEnumerator SummonSkillsExportSeparateReadableCombatFrames()
         {
+            if(game.Ui.BreakthroughMode)game.Ui.ToggleBreakthroughMode(); // Keep both capture waves populated instead of entering the boss challenge.
             IsolateSummonTest();
             var bodies = EnemyBodies();
             for (int i = 0; i < 12; i++) Place(bodies[i], new Vector2(Mathf.Cos(i * Mathf.PI / 6), Mathf.Sin(i * Mathf.PI / 6)) * 4);

@@ -15,36 +15,51 @@ namespace DoodleIdle
             public CharacterRig prefab;
             public CharacterAppearance appearance;
             public Sprite[] portraits;
+            public Sprite appearancePortrait;
             public Vector3 center;
             public float extent;
+            [NonSerialized] public Sprite[] cachedPortraits;
         }
         public Entry[] entries;
         public string[] companionIds;
+        [NonSerialized] Entry[] playerEntries;
+        Dictionary<string,Entry> entriesById;
+        Dictionary<int,Entry[]> enemiesByTheme;
+        void OnEnable() { playerEntries = null; entriesById = null; enemiesByTheme = null; }
+        void EnsureLookup()
+        {
+            if(playerEntries!=null)return;
+            playerEntries=entries.Where(e=>e.group=="Player").OrderBy(e=>e.id,StringComparer.Ordinal).ToArray();
+            entriesById=entries.ToDictionary(e=>e.id);
+            enemiesByTheme=entries.Where(e=>e.group=="Enemies").GroupBy(e=>e.theme).ToDictionary(g=>g.Key,g=>g.ToArray());
+        }
         static DoodleCharacterCatalog current;
-        static readonly Dictionary<string, Sprite> portraits = new Dictionary<string, Sprite>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetCache() { current = null; portraits.Clear(); }
+        static void ResetCache() { current = null; }
         public static DoodleCharacterCatalog Current => current ? current : current = Resources.Load<DoodleCharacterCatalog>("DoodleIdle/CharacterCatalog")
             ?? throw new InvalidOperationException("Character catalog missing. Run Doodle Idle/Character Rigs/Build Runtime Catalog.");
-        public Entry Player(int costume) => entries.Where(e => e.group == "Player").OrderBy(e => e.id, StringComparer.Ordinal).ElementAt(Mathf.Clamp(costume + 1, 0, 40));
+        public Entry Player(int costume) { EnsureLookup(); return playerEntries[Mathf.Clamp(costume+1,0,playerEntries.Length-1)]; }
         public Entry Companion(int index)
         {
             // Retired icon indices remain loadable for old saves and effect previews.
             string id = index >= 0 && index < companionIds.Length ? companionIds[index] : null;
-            return entries.First(e => e.group == "Companions" && (id == null ? e.id.StartsWith("01_") : e.id == id));
+            EnsureLookup();return id!=null && entriesById.TryGetValue(id,out var entry)?entry:entries.First(e=>e.group=="Companions"&&e.id.StartsWith("01_"));
         }
         public Entry Enemy(int theme, int ordinal) {
-            var options = entries.Where(e => e.group == "Enemies" && e.theme == theme).ToArray();
+            EnsureLookup();var options = enemiesByTheme[theme];
             return options[Math.Abs(ordinal) % options.Length];
         }
         public static Sprite Portrait(Entry entry, int pose = 0) {
-            string key = entry.group + "/" + entry.id + "_" + (pose & 1);
-            if (portraits.TryGetValue(key, out var cached) && cached && cached.texture) return cached;
-            var source = entry.portraits[pose & 1];
+            int frame=pose&1;
+            if(entry.cachedPortraits==null)entry.cachedPortraits=new Sprite[2];
+            var cached=entry.cachedPortraits[frame];
+            if(cached && cached.texture)return cached;
+            var source = entry.portraits[frame];
             var value = Sprite.Create(source.texture, source.rect, Vector2.one * .5f, source.pixelsPerUnit, 0, SpriteMeshType.FullRect);
-            value.name = "PrefabPortrait " + key; portraits[key] = value; return value;
+            value.name = "PrefabPortrait " + entry.group + "/" + entry.id + "_" + frame; entry.cachedPortraits[frame] = value; return value;
         }
         public static Sprite PlayerPortrait(int costume = -1, int pose = 0) => Portrait(Current.Player(costume), pose);
+        public static Sprite PlayerAppearancePortrait(int costume) => Current.Player(costume).appearancePortrait;
         public static int Costume(string key) => key != null && key.StartsWith("SkinAppearance_", StringComparison.Ordinal) ? int.Parse(key.Split('_')[1]) : -1;
         public static Sprite LegacyPortrait(string key)
         {

@@ -25,7 +25,7 @@ public static class CharacterRigBuilder
     const float Ppu = 100f;
     const string Trigger = "Library/CharacterRig.build";
     static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-    [Serializable] public class Row { public string source, psb, type; public bool separatedFace; }
+    [Serializable] public class Row { public string source, psb, type; public bool separatedFace, friendlyEyes; }
     [Serializable] class Rows { public Row[] items; }
     [Serializable] class Report { public int characters, sprites, prefabs; public List<string> checks = new(); public List<string> errors = new(); }
     sealed class Part
@@ -191,6 +191,7 @@ public static class CharacterRigBuilder
         var sprites=AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().ToArray();
         var appearance=ScriptableObject.CreateInstance<CharacterAppearance>();appearance.rigType=row.type;appearance.characterId=Path.GetFileNameWithoutExtension(row.source);appearance.name=appearance.characterId;
         appearance.separatedFace = row.separatedFace;
+        appearance.friendlyEyes = row.friendlyEyes;
         appearance.parts=d.parts.Select(p=>
         {
             var sprite=sprites.Single(s=>s.name==p.name);var rect=rects.Single(r=>r.name==p.name);var cp=cd.parts.Single(c=>c.spriteId==rect.spriteID.ToString());

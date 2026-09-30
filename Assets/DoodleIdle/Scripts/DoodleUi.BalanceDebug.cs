@@ -159,12 +159,12 @@ namespace DoodleIdle
             if (!Ready) return;
             combatWaveResetRequested = false;
             ReleaseJoystick();
-            foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
+            foreach (var enemy in enemies) { enemy.hp = 0; ReleaseEnemy(enemy); }
             enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
             ClearExtraSkills(); ClearParticles(); ClearDamageNumbers();
-            foreach (var shot in shots) if (shot.visual) Destroy(shot.visual.gameObject);
+            foreach (var shot in shots) if (shot.visual) ReleaseVisual(shot.visual.gameObject);
             shots.Clear(); stoneVolleys.Clear();
-            foreach (var fleck in flecks) if (fleck.visual) Destroy(fleck.visual.gameObject);
+            foreach (var fleck in flecks) if (fleck.visual) ReleaseVisual(fleck.visual.gameObject);
             flecks.Clear();
             dashRemaining = swing = bananaCycleAge = 0;
             BananasActive = false;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace DoodleIdle
@@ -41,6 +41,30 @@ namespace DoodleIdle
         readonly List<UiItem> equippedCompanionBuffer = new List<UiItem>(8);
         readonly List<string> removedCompanionBuffer = new List<string>(8);
         readonly HashSet<string> equippedCompanionIds = new HashSet<string>();
+        CompanionActor PrepareCompanion(UiItem item, int i)
+        {
+            if (companions.TryGetValue(item.id, out var existing)) return existing;
+            var companion = new CompanionActor { item = item, clock = .5f + i * .15f,
+                art = new GameObject("Companion: " + item.id).AddComponent<SpriteRenderer>() };
+            companion.art.transform.SetParent(world, false); companion.art.transform.position = player.Position;
+            companion.art.transform.localScale = Vector3.one * .95f;
+            companion.rigVisual = companion.art.gameObject.AddComponent<DoodleRigVisual>();
+            companion.rigVisual.Configure(DoodleCharacterCatalog.Current.Companion(DoodleCollectionArt.CompanionIndex(item.icon)));
+            var bounds = companion.art.sprite.bounds;
+            companion.shadowOffset = Vector2.up * (bounds.min.y * .95f + .04f);
+            companion.shadow = Visual("Companion shadow: " + item.id, disc, player.Position + companion.shadowOffset,
+                new Vector2(Mathf.Clamp(bounds.size.x * .85f, .5f, .9f), .27f), -900);
+            companion.shadow.color = new Color(.08f, .07f, .06f, .32f);
+            companion.rigVisual.GroundShadow = companion.shadow;
+            companions[item.id] = companion;
+            return companion;
+        }
+        void PrepareEquippedCompanions()
+        {
+            if (!companionsEnabled || !Ui) return;
+            Ui.FillEquippedItems("Companion", equippedCompanionBuffer);
+            for (int i = 0; i < equippedCompanionBuffer.Count; i++) PrepareCompanion(equippedCompanionBuffer[i], i);
+        }
         void TickCompanions(float dt)
         {
             var equipped = equippedCompanionBuffer; Ui.FillEquippedItems("Companion", equipped);
@@ -53,22 +77,7 @@ namespace DoodleIdle
             if (companionsEnabled) for (int i = 0; i < equipped.Count; i++)
             {
                 var item = equipped[i];
-                if (!companions.TryGetValue(item.id, out var companion))
-                {
-                    companion = new CompanionActor { item = item, clock = .5f + i * .15f,
-                        art = new GameObject("Companion: " + item.id).AddComponent<SpriteRenderer>() };
-                    companion.art.transform.SetParent(world, false); companion.art.transform.position = player.Position;
-                    companion.art.transform.localScale = Vector3.one * .95f;
-                    companion.rigVisual = companion.art.gameObject.AddComponent<DoodleRigVisual>();
-                    companion.rigVisual.Configure(DoodleCharacterCatalog.Current.Companion(DoodleCollectionArt.CompanionIndex(item.icon)));
-                    var bounds = companion.art.sprite.bounds;
-                    companion.shadowOffset = Vector2.up * (bounds.min.y * .95f + .04f);
-                    companion.shadow = Visual("Companion shadow: " + item.id, disc, player.Position + companion.shadowOffset,
-                        new Vector2(Mathf.Clamp(bounds.size.x * .85f, .5f, .9f), .27f), -900);
-                    companion.shadow.color = new Color(.08f, .07f, .06f, .32f);
-                    companion.rigVisual.GroundShadow = companion.shadow;
-                    companions[item.id] = companion;
-                }
+                var companion = PrepareCompanion(item, i);
                 int index = DoodleCollectionArt.CompanionIndex(item.icon);
                 float angle = i * Mathf.PI * 2 / Mathf.Max(1, equipped.Count) + Mathf.PI * .5f;
                 Vector2 home = player.Position + Direction(angle) * 1.75f;
@@ -81,6 +90,11 @@ namespace DoodleIdle
                 companion.art.sprite = frame;
                 companion.rigVisual.Moving((home - old).sqrMagnitude > .01f);
                 companion.rigVisual.Paused = paused;
+                var gazeTarget = Closest(companion.art.transform.position);
+                companion.rigVisual.LookAt(Alive(gazeTarget) && gazeTarget.root.activeInHierarchy
+                    ? gazeTarget.rigVisual && gazeTarget.rigVisual.Rig.face
+                        ? gazeTarget.rigVisual.Rig.face.transform : gazeTarget.art.transform
+                    : null);
                 companion.art.flipX = companion.facingLeft;
                 companion.art.sortingOrder = Order(companion.art.transform.position) + 2;
                 companion.clock -= dt; companion.shotClock -= dt;

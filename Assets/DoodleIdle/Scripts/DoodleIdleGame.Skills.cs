@@ -54,6 +54,7 @@ namespace DoodleIdle
             public readonly List<Vector2> path = new List<Vector2>();
             public readonly List<SpriteRenderer> parts = new List<SpriteRenderer>();
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
+            public int nextHitCleanup = 128;
         }
         readonly List<ExtraShot> extraShots = new List<ExtraShot>();
         readonly List<Worm> worms = new List<Worm>();
@@ -361,7 +362,7 @@ namespace DoodleIdle
         {
             for (int n = worms.Count - 1; n >= 0; n--)
             {
-                var worm = worms[n]; worm.age += dt;
+                var worm = worms[n]; PruneRetiredHits(worm.nextHit, ref worm.nextHitCleanup); worm.age += dt;
                 float angle = worm.angle + worm.age * 2.3f;
                 Vector2 head = worm.origin + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (worm.age * 1.25f);
                 worm.path.Insert(0, head);

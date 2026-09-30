@@ -209,8 +209,6 @@ namespace DoodleIdle
             UiKit.Stretch(specification, 8, 8, 8, 8);
             var preview = SkinSlot(specification, selected, () => { }, 128f * 4 / 3);
             preview.name = "Selected skin preview";
-            var animatedPortrait = preview.GetComponentInChildren<DoodleSkinPortrait>();
-            if (animatedPortrait) animatedPortrait.Animate = true;
             var previewSize = preview.GetComponent<LayoutElement>();
             previewSize.minWidth = previewSize.preferredWidth = 128; previewSize.flexibleWidth = 0;
             var info = UiKit.Column(specification, "Skin information", 3, 0);
@@ -284,7 +282,8 @@ namespace DoodleIdle
         {
             var slot = UiKit.Slot(parent, skin.name, skin.icon, 0, skin.owned ? 1 : 0, 1, skin.equipped, !skin.owned, click, height);
             slot.GetComponent<DoodleUiSlotLayout>().grade.gameObject.SetActive(false);
-            slot.GetComponent<DoodleUiSlotLayout>().equippedLabelAtTop = true;
+            slot.GetComponent<DoodleUiSlotLayout>().equippedLabelAtTop = false;
+            slot.GetComponent<DoodleUiSlotLayout>().hideHeader = skin.category == "Appearance";
             slot.GetComponent<DoodleUiSlotLayout>().Invalidate();
             slot.name = "SkinSlot_" + skin.id;
             Notify(slot.transform, () => CanUnlockSkin(skin));

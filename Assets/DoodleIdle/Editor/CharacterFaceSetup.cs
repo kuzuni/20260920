@@ -33,9 +33,10 @@ public static class CharacterFaceSetup
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
             var appearance = AssetDatabase.LoadAssetAtPath<CharacterAppearance>(path);
-            bool separated = !path.Contains("/Companions/");
-            if (appearance.separatedFace == separated) continue;
-            appearance.separatedFace = separated;
+            bool friendly = path.Contains("/Companions/");
+            if (appearance.separatedFace && appearance.friendlyEyes == friendly) continue;
+            appearance.separatedFace = true;
+            appearance.friendlyEyes = friendly;
             EditorUtility.SetDirty(appearance);
         }
         foreach (var path in Directory.GetFiles(Root + "Prefabs", "*.prefab"))
@@ -47,12 +48,13 @@ public static class CharacterFaceSetup
                 // Re-running installation preserves all user-authored face transforms.
                 if (!rig.face) CreateFace(rig, path.Contains("Player_Standard"));
                 rig.face.gameObject.SetActive(rig.appearance.separatedFace);
+                rig.face.SetFaceParts(true, !rig.appearance.friendlyEyes);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
         AssetDatabase.SaveAssets();
-        Debug.Log("SEPARATED_FACES_INSTALLED: 110 appearances, 6 prefabs; animation assets untouched");
+        Debug.Log("SEPARATED_FACES_INSTALLED: 142 appearances, 6 prefabs; animation assets untouched");
     }
 
     static Sprite Sprite(string name) => AssetDatabase.LoadAssetAtPath<Sprite>(Art + name + ".png");
@@ -303,6 +305,7 @@ public static class CharacterFaceSetup
     {
         var clip = rig.animator.runtimeAnimatorController.animationClips.First(c => c.name == (pose == 0 ? "Idle" : "Move"));
         clip.SampleAnimation(rig.gameObject, pose == 0 ? 0 : clip.length*.25f);
+        CharacterPopupPortraitSetup.LookRight(rig);
         if (rig.face) rig.face.SyncSorting();
         if (rig.face) rig.face.RefreshHighlights();
     }

@@ -41,7 +41,8 @@ namespace DoodleIdle.Tests
 #endif
             SceneManager.SetActiveScene(testScene);
             game = testScene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<DoodleIdleGame>()).Single();
-            yield return null;
+            float readyDeadline = Time.realtimeSinceStartup + 60;
+            while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
             // Keep the established combat fixture's numeric damage baseline. Fresh-profile
             // reset tests create a new scene and exercise the production baseline directly.
@@ -427,7 +428,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.ActiveSummonObjects, Is.LessThan(180));
             Assert.That(game.ActiveStains, Is.LessThanOrEqualTo(180));
             Assert.That(game.ActiveDamageNumbers, Is.LessThanOrEqualTo(128));
-            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Length, Is.EqualTo(45), "Includes the shared palm explosion particle system.");
+            Assert.That(game.GetComponentsInChildren<ParticleSystem>().Count(p=>!p.GetComponentInParent<DoodleIdle.CharacterRigs.CharacterRig>()), Is.EqualTo(45), "Shared combat effects stay bounded; each character's authored foot dust is counted separately.");
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(game.Kills * 9));
             Assert.That(worstPenetration, Is.LessThan(.09f), "Physics separation must hold throughout combat, within solver tolerance." + deepestContact);
             Debug.Log("Doodle combat diagnostics: " + game.Diagnostics());

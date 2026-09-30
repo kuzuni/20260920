@@ -335,7 +335,7 @@ namespace DoodleIdle
     {
         public Text grade;
         public RectTransform art,gauge;
-        public bool hideQuantity, equippedLabelAtTop, equippedLabelBelowArt;
+        public bool hideQuantity, hideHeader, equippedLabelAtTop, equippedLabelBelowArt;
         Vector2 previousSize;
         void OnRectTransformDimensionsChange()=>Reflow();
         void LateUpdate()=>Reflow();
@@ -346,6 +346,7 @@ namespace DoodleIdle
             if(!grade||!art||!gauge||size.x<=0||size.y<=0||size==previousSize)return;
             previousSize=size;
             float scale=Mathf.Clamp(size.x/100f,.6f,1.35f), top=24*scale,bottom=hideQuantity?0:25*scale,pad=5*scale;
+            if (hideHeader) top = 0;
             gauge.gameObject.SetActive(!hideQuantity);
             grade.rectTransform.anchorMin=new Vector2(0,1);grade.rectTransform.anchorMax=Vector2.one;
             grade.rectTransform.offsetMin=new Vector2(pad,-top);grade.rectTransform.offsetMax=new Vector2(-pad,-2*scale);

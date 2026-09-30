@@ -9,22 +9,33 @@ namespace DoodleIdle
     // Gameplay must keep this type through arithmetic; conversions are only for legacy APIs/geometry.
     public readonly struct GameNumber : IComparable<GameNumber>, IEquatable<GameNumber>
     {
+        static readonly BigInteger SmallExponentMinimum = new BigInteger(int.MinValue);
+        static readonly BigInteger SmallExponentMaximum = new BigInteger(int.MaxValue);
         readonly ObscuredDouble protectedMantissa;
         public double Mantissa => protectedMantissa;
         readonly ObscuredString protectedExponent;
-        public BigInteger Exponent => protectedExponent == null ? BigInteger.Zero : BigInteger.Parse(protectedExponent, CultureInfo.InvariantCulture);
+        // Most gameplay exponents fit in an int, even far beyond double's range.
+        // Keep those protected without allocating/encrypting/parsing a string for
+        // every arithmetic operation. Unbounded exponents retain the string path.
+        readonly ObscuredInt protectedSmallExponent;
+        public BigInteger Exponent => protectedExponent == null ? new BigInteger((int)protectedSmallExponent) : BigInteger.Parse(protectedExponent, CultureInfo.InvariantCulture);
         public GameNumber(double value) : this(value, BigInteger.Zero) { }
         public GameNumber(double mantissa, BigInteger exponent)
         {
             if (double.IsNaN(mantissa) || double.IsInfinity(mantissa)) throw new ArgumentOutOfRangeException(nameof(mantissa), "A game number must be finite.");
-            if (mantissa == 0) { protectedMantissa = 0; protectedExponent = "0"; return; }
+            if (mantissa == 0) { protectedMantissa = 0; protectedSmallExponent = 0; protectedExponent = null; return; }
             int shift = (int)Math.Floor(Math.Log10(Math.Abs(mantissa)));
             // Split subnormal powers so 10^-324 cannot underflow before division.
             if (shift < -300) { mantissa *= 1e300; exponent -= 300; shift += 300; }
             mantissa /= Math.Pow(10, shift); exponent += shift;
             if (Math.Abs(mantissa) >= 10) { mantissa /= 10; exponent++; }
             if (Math.Abs(mantissa) < 1) { mantissa *= 10; exponent--; }
-            protectedMantissa = mantissa; protectedExponent = exponent.ToString(CultureInfo.InvariantCulture);
+            protectedMantissa = mantissa;
+            if (exponent >= SmallExponentMinimum && exponent <= SmallExponentMaximum) {
+                protectedSmallExponent = (int)exponent; protectedExponent = null;
+            } else {
+                protectedSmallExponent = 0; protectedExponent = exponent.ToString(CultureInfo.InvariantCulture);
+            }
         }
         public static implicit operator GameNumber(double value) => new GameNumber(value);
         public static explicit operator double(GameNumber value) => value.ToDouble();

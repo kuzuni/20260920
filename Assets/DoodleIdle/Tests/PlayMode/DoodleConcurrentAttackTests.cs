@@ -15,6 +15,49 @@ namespace DoodleIdle.Tests
         [TestCase("biped")]
         [TestCase("floating")]
         [TestCase("quad")]
+        public void PooledEnemyRestoresFreshIdlePoseAndAttackEvents(string rigType)
+        {
+            var actor = new GameObject("Pool pose enemy", typeof(SpriteRenderer), typeof(DoodleRigVisual));
+            try {
+                var visual = actor.GetComponent<DoodleRigVisual>();
+                visual.Configure(DoodleCharacterCatalog.Current.entries.First(e => e.group == "Enemies" && e.appearance.rigType == rigType));
+                var rig = visual.Rig; var animator = rig.animator;
+                rig.face.enabled = false;
+                animator.Rebind(); animator.Play("Idle", 0, 0); animator.Update(0);
+                Assert.That(animator.HasState(0, Animator.StringToHash("Idle")), Is.True, "Idle state lookup");
+                var bones = rig.skeleton.GetComponentsInChildren<Transform>().Where(t => !t.IsChildOf(rig.face.transform)).ToArray();
+                var positions = bones.Select(t => t.localPosition).ToArray();
+                var rotations = bones.Select(t => t.localRotation).ToArray();
+                var scales = bones.Select(t => t.localScale).ToArray();
+                foreach (string state in new[] { "Move", "Attack", "Hit", "Death" }) {
+                    animator.Play(state, 0, .4f); animator.Update(0);
+                    visual.ParkRig();
+                    visual.RestoreRig(); rig.face.enabled = false;
+                    Assert.That(animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"), Is.True, state);
+                    Assert.That(animator.IsInTransition(0), Is.False, state);
+                    for (int i = 0; i < bones.Length; i++) {
+                        Assert.That(Vector3.Distance(bones[i].localPosition, positions[i]), Is.LessThan(.0001f), state + "/" + bones[i].name + " position " + bones[i].localPosition.ToString("F4") + " expected " + positions[i].ToString("F4"));
+                        Assert.That(Quaternion.Angle(bones[i].localRotation, rotations[i]), Is.LessThan(.05f), state + "/" + bones[i].name + " rotation");
+                        Assert.That(Vector3.Distance(bones[i].localScale, scales[i]), Is.LessThan(.0001f), state + "/" + bones[i].name + " scale");
+                    }
+                    int oldHits = 0, newHits = 0;
+                    Assert.That(rig.TryAttack(() => oldHits++), Is.True);
+                    visual.ParkRig();
+                    visual.RestoreRig(); rig.face.enabled = false;
+                    Assert.That(rig.TryAttack(() => newHits++), Is.True);
+                    for (int i = 0; i < 120; i++) animator.Update(1f / 60);
+                    Assert.That(oldHits, Is.Zero, "Retired attack must stay cancelled");
+                    Assert.That(newHits, Is.EqualTo(1), "Reused rig must deliver one original clip impact");
+                }
+            }
+            finally { Object.DestroyImmediate(actor); }
+        }
+
+        [TestCase("standard")]
+        [TestCase("wing")]
+        [TestCase("biped")]
+        [TestCase("floating")]
+        [TestCase("quad")]
         public void PrefabTriggerControlsAttackRangeAndRuntimeResizing(string rigType)
         {
             var actor = new GameObject("Range test enemy", typeof(SpriteRenderer), typeof(Rigidbody2D), typeof(DoodleRigVisual));
@@ -75,12 +118,16 @@ namespace DoodleIdle.Tests
 #endif
             var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("DoodleIdle");
             UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            AsyncOperation unload=null;
             try
             {
                 yield return null;
                 var game = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<DoodleIdleGame>()).Single();
                 game.autoPlay = false; game.moveSpeed = 0; game.enemyContactDamage = 1;
                 game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.companionsEnabled = false;
+                float readyDeadline = Time.realtimeSinceStartup + 60;
+                while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
+                Assert.That(game.Ready, Is.True);
                 game.refillBelow = 0;
                 foreach (var item in game.Ui.Items("Skill")) item.equipped = false;
                 var tuning = game.Ui.ReadBalanceTuning(); tuning.enemyStartingDamage = 64;
@@ -127,8 +174,9 @@ namespace DoodleIdle.Tests
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
                 foreach (var go in scene.GetRootGameObjects()) Object.DestroyImmediate(go);
                 DoodlePrefs.DeleteAccountCache();
+                unload=UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
             }
-            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+            yield return unload;
         }
 
         [TestCase("Player_Standard")]
@@ -204,11 +252,12 @@ namespace DoodleIdle.Tests
                 if (blend) Assert.That(combined.animator.GetCurrentAnimatorStateInfo(0).IsName(moving ? "Move" : "Idle"), Is.True);
                 Assert.That(combined.animator.GetCurrentAnimatorStateInfo(attackLayer).IsName("Attack"), Is.True);
                 clip.SampleAnimation(sample.gameObject, combined.animator.GetCurrentAnimatorStateInfo(attackLayer).normalizedTime * clip.length);
-                var attackBones = combined.skeleton.GetComponentsInChildren<Transform>().ToDictionary(t => t.name);
-                var reference = sample.skeleton.GetComponentsInChildren<Transform>().ToDictionary(t => t.name);
+                var attackBones = combined.skeleton.GetComponentsInChildren<Transform>().Where(t => !combined.face || !t.IsChildOf(combined.face.transform)).ToDictionary(t => t.name);
+                var reference = sample.skeleton.GetComponentsInChildren<Transform>().Where(t => !sample.face || !t.IsChildOf(sample.face.transform)).ToDictionary(t => t.name);
                 bool armChanged = false;
                 foreach (var bone in control.skeleton.GetComponentsInChildren<Transform>())
                 {
+                    if (control.face && bone.IsChildOf(control.face.transform)) continue;
                     var mixed = attackBones[bone.name];
                     if (blend && (bone.name.StartsWith("다리") || bone.name == "몸통"))
                     {
@@ -287,10 +336,13 @@ namespace DoodleIdle.Tests
 #endif
             var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("DoodleIdle");
             UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            AsyncOperation unload=null;
             try
             {
                 yield return null; yield return null;
                 var game = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<DoodleIdleGame>()).Single();
+                float readyDeadline = Time.realtimeSinceStartup + 60;
+                while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
                 Assert.That(game.Ready, Is.True);
                 game.enabled = false; game.enemyContactDamage = 1;
                 var tuning = game.Ui.ReadBalanceTuning(); tuning.enemyStartingDamage = 64;
@@ -398,8 +450,9 @@ namespace DoodleIdle.Tests
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
                 foreach (var go in scene.GetRootGameObjects()) Object.DestroyImmediate(go);
                 DoodlePrefs.DeleteAccountCache();
+                unload=UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
             }
-            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+            yield return unload;
         }
 
         [UnityTest]

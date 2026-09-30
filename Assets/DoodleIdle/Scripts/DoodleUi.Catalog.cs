@@ -230,7 +230,7 @@ namespace DoodleIdle
                 InitCollections();
                 int highest = -1;
                 foreach (var item in collectionItems)
-                    if (item.category == "Armor" && item.discovered) highest = Math.Max(highest, item.rarity);
+                    if (item.discovered && item.category == "Armor") highest = Math.Max(highest, item.rarity);
                 return Mathf.Clamp(highest - 1, 1, 5);
             }
         }
@@ -240,7 +240,7 @@ namespace DoodleIdle
         public void FillEquippedItems(string category, List<UiItem> result)
         {
             InitCollections(); result.Clear(); int limit = EquipLimit(category);
-            foreach (var item in collectionItems) if (item.category == category && item.equipped && item.discovered && item.slot < limit) result.Add(item);
+            foreach (var item in collectionItems) if (item.equipped && item.discovered && item.slot < limit && item.category == category) result.Add(item);
             result.Sort(CompareEquippedSlot);
         }
         int EquipLimit(string category) => category == "Skill" ? UnlockedSkillSlots : category == "Companion" ? UnlockedCompanionSlots : category == "Relic" ? 0 : 1;
@@ -285,9 +285,16 @@ namespace DoodleIdle
         public double ExpectedCriticalMultiplier => (double)ExpectedCriticalAmount;
         public long Power => (long)PowerAmount;
         static bool IsCriticalChance(string id) => Array.IndexOf(CriticalStatIds, id) >= 0;
+        UiStatDefinition FindStat(string id)
+        {
+            // Keep live tuning and first-match semantics without a captured predicate
+            // allocation on every damage/critical/stat query.
+            foreach (var stat in collectionTuning.stats) if (stat.id == id) return stat;
+            return null;
+        }
         int StatMaxLevel(string id)
         {
-            var stat = Array.Find(collectionTuning.stats, x => x.id == id);
+            var stat = FindStat(id);
             if (stat == null) return 0;
             return IsCriticalChance(id) && stat.increment > 0
                 ? Math.Min(collectionTuning.maxStatLevel, Math.Max(0, (int)GameNumber.Ceiling(((GameNumber)100 - stat.initial) / stat.increment))) : collectionTuning.maxStatLevel;

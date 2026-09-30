@@ -13,6 +13,7 @@ namespace DoodleIdle
             public bool golem, slamPending;
             public string ability;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
+            public int nextHitCleanup = 128;
         }
         sealed class ClawStrike { public Actor target; public Vector2 position; public float clock = .24f; }
         sealed class MeteorFall { public SpriteRenderer art; public Vector2 start, end; public float age, trail, echo; public bool hand; }
@@ -115,7 +116,7 @@ namespace DoodleIdle
             }
             for (int i = pursuers.Count - 1; i >= 0; i--)
             {
-                var unit = pursuers[i]; unit.age += dt; unit.attackClock -= dt; unit.punch -= dt;
+                var unit = pursuers[i]; PruneRetiredHits(unit.nextHit, ref unit.nextHitCleanup); unit.age += dt; unit.attackClock -= dt; unit.punch -= dt;
                 if (unit.age >= (unit.golem ? 10 : 7)) {
                     ReleaseVisual(unit.art.gameObject); if (unit.shadow) ReleaseVisual(unit.shadow.gameObject); pursuers.RemoveAt(i); continue;
                 }

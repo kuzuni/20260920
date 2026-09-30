@@ -1,0 +1,16 @@
+{
+  "highlight": "Use case: precise-object-edit. Input is reference/edit target: a game black circular pupil with white circular shine. Separate it into two independent clean sprites on one transparent 1024x512 atlas with TWO equal square cells. LEFT CELL: same perfectly circular solid black pupil, remove white shine completely and fill its place with solid black, no gradients, no extra marks. RIGHT CELL: only the detached solid WHITE circular shine, no black, outline, shadow or glow. Center each circle in its cell, each about 360 pixels in diameter so it can be resized independently. Preserve smooth antialiased circular edges. Absolutely no text, grid, decorative marks, face or additional shapes. Real transparent background.",
+  "companionEyes": "Use case: precise-object-edit. Edit target: 4x3 atlas of twelve companion game HEADS. Remove ONLY the two cartoon eyes from EACH head: remove eye black outlines, white sclera, black pupils and their white glints, fill each removed eye seamlessly with the exact surrounding head surface. Preserve the mouth/smile/beak, nose, cheek spots, masks/color patches, outlines, head shape, hats, ornaments, mechanical parts, highlights, sizes, grid positions and ALL other details unchanged. This is production art for overlaying movable separate eyes, so the existing drawn eyes must disappear completely with no sockets or eye-shaped marks remaining. Keep every mouth intact. Eye removal only. Do not remove the holes in winding keys, teapot handles, machine barrels or other non-eye circular decorations. Transparent background. Same 2048x1536 grid composition.",
+  "sources": [
+    "exec-0b4e6c0f-c0e0-4cb8-a097-bca26e1cbef2.png",
+    "exec-f0cf2bb7-604e-4f9e-857b-b4f5a9b87bf9.png",
+    "exec-406e1adc-1815-4d2f-8525-040b73d6b020.png",
+    "exec-977bb9fb-7486-42f0-a236-bec406255402.png"
+  ],
+  "companionMouths": "Use case: precise-object-edit. Edit this transparent atlas of companion game heads. Remove every character's mouth/smile and nose/beak completely, filling seamlessly with the surrounding face colors. Eyes are already removed; keep faces entirely blank of eyes, nose and mouth so independent eye/mouth sprites can be overlaid freely. Preserve head shape, outer outlines, surface color patterns, ears, horns, hats, ornaments, machines, windows, cheek spots and all other details. Do not change grid positions or sizes. No new facial features. Preserve transparent background and grid composition. The original non-face round holes and vehicle windows must remain.",
+  "mouthSources": [
+    "exec-7c525839-c0f3-4194-8ae9-1daa3b4a69ff.png",
+    "exec-02a3093e-be34-4c73-a0c8-726a8add300e.png",
+    "exec-0e75a06b-2ba4-4e5d-bc5e-db050522f9ee.png"
+  ]
+}

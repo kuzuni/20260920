@@ -1,0 +1,66 @@
+{
+  "companions": 32,
+  "characterPngPsbPixelMatches": 142,
+  "skillFamilies": 12,
+  "skillFrames": 21,
+  "animationAssetsChecked": 84,
+  "allAnimationAssetsUnchanged": true,
+  "tests": [
+    {
+      "name": "AllCompanionsTrackTargetsAndBlinkWithSeparateMouthAndFriendlyEyes",
+      "result": "Passed"
+    },
+    {
+      "name": "AllSkinsIncludingCompanionsUsePrefabFaceAnchors",
+      "result": "Passed"
+    },
+    {
+      "name": "DamageFacePausesRecoversAndResetsWhenPooled",
+      "result": "Passed"
+    },
+    {
+      "name": "EyeHighlightsStayWholeAtEveryGazeEdgeAndRespectClosedEyes",
+      "result": "Passed"
+    },
+    {
+      "name": "GazeTracksWorldTargetAcrossMirroringAndHeadRotation",
+      "result": "Passed"
+    },
+    {
+      "name": "IdleBlinkPreservesMouthAndAnchorsAndYieldsToDamage",
+      "result": "Passed"
+    },
+    {
+      "name": "PupilPixelsAreClippedAndNeighborMasksCannotRevealThem",
+      "result": "Passed"
+    },
+    {
+      "name": "QuadMovingHeadNeverCoversFace",
+      "result": "Passed"
+    },
+    {
+      "name": "CloudsPursueMovingEnemiesAtTheirNewSpeeds",
+      "result": "Passed"
+    },
+    {
+      "name": "DragonFlapsAndRedWaveFiresFiveAnimatedWideWavesAtNormalSpeed",
+      "result": "Passed"
+    },
+    {
+      "name": "SkillFacesAppearInRealCastsTrackEnemiesAndSurviveVisualPooling",
+      "result": "Passed"
+    },
+    {
+      "name": "TornadoChasesAndRepeatsHitsAndGolemsWalkThenPunch",
+      "result": "Passed"
+    },
+    {
+      "name": "AllAppearancesPreservePrefabPartAndGroupSorting",
+      "result": "Passed"
+    },
+    {
+      "name": "EverySkillFrameUsesEditableMaskedFaceAndPreservesBlinkAcrossFrames",
+      "result": "Passed"
+    }
+  ]
+}

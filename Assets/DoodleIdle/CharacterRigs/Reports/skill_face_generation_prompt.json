@@ -1,0 +1,8 @@
+{
+  "prompt": "Use case: precise-object-edit. Edit the provided transparent production game sprite atlas. Remove all eyes, eyebrows, mouths, tongues, noses/nostril dots and teeth from each character. Fill their place seamlessly with the surrounding surface. The face must be empty so independent circular eyes and a mouth can be overlaid later. For open dragon and snake mouths, close the opening into a simple rounded face silhouette, with no muzzle markings that prescribe a mouth position. Preserve head colors, horns, mechanical ears, rotors, gears, leaves, clouds, flames, rocky textures, cheek decorations, arms, hands, legs and feet. Preserve every animation pose, exact scale and exact placement in its 512x512 cell; do NOT reposition or redraw the limbs, rotors, fire or body. No new expressions. Transparent background, same 4-column by 3-row atlas. Keep unused cells empty.",
+  "outputs": [
+    "exec-84393bad-fa1e-4036-850b-0ed7f604a587.png",
+    "exec-b9ad1dcc-885a-41ea-aa10-1d491486495c.png"
+  ],
+  "scope": "21 runtime sprite frames, original texture resources and animation timing unchanged"
+}

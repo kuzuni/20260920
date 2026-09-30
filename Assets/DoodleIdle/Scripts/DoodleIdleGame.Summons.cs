@@ -54,6 +54,7 @@ namespace DoodleIdle
             public Actor target;
             public float age, lifetime, speed, trail, damage, radius;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
+            public int nextHitCleanup = 128;
         }
         sealed class Snake
         {
@@ -67,6 +68,7 @@ namespace DoodleIdle
             public readonly List<SpriteRenderer> parts = new List<SpriteRenderer>();
             public SpriteRenderer wings;
             public readonly Dictionary<Actor, float> nextHit = new Dictionary<Actor, float>();
+            public int nextHitCleanup = 128;
         }
         sealed class Turret { public SpriteRenderer art; public Transform muzzle; public Tween recoil; public Vector2 origin; public float age, clock; }
         sealed class Cloud { public SpriteRenderer art; public Actor target; public float age, clock; public bool red; }
@@ -307,8 +309,10 @@ namespace DoodleIdle
             snakes.Add(snake);
         }
 
+        static readonly Unity.Profiling.ProfilerMarker[] summonMarkers={new Unity.Profiling.ProfilerMarker("Doodle/Turrets"),new Unity.Profiling.ProfilerMarker("Doodle/Clouds"),new Unity.Profiling.ProfilerMarker("Doodle/Snakes"),new Unity.Profiling.ProfilerMarker("Doodle/OrbitGun"),new Unity.Profiling.ProfilerMarker("Doodle/MovingSkills"),new Unity.Profiling.ProfilerMarker("Doodle/AreaSkills")};
         void TickSummons(float dt)
         {
+            SnapshotSummonTargets();
             TickRedVolleys(dt);
             guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f), 1 - Mathf.Exp(-dt * 12));
             if (guardianSwing > 0)
@@ -319,7 +323,12 @@ namespace DoodleIdle
                     : Mathf.Lerp(85, 0, Mathf.SmoothStep(0, 1, (progress - .65f) / .35f));
                 guardian.rotation = Quaternion.Euler(0, 0, guardianAim + angle);
             }
-            TickTurrets(dt); TickClouds(dt); TickSnakes(dt); TickOrbitGun(dt); TickMovingSkills(dt); TickAreaSkills(dt);
+            using(summonMarkers[0].Auto())TickTurrets(dt);
+            using(summonMarkers[1].Auto())TickClouds(dt);
+            using(summonMarkers[2].Auto())TickSnakes(dt);
+            using(summonMarkers[3].Auto())TickOrbitGun(dt);
+            using(summonMarkers[4].Auto())TickMovingSkills(dt);
+            using(summonMarkers[5].Auto())TickAreaSkills(dt);
             for (int i = stains.Count - 1; i >= 0; i--)
             {
                 var stain = stains[i]; stain.age += dt;
@@ -337,8 +346,9 @@ namespace DoodleIdle
                 {
                     LastCannonLifetime = turret.age; turret.recoil?.Kill(); ReleaseVisual(turret.art.gameObject); turrets.RemoveAt(i); continue;
                 }
+                if (turret.clock > 0) continue;
                 var target = InRange(turret.origin, 9);
-                if (target == null || turret.clock > 0) continue;
+                if (target == null) continue;
                 Vector2 direction = (target.Position - turret.origin).normalized;
                 turret.art.flipX = direction.x < 0;
                 float side = turret.art.flipX ? -1 : 1;
@@ -383,9 +393,13 @@ namespace DoodleIdle
                 Vector2 origin = cloud.art.transform.position;
                 NearbyTarget(origin, 0);
                 // Copy the three recipients before Damage can remove enemies from the population.
-                var targets = skillTargets.GetRange(0, Mathf.Min(3, skillTargets.Count));
-                foreach (var target in targets)
+                int targetCount = Mathf.Min(3, skillTargets.Count);
+                Actor first = targetCount > 0 ? skillTargets[0] : null;
+                Actor second = targetCount > 1 ? skillTargets[1] : null;
+                Actor third = targetCount > 2 ? skillTargets[2] : null;
+                for (int t = 0; t < targetCount; t++)
                 {
+                    var target = t == 0 ? first : t == 1 ? second : third;
                     if (!Alive(target) || Vector2.Distance(origin, target.Position) > 5.5f) continue;
                     Vector2 delta = target.Position - origin;
                     Echo("Lightning afterimage", cloud.red?DoodleVariantArt.Get("RedLightning"):summonArt["Lightning"], origin + delta * .5f, new Vector2(delta.magnitude, .85f), Aim(delta), .4f, .35f, 570);
@@ -398,7 +412,7 @@ namespace DoodleIdle
         {
             for (int i = movingSkills.Count - 1; i >= 0; i--)
             {
-                var shot = movingSkills[i]; shot.age += dt; shot.trail -= dt;
+                var shot = movingSkills[i]; PruneRetiredHits(shot.nextHit, ref shot.nextHitCleanup); shot.age += dt; shot.trail -= dt;
                 Vector2 old = shot.art.transform.position;
                 Vector2 next = old + shot.direction * (shot.speed * dt);
                 bool finished = shot.age >= shot.lifetime;
@@ -429,11 +443,13 @@ namespace DoodleIdle
                 }
                 else
                 {
-                    for (int e = enemies.Count - 1; e >= 0; e--)
+                    FindSegmentCandidates(old,next,shot.radius);
+                    for (int e = 0; e < segmentCandidates.Count; e++)
                     {
-                        var enemy = enemies[e];
-                        if (SegmentDistance(enemy.Position, old, next) > shot.radius) continue;
+                        var point=enemyPoints[segmentCandidates[e]];var enemy=point.actor;
+                        if(enemy.hp<=0)continue;
                         if (shot.nextHit.TryGetValue(enemy, out float until) && shot.age < until) continue;
+                        if (SegmentDistance(point.position, old, next) > shot.radius) continue;
                         shot.nextHit[enemy] = shot.kind == SummonSkill.Sand ? shot.age + .22f : float.MaxValue;
                         if (shot.ability != null) SkillDamage(enemy, shot.damage, shot.direction, shot.ability);
                         else Impact(shot.kind, enemy, shot.damage, shot.direction);
@@ -463,7 +479,7 @@ namespace DoodleIdle
         {
             for (int n = snakes.Count - 1; n >= 0; n--)
             {
-                var snake = snakes[n]; snake.age += dt;
+                var snake = snakes[n]; PruneRetiredHits(snake.nextHit, ref snake.nextHitCleanup); snake.age += dt;
                 bool tether = snake.kind == SummonSkill.TetherSnake, dragon = snake.kind == SummonSkill.Dragon;
                 float lifetime = tether || dragon ? 6 : 3.5f;
                 if (snake.age >= lifetime)
@@ -492,19 +508,31 @@ namespace DoodleIdle
                     snake.head = snake.ice && snake.age<.35f?snake.head+snake.direction*dt*9:Vector2.MoveTowards(snake.head, destination, dt * 9);
                 }
                 int active = tether ? Mathf.Min(snake.parts.Count, 2 + Mathf.FloorToInt(snake.age / .035f)) : snake.parts.Count;
+                Vector2 anchor = player.Position;
+                Vector2 tetherAxis = snake.head - anchor;
+                Vector2 tetherNormal = new Vector2(-tetherAxis.y, tetherAxis.x).normalized;
+                Quaternion tetherRotation = tether ? Aim(tetherAxis) : Quaternion.identity;
+                Color tetherTint = new Color(1, 1, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
                 for (int p = 0; p < snake.parts.Count; p++)
                 {
-                    var part = snake.parts[p]; Vector2 old = part.transform.position; Vector2 position;
+                    var part = snake.parts[p]; var partTransform = part.transform;
+                    Vector2 old = partTransform.position; Vector2 position;
                     bool visible;
                     if (tether)
                     {
                         // Part zero is the head; the final active circle is anchored to the player every physics tick.
                         visible = p < active;
                         float t = p / (float)(active - 1);
-                        Vector2 axis = snake.head - player.Position;
-                        var normal = new Vector2(-axis.y, axis.x).normalized;
-                        position = Vector2.Lerp(snake.head, player.Position, Mathf.Clamp01(t)) + normal * (Mathf.Sin(t * Mathf.PI) * Mathf.Sin(t * 12 - snake.age * 9) * .23f);
-                        part.transform.rotation = Aim(axis);
+                        // Damage callbacks may relocate the player; keep the original
+                        // per-segment anchor semantics while reusing unchanged geometry.
+                        var currentAnchor = player.Position;
+                        if (!anchor.Equals(currentAnchor)) {
+                            anchor = currentAnchor; tetherAxis = snake.head - anchor;
+                            tetherNormal = new Vector2(-tetherAxis.y, tetherAxis.x).normalized;
+                            tetherRotation = Aim(tetherAxis);
+                        }
+                        position = Vector2.Lerp(snake.head, anchor, Mathf.Clamp01(t)) + tetherNormal * (Mathf.Sin(t * Mathf.PI) * Mathf.Sin(t * 12 - snake.age * 9) * .23f);
+                        partTransform.rotation = tetherRotation;
                     }
                     else
                     {
@@ -512,24 +540,29 @@ namespace DoodleIdle
                         visible = t >= 0;
                         t = Mathf.Max(0, t);
                         position = snake.origin + snake.direction * (t * (dragon ? 2.6f : 4.5f)) + perpendicular * (Mathf.Sin(t * 7) * (dragon ? .65f : .46f));
-                        part.transform.rotation = Aim(snake.direction + perpendicular * (Mathf.Cos(t * 7) * .55f));
+                        partTransform.rotation = Aim(snake.direction + perpendicular * (Mathf.Cos(t * 7) * .55f));
                     }
-                    if (!part.enabled) old = position;
-                    part.enabled = visible; part.transform.position = position;
+                    bool wasVisible = part.enabled;
+                    if (!wasVisible) old = position;
+                    if (wasVisible != visible) part.enabled = visible;
+                    partTransform.position = position;
                     if (dragon && p == 0)
                     {
                         var mouthTarget = InRange(position, 5);
-                        part.transform.rotation = Aim(mouthTarget == null ? snake.direction : (mouthTarget.Position - position).normalized);
+                        partTransform.rotation = Aim(mouthTarget == null ? snake.direction : (mouthTarget.Position - position).normalized);
                     }
                     float size = (dragon ? .7f : .47f) * (snake.ice?2:1) * snake.size * (p == 0 ? 1.2f : 1) * (1 + Mathf.Sin(snake.age * 12 - p * .6f) * .06f);
-                    part.transform.localScale = Vector3.one * size;
-                    if (tether) part.color = new Color(1, 1, 1, Mathf.Clamp01((lifetime - snake.age) * 3));
+                    partTransform.localScale = Vector3.one * size;
+                    if (tether && part.color != tetherTint) part.color = tetherTint;
                     if (!visible) continue;
-                    for (int e = enemies.Count - 1; e >= 0; e--)
+                    float radius=(dragon ? .92f : .8f)*snake.size;
+                    FindSegmentCandidates(old,position,radius);
+                    for (int e = 0; e < segmentCandidates.Count; e++)
                     {
-                        var enemy = enemies[e];
-                        if (SegmentDistance(enemy.Position, old, position) > (dragon ? .92f : .8f) * snake.size) continue;
+                        var point=enemyPoints[segmentCandidates[e]];var enemy=point.actor;
                         if (snake.nextHit.TryGetValue(enemy, out float until) && snake.age < until) continue;
+                        if(enemy.hp<=0)continue;
+                        if (SegmentDistance(point.position, old, position) > radius) continue;
                         snake.nextHit[enemy] = snake.age + (tether ? .18f : .35f);
                         Impact(snake.kind, enemy, tether ? 8 : 13, (enemy.Position - player.Position).normalized, snake.ability ?? (snake.ice ? "IceSnakes" : null));
                     }

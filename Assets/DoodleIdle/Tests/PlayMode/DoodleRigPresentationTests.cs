@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Linq;
 using DoodleIdle.CharacterRigs;
 using NUnit.Framework;
@@ -65,10 +65,13 @@ namespace DoodleIdle.Tests
 #endif
             var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("DoodleIdle");
             UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            AsyncOperation unload=null;
             try
             {
                 yield return null; yield return null;
                 var game = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<DoodleIdleGame>()).Single();
+                float readyDeadline = Time.realtimeSinceStartup + 60;
+                while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
                 Assert.That(game.Ready, Is.True);
                 game.summonSkillsEnabled = false; game.companionsEnabled = false;
                 var visual = game.GetComponentsInChildren<DoodleRigVisual>().Single(v => v.Entry.group == "Player");
@@ -111,8 +114,9 @@ namespace DoodleIdle.Tests
                 UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
                 foreach (var go in scene.GetRootGameObjects()) Object.DestroyImmediate(go);
                 DoodlePrefs.DeleteAccountCache();
+                unload=UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
             }
-            yield return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+            yield return unload;
         }
 
         static void Capture(DoodleIdleGame game, DoodleRigVisual player)

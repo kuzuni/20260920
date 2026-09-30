@@ -46,6 +46,7 @@ namespace DoodleIdle
         public int SlashHits { get; private set; }
         public int DashHits { get; private set; }
         public bool Ready { get; private set; }
+        public DoodleIdle.CharacterRigs.CharacterRig PlayerPortraitRig => player != null && player.rigVisual ? player.rigVisual.Rig : null;
         public float Elapsed { get; private set; }
 
         sealed class Actor
@@ -55,10 +56,12 @@ namespace DoodleIdle
             public SpriteRenderer art, shadow;
             public DoodleRigVisual rigVisual;
             public SpriteRenderer healthBack, healthFill;
+            public HealthBarState healthState;
             public CircleCollider2D collider;
-            public GameNumber hp = 68, maxHp = 68;
+            public GameNumber hp, maxHp;
             public float flash, phase;
             public bool returnedToPool;
+            public Action attackImpact;
             public float walkClock;
             public float meleeCooldown;
             public float dashCooldown, dashWindup, enemyDashRemaining, dashTrail;
@@ -95,6 +98,7 @@ namespace DoodleIdle
         Actor player;
         Transform world, weapon;
         Camera gameCamera;
+        internal readonly DoodleIdle.CharacterRigs.CharacterFaceView FaceView = new DoodleIdle.CharacterRigs.CharacterFaceView();
         PhysicsMaterial2D frictionless;
         float attackTimer, dashTimer, stoneTimer, dashRemaining, orbitAngle, swing, trailTimer;
         float combatStartFixedTime;
@@ -110,30 +114,41 @@ namespace DoodleIdle
         public bool BossActive => enemies.Exists(x => x.isBoss);
         public void RequestCombatWaveReset() => combatWaveResetRequested = true;
 
-        void Start()
+        System.Collections.IEnumerator Start()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (!DoodleBackendSession.Instance || !DoodleBackendSession.Instance.Ready)
-            { UnityEngine.SceneManagement.SceneManager.LoadScene(DoodleBackendSession.LoginScene); enabled = false; return; }
+            { UnityEngine.SceneManagement.SceneManager.LoadScene(DoodleBackendSession.LoginScene); enabled = false; yield break; }
 #endif
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 0;
             Application.runInBackground = true;
+            paused = true;
+            BuildLoadingScreen();
+            yield return null;
             // Standalone rigs in this scene are editor previews; gameplay owns its spawned actors.
             foreach (var root in gameObject.scene.GetRootGameObjects())
                 foreach (var preview in root.GetComponentsInChildren<DoodleIdle.CharacterRigs.CharacterRig>())
                     if (!preview.GetComponentInParent<DoodleRigVisual>()) preview.gameObject.SetActive(false);
             sprites = LoadAtlas();
+            SetLoadingProgress(.12f, "캐릭터 준비 중");
+            yield return null;
             LoadSkillArt();
+            SetLoadingProgress(.24f, "스킬 준비 중");
+            yield return null;
             LoadSummonArt();
+            SetLoadingProgress(.36f, "전투 효과 준비 중");
+            yield return null;
             LoadActorAnimations();
             disc = MakeDisc();
             slash = MakeSlash();
             // The legacy sprite shader can reuse the floor texture in URP's 2D batching path.
             // Use the pipeline's sprite shader so each renderer binds its own texture/color.
-            string shaderName = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null
-                ? "Universal Render Pipeline/2D/Sprite-Unlit-Default" : "Sprites/Default";
-            spriteMaterial = new Material(Shader.Find(shaderName));
+            // A Resources material keeps the runtime sprite shader in player builds;
+            // Shader.Find alone works in Editor but allows build stripping to remove it.
+            spriteMaterial = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null
+                ? new Material(Resources.Load<Material>("DoodleIdle/DoodleSprite"))
+                : new Material(Shader.Find("Sprites/Default"));
             frictionless = new PhysicsMaterial2D("Doodle frictionless") { friction = 0, bounciness = 0 };
             world = new GameObject("Doodle world").transform;
             world.SetParent(transform);
@@ -143,8 +158,21 @@ namespace DoodleIdle
             BuildArena();
             BuildHud();
             BuildCombatFeedback();
+            SetLoadingProgress(.5f, "전장 준비 중");
+            yield return null;
             ResetGame();
+            yield return PrewarmCombatVisuals();
+            // Create the equipped companions without advancing their movement, cooldowns or attacks.
+            PrepareEquippedCompanions();
+            SetLoadingProgress(1, "준비 완료");
+            // Allow native Animator/SpriteSkin and the first render to finish behind the cover.
+            yield return null;
+            yield return null;
+            combatStartFixedTime = Time.fixedTime;
             Ready = true;
+            TogglePause();
+            loadingCanvas.gameObject.SetActive(false);
+            Destroy(loadingCanvas.gameObject);
         }
 
         Sprite[] LoadAtlas()
@@ -226,7 +254,7 @@ namespace DoodleIdle
             ClearParticles();
             ClearDamageNumbers();
             ClearExtraSkills();
-            foreach (var a in enemies) { a.root.SetActive(false); ReleaseEnemy(a); }
+            foreach (var a in enemies) ReleaseEnemy(a);
             enemies.Clear();
             foreach (var shot in shots) ReleaseVisual(shot.visual.gameObject);
             shots.Clear();
@@ -243,7 +271,7 @@ namespace DoodleIdle
             FirstDashTime = 0;
             combatStartFixedTime = Time.fixedTime;
             dashTimer = dashInterval; stoneTimer = 1.2f; attackTimer = .3f;
-            paused = false;
+            paused = !Ready;
             player = CreateActor(true, Vector2.zero, 0);
             ResetPlayerContactDamage();
             weapon = player.rigVisual.Rig.weaponRenderer.transform;
@@ -259,15 +287,18 @@ namespace DoodleIdle
             ResetExtraSkills();
         }
 
-        Actor CreateActor(bool isPlayer, Vector2 p, int kind)
+        Actor CreateActor(bool isPlayer, Vector2 p, int kind) => CreateActorWithHealth(isPlayer, p, kind, null);
+
+        Actor CreateActorWithHealth(bool isPlayer, Vector2 p, int kind, GameNumber? waveHealth)
         {
-            if (!isPlayer && TryRentEnemy(p, kind, out var recycled)) return recycled;
+            if (!isPlayer && TryRentEnemy(p, kind, waveHealth, out var recycled)) return recycled;
             if (!isPlayer) EnemyObjectsCreated++;
             var root = new GameObject(isPlayer ? "Player - head and club" : "Enemy - " + ThemeEnemies[CurrentThemeIndex][kind]);
             root.transform.SetParent(world);
             root.transform.position = p;
             var body = root.AddComponent<Rigidbody2D>();
             body.gravityScale = 0;
+            body.simulated = !paused;
             body.freezeRotation = true;
             body.linearDamping = 8;
             body.mass = isPlayer ? 5 : 1;
@@ -282,12 +313,13 @@ namespace DoodleIdle
             var art = Visual("Generated head sprite", isPlayer ? sprites[0] : enemyWalkFrames[kind][0], p, Vector2.one * (isPlayer ? 1.28f : 1.10f), Order(p));
             art.transform.SetParent(root.transform, true);
             var actor = new Actor { root = root, body = body, art = art, shadow = shadow, collider = collider, phase = UnityEngine.Random.value * 6.28f, kind = kind, isPlayer = isPlayer };
+            if (isPlayer) actor.hp = actor.maxHp = 68;
             actor.rigVisual = art.gameObject.AddComponent<DoodleRigVisual>();
             actor.rigVisual.GroundShadow = shadow;
             ConfigureActorRig(actor);
             if (!isPlayer)
             {
-                actor.hp = actor.maxHp = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
+                actor.hp = actor.maxHp = waveHealth ?? (Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth);
                 actor.dashCooldown = 2 + actor.phase * .4f;
                 NormalizeEnemyFrame(actor,art.sprite);
                 actor.art.flipX = player.Position.x < p.x;
@@ -296,14 +328,17 @@ namespace DoodleIdle
             return actor;
         }
 
+        static readonly Unity.Profiling.ProfilerMarker refillMarker=new Unity.Profiling.ProfilerMarker("Doodle/Refill");
+        static readonly Unity.Profiling.ProfilerMarker spawnSearchMarker=new Unity.Profiling.ProfilerMarker("Doodle/SpawnSearch");
         void Refill()
         {
+            using var sample=refillMarker.Auto();
             ApplyStageTheme();
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
             {
                 if (BossActive) return;
                 // The stage's credited kill goal starts the challenge, regardless of surviving field enemies.
-                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
+                foreach (var enemy in enemies) { enemy.hp = 0; ReleaseEnemy(enemy); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
                 boss.isBoss = true; boss.hp = boss.maxHp = boss.maxHp * 20;
@@ -318,21 +353,27 @@ namespace DoodleIdle
             int population = dungeon ? 100 : targetPopulation;
             if (enemies.Count > 0 && (dungeon || enemies.Count >= refillBelow)) return;
             int needed = Mathf.Max(0, population - enemies.Count);
+            var waveHealth = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
+            var playerPosition = player.Position;
+            SnapshotSpawnPositions();
             for (int n = 0; n < needed; n++)
             {
                 Vector2 p = Vector2.zero;
                 bool found = false;
+                using(spawnSearchMarker.Auto()) {
                 for (int attempt = 0; attempt < 600; attempt++)
                 {
                     p = new Vector2(UnityEngine.Random.Range(-arenaHalfSize.x + 1, arenaHalfSize.x - 1), UnityEngine.Random.Range(-arenaHalfSize.y + 1, arenaHalfSize.y - 1));
-                    if ((p - player.Position).sqrMagnitude < 10) continue;
-                    found = true;
-                    foreach (var enemy in enemies) if ((p - enemy.Position).sqrMagnitude < 1.6f) { found = false; break; }
+                    if ((p - playerPosition).sqrMagnitude < 10) continue;
+                    found = !SpawnPositionOccupied(p);
                     if (found) break;
+                }
                 }
                 // The wide arena normally finds a free position. Still create every
                 // member of the wave so the 100-kill objective cannot get stranded.
-                enemies.Add(CreateActor(false, p, UnityEngine.Random.Range(0, 3)));
+                var enemy = CreateActorWithHealth(false, p, UnityEngine.Random.Range(0, 3), waveHealth);
+                enemies.Add(enemy);
+                AddSpawnPosition(enemy.Position);
             }
             Refills++;
         }
@@ -368,6 +409,22 @@ namespace DoodleIdle
             foreach (var enemy in enemies) Animate(enemy);
         }
 
+        static readonly Unity.Profiling.ProfilerMarker[] combatMarkers = {
+            new Unity.Profiling.ProfilerMarker("Doodle/TickEnemyMovement"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickPlayerContactDamage"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickEquippedSkills"),
+            new Unity.Profiling.ProfilerMarker("Doodle/OrbitBananas"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickCompanions"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickExpansionSkills"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickVariants"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickAscension"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickExtraSkills"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickSummons"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickParticles"),
+            new Unity.Profiling.ProfilerMarker("Doodle/TickDamageNumbers"),
+            new Unity.Profiling.ProfilerMarker("Doodle/UpdateShots"),
+            new Unity.Profiling.ProfilerMarker("Doodle/LimitEnemyCrowdMotion")
+        };
         void FixedUpdate()
         {
             if (!Ready || paused) return;
@@ -376,7 +433,7 @@ namespace DoodleIdle
             if (combatWaveResetRequested)
             {
                 combatWaveResetRequested = false;
-                foreach (var enemy in enemies) { enemy.hp = 0; enemy.root.SetActive(false); ReleaseEnemy(enemy); }
+                foreach (var enemy in enemies) { enemy.hp = 0; ReleaseEnemy(enemy); }
                 enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
                 Refill();
             }
@@ -414,29 +471,29 @@ namespace DoodleIdle
                 Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
                 player.body.linearVelocity = desired;
             }
-            TickEnemyMovement(dt);
-            TickPlayerContactDamage(dt);
+            using(combatMarkers[0].Auto()) TickEnemyMovement(dt);
+            using(combatMarkers[1].Auto()) TickPlayerContactDamage(dt);
             if (combatWaveResetRequested) return;
             if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
             {
                 if (BeginPlayerAttack(facing))
                     attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1);
             }
-            TickEquippedSkills(dt);
-            OrbitBananas(dt);
-            TickCompanions(dt);
-            TickExpansionSkills(dt);
-            TickVariants(dt);
-            TickAscension(dt);
-            TickExtraSkills(dt);
-            TickSummons(dt);
-            TickParticles(dt);
-            TickDamageNumbers(dt);
+            using(combatMarkers[2].Auto()) TickEquippedSkills(dt);
+            using(combatMarkers[3].Auto()) OrbitBananas(dt);
+            using(combatMarkers[4].Auto()) TickCompanions(dt);
+            using(combatMarkers[5].Auto()) TickExpansionSkills(dt);
+            using(combatMarkers[6].Auto()) TickVariants(dt);
+            using(combatMarkers[7].Auto()) TickAscension(dt);
+            using(combatMarkers[8].Auto()) TickExtraSkills(dt);
+            using(combatMarkers[9].Auto()) TickSummons(dt);
+            using(combatMarkers[10].Auto()) TickParticles(dt);
+            using(combatMarkers[11].Auto()) TickDamageNumbers(dt);
             // Damage-bearing projectiles share the physics clock with actors and skills.
             // A slow render frame must not extend a slash beyond its intended lifetime/range.
-            UpdateShots(dt);
+            using(combatMarkers[12].Auto()) UpdateShots(dt);
             if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
-            LimitEnemyCrowdMotion(dt);
+            using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
             } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }
 
@@ -445,6 +502,7 @@ namespace DoodleIdle
             if (!Ready) return;
             Vector3 desired = new Vector3(player.Position.x, player.Position.y, -10);
             gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 9));
+            FaceView.Update(gameCamera);
         }
 
         Actor Closest(Vector2 origin)
@@ -599,8 +657,10 @@ namespace DoodleIdle
         }
 
         void DamageByCategory(Actor enemy, float weight, Vector2 push, string category) => DamageAmount(enemy, weight, push, category);
+        static readonly Unity.Profiling.ProfilerMarker damageMarker=new Unity.Profiling.ProfilerMarker("Doodle/DamageAmount");
         void DamageAmount(Actor enemy, GameNumber weight, Vector2 push, string category)
         {
+            using var sample=damageMarker.Auto();
             if (enemy.hp <= 0) return;
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
@@ -617,7 +677,6 @@ namespace DoodleIdle
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.
-            enemy.root.SetActive(false);
             ReleaseEnemy(enemy);
         }
 
@@ -631,7 +690,7 @@ namespace DoodleIdle
             actor.art.sortingOrder = Order(actor.Position);
             actor.rigVisual.Sync();
             RefreshHealthBar(actor);
-            actor.root.transform.GetChild(0).GetComponent<SpriteRenderer>().sortingOrder = -900;
+            if (actor.shadow.sortingOrder != -900) actor.shadow.sortingOrder = -900;
         }
 
         void UpdateHeldClub()
@@ -705,14 +764,15 @@ namespace DoodleIdle
 
         void SetSpriteArt(SpriteRenderer renderer, Sprite sprite)
         {
-            renderer.sprite = sprite;
+            sprite = ConfigureSkillFace(renderer, sprite);
+            if (renderer.sprite != sprite) renderer.sprite = sprite;
             // Explicit bindings keep atlas, floor and effect textures in separate material batches.
             if (!textureMaterials.TryGetValue(sprite.texture, out var material))
             {
                 material = new Material(spriteMaterial) { mainTexture = sprite.texture, name = "Doodle / " + sprite.texture.name };
                 textureMaterials.Add(sprite.texture, material);
             }
-            renderer.sharedMaterial = material;
+            if (renderer.sharedMaterial != material) renderer.sharedMaterial = material;
         }
 
         static Sprite MakeDisc()

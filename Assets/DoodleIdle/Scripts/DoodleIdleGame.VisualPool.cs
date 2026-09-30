@@ -9,6 +9,7 @@ namespace DoodleIdle
         public string key;
         public SpriteRenderer art;
         public bool returned;
+        public CircleCollider2D trigger;
     }
 
     public sealed partial class DoodleIdleGame
@@ -16,6 +17,8 @@ namespace DoodleIdle
         readonly Dictionary<string, Stack<DoodleVisualLease>> visualPool = new Dictionary<string, Stack<DoodleVisualLease>>();
         int pooledVisualCount;
         Transform visualPoolRoot;
+        readonly Stack<DoodleVisualLease> preparedVisuals = new Stack<DoodleVisualLease>();
+        readonly Dictionary<DoodleIdle.CharacterRigs.CharacterFace, Stack<DoodleVisualLease>> preparedFaces = new Dictionary<DoodleIdle.CharacterRigs.CharacterFace, Stack<DoodleVisualLease>>();
         public int VisualObjectsCreated { get; private set; }
         public int VisualObjectsReused { get; private set; }
         public int PooledVisualCount => pooledVisualCount;
@@ -26,11 +29,18 @@ namespace DoodleIdle
             if (visualPool.TryGetValue(label, out var spare))
                 while (spare.Count > 0 && !lease) { lease = spare.Pop(); pooledVisualCount--; }
             if (!lease) {
+                var face = DoodleSkillFaceCatalog.Find(sprite);
+                if (face != null && preparedFaces.TryGetValue(face.facePrefab, out var faces) && faces.Count > 0)
+                    lease = faces.Pop();
+                else if (preparedVisuals.Count > 0) lease = preparedVisuals.Pop();
+                if (lease) pooledVisualCount--;
+            }
+            if (!lease) {
                 var go = new GameObject(label);
                 lease = go.AddComponent<DoodleVisualLease>(); lease.key = label;
                 lease.art = go.AddComponent<SpriteRenderer>(); VisualObjectsCreated++;
             } else VisualObjectsReused++;
-            lease.returned = false; lease.gameObject.name = label;
+            lease.key = label; lease.returned = false; lease.gameObject.name = label;
             var transform = lease.transform;
             transform.SetParent(world, false); transform.SetPositionAndRotation(position, Quaternion.identity);
             transform.localScale = new Vector3(scale.x, scale.y, 1);
@@ -38,7 +48,7 @@ namespace DoodleIdle
             art.enabled = true; art.color = Color.white; art.flipX = art.flipY = false;
             art.sortingOrder = order; art.sortingLayerID = 0; art.SetPropertyBlock(null);
             SetSpriteArt(art, sprite);
-            var collider = lease.GetComponent<CircleCollider2D>(); if (collider) collider.enabled = false;
+            if (lease.trigger) lease.trigger.enabled = false;
             lease.gameObject.SetActive(true);
             return art;
         }
@@ -49,9 +59,11 @@ namespace DoodleIdle
             if (!lease) { Destroy(go); return; }
             if (lease.returned) return;
             lease.returned = true; go.transform.DOKill(); go.SetActive(false);
+            var face = go.GetComponent<DoodleSkillFaceVisual>();
             // Cannons own a muzzle child. Do not accumulate children or active tweens across rentals.
             for (int i = go.transform.childCount - 1; i >= 0; i--) {
                 var child = go.transform.GetChild(i).gameObject;
+                if (face && child.transform == face.Attachment) continue;
                 if (child.GetComponent<DoodleVisualLease>()) ReleaseVisual(child);
                 else Destroy(child);
             }
@@ -66,8 +78,10 @@ namespace DoodleIdle
         }
         static CircleCollider2D VisualTrigger(SpriteRenderer art)
         {
-            var collider = art.GetComponent<CircleCollider2D>();
+            var lease = art.GetComponent<DoodleVisualLease>();
+            var collider = lease ? lease.trigger : art.GetComponent<CircleCollider2D>();
             if (!collider) collider = art.gameObject.AddComponent<CircleCollider2D>();
+            if (lease) lease.trigger = collider;
             collider.enabled = true; collider.isTrigger = true; collider.offset = Vector2.zero;
             return collider;
         }

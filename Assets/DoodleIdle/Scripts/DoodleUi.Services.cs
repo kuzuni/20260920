@@ -82,6 +82,7 @@ namespace DoodleIdle
         sealed class LocalRank
         {
             public string name, art;
+            public DoodlePlayerLook look;
             public GameNumber power;
             public int points;
             public bool self;
@@ -600,10 +601,9 @@ namespace DoodleIdle
         List<LocalRank> LocalRanking()
         {
             string[] names = { "밤톨왕", "구름발", "버섯대장", "콩알", "밤비", "동실" };
-            string[] art = { "Player", "StormCloud", "MushroomA", "DevilA", "BatA", "StormCloudB" };
             var ranks = new List<LocalRank>();
-            for (int i = 0; i < 100; i++) ranks.Add(new LocalRank { name = i < names.Length ? names[i] : names[i % names.Length] + (i + 1), art = art[i % art.Length], points = 2840 - i * 17, power = 58200 - i * 460 });
-            ranks.Add(new LocalRank { name = PlayerName, art = EquippedAppearanceIcon, points = services.pvpPoints, power = PowerAmount, self = true });
+            for (int i = 0; i < 100; i++) ranks.Add(new LocalRank { name = i < names.Length ? names[i] : names[i % names.Length] + (i + 1), art = "Player", look = new DoodlePlayerLook(), points = 2840 - i * 17, power = 58200 - i * 460 });
+            ranks.Add(new LocalRank { name = PlayerName, art = EquippedAppearanceIcon, look = DoodlePlayerLook.From(this), points = services.pvpPoints, power = PowerAmount, self = true });
             ranks.Sort((a, b) => { int points = b.points.CompareTo(a.points); return points != 0 ? points : b.power.CompareTo(a.power); });
             return ranks;
         }
@@ -613,23 +613,25 @@ namespace DoodleIdle
             UiKit.Button(body, L("스테이지 랭킹", "Stage leaderboard"), OpenStageLeaderboard, UiKit.Yellow, 62);
             UiKit.Text(body, "로컬 모의 PVP · 예시 랭킹 / 서버 미연결", 17, TextAnchor.MiddleCenter, 26);
             var ranks = LocalRanking();
-            var podium = UiKit.Row(body, "Top three podium", 206);
+            var podium = UiKit.Row(body, "Top three podium", DoodlePortraitSettings.Current.pvpRowHeight);
             foreach (int position in new[] { 1, 0, 2 })
             {
                 var rank = ranks[position];
-                var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,206);
+                var card = UiKit.Rect(podium, "Podium rank " + (position + 1));UiKit.Flexible(card);UiKit.Height(card,DoodlePortraitSettings.Current.pvpRowHeight);
                 float stepHeight=position==0?84:position==1?57:42;
                 var step=UiKit.Box(card,"Podium pedestal",position==0?UiKit.Yellow:position==1?new Color(.84f,.85f,.87f):new Color(.87f,.70f,.53f));
                 step.GetComponent<Image>().raycastTarget=false;
                 step.anchorMin=Vector2.zero;step.anchorMax=new Vector2(1,0);step.pivot=new Vector2(.5f,0);step.anchoredPosition=Vector2.zero;step.sizeDelta=new Vector2(0,stepHeight);
                 var number=UiKit.Text(step,(position+1).ToString(),49,TextAnchor.MiddleCenter,stepHeight);UiKit.Stretch(number.rectTransform,8,0,8,0);
-                float contactY=stepHeight-2,portraitSize=position==0?78:70;
+                float contactY=stepHeight-2,portraitSize=position==0?DoodlePortraitSettings.Current.pvpFirstSize:DoodlePortraitSettings.Current.pvpOtherSize;
                 var shadow=UiKit.Rect(card,"Podium contact shadow");shadow.anchorMin=shadow.anchorMax=new Vector2(.5f,0);shadow.anchoredPosition=new Vector2(0,contactY+1);shadow.sizeDelta=new Vector2(portraitSize*.62f,7);
                 var shade=shadow.gameObject.AddComponent<Image>();shade.sprite=UiKit.Circle;shade.color=new Color(0,0,0,.18f);shade.raycastTarget=false;
                 var portrait=UiKit.Icon(card,rank.art,portraitSize);var image=portrait.rectTransform;
-                var source=portrait.sprite.rect.size;var drawn=source*(portraitSize/Mathf.Max(source.x,source.y));
+                portrait.gameObject.AddComponent<DoodleIdlePortrait>().Configure(this,DoodleIdlePortrait.View.Pvp,rank.look);
+                var drawn=Vector2.one*portraitSize;
                 image.sizeDelta=drawn;image.anchorMin=image.anchorMax=new Vector2(.5f,0);image.pivot=new Vector2(.5f,0);image.anchoredPosition=new Vector2(0,contactY);
                 var name=UiKit.Text(card,rank.name,23,TextAnchor.MiddleCenter,30).rectTransform;name.anchorMin=new Vector2(0,0);name.anchorMax=new Vector2(1,0);name.pivot=new Vector2(.5f,0);name.sizeDelta=new Vector2(0,30);name.anchoredPosition=new Vector2(0,contactY+drawn.y+5);
+                var layout=card.gameObject.AddComponent<DoodlePodiumPortraitLayout>();layout.rank=position;layout.portrait=image;layout.label=name;layout.shadow=shadow;layout.podium=podium;layout.Apply();
             }
             int selfIndex = ranks.FindIndex(r => r.self);
             var mine = ServiceCard(body, "My rank", UiKit.Yellow);
