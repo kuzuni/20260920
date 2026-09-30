@@ -286,14 +286,27 @@ namespace DoodleIdle
             StopRepeating();
             ConsumeGesture(); var dim=Dim(overlayLayer,"Detail dim: "+title,CloseDetail,.56f); overlayStack.Add(dim.gameObject); bool previous=rebuildingPage; rebuildingPage=!animate; try { var body=Window(dim,title,false,CloseDetail); build(body); } finally { rebuildingPage=previous; } Relayout(true);
         }
-        public void CloseDetail() { StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return; var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1); if(rewardCloseEffects.TryGetValue(last,out var effect)){rewardCloseEffects.Remove(last);effect();} DoodlePopupMotion.Close(last,root); RefreshHud(); }
+        public void CloseDetail() {
+            StopRepeating(); ConsumeGesture(); if(overlayStack.Count==0)return;
+            var last=overlayStack[overlayStack.Count-1]; overlayStack.RemoveAt(overlayStack.Count-1);
+            bool summonResults = last.name=="Fullscreen: 뽑기 결과";
+            if(summonResults) { summonResultMultiplier=1; fullscreenBuilder=null; fullscreenTitle=null; }
+            if(rewardCloseEffects.TryGetValue(last,out var effect)){rewardCloseEffects.Remove(last);effect();}
+            DoodlePopupMotion.Close(last,root);
+            if(summonResults)RefreshPage();else RefreshHud();
+        }
         public void ShowFullscreen(string title,Action<RectTransform> build,bool animate=true)
         {
             StopRepeating();
+            if(fullscreenTitle=="뽑기 결과" && title!="뽑기 결과") { summonResultMultiplier=1; RefreshPage(); }
             if(fullscreenBuilder!=null && overlayStack.Count>0) { var old=overlayStack[overlayStack.Count-1];overlayStack.RemoveAt(overlayStack.Count-1);old.SetActive(false);Destroy(old); }
             ConsumeGesture(); fullscreenBuilder=build; fullscreenTitle=title; var dim=Dim(overlayLayer,"Fullscreen: "+title,()=>{},1); overlayStack.Add(dim.gameObject); bool previous=rebuildingPage; rebuildingPage=!animate;try{build(Window(dim,title,true,CloseFullscreen));}finally{rebuildingPage=previous;} Relayout(true);
         }
-        public void CloseFullscreen() { CloseDetail(); fullscreenBuilder=null; fullscreenTitle=null; RefreshPage(); }
+        public void CloseFullscreen() {
+            bool summonResults=overlayStack.Count>0 && overlayStack[overlayStack.Count-1].name=="Fullscreen: 뽑기 결과";
+            CloseDetail(); fullscreenBuilder=null; fullscreenTitle=null;
+            if(!summonResults)RefreshPage();
+        }
         public void ShowRewards(string title,List<UiReward> rewards)
         {
             StopRepeating();
@@ -361,7 +374,7 @@ namespace DoodleIdle
             finally { localSave.Complete(Time.realtimeSinceStartupAsDouble, success); }
         }
         void ConsumeGesture() { consumeThroughFrame=Time.frameCount+2; releaseLatch=Pointer.current!=null&&Pointer.current.press.isPressed; game.CancelUiPointer(); }
-        void ClearOverlays() { foreach(var go in overlayStack) if(go){rewardCloseEffects.Remove(go);go.SetActive(false);Destroy(go);} overlayStack.Clear(); }
+        void ClearOverlays() { foreach(var go in overlayStack) if(go){rewardCloseEffects.Remove(go);go.SetActive(false);Destroy(go);} overlayStack.Clear(); summonResultMultiplier=1; fullscreenBuilder=null; fullscreenTitle=null; }
         static void ClearChildren(Transform parent) { if(!parent)return; foreach(Transform child in parent) { child.gameObject.SetActive(false); Destroy(child.gameObject); } }
         float nextHudTextRefresh;
         readonly List<UiItem> hudSkillBuffer = new List<UiItem>(8);

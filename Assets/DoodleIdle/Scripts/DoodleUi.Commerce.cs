@@ -411,26 +411,29 @@ namespace DoodleIdle
         void CompleteSummon(string category, List<UiItem> rewards)
         {
             var state = summonStates[category];
-            foreach (var item in rewards) AddItem(item, 1);
+            foreach (var pair in CountSummonRewards(rewards)) AddItem(pair.Key, pair.Value);
             state.lifetimeDraws=state.lifetimeDraws>long.MaxValue-rewards.Count?long.MaxValue:state.lifetimeDraws+rewards.Count;
             RecordServiceProgress("summon:"+category,rewards.Count);
             AdvanceSummonExperience(state, rewards.Count);
             RecordServiceProgress("summon", rewards.Count);
             Save();
-            RefreshPage();
+            // The opaque results cover the collection. Rebuild it once on close,
+            // instead of destroying/recreating its slots for every repeat draw.
+            RefreshHud();
             ShowSummonResults(category, rewards);
         }
 
         void ShowSummonResults(string category, List<UiItem> rewards)
         {
-            var counts = new Dictionary<string, int>(); var unique = new List<UiItem>();
-            foreach (var item in rewards) { if (!counts.ContainsKey(item.id)) { counts[item.id] = 0; unique.Add(item); } counts[item.id]++; }
+            var counts = CountSummonRewards(rewards);
+            var unique = new List<UiItem>(counts.Keys);
+            int drawCount = rewards.Count;
             var catalogOrder = Items(category);
             unique.Sort((a, b) => catalogOrder.IndexOf(a).CompareTo(catalogOrder.IndexOf(b)));
             bool animateWindow = fullscreenTitle != "뽑기 결과" && !SkipSummonAnimations;
             ShowFullscreen("뽑기 결과", body =>
             {
-                var subtitle = UiKit.Text(body, CommerceLabel(category) + " " + rewards.Count + "회 뽑기", 38, TextAnchor.MiddleCenter, 58);
+                var subtitle = UiKit.Text(body, CommerceLabel(category) + " " + drawCount + "회 뽑기", 38, TextAnchor.MiddleCenter, 58);
                 var grid = UiKit.Grid(body, "SummonResultCards", 5, 150);
                 UiKit.PortraitGrid(grid);
                 for (int i = 0; i < unique.Count; i++)
@@ -445,7 +448,7 @@ namespace DoodleIdle
                     layout.gauge.GetComponent<Outline>().enabled = false;
                     layout.gauge.Find("Fill").gameObject.SetActive(false);
                     var amount = layout.gauge.GetComponentInChildren<Text>(); amount.name = "Draw quantity";
-                    amount.text = "×" + counts[item.id].ToString("N0", CultureInfo.InvariantCulture);
+                    amount.text = "×" + counts[item].ToString("N0", CultureInfo.InvariantCulture);
                     layout.Invalidate();
                     slot.gameObject.name = "SummonResult_" + i + "_" + item.id;
                 }
@@ -497,7 +500,7 @@ namespace DoodleIdle
                 }
                 BuildSummonButtons(footer, category, true);
                 var confirmRow = UiKit.Row(footer, "Summon confirmation", 58);
-                var confirm = UiKit.Button(confirmRow, "확인", () => { CloseFullscreen(); RefreshPage(); }, UiKit.Yellow, 58);
+                var confirm = UiKit.Button(confirmRow, "확인", CloseFullscreen, UiKit.Yellow, 58);
                 var window = body.GetComponentInParent<DoodleUiWindow>();
                 if (window)
                 {
@@ -686,13 +689,14 @@ namespace DoodleIdle
     public sealed class DoodleSummonCelebration : MaskableGraphic
     {
         float age;
+        static readonly Color[] colors = { new Color(.52f,.85f,.40f), new Color(.99f,.83f,.32f), new Color(.40f,.77f,.98f), new Color(.96f,.54f,.72f) };
+        readonly Vector2[] confettiCorners = new Vector2[4];
         public void Finish() { age = 2.2f; SetVerticesDirty(); enabled = false; }
         void Update() { age += Time.unscaledDeltaTime; SetVerticesDirty(); if (age >= 2.2f) enabled = false; }
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (age >= 2.2f) return;
             var r = rectTransform.rect;
-            Color[] colors = { new Color(.52f,.85f,.40f), new Color(.99f,.83f,.32f), new Color(.40f,.77f,.98f), new Color(.96f,.54f,.72f) };
             for (int i = 0; i < 128; i++)
             {
                 float t = Mathf.Max(0, age - i % 5 * .02f), side = i % 2 == 0 ? -1 : 1;
@@ -704,7 +708,9 @@ namespace DoodleIdle
                 float size=Mathf.Clamp(r.width/720, .75f, 1.5f);
                 Vector2 a = axis * ((10 + i % 4 * 2)*size), b = new Vector2(-axis.y, axis.x) * ((22+i%3*4)*size);
                 Color tint = colors[i % colors.Length]; tint.a = Mathf.Clamp01((2.2f - age)*2);
-                DoodleCommerceMesh.Polygon(vh, new[] { center-a-b,center+a-b,center+a+b,center-a+b }, tint, 1.5f);
+                confettiCorners[0]=center-a-b; confettiCorners[1]=center+a-b;
+                confettiCorners[2]=center+a+b; confettiCorners[3]=center-a+b;
+                DoodleCommerceMesh.Polygon(vh, confettiCorners, tint, 1.5f);
             }
         }
     }

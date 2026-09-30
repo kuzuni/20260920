@@ -56,7 +56,7 @@ namespace DoodleIdle.Tests
             CollectionAssert.AreEquivalent(new[] { "RobotDroneA", "RobotDroneB" }, droneFrames);
             for (int i = 0; i < species.Length; i++)
                 CollectionAssert.AreEquivalent(new[] { DoodleCharacterCatalog.Portrait(arts[i + 1].GetComponent<DoodleRigVisual>().Entry, 0).name, DoodleCharacterCatalog.Portrait(arts[i + 1].GetComponent<DoodleRigVisual>().Entry, 1).name }, seen[i + 1]);
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
             game.TogglePause();
             var pausedFrames = arts.Select(a => a.sprite).ToArray();
             yield return new WaitForSecondsRealtime(.2f);

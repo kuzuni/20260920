@@ -4,6 +4,8 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
+        [Header("Enemy movement")]
+        [Min(0)] public float enemyMoveSpeedMultiplier = 2;
         [Header("Enemy dash attack")]
         public bool enemyDashEnabled = true;
         [Min(0)] public float enemyDashSpeed = 8;
@@ -51,7 +53,7 @@ namespace DoodleIdle
                     continue;
                 }
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
-                enemy.body.linearVelocity = toPlayer.normalized * .6f + wander * .28f;
+                enemy.body.linearVelocity = (toPlayer.normalized * .6f + wander * .28f) * enemyMoveSpeedMultiplier;
             }
         }
 

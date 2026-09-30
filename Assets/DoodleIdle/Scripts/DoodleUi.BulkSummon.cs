@@ -7,6 +7,17 @@ namespace DoodleIdle
     {
         int summonResultMultiplier = 1;
         static readonly int[] summonMultipliers = { 1, 10, 100, 1000 };
+        static Dictionary<UiItem,int> CountSummonRewards(List<UiItem> rewards)
+        {
+            // Rolls reference the catalog's existing items. Avoid decrypting their
+            // protected string IDs for every copy in a 50,000-draw result.
+            var counts = new Dictionary<UiItem,int>();
+            foreach (var item in rewards) {
+                counts.TryGetValue(item, out int count);
+                counts[item] = count + 1;
+            }
+            return counts;
+        }
         static bool ValidSummonCount(int count, bool ticketOnly = false)
         {
             foreach (int multiplier in summonMultipliers)
@@ -33,22 +44,29 @@ namespace DoodleIdle
             var pools = new List<UiItem>[GradeNames.Length];
             for (int grade = 0; grade < pools.Length; grade++) pools[grade] = items.FindAll(x => x.rarity == grade);
             var rewards = new List<UiItem>(count);
-            int weightLevel = -1; int[] weights = null;
-            for (int i = 0; i < count; i++) {
-                UiItem item;
-                if (IsRelicSummon(category)) item = items[rng.Next(items.Count)];
-                else {
-                    if (weightLevel != cursor.level) { weights = SummonWeights(category, cursor.level); weightLevel = cursor.level; }
-                    int roll = rng.Next(SummonWeightTotal), grade = 0;
-                    while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
-                    var choices = pools[grade];
-                    if (choices.Count == 0) throw new InvalidOperationException("Missing summon grade for " + category);
-                    int tierRoll = rng.Next(SummonTierWeightTotal(choices.Count)), choice = 0;
-                    while (choice < choices.Count - 1 && tierRoll >= SummonTierWeight(choice, choices.Count)) { tierRoll -= SummonTierWeight(choice, choices.Count); choice++; }
-                    item = choices[choice];
+            bool relic = IsRelicSummon(category);
+            // Probabilities change only at level boundaries. Advance the private
+            // preview cursor once per boundary while retaining every RNG call/order.
+            while (rewards.Count < count) {
+                int batch = count - rewards.Count;
+                if (!relic && cursor.level < MaxSummonLevel)
+                    batch = Math.Min(batch, Math.Max(1, CommerceExperienceNeeded(cursor) - cursor.experience));
+                var weights = relic ? null : SummonWeights(category, cursor.level);
+                for (int i = 0; i < batch; i++) {
+                    UiItem item;
+                    if (relic) item = items[rng.Next(items.Count)];
+                    else {
+                        int roll = rng.Next(SummonWeightTotal), grade = 0;
+                        while (grade < weights.Length - 1 && roll >= weights[grade]) { roll -= weights[grade]; grade++; }
+                        var choices = pools[grade];
+                        if (choices.Count == 0) throw new InvalidOperationException("Missing summon grade for " + category);
+                        int tierRoll = rng.Next(SummonTierWeightTotal(choices.Count)), choice = 0;
+                        while (choice < choices.Count - 1 && tierRoll >= SummonTierWeight(choice, choices.Count)) { tierRoll -= SummonTierWeight(choice, choices.Count); choice++; }
+                        item = choices[choice];
+                    }
+                    rewards.Add(item);
                 }
-                rewards.Add(item);
-                AdvanceSummonExperience(cursor, 1);
+                AdvanceSummonExperience(cursor, batch);
             }
             return rewards;
         }

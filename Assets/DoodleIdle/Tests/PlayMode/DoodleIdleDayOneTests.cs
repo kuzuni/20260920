@@ -26,7 +26,7 @@ namespace DoodleIdle.Tests
                 int kills = game.Kills;
                 long expectedGold = gold + ui.GoldForMainKills(oldDifficulty,1);
                 ServiceSetSavedField(ServiceStateObject,"mainStageKillProgress",100);
-                typeof(DoodleIdleGame).GetMethod("Refill",GrowthPrivate).Invoke(game,null);
+                game.RestartCombatForStageDebug();
                 Assert.That(game.BossActive,Is.True);
                 typeof(DoodleIdleGame).GetMethod("FireSlash",GrowthPrivate).Invoke(game,new object[] { Vector2.right });
                 UiOpen("Skills");

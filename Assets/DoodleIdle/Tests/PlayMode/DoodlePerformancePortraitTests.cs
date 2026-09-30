@@ -39,6 +39,8 @@ namespace DoodleIdle.Tests
         public IEnumerator RefillPreservesPositionsKindsHealthAndCombatRandomSequence()
         {
             game.TogglePause();
+            game.Ui.ToggleBreakthroughMode();
+            game.RestartCombatForStageDebug();
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
             var release=typeof(DoodleIdleGame).GetMethod("ReleaseEnemy",GrowthPrivate);
             var refill=typeof(DoodleIdleGame).GetMethod("Refill",GrowthPrivate);

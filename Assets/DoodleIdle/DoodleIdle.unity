@@ -164,10 +164,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   companionsEnabled: 1
-  targetPopulation: 200
-  refillBelow: 100
+  targetPopulation: 50
+  refillBelow: 10
   arenaHalfSize: {x: 17, y: 20}
-  moveSpeed: 3.1
+  moveSpeed: 6.2
   attackInterval: 0.65
   dashInterval: 5
   stoneInterval: 3.2
@@ -177,6 +177,7 @@ MonoBehaviour:
   paused: 0
   enemyDashEnabled: 1
   enemyDashSpeed: 8
+  enemyMoveSpeedMultiplier: 2
   enemyContactDamage: 64
   extraSkillsEnabled: 1
   arrowInterval: 4.5

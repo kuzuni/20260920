@@ -179,18 +179,18 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator StartsWith200SolidSeparatedEnemiesAndFiveBananas()
+        public IEnumerator StartsWith50SolidSeparatedEnemiesAndFiveBananas()
         {
             // Inspect spawn placement before movement/solver contact tolerance can change it.
             game.ResetGame();
             game.TogglePause();
             yield return null; // Flush the previous population and banana visuals queued for Destroy.
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
             Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
-            Assert.That(bodies.Length, Is.EqualTo(200));
+            Assert.That(bodies.Length, Is.EqualTo(50));
             Assert.That(bodies.Any(b => b.position.y > 12) && bodies.Any(b => b.position.y < -12), Is.True);
-            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(200));
+            Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(50));
             foreach (var body in bodies)
             {
                 Assert.That(body.bodyType, Is.EqualTo(RigidbodyType2D.Dynamic));
@@ -319,7 +319,7 @@ namespace DoodleIdle.Tests
             DefeatActualServiceEnemies(7);
             yield return null;
             int progress = game.Ui.MainStageKillProgress;
-            int remaining = 200;
+            int remaining = game.Ui.MainStageRemaining;
             Assert.That(progress, Is.GreaterThanOrEqualTo(7));
             float elapsed = game.Elapsed;
             var bodies = EnemyBodies();
@@ -351,6 +351,7 @@ namespace DoodleIdle.Tests
             // DungeonEntryReplacesActualMapAndActorsAndUsesMainStageDifficulty covers stage scaling.
             var baselineTuning=(DoodleUi.ServiceTuning)typeof(DoodleUi).GetField("serviceTuning",ServicePrivate).GetValue(game.Ui);
             baselineTuning.enemyHealthStageGrowth=baselineTuning.enemyDamageStageGrowth=0;
+            baselineTuning.enemyHealthGrowthSteps = System.Array.Empty<DoodleGrowthStep>();
             game.Ui.AddItem(game.Ui.Items("Armor").Single(x => x.rarity == 6 && x.tier == 1), 1);
             game.companionsEnabled=true;
             foreach(var item in game.Ui.Items("Companion")){item.equipped=item.id=="drone"||item.id=="sword"||item.id=="orbit";if(item.equipped){item.discovered=true;item.level=1;}}
@@ -379,7 +380,7 @@ namespace DoodleIdle.Tests
                 int nextGroup = Mathf.Min(groupCount - 1, (int)(game.Elapsed / 40));
                 if (nextGroup != group) equipGroup(nextGroup);
                 yield return new WaitForFixedUpdate();
-                Assert.That(game.EnemyCount, Is.InRange(0, 200), "The field replenishes below 100 and the breakthrough boss spawns alone.");
+                Assert.That(game.EnemyCount, Is.InRange(0, 50), "Farming replenishes to fifty at ten or fewer survivors.");
                 var bodies = EnemyBodies();
                 for (int i = 0; i < bodies.Length; i++) for (int j = i + 1; j < bodies.Length; j++)
                     if (1.12f - Vector2.Distance(bodies[i].position, bodies[j].position) > worstPenetration) {

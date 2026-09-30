@@ -11,10 +11,11 @@ namespace DoodleIdle
         Vector2 AutomaticMoveVelocity(Actor target, float dt)
         {
             Vector2 delta = target.Position - player.Position;
-            if (!KeepsEnemyDistance) return delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f);
+            float speedScale = moveSpeed / 3.1f;
+            if (!KeepsEnemyDistance) return delta.normalized * (delta.magnitude > 1.35f ? moveSpeed : .45f * speedScale);
             float gap = Ui.PlayerKeepDistance;
             float safe = ActorRadius(player) + ActorRadius(target) + gap;
-            Vector2 desired = delta.normalized * Mathf.Clamp((delta.magnitude - safe) * 4, 0, moveSpeed);
+            Vector2 desired = delta.normalized * Mathf.Clamp((delta.magnitude - safe) * 4 * speedScale, 0, moveSpeed);
             // Keep out of every nearby body, not only the enemy we are attacking.
             Vector2 escape = Vector2.zero;
             foreach (var enemy in enemies) {
@@ -24,7 +25,7 @@ namespace DoodleIdle
                 float clearance = ActorRadius(player) + ActorRadius(enemy) + gap;
                 if (distance >= clearance) continue;
                 Vector2 direction = distance > .001f ? away / distance : -facing;
-                escape += direction * Mathf.Min(moveSpeed, (clearance - distance) * 4);
+                escape += direction * Mathf.Min(moveSpeed, (clearance - distance) * 4 * speedScale);
             }
             desired = Vector2.ClampMagnitude(desired + escape, moveSpeed);
             return LimitAutomaticStep(desired * dt) / dt;

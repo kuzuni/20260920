@@ -10,21 +10,18 @@ namespace DoodleIdle
         // belong only to their active dungeon and cannot also advance the main stage.
         public int MainStage => services == null ? 0 : services.mainStage;
         public int MainStageKillProgress => services == null ? 0 : services.mainStageKillProgress;
-        public int MainStageKillGoal => BreakthroughMode && MainStage < 99 ? 20 : 50;
+        public int MainStageKillGoal => 50;
         public int MainStageRemaining => Math.Max(0, MainStageKillGoal - MainStageKillProgress);
         public bool BreakthroughMode => services == null || services.breakthroughMode;
         public bool MainBossPending => MainStageKillProgress >= MainStageKillGoal && BreakthroughMode;
         public void ToggleBreakthroughMode()
         {
-            bool bossWasPending = MainBossPending;
+            if (services == null || ActiveDungeonIndex >= 0) return;
             services.breakthroughMode = !services.breakthroughMode;
-            if (!services.breakthroughMode && bossWasPending)
-            {
-                services.mainStageKillProgress = 0;
-                if (game) game.RequestCombatWaveReset();
-            }
-            else if (services.breakthroughMode)
-                services.mainStageKillProgress = Math.Min(MainStageKillGoal, MainStageKillProgress);
+            // Farming refills do not represent a finite breakthrough wave. Start a
+            // fresh wave when switching modes so credited kills and living actors agree.
+            services.mainStageKillProgress = 0;
+            if (game) game.RequestCombatWaveReset();
             Save(); RefreshHud();
         }
         public void RecordMainCombatKill(bool boss)

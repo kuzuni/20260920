@@ -379,41 +379,90 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator RevisionPopulationRefillsBelow100AndBossStartsAfterStageKillGoal()
+        public IEnumerator FarmingRefillsAtTenAndBreakthroughWaitsForTheLastEnemy()
         {
             game.TogglePause(); var ui = game.Ui;
             var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
+            game.basicSkillsEnabled = game.extraSkillsEnabled = game.summonSkillsEnabled = game.companionsEnabled = false;
+            game.SetBasicAttackEnabled(false); game.autoPlay = false; game.enemyContactDamage = 0;
+            void Tick()
+            {
+                game.paused = false;
+                try { typeof(DoodleIdleGame).GetMethod("FixedUpdate", GrowthPrivate).Invoke(game, null); }
+                finally { game.paused = true; }
+            }
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
             ui.ToggleBreakthroughMode();
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
-            DefeatActualServiceEnemies(99);
-            Assert.That(game.EnemyCount, Is.EqualTo(101));
-            refill.Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(101));
+            Tick();
+            DefeatActualServiceEnemies(39);
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(11), "Eleven survivors must not trigger a refill.");
             DefeatActualServiceEnemies(1);
+            Assert.That(game.EnemyCount, Is.EqualTo(10));
+            int kills = game.Kills;
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(50), "At ten, add forty enemies rather than fifty.");
+            Assert.That(game.Kills, Is.EqualTo(kills));
+            Assert.That(ui.MainStageKillProgress, Is.EqualTo(40));
+            DefeatActualServiceEnemies(45);
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(50), "A multi-kill below ten also refills to fifty.");
             Assert.That(ui.MainStage, Is.Zero);
-            Assert.That(ui.MainStageKillProgress, Is.Zero);
-            refill.Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(100), "Exactly 100 does not replenish yet.");
-            DefeatActualServiceEnemies(1);
-            refill.Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
-            Assert.That(ui.MainStageKillProgress, Is.EqualTo(1), "Population refill must not clear credited kills.");
             Assert.That(game.BossActive, Is.False);
             ui.ToggleBreakthroughMode();
-            int remaining = ui.MainStageRemaining;
-            DefeatActualServiceEnemies(remaining);
-            Assert.That(game.EnemyCount, Is.EqualTo(200 - remaining), "Boss eligibility occurs with surviving ordinary enemies.");
+            Tick();
+            Assert.That(ui.MainStageKillProgress, Is.Zero);
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
+            DefeatActualServiceEnemies(40);
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(10), "Breakthrough never refills its surviving wave.");
+            DefeatActualServiceEnemies(9);
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(1));
+            Assert.That(game.BossActive, Is.False);
+            Assert.That(ui.MainBossPending, Is.False);
+            DefeatActualServiceEnemies(1);
+            Assert.That(game.EnemyCount, Is.Zero);
             Assert.That(ui.MainStage, Is.Zero);
-            int kills = game.Kills;
-            refill.Invoke(game, null);
+            kills = game.Kills;
+            Tick(); // The actual game tick must start the challenge automatically.
             Assert.That(game.BossActive, Is.True);
             Assert.That(game.EnemyCount, Is.EqualTo(1));
-            Assert.That(game.Kills, Is.EqualTo(kills), "Removing the field for a boss must not grant extra kill rewards.");
+            Assert.That(game.Kills, Is.EqualTo(kills));
+            refill.Invoke(game, null);
+            Assert.That(game.EnemyCount, Is.EqualTo(1), "Do not duplicate an active boss.");
             DefeatActualServiceEnemies(1);
             Assert.That(ui.MainStage, Is.EqualTo(1));
             Assert.That(ui.MainStageKillProgress, Is.Zero);
+            Tick();
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
+            Assert.That(game.BossActive, Is.False);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator SavedBreakthroughWaveRestoresOnlyRemainingEnemies()
+        {
+            game.TogglePause();
+            DefeatActualServiceEnemies(37);
+            game.Ui.Save();
+            ReloadPersistedServices();
+            game.ResetGame(); game.TogglePause();
+            Assert.That(game.Ui.MainStageKillProgress, Is.EqualTo(37));
+            Assert.That(game.EnemyCount, Is.EqualTo(13));
+            var refill = typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate);
+            DefeatActualServiceEnemies(12);
             refill.Invoke(game, null);
-            Assert.That(game.EnemyCount, Is.EqualTo(200));
+            Assert.That(game.EnemyCount, Is.EqualTo(1));
+            Assert.That(game.BossActive, Is.False);
+            DefeatActualServiceEnemies(1);
+            refill.Invoke(game, null);
+            Assert.That(game.BossActive, Is.True);
+            game.Ui.ToggleBreakthroughMode();
+            game.RestartCombatForStageDebug();
+            Assert.That(game.BossActive, Is.False);
+            Assert.That(game.EnemyCount, Is.EqualTo(50));
+            Assert.That(game.Ui.MainStage, Is.Zero);
             yield return null;
         }
 
@@ -438,14 +487,15 @@ namespace DoodleIdle.Tests
                 game.TogglePause();
                 Assert.That(game.CurrentThemeIndex, Is.EqualTo(theme));
                 game.Ui.RefreshHud();
-                Assert.That(game.EnemyCount, Is.EqualTo(200));
+                Assert.That(game.EnemyCount, Is.EqualTo(50));
                 var frames = (Sprite[][])typeof(DoodleIdleGame).GetField("enemyWalkFrames", GrowthPrivate).GetValue(game);
                 Assert.That(frames.Length, Is.EqualTo(3));
                 foreach (var pair in frames)
                 {
                     Assert.That(pair.Length, Is.EqualTo(2));
                     Assert.That(pair[0].rect.size, Is.EqualTo(pair[1].rect.size));
-                    Assert.That(pair[0].rect, Is.Not.EqualTo(pair[1].rect));
+                    Assert.That(pair[0].texture != pair[1].texture || pair[0].rect != pair[1].rect, Is.True,
+                        "Movement frames may use separate textures with identical sprite rectangles.");
                     Assert.That(pair[0].texture.name, Is.Not.EqualTo("Characters"));
                 }
                 Object.Destroy(CaptureFrame("revision-theme-" + theme + ".png", 720, 1520));

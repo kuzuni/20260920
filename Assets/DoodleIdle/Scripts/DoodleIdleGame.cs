@@ -11,12 +11,12 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame : MonoBehaviour
     {
         [Header("Population")]
-        public int targetPopulation = 200;
-        public int refillBelow = 100;
+        public int targetPopulation = 50;
+        public int refillBelow = 10;
         public Vector2 arenaHalfSize = new Vector2(17, 20);
         public const float SlashSpeed = 11;
         [Header("Combat")]
-        public float moveSpeed = 3.1f;
+        public float moveSpeed = 6.2f;
         public float attackInterval = .65f;
         public float dashInterval = 5f;
         public float stoneInterval = 3.2f;
@@ -336,10 +336,9 @@ namespace DoodleIdle
             ApplyStageTheme();
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
             {
-                if (BossActive) return;
-                // The stage's credited kill goal starts the challenge, regardless of surviving field enemies.
-                foreach (var enemy in enemies) { enemy.hp = 0; ReleaseEnemy(enemy); }
-                enemies.Clear(); bananaHitTimes.Clear(); dashVictims.Clear();
+                // A breakthrough wave must actually be empty before its boss appears.
+                if (enemies.Count > 0) return;
+                bananaHitTimes.Clear(); dashVictims.Clear();
                 var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
                 boss.isBoss = true; boss.hp = boss.maxHp = boss.maxHp * 20;
                 boss.root.name = "Stage boss";
@@ -350,9 +349,12 @@ namespace DoodleIdle
             }
             if (BossActive) return;
             bool dungeon = Ui && Ui.ActiveDungeonIndex >= 0;
-            int population = dungeon ? 100 : targetPopulation;
-            if (enemies.Count > 0 && (dungeon || enemies.Count >= refillBelow)) return;
+            bool breakthrough = Ui && !dungeon && Ui.BreakthroughMode;
+            // Restore only the unfinished part of a saved breakthrough wave.
+            int population = dungeon ? 100 : breakthrough ? Ui.MainStageRemaining : targetPopulation;
+            if (enemies.Count > 0 && (dungeon || breakthrough || enemies.Count > refillBelow)) return;
             int needed = Mathf.Max(0, population - enemies.Count);
+            if (needed == 0) return;
             var waveHealth = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
             var playerPosition = player.Position;
             SnapshotSpawnPositions();
@@ -370,7 +372,7 @@ namespace DoodleIdle
                 }
                 }
                 // The wide arena normally finds a free position. Still create every
-                // member of the wave so the 100-kill objective cannot get stranded.
+                // member of the wave so its kill objective cannot get stranded.
                 var enemy = CreateActorWithHealth(false, p, UnityEngine.Random.Range(0, 3), waveHealth);
                 enemies.Add(enemy);
                 AddSpawnPosition(enemy.Position);
@@ -492,7 +494,7 @@ namespace DoodleIdle
             // Damage-bearing projectiles share the physics clock with actors and skills.
             // A slow render frame must not extend a slash beyond its intended lifetime/range.
             using(combatMarkers[12].Auto()) UpdateShots(dt);
-            if (enemies.Count < refillBelow || (Ui && Ui.MainBossPending)) Refill();
+            if (enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
             using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
             } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }

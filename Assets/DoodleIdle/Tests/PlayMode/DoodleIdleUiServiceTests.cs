@@ -370,6 +370,10 @@ namespace DoodleIdle.Tests
             var damage = typeof(DoodleIdleGame).GetMethod("Damage", ServicePrivate);
             for (int i = 0; i < count; i++)
             {
+                // These fixtures pause FixedUpdate. Apply its requested mode/dungeon
+                // transition before dealing damage to the next wave.
+                if ((bool)typeof(DoodleIdleGame).GetField("combatWaveResetRequested", ServicePrivate).GetValue(game))
+                    game.RestartCombatForStageDebug();
                 if (actors.Count == 0) typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
                 var actor=actors[0];
                 float health=(float)(GameNumber)actor.GetType().GetField("hp").GetValue(actor);

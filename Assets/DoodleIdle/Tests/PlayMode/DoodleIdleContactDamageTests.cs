@@ -9,6 +9,29 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        [UnityTest]
+        public IEnumerator PlayerAndEnemyNormalMovementUseDoubleSpeed()
+        {
+            game.TogglePause(); game.autoPlay=true; game.enemyDashEnabled=false;
+            Assert.That(game.moveSpeed,Is.EqualTo(6.2f));
+            Assert.That(game.enemyMoveSpeedMultiplier,Is.EqualTo(2));
+            var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
+            var target=actors[0]; var body=(Rigidbody2D)target.GetType().GetField("body").GetValue(target);
+            Place(PlayerBody(),Vector2.zero); Place(body,new Vector2(10,0));
+            var movement=typeof(DoodleIdleGame).GetMethod("AutomaticMoveVelocity",GrowthPrivate);
+            var tuning=game.Ui.ReadBalanceTuning(); tuning.playerKeepDistance=0; game.Ui.ApplyBalanceTuning(tuning);
+            Vector2 velocity=(Vector2)movement.Invoke(game,new object[]{target,.02f});
+            Assert.That(velocity,Is.EqualTo(Vector2.right*6.2f));
+            Place(body,Vector2.right);
+            velocity=(Vector2)movement.Invoke(game,new object[]{target,.02f});
+            Assert.That(velocity.x,Is.EqualTo(.9f).Within(.0001f));
+            target.GetType().GetField("phase").SetValue(target,0f);
+            // The scene has already simulated during setup; preserve its wander phase.
+            Vector2 originalVelocity = Vector2.left * .6f + new Vector2(Mathf.Sin(game.Elapsed * .5f), Mathf.Cos(game.Elapsed * .43f)) * .28f;
+            typeof(DoodleIdleGame).GetMethod("TickEnemyMovement",GrowthPrivate).Invoke(game,new object[]{.02f});
+            Assert.That(Vector2.Distance(body.linearVelocity,originalVelocity * 2),Is.LessThan(.0001f));
+            yield return null;
+        }
         // Contact now starts a wind-up. Existing damage/immunity fixtures must also
         // advance the actual Animator until its clip emits the impact event.
         void StepEnemyAttackEvents(float dt)

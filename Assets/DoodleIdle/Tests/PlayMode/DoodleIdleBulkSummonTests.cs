@@ -17,6 +17,75 @@ namespace DoodleIdle.Tests
             .Where(t => t.name == "Draw quantity").Sum(t => int.Parse(t.text.Substring(1), NumberStyles.AllowThousands, CultureInfo.InvariantCulture));
 
         [UnityTest]
+        public IEnumerator BulkRollsPreserveEverySeededResultAcrossLevelBoundaries()
+        {
+            game.TogglePause(); var ui = game.Ui;
+            var states = (Dictionary<string,DoodleUi.SummonState>)typeof(DoodleUi).GetField("summonStates",GrowthPrivate).GetValue(ui);
+            var needed = (Func<DoodleUi.SummonState,int>)Delegate.CreateDelegate(typeof(Func<DoodleUi.SummonState,int>),ui,typeof(DoodleUi).GetMethod("CommerceExperienceNeeded",GrowthPrivate));
+            var advance = (Action<DoodleUi.SummonState,int>)Delegate.CreateDelegate(typeof(Action<DoodleUi.SummonState,int>),ui,typeof(DoodleUi).GetMethod("AdvanceSummonExperience",GrowthPrivate));
+            var roll = typeof(DoodleUi).GetMethod("RollSummonRewards",GrowthPrivate);
+            foreach (var scenario in new[] { ("Necklace",1,50000), ("Skill",49,1000), ("Relic",1,1000) }) {
+                string category=scenario.Item1; var state=states[category]; state.level=scenario.Item2;
+                state.experience=category=="Relic"?0:needed(state)-1;
+                int level=state.level, experience=state.experience;
+                var cursor=new DoodleUi.SummonState{category=category,level=level,experience=experience};
+                var items=ui.Items(category);
+                var pools=Enumerable.Range(0,9).Select(g=>items.Where(x=>x.rarity==g).ToList()).ToArray();
+                var rng=new System.Random(371); var expected=new List<UiItem>();
+                // Reference transaction advances exactly one draw at a time.
+                for(int i=0;i<scenario.Item3;i++) {
+                    if(category=="Relic")expected.Add(items[rng.Next(items.Count)]);
+                    else {
+                        var weights=ui.SummonWeights(category,cursor.level); int chance=rng.Next(DoodleUi.SummonWeightTotal),grade=0;
+                        while(grade<weights.Length-1&&chance>=weights[grade]){chance-=weights[grade];grade++;}
+                        var choices=pools[grade];
+                        int Weight(int n)=>choices.Count==1?1:Math.Max(1,10-n);
+                        int total=Enumerable.Range(0,choices.Count).Sum(Weight),tierRoll=rng.Next(total),tier=0;
+                        while(tier<choices.Count-1&&tierRoll>=Weight(tier)){tierRoll-=Weight(tier);tier++;}
+                        expected.Add(choices[tier]);
+                    }
+                    advance(cursor,1);
+                }
+                var actualRng=new System.Random(371);
+                var actual=(List<UiItem>)roll.Invoke(ui,new object[]{category,scenario.Item3,actualRng});
+                CollectionAssert.AreEqual(expected,actual,category);
+                Assert.That(actualRng.Next(),Is.EqualTo(rng.Next()),"The next RNG call must also be identical.");
+                Assert.That((int)state.level,Is.EqualTo(level)); Assert.That((int)state.experience,Is.EqualTo(experience));
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator SummonMultiplierResetsOnlyWhenTheResultSessionCloses()
+        {
+            game.TogglePause(); var ui=game.Ui; ui.SkipSummonAnimations=true; ui.Diamonds=int.MaxValue;
+            var show=typeof(DoodleUi).GetMethod("ShowSummonResults",GrowthPrivate);
+            var item=ui.Items("Necklace")[0]; var rewards=new List<UiItem>{item};
+            int Multiplier()=>(int)typeof(DoodleUi).GetField("summonResultMultiplier",GrowthPrivate).GetValue(ui);
+            for(int close=0;close<3;close++) {
+                if(ui.ActivePage!="Equipment")UiOpen("Equipment");
+                var inventory=UiNode("Collection inventory");
+                show.Invoke(ui,new object[]{"Necklace",rewards});
+                Assert.That(Multiplier(),Is.EqualTo(1));
+                Assert.That(UiNode("PaidSummon50"),Is.Not.Null);
+                UiClick("Summon multiplier 1000");
+                typeof(DoodleUi).GetMethod("ShowSummonItem",GrowthPrivate).Invoke(ui,new object[]{item});
+                ui.CloseDetail();
+                Assert.That(Multiplier(),Is.EqualTo(1000),"Closing an item preview keeps the result session selection.");
+                Assert.That(ui.TrySummon("Necklace",50000,false),Is.True);
+                Assert.That(CurrentSummonResultCount(),Is.EqualTo(50000));
+                Assert.That(UiNode("Collection inventory"),Is.SameAs(inventory),"Repeat draws must not rebuild the covered collection page.");
+                Assert.That(Multiplier(),Is.EqualTo(1000),"Repeating a draw in the same session keeps its multiplier.");
+                if(close==0)UiClick("확인",UiNode("Fullscreen: 뽑기 결과"));
+                else if(close==1)ui.CloseDetail(); // Escape closes the top overlay through this path.
+                else ui.ClosePage();
+                Assert.That(Multiplier(),Is.EqualTo(1));
+                if(close<2)Assert.That(UiNode("Collection inventory"),Is.Not.SameAs(inventory),"Closing results refreshes the newly earned inventory.");
+                yield return new WaitForSecondsRealtime(.2f);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BulkSummonsChangeProbabilitiesAtEachExactLevelBoundary()
         {
             game.TogglePause(); var ui = game.Ui; ui.SkipSummonAnimations = true;

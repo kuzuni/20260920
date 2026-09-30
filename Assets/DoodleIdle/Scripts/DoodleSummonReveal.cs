@@ -13,6 +13,7 @@ namespace DoodleIdle
             for (int i = 0; i < cards.Length; i++) {
                 cards[i] = grid.GetChild(i).gameObject.AddComponent<CanvasGroup>();
                 cards[i].alpha = 0; cards[i].interactable = cards[i].blocksRaycasts = false;
+                cards[i].transform.localScale = Vector3.one * .72f;
             }
             if (skip) Complete();
         }
@@ -20,8 +21,9 @@ namespace DoodleIdle
         {
             if (cards == null) return;
             age += Time.unscaledDeltaTime;
-            for (int i = 0; i < cards.Length; i++) {
+            for (int i = VisibleCards; i < cards.Length; i++) {
                 float t = Mathf.Clamp01((age - .14f - i * .045f) / .18f);
+                if (t <= 0) break;
                 cards[i].alpha = t; cards[i].transform.localScale = Vector3.one * Mathf.Lerp(.72f, 1, 1 - (1-t)*(1-t));
                 cards[i].interactable = cards[i].blocksRaycasts = t >= 1;
                 if (t >= 1) VisibleCards = i + 1;
