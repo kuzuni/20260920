@@ -101,10 +101,9 @@ namespace DoodleIdle
         {
             if(services==null)return;
             CreditPendingFieldGold();
-            if(ActiveDungeonIndex>=0){services.activeDungeon=-1;services.dungeonProgress=0;Toast("던전 도전에 실패했어요.");}
+            if(ActiveDungeonIndex>=0){FailDungeonChallenge("플레이어 사망");return;}
             else if (game && game.BossActive) { FailBossChallenge("플레이어 사망"); return; }
             else { Save(); RefreshHud(); return; }
-            if(game)game.RequestCombatWaveReset();Save();RefreshHud();
         }
         // Field kills and cave rewards share every gold balance value and live bonus.
         public GameNumber GoldForMainKillsAmount(int displayStage, int count) => GoldForMainKillsAmount(serviceTuning, displayStage, count, GoldGainAmount * GoldBuffMultiplier);

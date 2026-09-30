@@ -56,6 +56,8 @@ namespace DoodleIdle
             [NonSerialized] private ObscuredFloat protected_effects = .8f; public float effects { get => protected_effects; set => protected_effects = value; }
             [NonSerialized] private ObscuredInt protected_activeDungeon = -1; public int activeDungeon { get => protected_activeDungeon; set => protected_activeDungeon = value; }
             [NonSerialized] private ObscuredInt protected_dungeonProgress; public int dungeonProgress { get => protected_dungeonProgress; set => protected_dungeonProgress = value; }
+            [NonSerialized] private ObscuredFloat protected_dungeonRemaining = 30; public float dungeonRemaining { get => protected_dungeonRemaining; set => protected_dungeonRemaining = value; }
+            public string dungeonAttemptDay = "";
             [NonSerialized] private ObscuredInt protected_mainStage; public int mainStage { get => protected_mainStage; set => protected_mainStage = value; }
             [NonSerialized] private ObscuredInt protected_mainStageKillProgress; public int mainStageKillProgress { get => protected_mainStageKillProgress; set => protected_mainStageKillProgress = value; }
             [NonSerialized] private ObscuredInt protected_mainMissionIndex; public int mainMissionIndex { get => protected_mainMissionIndex; set => protected_mainMissionIndex = value; }
@@ -97,7 +99,12 @@ namespace DoodleIdle
         public static string DungeonTicketCategory(int index) => IsDungeon(index) ? DungeonCategories[index] : "";
         string DungeonRewardLabel(int index,int stage) => index == 0 ? "골드 " + UiNumber.Format(DungeonGoldAmount(stage))
             : CategoryName(DungeonTicketCategory(index)) + " 뽑기권 " + DungeonTicketReward(stage).ToString("N0") + "장";
-        static Color DungeonColor(int index) => index == 0 ? new Color(1,.83f,.2f) : Color.HSVToRGB((index * .137f) % 1, .45f, .94f);
+        static readonly Color[] dungeonColors = {
+            new Color(1,.74f,.04f), Color.white, new Color(.57f,.24f,.88f),
+            new Color(.12f,.43f,1), new Color(.95f,.22f,.15f), new Color(.03f,.73f,.66f),
+            new Color(.97f,.28f,.68f), new Color(.42f,.7f,.08f)
+        };
+        static Color DungeonColor(int index) => dungeonColors[Mathf.Clamp(index,0,dungeonColors.Length-1)];
         readonly System.Random serviceRandom = new System.Random();
         readonly List<ServiceBinding> serviceBindings = new List<ServiceBinding>();
         ServiceState services;
@@ -114,7 +121,7 @@ namespace DoodleIdle
         public int ActiveDungeonIndex => services == null ? -1 : services.activeDungeon;
         public int DungeonProgress => services == null ? 0 : services.dungeonProgress;
         public int DungeonKillGoal => DungeonKillsFor(ActiveDungeonIndex);
-        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + " " + DungeonChallengeStage(ActiveDungeonIndex) + "단계\n" + UiNumber.Format(DungeonProgress) + "/" + UiNumber.Format(DungeonKillGoal);
+        public string DungeonMission => ActiveDungeonIndex < 0 ? "" : DungeonNames[ActiveDungeonIndex] + " " + DungeonChallengeStage(ActiveDungeonIndex) + "단계\n" + UiNumber.Format(DungeonProgress) + "/" + UiNumber.Format(DungeonKillGoal)+" · "+DungeonTimeRemaining.ToString("0.0")+"초";
         static int SecondsUntil(long ticks) => (int)Math.Max(0, Math.Min(int.MaxValue, Math.Ceiling((ticks - ServiceNow) / (double)TimeSpan.TicksPerSecond)));
         static string ServiceClock(int seconds) => (seconds / 60).ToString("00") + ":" + (seconds % 60).ToString("00");
 
@@ -148,6 +155,7 @@ namespace DoodleIdle
             NormalizeQuestState();
             services.attendanceIndex = Mathf.Clamp(services.attendanceIndex, 0, 7);
             if (!IsDungeon(services.activeDungeon)) { services.activeDungeon = -1; services.dungeonProgress = 0; }
+            services.dungeonRemaining = float.IsNaN(services.dungeonRemaining) ? DungeonTimeLimit : Mathf.Clamp(services.dungeonRemaining,0,DungeonTimeLimit);
             InitMissionHistory();
             ResetServicePeriods();
             lastServiceKills = game ? game.Kills : 0;
@@ -511,7 +519,7 @@ namespace DoodleIdle
 
         void BuildDungeons(RectTransform body)
         {
-            UiKit.Text(body, "동굴별 처치 목표 달성 · 단계별 보상", 19, TextAnchor.MiddleCenter, 34);
+            UiKit.Text(body, "제한시간 30초 · 실패 시 열쇠 반환", 19, TextAnchor.MiddleCenter, 34);
             foreach (int index in DungeonIndices)
             {
                 int stage = DungeonChallengeStage(index);
@@ -529,7 +537,7 @@ namespace DoodleIdle
                 var actions=UiKit.Row(info,"Dungeon actions",82,8);
                 var count=UiKit.Column(actions,"Attempts",2,0);
                 var key=UiKit.Row(count,"Independent daily attempts",43,3);
-                var keySymbol=ServiceSymbol(key,"DungeonKey",35).GetComponent<DoodleServiceSymbol>();
+                var keySymbol=ServiceSymbol(key,"DungeonKey",43).GetComponent<DoodleServiceSymbol>();
                 keySymbol.accent=DungeonColor(index);
                 ServiceText(key,()=>Math.Max(0,serviceTuning.dungeonAttempts-services.dungeonUsed[index])+"/"+serviceTuning.dungeonAttempts,29,41);
                 UiKit.Text(count,"전용 열쇠",18,TextAnchor.MiddleCenter,24);
@@ -551,6 +559,7 @@ namespace DoodleIdle
             CreditPendingFieldGold(); TickServices(); ResetServicePeriods();
             if (!CanEnterDungeon(index)) return;
             services.dungeonUsed[index]++; services.activeDungeon=index; services.dungeonProgress=0;
+            services.dungeonRemaining=DungeonTimeLimit;services.dungeonAttemptDay=services.day;
             if(game)game.RequestCombatWaveReset();
             lastServiceKills=game?game.Kills:0;lastKills=lastServiceKills;
             RecordServiceProgress("dungeon",1);RecordServiceProgress("dungeonEnter:"+index,1);Save();ClearOverlays();ClosePage();
@@ -564,6 +573,7 @@ namespace DoodleIdle
             RecordMissionAction("dungeon:"+index);
             RecordServiceProgress("dungeonClear",1);
             services.activeDungeon=-1;services.dungeonProgress=0;
+            services.dungeonRemaining=0;services.dungeonAttemptDay="";
             if(game)game.RequestCombatWaveReset();
             GrantDungeonClearReward(index,stage,"던전 클리어!");
         }
@@ -887,11 +897,14 @@ namespace DoodleIdle
                 case "Paw":
                     Color pink=new Color(.94f,.56f,.56f);Disc(vh,0,-8,15,12,pink);Disc(vh,-20,6,6,8,pink);Disc(vh,-8,19,6,8,pink);Disc(vh,8,19,6,8,pink);Disc(vh,20,6,6,8,pink);break;
                 case "DungeonKey":
-                    Stroke(vh,P(-22,-25),P(9,11),11*rectTransform.rect.width/64f,UiKit.Ink);
-                    Stroke(vh,P(-22,-25),P(9,11),6*rectTransform.rect.width/64f,accent);
-                    Stroke(vh,P(-20,-21),P(-10,-28),8*rectTransform.rect.width/64f,UiKit.Ink);
-                    Stroke(vh,P(-20,-21),P(-10,-28),4*rectTransform.rect.width/64f,accent);
-                    Disc(vh,13,16,16,16,UiKit.Ink);Disc(vh,13,16,12,12,accent);Disc(vh,13,16,6,6,UiKit.Ink);Disc(vh,13,16,3,3,UiKit.Paper);break;
+                    Stroke(vh,P(-20,-23),P(10,11),16*rectTransform.rect.width/64f,UiKit.Ink);
+                    Stroke(vh,P(-20,-23),P(10,11),11*rectTransform.rect.width/64f,accent);
+                    Stroke(vh,P(-19,-20),P(-9,-28),12*rectTransform.rect.width/64f,UiKit.Ink);
+                    Stroke(vh,P(-19,-20),P(-9,-28),7*rectTransform.rect.width/64f,accent);
+                    Stroke(vh,P(-9,-9),P(1,-17),12*rectTransform.rect.width/64f,UiKit.Ink);
+                    Stroke(vh,P(-9,-9),P(1,-17),7*rectTransform.rect.width/64f,accent);
+                    Disc(vh,12,13,19,19,UiKit.Ink);Disc(vh,12,13,16,16,accent);Disc(vh,12,13,8,8,UiKit.Ink);Disc(vh,12,13,5,5,UiKit.Paper);
+                    Stroke(vh,P(5,24),P(12,26),3*rectTransform.rect.width/64f,new Color(1,1,1,.8f));break;
                 case "TailLeft": case "TailRight":
                     float side=kind=="TailLeft"?-1:1;Poly(vh,new[]{P(side*30,0),P(-side*16,24),P(-side*16,-24)},UiKit.Ink);Poly(vh,new[]{P(side*18,0),P(-side*20,16),P(-side*20,-16)},accent);break;
             }

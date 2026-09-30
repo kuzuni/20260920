@@ -1,6 +1,7 @@
 # BACKND / Google Play integration
 
 Package: `com.semobobo.game20260920`. BACKND project: `20260920`. Google Cloud project: `game20260920`.
+사용자가 2026-10-01에 확인한 뒤끝 콘솔 대상은 **`20260920`** 입니다. 이 저장소의 로그인·게임 저장·PVP·승점 랭킹 설정은 모두 이 프로젝트에서 작업합니다. 이름이 비슷한 다른 프로젝트나 Unity Cloud 프로젝트와 혼동하지 마세요.
 Only the internal testing track is authorized. Default store language is English (US), with Korean localization planned. Intended audience: ages 13 and older.
 
 ## Local configuration

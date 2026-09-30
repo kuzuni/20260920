@@ -442,6 +442,7 @@ namespace DoodleIdle
             float dt = Time.fixedDeltaTime;
             Elapsed += dt;
             if (TickBossChallenge(dt)) return;
+            if (Ui && Ui.TickDungeonChallenge(dt)) return;
             var target = Closest(player.Position);
             if (target == null) { Refill(); return; }
             Vector2 delta = target.Position - player.Position;

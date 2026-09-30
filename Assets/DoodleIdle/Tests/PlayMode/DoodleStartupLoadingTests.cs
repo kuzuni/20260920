@@ -43,6 +43,9 @@ namespace DoodleIdle.Tests
             Time.timeScale = 1;
             float deadline = Time.realtimeSinceStartup + 60;
             bool observedWorld = false;
+            Vector2? artPosition=null;
+            float? firstFill=null;
+            bool observedMotion=false, captured=false;
             string randomAtPreparation = null;
             while (!game.Ready && Time.realtimeSinceStartup < deadline) {
                 Assert.That(game.Elapsed, Is.Zero);
@@ -55,16 +58,54 @@ namespace DoodleIdle.Tests
                     if (randomAtPreparation == null) randomAtPreparation = state;
                     else Assert.That(state, Is.EqualTo(randomAtPreparation), "Prewarming must not consume combat RNG");
                     Assert.That(game.GetComponentsInChildren<Canvas>().Any(c => c.name == "Preparing game" && c.isActiveAndEnabled), Is.True);
+                    var motion=game.GetComponentInChildren<DoodleLoadingMotion>();
+                    Assert.That(motion,Is.Not.Null);
+                    Assert.That(motion.art.GetComponent<UnityEngine.UI.RawImage>().texture,Is.Not.Null);
+                    if(artPosition.HasValue)Assert.That(motion.art.anchoredPosition,Is.EqualTo(artPosition.Value),"Loading illustration must remain still");
+                    Assert.That(motion.art.localScale,Is.EqualTo(Vector3.one));
+                    Assert.That(motion.art.localRotation,Is.EqualTo(Quaternion.identity));
+                    Assert.That(motion.fill.sprite,Is.SameAs(UiKit.Art("HealthBarFill")));
+                    if(firstFill.HasValue && motion.DisplayedProgress>firstFill.Value+.01f)observedMotion=true;
+                    if(!firstFill.HasValue)firstFill=motion.DisplayedProgress;
+                    if(!artPosition.HasValue)artPosition=motion.art.anchoredPosition;
+                    if(!captured && observedMotion) { CaptureLoadingFrame(motion);captured=true; }
                 }
                 yield return null;
             }
             Assert.That(observedWorld && game.Ready, Is.True);
+            Assert.That(observedMotion,Is.True,"Loading gauge must animate while combat remains paused");
             Assert.That(game.LoadingProgress, Is.EqualTo(1));
             Assert.That(game.paused, Is.False);
             Assert.That(game.GetComponentsInChildren<Canvas>().Any(c => c.name == "Preparing game" && c.isActiveAndEnabled), Is.False);
             Assert.That(PlayerBody().simulated, Is.True);
             yield return new WaitForFixedUpdate();
             Assert.That(game.Elapsed, Is.GreaterThan(0));
+        }
+
+        void CaptureLoadingFrame(DoodleLoadingMotion motion)
+        {
+            var canvas=motion.GetComponentInParent<Canvas>();
+            var scaler=canvas.GetComponent<UnityEngine.UI.CanvasScaler>();
+            var camera=Camera.main;
+            var target=new RenderTexture(720,1520,24);
+            var previousTarget=camera.targetTexture;var previousActive=RenderTexture.active;
+            float previousAspect=camera.aspect,previousScale=canvas.scaleFactor;
+            try {
+                scaler.enabled=false;canvas.scaleFactor=1;
+                camera.targetTexture=target;camera.aspect=720f/1520;
+                canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=1;
+                Canvas.ForceUpdateCanvases();motion.SendMessage("Update");Canvas.ForceUpdateCanvases();
+                UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,new UnityEngine.Rendering.Universal.UniversalRenderPipeline.SingleCameraRequest{destination=target});
+                RenderTexture.active=target;var image=new Texture2D(720,1520,TextureFormat.RGB24,false);
+                image.ReadPixels(new Rect(0,0,720,1520),0,0);image.Apply();
+                System.IO.Directory.CreateDirectory("artifacts/screenshots");
+                System.IO.File.WriteAllBytes("artifacts/screenshots/loading-battle-motion.png",image.EncodeToPNG());
+                Object.Destroy(image);
+            } finally {
+                camera.targetTexture=previousTarget;camera.aspect=previousAspect;RenderTexture.active=previousActive;
+                canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.worldCamera=null;canvas.scaleFactor=previousScale;scaler.enabled=true;
+                Object.Destroy(target);
+            }
         }
 
         [UnityTest]

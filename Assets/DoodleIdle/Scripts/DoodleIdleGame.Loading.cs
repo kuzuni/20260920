@@ -11,6 +11,7 @@ namespace DoodleIdle
         Canvas loadingCanvas;
         Text loadingLabel;
         Image loadingBar;
+        DoodleLoadingMotion loadingMotion;
 
         void BuildLoadingScreen()
         {
@@ -27,15 +28,29 @@ namespace DoodleIdle
             var rect = (RectTransform)cover.transform;
             rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
             cover.GetComponent<Image>().color = new Color(.91f, .83f, .68f);
+            var illustration=UiKit.Rect(cover.transform,"Loading battle illustration");
+            var art=illustration.gameObject.AddComponent<RawImage>();
+            art.texture=Resources.Load<Texture2D>("DoodleIdle/UI/LoadingBattle");art.raycastTarget=false;
             uiFont = Resources.Load<Font>("DoodleIdle/UI/DisplayFont");
-            loadingLabel = Label(cover.transform, "게임 준비 중", 32, new Vector2(-260, 10), new Vector2(520, 64), TextAnchor.MiddleCenter, Vector2.one * .5f);
+            var title=Label(cover.transform,"탕탕탕",82,new Vector2(-310,-170),new Vector2(620,110),TextAnchor.MiddleCenter,new Vector2(.5f,1));
+            title.color=new Color(.2f,.13f,.08f);
+            Label(cover.transform,"방치형 RPG",27,new Vector2(-260,-218),new Vector2(520,48),TextAnchor.MiddleCenter,new Vector2(.5f,1));
+            loadingLabel = Label(cover.transform, "게임 준비 중", 26, new Vector2(-290,120), new Vector2(580,54), TextAnchor.MiddleCenter, new Vector2(.5f,0));
             var track = new GameObject("Loading progress", typeof(RectTransform), typeof(Image));
             track.transform.SetParent(cover.transform, false);
             var trackRect = (RectTransform)track.transform;
-            trackRect.sizeDelta = new Vector2(440, 16); trackRect.anchoredPosition = new Vector2(0, -24);
-            track.GetComponent<Image>().color = new Color(.55f, .47f, .36f, .3f);
-            var bar = new GameObject("Fill", typeof(RectTransform), typeof(Image)); bar.transform.SetParent(track.transform, false);
-            loadingBar = bar.GetComponent<Image>(); loadingBar.color = new Color(.3f, .43f, .24f);
+            trackRect.anchorMin=trackRect.anchorMax=new Vector2(.5f,0);
+            trackRect.sizeDelta = new Vector2(520, 62); trackRect.anchoredPosition = new Vector2(0, 93);
+            track.GetComponent<Image>().sprite=UiKit.Art("HealthBarFrame");
+            track.GetComponent<Image>().raycastTarget=false;
+            var inset=UiKit.Rect(track.transform,"Gauge inner area");UiKit.Stretch(inset,9,10,9,10);
+            var bar = new GameObject("Fill", typeof(RectTransform), typeof(Image),typeof(Mask)); bar.transform.SetParent(inset, false);
+            loadingBar = bar.GetComponent<Image>();loadingBar.sprite=UiKit.Art("HealthBarFill");loadingBar.raycastTarget=false;
+            var shine=UiKit.Rect(bar.transform,"Gauge moving highlight");shine.sizeDelta=new Vector2(38,100);
+            shine.localRotation=Quaternion.Euler(0,0,-18);
+            var highlight=shine.gameObject.AddComponent<Image>();highlight.color=new Color(1,1,1,.24f);highlight.raycastTarget=false;
+            loadingMotion=cover.AddComponent<DoodleLoadingMotion>();loadingMotion.art=illustration;
+            loadingMotion.shine=shine;loadingMotion.fill=loadingBar;
             SetLoadingProgress(0, "게임 준비 중");
         }
 
@@ -44,7 +59,8 @@ namespace DoodleIdle
             LoadingProgress = Mathf.Clamp01(progress);
             loadingLabel.text = message + "  " + Mathf.RoundToInt(LoadingProgress * 100) + "%";
             var rect = loadingBar.rectTransform;
-            rect.anchorMin = Vector2.zero; rect.anchorMax = new Vector2(LoadingProgress, 1);
+            rect.anchorMin = Vector2.zero;
+            loadingMotion.progress=LoadingProgress;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
