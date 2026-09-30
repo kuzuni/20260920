@@ -10,6 +10,7 @@ namespace DoodleIdle
     {
         public bool IsPvpEngine {get;private set;}
         public bool PvpSessionActive => pvpSessionActive;
+        public event Action<string,string,GameNumber> PvpDamageDealt;
         bool pvpSessionActive;
         DoodleIdleGame pvpOpponent;
 

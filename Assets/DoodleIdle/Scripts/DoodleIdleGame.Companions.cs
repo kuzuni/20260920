@@ -15,7 +15,7 @@ namespace DoodleIdle
         }
         sealed class CompanionShot
         {
-            public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
+            public string sourceId; public SpriteRenderer art; public int impactIndex; public Vector2 start, end, direction;
             public float age, duration, speed, explosionRadius, splashDamageMultiplier, sprayEcho; public bool arc, spray; public GameNumber damage;
         }
         readonly Dictionary<string, CompanionActor> companions = new Dictionary<string, CompanionActor>();
@@ -132,23 +132,23 @@ namespace DoodleIdle
                 Vector2 start = target.Position + Vector2.up * 2.7f;
                 Echo("Companion cloud lightning", sprite, target.Position + Vector2.up * 1.35f,
                     new Vector2(2.7f, .7f), Aim(Vector2.down), .22f, 1, 570);
-                CompanionDamage(target, damage, Vector2.down);
-                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage * item.splashDamageMultiplier, target, DoodleCollectionArt.CompanionIndex(item.icon));
+                CompanionDamage(target, damage, Vector2.down,item.id);
+                if (item.explosionRadius > 0) CompanionExplosion(target.Position, item.explosionRadius, damage * item.splashDamageMultiplier, target, DoodleCollectionArt.CompanionIndex(item.icon),item.id);
             }
             else
             {
                 bool arc = item.trajectory == "Arc";
                 var art = Visual("Companion shot: " + item.id, sprite, origin, Vector2.one * (spray ? .4f : item.rarity >= 4 ? .7f : .5f), 515);
                 art.transform.rotation = Aim(direction);
-                companionShots.Add(new CompanionShot { impactIndex = DoodleCollectionArt.CompanionIndex(item.icon), art = art, start = origin,
+                companionShots.Add(new CompanionShot { sourceId=item.id, impactIndex = DoodleCollectionArt.CompanionIndex(item.icon), art = art, start = origin,
                     end = target.Position, direction = direction, arc = arc, spray = spray, duration = arc ? .7f + shotIndex * .025f : 2,
                     speed = item.projectileSpeed, damage = damage, explosionRadius = item.explosionRadius, splashDamageMultiplier = item.splashDamageMultiplier });
             }
             CompanionShotsLaunched++; companionShotCounts[item.id] = CompanionShotCount(item.id) + 1;
             CompanionShotLaunched?.Invoke(item.id, Time.fixedTime, item.trajectory == "Arc", item.explosionRadius);
         }
-        void CompanionDamage(Actor enemy, GameNumber damage, Vector2 direction)
-        { if (Alive(enemy)) { CompanionHits++; DamageAmount(enemy, damage, direction, "Companion"); } }
+        void CompanionDamage(Actor enemy, GameNumber damage, Vector2 direction,string sourceId)
+        { if (Alive(enemy)) { CompanionHits++; DamageAmount(enemy, damage, direction, "Companion",sourceId); } }
         void TickCompanionShots(float dt)
         {
             for (int i = companionShots.Count - 1; i >= 0; i--)
@@ -172,13 +172,13 @@ namespace DoodleIdle
                 bool landed = shot.arc && t >= 1;
                 if (victim != null || landed)
                 {
-                    if (victim != null) CompanionDamage(victim, shot.damage, shot.direction);
-                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage * shot.splashDamageMultiplier, victim, shot.impactIndex);
+                    if (victim != null) CompanionDamage(victim, shot.damage, shot.direction,shot.sourceId);
+                    if (shot.explosionRadius > 0) CompanionExplosion(next, shot.explosionRadius, shot.damage * shot.splashDamageMultiplier, victim, shot.impactIndex,shot.sourceId);
                 }
                 if (victim != null || landed || shot.age >= shot.duration) { ReleaseVisual(shot.art.gameObject); companionShots.RemoveAt(i); }
             }
         }
-        void CompanionExplosion(Vector2 position, float radius, GameNumber damage, Actor directVictim, int impactIndex)
+        void CompanionExplosion(Vector2 position, float radius, GameNumber damage, Actor directVictim, int impactIndex,string sourceId)
         {
             CompanionExplosions++;
             EmitCompanionImpact(impactIndex, position, radius);
@@ -186,7 +186,7 @@ namespace DoodleIdle
             {
                 var enemy = enemies[i];
                 if (enemy != directVictim && Vector2.Distance(enemy.Position, position) <= radius + .56f)
-                    CompanionDamage(enemy, damage, (enemy.Position - position).normalized);
+                    CompanionDamage(enemy, damage, (enemy.Position - position).normalized,sourceId);
             }
         }
         void ClearCompanions()

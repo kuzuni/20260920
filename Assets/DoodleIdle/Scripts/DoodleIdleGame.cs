@@ -643,7 +643,7 @@ namespace DoodleIdle
             => DamageByCategory(enemy, amount, push, "Basic");
 
         void SkillDamage(Actor enemy, float weight, Vector2 push, string ability = null)
-            => DamageAmount(enemy, weight * (Ui && ability != null ? Ui.SkillPowerAmount(ability) : 1), push, "Skill");
+            => DamageAmount(enemy, weight * (Ui && ability != null ? Ui.SkillPowerAmount(ability) : 1), push, "Skill", ability);
 
         void SkillImpact(Actor target, float weight, Vector2 push, string ability)
         {
@@ -668,7 +668,7 @@ namespace DoodleIdle
 
         void DamageByCategory(Actor enemy, float weight, Vector2 push, string category) => DamageAmount(enemy, weight, push, category);
         static readonly Unity.Profiling.ProfilerMarker damageMarker=new Unity.Profiling.ProfilerMarker("Doodle/DamageAmount");
-        void DamageAmount(Actor enemy, GameNumber weight, Vector2 push, string category)
+        void DamageAmount(Actor enemy, GameNumber weight, Vector2 push, string category,string source=null)
         {
             using var sample=damageMarker.Auto();
             if (enemy.hp <= 0) return;
@@ -679,7 +679,7 @@ namespace DoodleIdle
             ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
-            if(IsPvpEngine){enemy.hp=GameNumber.Max(0,enemy.hp);return;}
+            if(IsPvpEngine){enemy.hp=GameNumber.Max(0,enemy.hp);PvpDamageDealt?.Invoke(category,source??category,amount);return;}
             if (enemy.hp > 0) return;
             Kills++;
             if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);

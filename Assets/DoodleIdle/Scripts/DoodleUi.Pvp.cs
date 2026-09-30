@@ -71,18 +71,27 @@ namespace DoodleIdle
                 if(bootstrap){
                     for(int i=0;i<5;i++){
                         var dummy=CreatePvpDummy(i);
-                        UiKit.Button(panel,dummy.playerName,()=>BeginPvpChallenge(null,dummy),UiKit.Blue,74);
+                        PvpCandidateButton(panel,dummy.playerName,own?.Score??0,0,PowerAmount.ToString(),()=>BeginPvpChallenge(null,dummy,own?.Score??0));
                     }
                 }else {
                     foreach(var candidate in candidates){
                         var row=candidate;
-                        UiKit.Button(panel,(row.Summary?.name??"플레이어")+" · "+row.Score+"점",()=>BeginPvpChallenge(row,null),UiKit.Blue,74);
+                        var button=PvpCandidateButton(panel,row.Summary?.name??"플레이어",own?.Score??0,row.Score,row.Summary?.power,()=>BeginPvpChallenge(row,null,own?.Score??0));
+                        button.name="PvpOpponent:"+row.Account;
                     }
-                    for(int i=candidates.Count;i<5;i++)UiKit.Button(panel,"대전 상대 등록 대기 중",()=>{},UiKit.Paper,74).interactable=false;
+                    for(int i=candidates.Count;i<5;i++)UiKit.Button(panel,"대전 상대 등록 대기 중",()=>{},UiKit.Paper,126).interactable=false;
                 }
                 Relayout(true);
             }catch(Exception){if(status)status.text="상대 조회에 실패했어요. 다시 도전해 주세요.";}
             finally{pvpBusy=false;}
+        }
+        Button PvpCandidateButton(Transform panel,string name,int ownPoints,int points,string power,Action challenge)
+        {
+            string shownPower=GameNumber.TryParse(power,out var value)?UiNumber.Format(value):"—";
+            int win=DoodlePvpRules.Delta(ownPoints,points,true),loss=DoodlePvpRules.Delta(ownPoints,points,false);
+            var button=UiKit.Button(panel,name+"\n승점 "+points+" · 전투력 "+shownPower+"\n승리 +"+win+"점 · 패배 "+loss+"점",challenge,UiKit.Blue,126);
+            var label=button.GetComponentInChildren<Text>();label.fontSize=23;label.supportRichText=false;
+            return button;
         }
         DoodlePvpLoadout CreatePvpDummy(int index)
         {
@@ -91,7 +100,7 @@ namespace DoodleIdle
             // A genuine combat loadout, not an invented leaderboard entry.
             return snapshot;
         }
-        async void BeginPvpChallenge(DoodlePvpListing candidate,DoodlePvpLoadout dummy)
+        async void BeginPvpChallenge(DoodlePvpListing candidate,DoodlePvpLoadout dummy,int quotedOwnPoints)
         {
             if(pvpBusy||game.PvpSessionActive)return;pvpBusy=true;
             var session=DoodleBackendSession.Instance;
@@ -99,6 +108,8 @@ namespace DoodleIdle
                 if(session.PendingPvp()!=null)throw new InvalidOperationException("이전 결과 저장이 필요합니다.");
                 var own=await session.ReadMyPvp();
                 var opponentRow=dummy==null?await session.ReadPvpOpponent(candidate.Account):null;
+                if((own?.Score??0)!=quotedOwnPoints || candidate!=null && opponentRow!=null && opponentRow.Score!=candidate.Score)
+                    throw new InvalidOperationException("승점이 변경됐어요. 상대 목록을 다시 열어 확인해 주세요.");
                 var opponent=dummy??opponentRow?.Payload?.Unpack();
                 if(opponent==null)throw new InvalidOperationException("상대 전투 정보가 없습니다.");
                 ResetServicePeriods();string day=DateTime.UtcNow.ToString("yyyy-MM-dd");
