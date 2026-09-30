@@ -18,6 +18,14 @@ The Unity IAP Catalog contains six consumable products: `diamonds_10000`, `diamo
 
 `PlayerProfile` and `StageProgress` are private, schema-free BACKND game-data tables. StageRanking uses `StageProgress.stage`, descending, all users, no reset or rank rewards.
 
+## Editor authentication initialization (2026-10-01)
+
+Domain reload is disabled in this project. BACKND's static `IsInitialized` can remain true after Play Mode stops even though its runtime objects were destroyed. `DoodleBackendSession` therefore requires its own successful `InitializeAsync` callback before allowing authentication; the static SDK flag alone cannot skip initialization. Concurrent initialization callers share one task, failed initialization remains retryable, and Google/guest/editor login all use the same gate.
+
+`LoginScreenInitializesBeforeSignupAndCanRelogin` uses the real `DoodleLogin` account creation/login buttons, with no SDK pre-initialization in the test. Two separate Play Mode runs passed: the first entered with SDK flag false; the second entered with the stale flag true. Both rejected missing configuration before initialization, then successfully created a temporary account, entered the game, logged out, logged back into the same account, and withdrew it. Error/Exception/Assert logs were collected and checked after cleanup (zero in both runs). Reports: `artifacts/character-reports/backend-initialization-{first,repeat}-tests.xml` and `backend-initialization-audit.txt`. Enable only with `Library/BackendInitialization.optin`; remove it afterward.
+
+The PVP live test no longer pre-initializes BACKND separately: it must pass through the production login initialization path as well.
+
 ## Chat
 
 BACKND Chat SDK 1.4.1, Base SDK 5.18.17. Chat opens only after authenticated login and a server nickname is available. `DoodleChatService` lives with the login session, calls SDK Update each frame, and disposes on logout, account deletion, authentication loss, tamper detection, and shutdown.
@@ -200,3 +208,4 @@ Play published version code 3 as '0.1.0 Internal Test 3 - Rankings and combat fi
 ### PVP Database (2026-10-01)
 
 20260920 프로젝트의 BACKND Database와 PvpRanking 리더보드를 사용한다. 스키마, 권한, 저장 재시도, 클라이언트 전투 판정의 범위는 [PvpDatabase.md](PvpDatabase.md)를 참고한다.
+`2026-10-01 07:25 KST`: Windows Development Build `Succeeded 0 errors`. 검증 후 로그인/PVP opt-in 파일과 임시 실행기를 제거했다.

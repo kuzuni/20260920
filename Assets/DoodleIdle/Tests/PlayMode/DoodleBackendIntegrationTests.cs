@@ -17,6 +17,94 @@ namespace DoodleIdle.Tests
     public sealed class DoodleBackendIntegrationTests
     {
         [UnityTest]
+        public IEnumerator LoginScreenInitializesBeforeSignupAndCanRelogin()
+        {
+            if (!File.Exists("Library/BackendInitialization.optin")) Assert.Ignore("Live login regression is opt-in.");
+            var errors = new System.Collections.Generic.List<string>();
+            Application.LogCallback collect = (message, stack, type) => {
+                if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(message);
+            };
+            Application.logMessageReceived += collect;
+            LogAssert.ignoreFailingMessages = true;
+            try {
+                DG.Tweening.DOTween.Init();
+                var task = RunLoginInitialization();
+                float deadline = Time.realtimeSinceStartup + 180;
+                while (!task.IsCompleted && Time.realtimeSinceStartup < deadline) yield return null;
+                Assert.That(task.IsCompleted, Is.True, "Login regression timed out.");
+                if (task.IsFaulted) throw task.Exception.InnerException;
+                Assert.That(errors, Is.Empty, string.Join("\n", errors));
+            } finally {
+                Application.logMessageReceived -= collect;
+                LogAssert.ignoreFailingMessages = false;
+            }
+        }
+        static async Task RunLoginInitialization()
+        {
+            Assert.That(DoodleBackendSession.Instance, Is.Null);
+            bool sdkFlagBeforeLogin = Backend.IsInitialized;
+            string id = "qa_init_" + Guid.NewGuid().ToString("N").Substring(0, 16);
+            string password = Guid.NewGuid().ToString("N") + "aA1!";
+            string account = null;
+            DoodleBackendSession session = null;
+            try {
+                SceneManager.LoadScene(DoodleBackendSession.LoginScene);
+                await Task.Delay(200);
+                session = DoodleBackendSession.Get();
+                var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                var initialized = typeof(DoodleBackendSession).GetField("backendInitialized", flags);
+                Assert.That(initialized.GetValue(session), Is.EqualTo(false), "New session must not inherit SDK's static success flag.");
+                string appId = session.Config.clientAppId;
+                try {
+                    // A stale SDK flag must not bypass this session's config validation.
+                    session.Config.clientAppId = "";
+                    var attempt = (Task<bool>)typeof(DoodleBackendSession).GetMethod("InitializeBackend", flags).Invoke(session, null);
+                    Assert.That(await attempt, Is.False);
+                    Assert.That(initialized.GetValue(session), Is.EqualTo(false));
+                } finally { session.Config.clientAppId = appId; }
+                await SubmitLoginScreen(session, id, password, true);
+                account = session.AccountId;
+                Assert.That(initialized.GetValue(session), Is.EqualTo(true));
+                Assert.That(await session.LeaveAccount(false), Is.True);
+                await Task.Delay(200);
+                await SubmitLoginScreen(session, id, password, false);
+                Assert.That(session.AccountId, Is.EqualTo(account));
+                Assert.That(await session.LeaveAccount(true), Is.True);
+                account = null;
+                Directory.CreateDirectory("artifacts/character-reports");
+                File.AppendAllText("artifacts/character-reports/backend-initialization-audit.txt",
+                    DateTime.UtcNow.ToString("O") + ": SDK static flag at entry=" + sdkFlagBeforeLogin +
+                    "; invalid config rejected; login-screen signup, logout, login, withdrawal passed; no test pre-initialization.\n");
+            } finally {
+                if (account != null) {
+                    var login = await DoodleBackendSession.Request(cb => Backend.BMember.CustomLogin(id, password, cb));
+                    if (login.IsSuccess() && Backend.UserInDate == account)
+                        Check(await DoodleBackendSession.Request(cb => Backend.BMember.WithdrawAccount(0, cb)), "cleanup QA account");
+                }
+                DoodlePrefs.UseAccount(null);
+                if (session) UnityEngine.Object.Destroy(session.gameObject);
+            }
+        }
+        static async Task SubmitLoginScreen(DoodleBackendSession session, string id, string password, bool create)
+        {
+            var screen = UnityEngine.Object.FindFirstObjectByType<DoodleLogin>();
+            Assert.That(screen, Is.Not.Null);
+            screen.GetComponentsInChildren<InputField>().Single(x => x.name == "ID").text = id;
+            screen.GetComponentsInChildren<InputField>().Single(x => x.name == "Password").text = password;
+            screen.GetComponentInChildren<Toggle>().isOn = true;
+            var labels = create ? new[] { "테스트 계정 생성", "Create test account" } : new[] { "테스트 로그인", "Test sign in" };
+            screen.GetComponentsInChildren<Button>().Single(x => labels.Contains(x.name)).onClick.Invoke();
+            var deadline = DateTime.UtcNow.AddSeconds(90);
+            while (session.Busy && DateTime.UtcNow < deadline) await Task.Delay(25);
+            Assert.That(session.Ready, Is.True, session.Status);
+            while (DateTime.UtcNow < deadline) {
+                var game = UnityEngine.Object.FindFirstObjectByType<DoodleIdleGame>();
+                if (game && game.Ready) return;
+                await Task.Delay(25);
+            }
+            Assert.Fail("Login did not enter the ready game scene.");
+        }
+        [UnityTest]
         public IEnumerator GuestCanResumeTheSameProgressAndDeleteItsOwnAccount()
         {
             if (Environment.GetEnvironmentVariable("DOODLE_BACKND_GUEST_SMOKE") != "1") Assert.Ignore("Live guest test is opt-in.");

@@ -32,6 +32,8 @@ namespace DoodleIdle
         int publishedStage = -1, desiredStage;
         Task<bool> saving;
         Task<bool> publishing;
+        Task<bool> initializingBackend;
+        bool backendInitialized;
         readonly DoodleSaveSchedule serverSave = new DoodleSaveSchedule(DoodleSaveSchedule.ServerInterval, DoodleSaveSchedule.RetryInterval);
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { Instance = null; }
@@ -60,7 +62,18 @@ namespace DoodleIdle
         }
         async Task<bool> InitializeBackend()
         {
-            if (Backend.IsInitialized) return true;
+            // With domain reload disabled, BACKND's static flag can survive Play Mode
+            // even though its runtime objects no longer exist. Require this session's
+            // successful callback before allowing authentication to use the SDK.
+            if (backendInitialized && Backend.IsInitialized) return true;
+            if (initializingBackend != null) return await initializingBackend;
+            initializingBackend = InitializeBackendCore();
+            try { return await initializingBackend; }
+            finally { initializingBackend = null; }
+        }
+        async Task<bool> InitializeBackendCore()
+        {
+            backendInitialized = false;
             if (string.IsNullOrEmpty(Config.clientAppId) || string.IsNullOrEmpty(Config.signatureKey))
             { Message("서버 연결 설정을 확인해 주세요."); return false; }
             var response = await Request(cb => Backend.InitializeAsync(new BackendCustomSetting {
@@ -68,7 +81,8 @@ namespace DoodleIdle
             }, cb));
             AuthDiagnostic("backnd_initialize_status_" + response.GetStatusCode());
             if (!response.IsSuccess()) Message("뒤끝 초기화 실패\n" + BackendErrorDetail(response));
-            return response.IsSuccess();
+            backendInitialized = response.IsSuccess();
+            return backendInitialized;
         }
         public async void GoogleLogin()
         {

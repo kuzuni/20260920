@@ -61,3 +61,14 @@ Database의 소유자 쓰기 권한은 타인의 기존 행 수정을 차단한�
 
 최종 재검증 `pvp-loadout-final-tests.xml`: 실제 FixedUpdate 회복량·피해 계산, 상대 목록 UI, 기존 기본 공격 토글/동료 스플래시, 전체 장착 실서버 대전의 5건 모두 통과. 실서버 실행 중 Error/Exception/Assert 로그도 0건이다. 애니메이션·컨트롤러·마스크 39개는 기존 해시와 동일하다.
 `2026-10-01 03:45 KST` Windows Development Build도 `Succeeded 0 errors`. 최종 실행 후 실서버 opt-in 파일과 임시 에디터 실행기는 제거했다.
+
+
+## 로그인 진입 경로 및 스킬 없는 외형 검증 (2026-10-01)
+
+이전 PVP 시험의 별도 SDK 초기화가 로그인 화면의 재실행 오류를 가릴 수 있어 제거했다. 이제 실서버 PVP 시험도 `DoodleBackendSession.EditorLogin` 내부 초기화부터 수행한다. 수정/재현 결과는 `BackendIntegration.md`의 Editor authentication initialization 절 참고.
+
+`PvpOpponentSkinsAndCompanionsRenderWithoutEquippedSkills`는 양쪽 장착 스킬을 0개로 저장하고 서로 다른 동료 5개씩, 수박/쿠키 외형과 무기 스킨을 적용한다. 상대 외형과 보유 효과는 DB에서 읽은 마지막 스냅샷으로 복원한다. 실전에서 스킬 자동 발동/피해가 0이고 양쪽 모든 동료가 발사·명중하는 것을 확인했다. 승점 저장 및 임시 계정 정리까지 `pvp-companions-live-tests.xml`에서 통과했다. 실제 캡처 `artifacts/screenshots/pvp-companions/03-geared-combat.png`에서 양쪽 외형·무기·동료를 확인할 수 있다. 런타임 피해 효과를 지우거나 합성한 이미지가 아니다.
+
+`DoodlePvpOwnedEffectTests.cs`는 상대 모델에 대해 원시 카탈로그 수치를 사용하는 별도 double 산술과 실제 PVP 피해 및 FixedUpdate 캐시를 대조한다. 각 아이템 보유 효과 제거/강화, 장착 해제, 각 스킨 보유 효과 제거, 공격/체력/회복 스탯, 공격 버프, 치명타 단계별 50%·100%와 다음 단계 잠금을 검사한다. 보유 효과를 고립하여 검증하는 단계에서는 장착 상태를 고정한 채 discovered만 잠시 바꾸고 매 사례 후 원복한다. 체력/회복/골드 전용 효과가 공격 피해를 바꾸지 않는 것도 검증하며, 스킬/동료 고유 등급·강화 배율과 1타 피해·DPS도 대조한다. 로그: `artifacts/character-reports/pvp-opponent-owned-effects.txt`.
+
+2026-10-01 추가 보유 효과 결과: `pvp-owned-effects-final-tests.xml` 통과. 498개 구성의 상대 수치·실제 기본/스킬/동료 피해가 독립 산술과 일치했다(비교 허용 상대 오차 0.002%). 일부만 보유한 혼합 구성도 477개 항목의 압축 저장/복원/캐시 대조를 통과했다. 치명타는 17개 각 단계에서 다음 단계에 저장된 레벨이 최대여도 선행 단계가 50%일 때 잠기는 것과, 선행 단계 100% 달성 후 실제 배율 적용을 확인했다. 이 범위에서는 보유 효과 누락이나 불필요한 공격 피해 가산을 발견하지 않았다. 모든 가능한 장비 조합의 완전 탐색이나 Android 실기기 시험을 의미하지는 않는다.
