@@ -1,6 +1,9 @@
 using DoodleIdle.CharacterRigs;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace DoodleIdle
 {
@@ -20,6 +23,10 @@ namespace DoodleIdle
         GameObject stage;
         RawImage image;
         RenderTexture texture;
+        UniversalRenderPipeline.SingleCameraRequest renderRequest;
+        SpriteRenderer[] previewRenderers;
+        Sprite[] boundSprites;
+        readonly Dictionary<Texture,Material> previewMaterials = new Dictionary<Texture,Material>();
         Sprite ownedWeapon;
         string lastWeapon;
         float nextFrame;
@@ -45,6 +52,7 @@ namespace DoodleIdle
             PreviewCamera.allowHDR = false; PreviewCamera.allowMSAA = false; PreviewCamera.cullingMask = 1 << 31;
             texture = new RenderTexture(kind == View.Profile ? 192 : 512, kind == View.Profile ? 192 : 512, 24, RenderTextureFormat.ARGB32);
             texture.name = "Live portrait " + kind; texture.Create(); image.texture = texture; PreviewCamera.targetTexture = texture;
+            renderRequest = new UniversalRenderPipeline.SingleCameraRequest { destination = texture };
             RefreshLook();
         }
         void RefreshLook()
@@ -55,6 +63,9 @@ namespace DoodleIdle
             if (!PreviewRig)
             {
                 PreviewRig = Instantiate(next.prefab, stage.transform, false);
+                previewRenderers = PreviewRig.GetComponentsInChildren<SpriteRenderer>(true);
+                boundSprites = new Sprite[previewRenderers.Length];
+                PreviewRig.face.UnlitPreview = true;
                 foreach (var child in PreviewRig.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
                 foreach (var collider in PreviewRig.GetComponentsInChildren<Collider2D>()) collider.enabled = false;
                 if (PreviewRig.footDust) { PreviewRig.footDust.enabled = false; PreviewRig.footDust.particles.gameObject.SetActive(false); }
@@ -81,6 +92,27 @@ namespace DoodleIdle
                 weapon.transform.localScale = source.weaponRenderer.transform.localScale;
             }
             else ApplyWeapon(look != null ? look.weaponIcon : owner.EquippedWeaponIcon, look != null ? look.weaponTint : owner.EquippedWeaponTint);
+            BindPreviewMaterials();
+        }
+        void BindPreviewMaterials()
+        {
+            // UI colors must not depend on the world's Light2D state. Keep explicit
+            // per-texture bindings, and let the pupil shader retain its eye clipping.
+            for (int i=0;i<previewRenderers.Length;i++) {
+                var renderer=previewRenderers[i];
+                if (renderer==PreviewRig.face.leftEye.pupil || renderer==PreviewRig.face.rightEye.pupil) continue;
+                var sprite=renderer.sprite;
+                if (!sprite || boundSprites[i]==sprite) continue;
+                boundSprites[i]=sprite;
+                if (!previewMaterials.TryGetValue(sprite.texture,out var material)) {
+                    material=GraphicsSettings.currentRenderPipeline != null
+                        ? new Material(Resources.Load<Material>("DoodleIdle/DoodleSprite"))
+                        : new Material(Shader.Find("Sprites/Default"));
+                    material.mainTexture=sprite.texture;material.name="UI portrait / "+sprite.texture.name;
+                    previewMaterials.Add(sprite.texture,material);
+                }
+                renderer.sharedMaterial=material;dirty=true;
+            }
         }
         void ApplyWeapon(string key, Color tint)
         {
@@ -141,7 +173,9 @@ namespace DoodleIdle
             PreviewRig.face.SyncSorting(); PreviewRig.face.RefreshHighlights();
             PreviewCamera.orthographicSize = radius / Mathf.Max(.1f,zoom);
             PreviewCamera.transform.position = center + new Vector3(offset.x,offset.y,-30);
-            PreviewCamera.Render();dirty=false;
+            if (GraphicsSettings.currentRenderPipeline != null) RenderPipeline.SubmitRenderRequest(PreviewCamera,renderRequest);
+            else PreviewCamera.Render();
+            dirty=false;
         }
         void OnEnable() { if (stage) stage.SetActive(true); }
         void OnDisable() { if (stage) stage.SetActive(false); }
@@ -150,6 +184,8 @@ namespace DoodleIdle
             if (PreviewCamera) PreviewCamera.targetTexture = null;
             if (texture) { texture.Release(); Destroy(texture); }
             if (ownedWeapon) Destroy(ownedWeapon);
+            foreach(var material in previewMaterials.Values)Destroy(material);
+            previewMaterials.Clear();
             if (stage) Destroy(stage);
         }
     }

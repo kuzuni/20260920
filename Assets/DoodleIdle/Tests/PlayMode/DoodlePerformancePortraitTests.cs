@@ -246,6 +246,46 @@ namespace DoodleIdle.Tests
             }
         }
         [UnityTest]
+        public IEnumerator LivePortraitColorsIgnoreWorldLighting()
+        {
+            game.TogglePause();
+            var lights=Object.FindObjectsByType<UnityEngine.Rendering.Universal.Light2D>(FindObjectsSortMode.None);
+            var enabled=lights.Select(l=>l.enabled).ToArray();
+            var lightObject=new GameObject("Portrait lighting regression");
+            var light=lightObject.AddComponent<UnityEngine.Rendering.Universal.Light2D>();
+            try {
+                foreach(var existing in lights)existing.enabled=false;
+                light.lightType=UnityEngine.Rendering.Universal.Light2D.LightType.Global;
+                light.intensity=1;light.color=Color.white;
+                lightObject.layer=0; // World light is outside the portrait camera's layer 31.
+                foreach(string page in new[]{"Stats","Pvp"}) {
+                    if(game.Ui.ActivePage!=null)game.Ui.ClosePage();
+                    UiOpen(page);yield return null;yield return null;yield return null;
+                    foreach(var portrait in Object.FindObjectsByType<DoodleIdlePortrait>(FindObjectsSortMode.None)) {
+                        portrait.PreviewRig.face.blinking=false;
+                        portrait.PreviewRig.animator.speed=0;
+                        portrait.RenderNow();
+                        var target=portrait.PreviewCamera.targetTexture;
+                        var previous=RenderTexture.active;
+                        var pixels=new Texture2D(target.width,target.height,TextureFormat.RGBA32,false);
+                        try {
+                            RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,target.width,target.height),0,0);pixels.Apply();
+                            System.IO.Directory.CreateDirectory("artifacts/screenshots");
+                            System.IO.File.WriteAllBytes("artifacts/screenshots/portrait-lighting-"+portrait.view+".png",pixels.EncodeToPNG());
+                            var colors=pixels.GetPixels32();
+                            int opaque=colors.Count(c=>c.a>200),colored=colors.Count(c=>c.a>200&&c.r>90&&c.g>65&&c.b>35);
+                            Assert.That(opaque,Is.GreaterThan(100),portrait.view+" must contain visible geometry.");
+                            Assert.That(colored,Is.GreaterThan(opaque*.15f),portrait.view+" must retain skin/eye/equipment colors instead of a black silhouette.");
+                        } finally { RenderTexture.active=previous;Object.Destroy(pixels); }
+                    }
+                }
+            } finally {
+                Object.Destroy(lightObject);
+                for(int i=0;i<lights.Length;i++)if(lights[i])lights[i].enabled=enabled[i];
+            }
+        }
+
+        [UnityTest]
         public IEnumerator LivePortraitsMatchEquipmentAndExposeLayoutControls()
         {
             game.TogglePause();UiOpen("Stats");yield return null;yield return null;

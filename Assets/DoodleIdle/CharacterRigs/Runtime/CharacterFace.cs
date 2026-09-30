@@ -45,6 +45,7 @@ namespace DoodleIdle.CharacterRigs
         [Min(.01f)] public float blinkDuration = .13f;
         public Transform target;
         public bool Paused { get; set; }
+        public bool UnlitPreview { get; set; }
         public CharacterFaceView View { get; set; }
         public bool IsHurt => hurtRemaining > 0;
         public bool IsBlinking => blinkRemaining > 0 && !IsHurt;
@@ -242,13 +243,13 @@ namespace DoodleIdle.CharacterRigs
             highlightsPending = false;
         }
 
-        static void UpdatePupilClip(Eye eye)
+        void UpdatePupilClip(Eye eye)
         {
             // Editor portrait/setup tools must keep the authored prefab mask intact.
             // A hidden pupil gets its updated matrix when its expression reopens.
             if (!Application.isPlaying || !eye.pupil || !eye.pupil.enabled) return;
             if (eye.clip == null) eye.clip = new CharacterPupilClip();
-            eye.clip.Apply(eye);
+            eye.clip.Apply(eye, UnlitPreview);
         }
 
         void UpdateHighlight(Eye eye)

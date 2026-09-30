@@ -301,3 +301,13 @@ Unity 6000.3.8f1 Development Build, RTX 4070 SUPER, **720×1080**, 실제 창을
 관련 PlayMode 검사 23건이 최종 통과했습니다. 11마리에서 보충 없음/10마리에서 총 50마리, 마지막 적과 보스 중복 생성 방지, 보스 승리/실패, 저장된 잔여 웨이브, 모드/던전 전환, 전체 장착 스킬 순환 자동 전투, 충돌 간격, 두 이동속도, 동일 시드의 50,000개 개별 결과와 다음 난수 값, 확률 레벨 경계, 비용·수량·경험치, 결과창 종료/상세창/반복 뽑기, 순차 공개와 스킵을 확인했습니다. 기존 테스트의 200마리 가정과 단계별 HP 성장 설정을 새 규칙에 맞췄고, 이동속도 검사는 씬 준비 중 진행된 배회 위상을 반영하도록 수정했습니다. 보고서는 `population-summon-first-tests.xml`, `summon-movement-final-tests.xml`, 최종 중복 제거 결과는 `population-summon-validation.json`입니다. 애니메이션·컨트롤러·마스크 39개 해시 차이는 0건입니다.
 
 최종 Windows Development Build는 오류 0건으로 성공했습니다. 임시 계측·Editor 실행 스크립트는 Assets에서 제거하고 위 artifacts 경로에 보관했습니다.
+
+## UI 초상화가 검게 보이는 문제 (2026-10-01)
+
+스탯/프로필/PVP 초상화는 레이어 31에서 별도 카메라로 그리는데, 프리팹의 Sprite-Lit 머티리얼을 그대로 사용하고 있었습니다. SampleScene처럼 레이어 0의 Global Light 2D가 있는 환경에서는 초상화가 조명을 받지 못해 검게 보였습니다. 같은 조명 조건을 만든 픽셀 검사에서 수정 전 스탯 초상화의 유색 픽셀이 0인 것을 재현했습니다(`portrait-lighting-before.xml`).
+
+초상화 복제본만 조명 독립적인 스프라이트 머티리얼을 사용하고, 눈동자의 눈 모양 클리핑도 유지하면서 UI 전용 unlit 값을 넘깁니다. 전장 캐릭터의 기본 조명 동작은 유지합니다. 수동 카메라 렌더링은 URP SingleCameraRequest를 사용하며, 요청과 텍스처별 머티리얼을 재사용하고 창을 닫으면 해제합니다. 프리팹/애니메이션은 수정하지 않았습니다.
+
+스탯/프로필/PVP 색상 픽셀 검사와 장착 외형·레이아웃·Idle 검사 2건, 눈동자 마스킹/움직이는 머리 정렬/풀링 후 하이라이트 검사 3건을 통과했습니다(`portrait-lighting-after.xml`, `portrait-mask-regression.xml`). 실제 렌더링 이미지에서도 세 위치의 피부색·흰 눈·장비를 확인했습니다. 애니메이션·컨트롤러·마스크 39개 해시 차이는 0건입니다.
+
+별도 계정으로 실행한 Windows Development Build에서도 스탯·프로필·PVP 1~3위의 색상 픽셀 검사가 모두 통과했습니다(`artifacts/portrait-native/results.txt`, PNG). 네이티브 로그에 예외/셰이더 오류가 없었습니다. 최초 계측 빌드는 성공 상태와 함께 Hot Reload 에디터 창의 `GUIHelper.ConvertToGrayscale` 예외 4건을 보고했으며, 계측 코드를 제거한 최종 빌드는 오류 0건입니다. 재현용 임시 코드는 `artifacts/performance/PortraitBuildCheck.cs.txt`에 보관하고 Assets에서 제거했습니다.

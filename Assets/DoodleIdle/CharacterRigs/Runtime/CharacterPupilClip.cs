@@ -15,6 +15,7 @@ namespace DoodleIdle.CharacterRigs
         static readonly int MaskShape = Shader.PropertyToID("_EyeMaskShape");
         static readonly int PupilToMask = Shader.PropertyToID("_PupilToMask");
         static readonly int Cutoff = Shader.PropertyToID("_EyeMaskCutoff");
+        static readonly int PortraitUnlit = Shader.PropertyToID("_PortraitUnlit");
         readonly MaterialPropertyBlock properties = new MaterialPropertyBlock();
         readonly MaterialPropertyBlock nativeProperties = new MaterialPropertyBlock();
         SpriteRenderer boundPupil;
@@ -25,9 +26,10 @@ namespace DoodleIdle.CharacterRigs
         Sprite pupilSprite, maskSprite;
         Matrix4x4 previousMatrix;
         float previousCutoff;
+        bool previousUnlit;
         bool valid;
 
-        public void Apply(CharacterFace.Eye eye)
+        public void Apply(CharacterFace.Eye eye, bool unlitPreview)
         {
             if (boundPupil != eye.pupil || boundMask != eye.pupilMask) RestoreNative();
             if (!eye.pupil || !eye.pupilMask || !eye.pupil.sprite || !eye.pupilMask.sprite) { RestoreNative(); return; }
@@ -51,7 +53,7 @@ namespace DoodleIdle.CharacterRigs
             if (mask.enabled) mask.enabled = false;
             var matrix = mask.transform.worldToLocalMatrix * pupil.transform.localToWorldMatrix;
             bool spritesChanged = pupilSprite != pupil.sprite || maskSprite != mask.sprite;
-            if (valid && !spritesChanged && previousMatrix.Equals(matrix) && previousCutoff == mask.alphaCutoff) return;
+            if (valid && !spritesChanged && previousMatrix.Equals(matrix) && previousCutoff == mask.alphaCutoff && previousUnlit == unlitPreview) return;
             if (!valid || spritesChanged) {
                 pupil.GetPropertyBlock(properties);
                 pupilSprite = pupil.sprite; maskSprite = mask.sprite;
@@ -69,8 +71,9 @@ namespace DoodleIdle.CharacterRigs
             }
             properties.SetMatrix(PupilToMask, matrix);
             properties.SetFloat(Cutoff, mask.alphaCutoff);
+            properties.SetFloat(PortraitUnlit, unlitPreview ? 1 : 0);
             pupil.SetPropertyBlock(properties);
-            previousMatrix = matrix; previousCutoff = mask.alphaCutoff; valid = true;
+            previousMatrix = matrix; previousCutoff = mask.alphaCutoff; previousUnlit = unlitPreview; valid = true;
         }
 
         void RestoreNative()

@@ -9,6 +9,7 @@ Shader "DoodleIdle/Pupil Clip"
         _EyeMaskRect ("Mask texture rect", Vector) = (0,0,1,1)
         _EyeMaskShape ("Mask scale and pivot", Vector) = (1,1,0.5,0.5)
         _EyeMaskCutoff ("Mask alpha cutoff", Range(0,1)) = 0.5
+        _PortraitUnlit ("Unlit UI preview", Float) = 0
         [HideInInspector] _Color ("Tint", Color) = (1,1,1,1)
     }
     SubShader
@@ -34,6 +35,7 @@ Shader "DoodleIdle/Pupil Clip"
                 float4 _EyeMaskShape;
                 float4x4 _PupilToMask;
                 float _EyeMaskCutoff;
+                half _PortraitUnlit;
             CBUFFER_END
             struct Attributes { COMMON_2D_INPUTS half4 color : COLOR; };
             struct Varyings { COMMON_2D_LIT_OUTPUTS half4 color : COLOR; float2 maskUV : TEXCOORD4; };
@@ -54,6 +56,7 @@ Shader "DoodleIdle/Pupil Clip"
                 clip(1 - input.maskUV);
                 float2 uv = _EyeMaskRect.xy + input.maskUV * _EyeMaskRect.zw;
                 clip(SAMPLE_TEXTURE2D(_EyeMaskTex, sampler_EyeMaskTex, uv).a - _EyeMaskCutoff);
+                if (_PortraitUnlit > .5h) return input.color * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 return CommonLitFragment(input, input.color);
             }
             ENDHLSL
