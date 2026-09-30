@@ -127,15 +127,15 @@ namespace DoodleIdle
         IEnumerator PlayPvpAndSave(DoodlePvpLoadout own,DoodlePvpLoadout opponent,DoodlePvpPending pending)
         {
             bool completed=false;
-            var battle=game.RunPvpBattle(own,opponent,won=>{pending.won=won;completed=true;});
+            var battle=game.RunPvpBattle(own,opponent,outcome=>{pending.won=outcome==DoodlePvpOutcome.Win;pending.draw=outcome==DoodlePvpOutcome.Draw;completed=true;});
             // Catch engine initialization failures without stranding the main field in a paused state.
             while(true){
                 bool next;try{next=battle.MoveNext();}catch(Exception error){Debug.LogException(error);break;}
                 if(!next)break;yield return battle.Current;
             }
             (battle as IDisposable)?.Dispose();
-            pending.finished=true;pending.won=completed && pending.won;
-            pending.delta=DoodlePvpRules.Delta(pending.startScore,pending.opponentScore,pending.won);
+            pending.finished=true;pending.won=completed && pending.won;pending.draw=completed && pending.draw;
+            pending.delta=pending.draw?0:DoodlePvpRules.Delta(pending.startScore,pending.opponentScore,pending.won);
             DoodleBackendSession.Instance.JournalPvp(pending);
             pvpBusy=false;RetryPvpSave(pending);
         }
@@ -143,7 +143,7 @@ namespace DoodleIdle
         {
             if(pvpBusy||pending==null)return;pvpBusy=true;
             Text status=null;Button retry=null;
-            ShowDetail(pending.finished&&pending.won?"PVP 승리":"PVP 패배",body=>{
+            ShowDetail(pending.finished&&pending.draw?"PVP 무승부":pending.finished&&pending.won?"PVP 승리":"PVP 패배",body=>{
                 int delta=pending.FinalScore-pending.startScore;
                 UiKit.Text(body,pending.opponentName+"\n승점 "+(delta>0?"+":"")+delta,29,TextAnchor.MiddleCenter,100);
                 status=UiKit.Text(body,"결과와 게임 정보를 서버에 저장 중…",21,TextAnchor.MiddleCenter,75);

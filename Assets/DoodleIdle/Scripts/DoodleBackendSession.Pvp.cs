@@ -112,6 +112,8 @@ namespace DoodleIdle
                 if((existing?.Summary?.lastMatch??"")!=(pending.previousMatch??""))
                     throw new InvalidOperationException("다른 기기의 PVP 기록이 변경되었습니다.");
                 pending.summary.lastMatch=pending.matchId;
+                pending.summary.lastOutcome=pending.finished&&pending.draw?"Draw":pending.finished&&pending.won?"Win":"Loss";
+                pending.summary.lastDelta=pending.FinalScore-pending.startScore;
                 var row=new DoodlePvpProfile{Account=account,Score=pending.FinalScore,Summary=pending.summary,Payload=pending.payload};
                 if(existing==null)await db.From<DoodlePvpProfile>().Insert(row);
                 else {

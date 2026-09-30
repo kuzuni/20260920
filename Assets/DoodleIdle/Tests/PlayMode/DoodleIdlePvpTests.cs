@@ -72,7 +72,7 @@ namespace DoodleIdle.Tests
             game.TogglePause();
             var camera=Camera.main;float zoom=camera.orthographicSize;var pos=camera.transform.position;
             int kills=game.Kills;var snapshot=game.Ui.CapturePvpLoadout();
-            var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{snapshot,snapshot,(Action<bool>)(_=>{})});
+            var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{snapshot,snapshot,(Action<DoodlePvpOutcome>)(_=>{})});
             try {
                 Assert.That(routine.MoveNext(),Is.True);yield return null;
                 Assert.That(routine.MoveNext(),Is.True);yield return null;
@@ -96,7 +96,7 @@ namespace DoodleIdle.Tests
             levels["attack"]=previousAttack;
             foreach(bool expected in new[]{true,false}){
                 bool? won=null;
-                var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{expected?strong:weak,expected?weak:strong,(Action<bool>)(value=>won=value)});
+                var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{expected?strong:weak,expected?weak:strong,(Action<DoodlePvpOutcome>)(value=>won=value==DoodlePvpOutcome.Win)});
                 var handle=game.StartCoroutine(routine);
                 float deadline=Time.realtimeSinceStartup+25;
                 try {
@@ -111,6 +111,45 @@ namespace DoodleIdle.Tests
                     Assert.That(won,Is.EqualTo(expected),"Real combat must produce both victory and defeat.");
                     Assert.That(game.Ui.Canvas.enabled,Is.True);Assert.That(game.Kills,Is.EqualTo(kills));Assert.That(game.Ui.GoldAmount,Is.EqualTo(gold));
                 }finally{game.StopCoroutine(handle);(routine as IDisposable)?.Dispose();}
+                yield return null;
+            }
+        }
+        [UnityTest]
+        public IEnumerator PvpThirtySecondTimeoutStopsCombatAndUsesHealthRatio()
+        {
+            game.TogglePause();
+            game.basicSkillsEnabled=game.extraSkillsEnabled=game.summonSkillsEnabled=game.companionsEnabled=false;
+            foreach(var item in game.Ui.Items("Skill"))item.equipped=false;
+            var snapshot=game.Ui.CapturePvpLoadout();
+            object Actor(DoodleIdleGame engine)=>typeof(DoodleIdleGame).GetField("player",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(engine);
+            foreach(bool draw in new[]{false,true}){
+                DoodlePvpOutcome? outcome=null;float finishedAt=0;DoodleIdleGame[] engines=null;
+                float originalScale=Time.timeScale;
+                var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{snapshot,snapshot,(Action<DoodlePvpOutcome>)(result=>{outcome=result;finishedAt=engines.Max(x=>x.Elapsed);})});
+                var handle=game.StartCoroutine(routine);
+                try {
+                    float deadline=Time.realtimeSinceStartup+45;
+                    while(Time.realtimeSinceStartup<deadline){
+                        engines=UnityEngine.Object.FindObjectsByType<DoodleIdleGame>(FindObjectsSortMode.None).Where(x=>x.IsPvpEngine).OrderBy(x=>((Rigidbody2D)Actor(x).GetType().GetField("body").GetValue(Actor(x))).position.x).ToArray();
+                        if(engines.Length==2)break;yield return null;
+                    }
+                    Assert.That(engines.Length,Is.EqualTo(2));
+                    for(int i=0;i<2;i++){
+                        var actor=Actor(engines[i]);
+                        actor.GetType().GetField("hp").SetValue(actor,(GameNumber)(i==0||draw?200:50));
+                        actor.GetType().GetField("maxHp").SetValue(actor,(GameNumber)(i==0||draw?1000:100));
+                    }
+                    // Accelerate only test simulation; countdown still takes three real seconds.
+                    Time.timeScale=4;bool timerVisible=false;
+                    while(game.PvpSessionActive&&Time.realtimeSinceStartup<deadline){
+                        timerVisible|=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None).Any(x=>x.text.StartsWith("남은 시간 "));
+                        yield return null;
+                    }
+                    Assert.That(game.PvpSessionActive,Is.False);
+                    Assert.That(finishedAt,Is.InRange(30f,30f+Time.fixedDeltaTime+.001f));
+                    Assert.That(outcome,Is.EqualTo(draw?DoodlePvpOutcome.Draw:DoodlePvpOutcome.Loss));
+                    Assert.That(timerVisible,Is.True);Assert.That(game.Ui.Canvas.enabled,Is.True);
+                }finally{Time.timeScale=originalScale;game.StopCoroutine(handle);(routine as IDisposable)?.Dispose();}
                 yield return null;
             }
         }

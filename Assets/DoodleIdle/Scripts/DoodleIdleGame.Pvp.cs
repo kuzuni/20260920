@@ -11,7 +11,7 @@ namespace DoodleIdle
         public bool IsPvpEngine {get;private set;}
         public bool PvpSessionActive => pvpSessionActive;
         public event Action<string,string,GameNumber> PvpDamageDealt;
-        bool pvpSessionActive;
+        bool pvpSessionActive,pvpTimedBattle;
         DoodleIdleGame pvpOpponent;
 
         internal static DoodleIdleGame CreatePvpEngine(DoodleIdleGame source,DoodlePvpLoadout loadout,Vector2 position)
@@ -53,7 +53,7 @@ namespace DoodleIdle
             UpdatePlayerHealthBar();
         }
 
-        internal IEnumerator RunPvpBattle(DoodlePvpLoadout own,DoodlePvpLoadout opponent,Action<bool> completed)
+        internal IEnumerator RunPvpBattle(DoodlePvpLoadout own,DoodlePvpLoadout opponent,Action<DoodlePvpOutcome> completed)
         {
             if(pvpSessionActive || !Ready)yield break;
             bool wasPaused=paused;
@@ -63,7 +63,7 @@ namespace DoodleIdle
             for(int i=0;i<originalRenderers.Length;i++)originalVisibility[i]=originalRenderers[i].forceRenderingOff;
             bool hudEnabled=Ui.Canvas.enabled;
             float oldSize=gameCamera.orthographicSize;var oldPosition=gameCamera.transform.position;
-            GameObject overlay=null;DoodleIdleGame left=null,right=null;bool won=false,finished=false;
+            GameObject overlay=null;DoodleIdleGame left=null,right=null;DoodlePvpOutcome outcome=DoodlePvpOutcome.Loss;bool finished=false;
             pvpSessionActive=true;
             try {
             if(!paused)TogglePause();
@@ -86,6 +86,7 @@ namespace DoodleIdle
                 right=CreatePvpEngine(this,opponent,new Vector2(2.2f,0));
                 foreach(var renderer in right.world.GetComponentsInChildren<Renderer>())renderer.forceRenderingOff=true;
                 left.SetPvpOpponent(right);right.SetPvpOpponent(left);
+                left.pvpTimedBattle=right.pvpTimedBattle=true;
                 // Native SpriteSkin/Animator initialization occurs behind the countdown.
                 yield return null;yield return null;
                 // Evaluate idle after both native Animator graphs have bound their skeletons.
@@ -100,7 +101,7 @@ namespace DoodleIdle
                 countdown.text="";left.TogglePause();right.TogglePause();
                 float nextStatus=0;
                 // Bound a regen stalemate; remaining health ratio decides at the limit.
-                const float limit=90;
+                const float limit=DoodlePvpRules.TimeLimitSeconds;
                 while(left.PlayerHealthAmount>0 && right.PlayerHealthAmount>0 && left.Elapsed<limit){
                     var center=(left.player.Position+right.player.Position)*.5f;
                     var separation=left.player.Position-right.player.Position;
@@ -108,11 +109,11 @@ namespace DoodleIdle
                     gameCamera.orthographicSize=Mathf.Max(7.5f,Mathf.Abs(separation.y)*.5f+3,(Mathf.Abs(separation.x)*.5f+3)/Mathf.Max(.2f,gameCamera.aspect));
                     if(Time.unscaledTime>=nextStatus){
                         nextStatus=Time.unscaledTime+.1f;
-                        status.text=UiNumber.Format(left.PlayerHealthAmount)+" / "+UiNumber.Format(left.PlayerMaxHealthAmount)+"    :    "+UiNumber.Format(right.PlayerHealthAmount)+" / "+UiNumber.Format(right.PlayerMaxHealthAmount);
+                        status.text="남은 시간 "+Mathf.CeilToInt(Mathf.Max(0,limit-left.Elapsed))+"초\n"+UiNumber.Format(left.PlayerHealthAmount)+" / "+UiNumber.Format(left.PlayerMaxHealthAmount)+"    :    "+UiNumber.Format(right.PlayerHealthAmount)+" / "+UiNumber.Format(right.PlayerMaxHealthAmount);
                     }
                     yield return null;
                 }
-                won=right.PlayerHealthAmount<=0 || left.PlayerHealthAmount>0 && left.PlayerHealthAmount/left.PlayerMaxHealthAmount>right.PlayerHealthAmount/right.PlayerMaxHealthAmount;
+                outcome=DoodlePvpRules.Outcome(left.PlayerHealthAmount,left.PlayerMaxHealthAmount,right.PlayerHealthAmount,right.PlayerMaxHealthAmount);
                 finished=true;
             } finally {
                 if(left){left.paused=true;left.gameObject.SetActive(false);Destroy(left.gameObject);}
@@ -123,7 +124,7 @@ namespace DoodleIdle
                 UnityEngine.Random.state=rng;pvpSessionActive=false;
                 if(!wasPaused && paused)TogglePause();
             }
-            if(finished)completed?.Invoke(won);
+            if(finished)completed?.Invoke(outcome);
         }
     }
 }

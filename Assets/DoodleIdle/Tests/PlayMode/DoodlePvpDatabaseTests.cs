@@ -65,6 +65,15 @@ namespace DoodleIdle.Tests
                 Assert.That(saved.Payload.Unpack().collections,Is.EqualTo(snapshot.collections));
                 Assert.That(saved.Summary.lastMatch,Is.EqualTo(pending.matchId));
                 Assert.That(session.PendingPvp(),Is.Null);
+                // Draws keep the current score, but still persist match identity and game data.
+                var drawn=new DoodlePvpPending{account=accountA,matchId=Guid.NewGuid().ToString("N"),previousMatch=pending.matchId,startScore=-3,opponentScore=0,
+                    finished=true,draw=true,delta=0,opponentName="QA draw",payload=pending.payload,summary=DoodleJson.FromJson<DoodlePvpSummary>(DoodleJson.ToJson(pending.summary))};
+                drawn.summary.used++;session.JournalPvp(drawn);
+                await session.FinishPvp(drawn,ui);await session.FinishPvp(drawn,ui);
+                var drawSaved=await session.ReadMyPvp();Assert.That(drawSaved.Score,Is.EqualTo(-3));
+                Assert.That(drawSaved.Summary.lastOutcome,Is.EqualTo("Draw"));Assert.That(drawSaved.Summary.lastDelta,Is.Zero);
+                Assert.That(session.PendingPvp(),Is.Null);
+
                 Assert.That(await session.PvpOwnRank(),Is.GreaterThan(0));
                 var cloud=await DoodleBackendSession.Request(cb=>Backend.GameData.GetMyData(session.Config.profileTable,new Where(),1,cb));
                 Check(cloud,"read cloud save after match");
@@ -154,7 +163,10 @@ namespace DoodleIdle.Tests
                 Assert.That(verified,Is.True,"Both full loadouts must be exercised before this match finishes.");
                 Assert.That(game.PvpSessionActive,Is.False,"Real combat must finish.");
                 Assert.That(session.PendingPvp(),Is.Null,"Battle result must reach the server.");
-                var result=await session.ReadMyPvp();Assert.That(Math.Abs(result.Score),Is.EqualTo(3),"Actual outcome must use the displayed point delta.");
+                var result=await session.ReadMyPvp();Assert.That(result.Score,Is.EqualTo(-3).Or.EqualTo(0).Or.EqualTo(3),"Actual outcome must use the displayed point delta or a zero-point draw.");
+                Assert.That(result.Summary.lastDelta,Is.EqualTo(result.Score));
+                Assert.That(result.Summary.lastOutcome,Is.EqualTo(result.Score==0?"Draw":result.Score>0?"Win":"Loss"));
+                if(result.Score==0)Assert.That(ui.Canvas.GetComponentsInChildren<Text>().Any(x=>x.text=="PVP 무승부"),Is.True);
                 Assert.That(result.Payload.Unpack().collections,Is.EqualTo(capturedB.collections));
                 Assert.That(result.Payload.Unpack().skins,Is.EqualTo(capturedB.skins));
                 audit.Add("Match completed with real health/regen (no endurance HP override), score "+result.Score+"; result snapshot matches challenger.");

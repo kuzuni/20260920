@@ -12,6 +12,27 @@ namespace DoodleIdle.Tests
 {
     public sealed class DoodlePersistenceTests
     {
+        [TestCase(200,1000,50,100,DoodlePvpOutcome.Loss)]
+        [TestCase(50,100,200,1000,DoodlePvpOutcome.Win)]
+        [TestCase(0,100,1,100,DoodlePvpOutcome.Loss)]
+        [TestCase(1,100,0,100,DoodlePvpOutcome.Win)]
+        [TestCase(50,100,500,1000,DoodlePvpOutcome.Draw)]
+        [TestCase(0,100,0,100,DoodlePvpOutcome.Draw)]
+        public void PvpDeathAndTimeoutUseRemainingHealthPercentage(int hp,int max,int otherHp,int otherMax,DoodlePvpOutcome expected)
+        {
+            Assert.That(DoodlePvpRules.Outcome(hp,max,otherHp,otherMax),Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void PvpDrawJournalKeepsPointsAndSurvivesReload()
+        {
+            var pending=new DoodlePvpPending{finished=true,draw=true,won=false,startScore=123,opponentScore=900,delta=0};
+            var loaded=DoodleJson.FromJson<DoodlePvpPending>(DoodleJson.ToJson(pending));
+            Assert.That(loaded.draw,Is.True);Assert.That(loaded.FinalScore,Is.EqualTo(123));
+            var old=DoodleJson.FromJson<DoodlePvpPending>("{\"finished\":true,\"won\":true,\"startScore\":123,\"delta\":3}");
+            Assert.That(old.draw,Is.False);Assert.That(old.FinalScore,Is.EqualTo(126));
+        }
+
         [Test]
         public void ServerDeadlineIsFiveMinutesAndRetriesAfterFiveSecondsWithoutOverlap()
         {

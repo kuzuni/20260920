@@ -8,8 +8,8 @@ namespace DoodleIdle
 {
     [Serializable] public sealed class DoodlePvpSummary
     {
-        public string name, power, day, lastMatch;
-        public int used;
+        public string name, power, day, lastMatch, lastOutcome;
+        public int used,lastDelta;
         public string lookData;
         public static string EncodeLook(DoodlePlayerLook value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(DoodleJson.ToJson(value)));
         [Newtonsoft.Json.JsonIgnore] public DoodlePlayerLook Look => string.IsNullOrEmpty(lookData)?new DoodlePlayerLook():DoodleJson.FromJson<DoodlePlayerLook>(Encoding.UTF8.GetString(Convert.FromBase64String(lookData)));
@@ -70,14 +70,26 @@ namespace DoodleIdle
     {
         public string account,matchId,previousMatch,opponentName;
         public int startScore,opponentScore,delta;
-        public bool finished,won;
+        public bool finished,won,draw;
         public DoodlePvpSummary summary;
         public DoodlePvpPayload payload;
-        public int FinalScore => checked(startScore+(finished?delta:DoodlePvpRules.Delta(startScore,opponentScore,false)));
+        public int FinalScore => checked(startScore+(finished?(draw?0:delta):DoodlePvpRules.Delta(startScore,opponentScore,false)));
     }
+
+    public enum DoodlePvpOutcome { Loss, Win, Draw }
 
     public static class DoodlePvpRules
     {
+        public const float TimeLimitSeconds=30;
+        public static DoodlePvpOutcome Outcome(GameNumber health,GameNumber maxHealth,GameNumber opponentHealth,GameNumber opponentMaxHealth)
+        {
+            if(health<=0 || opponentHealth<=0)
+                return health<=0 && opponentHealth<=0 ? DoodlePvpOutcome.Draw : health>0 ? DoodlePvpOutcome.Win : DoodlePvpOutcome.Loss;
+            // Compare fractions by cross multiplication, including different maximum HP.
+            var own=health*GameNumber.Max(1,opponentMaxHealth);
+            var other=opponentHealth*GameNumber.Max(1,maxHealth);
+            return own==other ? DoodlePvpOutcome.Draw : own>other ? DoodlePvpOutcome.Win : DoodlePvpOutcome.Loss;
+        }
         public static int Delta(int own,int opponent,bool won)
         {
             double expected=1/(1+Math.Pow(10,Math.Clamp(((double)opponent-own)/400,-10,10)));

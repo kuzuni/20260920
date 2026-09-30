@@ -431,7 +431,7 @@ namespace DoodleIdle
         };
         void FixedUpdate()
         {
-            if (!Ready || paused || IsPvpEngine && (!Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) return;
+            if (!Ready || paused || IsPvpEngine && (pvpTimedBattle && Elapsed>=DoodlePvpRules.TimeLimitSeconds || !Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) return;
             try {
             if (Ui) Ui.BeginCombatSnapshot();
             if (combatWaveResetRequested)
