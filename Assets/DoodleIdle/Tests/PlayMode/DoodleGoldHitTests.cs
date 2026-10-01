@@ -10,10 +10,42 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator GoldLandingRangeAndPreviewUseIdenticalSimulation()
+        {
+            DurableSkillTargets(); game.paused = true;
+            var gold = Particles("GoldCoinBurst");
+            var effect = gold.GetComponent<DoodleGoldCoinBurst>(); effect.landingYOffset = new Vector2(-.6f, .2f);
+            var preview = Object.Instantiate(effect); preview.PrepareSimulation();
+            try {
+                effect.PrepareSimulation();
+                typeof(DoodleIdleGame).GetField("particleSeed", GrowthPrivate).SetValue(game, 1u);
+                typeof(DoodleIdleGame).GetMethod("EmitGold", GrowthPrivate).Invoke(game, new object[] { Vector2.up * 2 });
+                uint seed = 1; preview.EmitBurst(Vector2.up * 2, ref seed);
+                var a = new ParticleSystem.Particle[64]; var b = new ParticleSystem.Particle[64];
+                var floors = new Dictionary<uint, float>();
+                for (int step = 0; step < 90; step++) {
+                    typeof(DoodleIdleGame).GetMethod("TickParticles", GrowthPrivate).Invoke(game, new object[] { .02f });
+                    preview.Simulate(.02f);
+                    int count = gold.GetParticles(a);
+                    Assert.That(preview.GetComponent<ParticleSystem>().GetParticles(b), Is.EqualTo(count));
+                    for (int i = 0; i < count; i++) {
+                        Assert.That(Vector3.Distance(a[i].position, b[i].position), Is.LessThan(.0001f), "Editor preview and gameplay must share the same motion.");
+                        if (a[i].velocity.sqrMagnitude > .001f) continue;
+                        floors[a[i].randomSeed] = a[i].position.y;
+                        Assert.That(a[i].position.y, Is.InRange(1.4f, 2.2f));
+                    }
+                }
+                Assert.That(floors.Count, Is.EqualTo(9));
+                Assert.That(floors.Values.Max() - floors.Values.Min(), Is.GreaterThan(.2f), "Coins must land throughout the configured range.");
+                Assert.That(gold.particleCount, Is.Zero);
+            } finally { Object.Destroy(preview.gameObject); }
+            yield return null;
+        }
+        [UnityTest]
         public IEnumerator GoldPrefabSizeAndSeparateLandingHeightsAreRespected()
         {
             DurableSkillTargets(); game.paused = true;
-            var gold = Particles("Gold Coin Particle System");
+            var gold = Particles("GoldCoinBurst");
             var emit = typeof(DoodleIdleGame).GetMethod("EmitGold", GrowthPrivate);
             var tick = typeof(DoodleIdleGame).GetMethod("TickParticles", GrowthPrivate);
             var main = gold.main; main.startSize = 1.25f;
@@ -57,6 +89,8 @@ namespace DoodleIdle.Tests
             Place(PlayerBody(), Vector2.zero); Place(bodies[0], Vector2.right * .6f);
             bodies[0].simulated = PlayerBody().simulated = true;
             var slash = Particles("Hit Slash Particle System");
+            Assert.That(slash.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture,
+                Is.SameAs(Resources.Load<Texture2D>("DoodleIdle/HitSlashStraight")));
             var damage = typeof(DoodleIdleGame).GetMethod("DamageAmount", GrowthPrivate);
             damage.Invoke(game, new object[] { enemy, (GameNumber)1, Vector2.zero, "basicAttack", null });
             Assert.That(slash.particleCount, Is.EqualTo(1));
@@ -79,7 +113,7 @@ namespace DoodleIdle.Tests
             typeof(DoodleIdleGame).GetMethod("TickParticles", GrowthPrivate).Invoke(game, new object[] { .3f });
             Assert.That(slash.particleCount, Is.Zero);
             game.ResetGame();
-            Assert.That(Particles("Gold Coin Particle System").particleCount, Is.Zero);
+            Assert.That(Particles("GoldCoinBurst").particleCount, Is.Zero);
         }
     }
 }

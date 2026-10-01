@@ -12,7 +12,7 @@ public static class HitSlashSetup
         var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
         if (!material) {
             material = new Material(Resources.Load<Shader>("DoodleIdle/DoodleParticles"));
-            material.mainTexture = Resources.Load<Texture2D>("DoodleIdle/RedSlashA");
+            material.mainTexture = Resources.Load<Texture2D>("DoodleIdle/HitSlashStraight");
             GoldCoinBurstSetup.FitArt(material);
             AssetDatabase.CreateAsset(material, materialPath);
         }
@@ -22,7 +22,7 @@ public static class HitSlashSetup
             var main = ps.main; main.playOnAwake = false; main.loop = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World; main.scalingMode = ParticleSystemScalingMode.Local;
             main.maxParticles = 256; main.startSpeed = 0; main.startLifetime = .16f;
-            main.startSize3D = true; main.startSizeX = 1.8f; main.startSizeY = .65f; main.startSizeZ = 1;
+            main.startSize3D = true; main.startSizeX = 1.8f; main.startSizeY = .25f; main.startSizeZ = 1;
             main.startRotation = new ParticleSystem.MinMaxCurve(25 * Mathf.Deg2Rad, 155 * Mathf.Deg2Rad);
             main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
             var emission = ps.emission; emission.enabled = false;

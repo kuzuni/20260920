@@ -153,3 +153,11 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 - 골드는 죽은 캐릭터의 GroundContact에서 위로 튀고, 각 방출 지점의 높이에 착지한 뒤 멈춰서 사라집니다. 서로 다른 높이에서 동시에 죽어도 개별 바닥 높이를 유지합니다. 골드 보상 계산에는 영향을 주지 않습니다.
 - `Assets/DoodleIdle/Resources/DoodleIdle/HitSlash.prefab`: 플레이어/적의 실제 피격 처리에 사용하는 붉은 슬래시입니다. **Start Size X/Y**로 길이/폭, **Start Lifetime**으로 지속시간(기본 0.16초), **Start Rotation**으로 각도를 조절합니다. 무적으로 차단된 공격에는 추가 방출하지 않습니다. PVP도 동일한 피해 처리 경로를 사용합니다.
 - 프리팹을 저장한 후 다시 플레이하면 반영됩니다. 두 이펙트 모두 전투당 하나의 Particle System을 재사용하며, 타격마다 GameObject를 생성하지 않습니다. 게임 정지/재시작에 맞춰 시뮬레이션도 정지/초기화됩니다. 애니메이션 파일은 변경하지 않습니다.
+
+### 착지 Y 범위와 실제 미리보기 (2026-10-02)
+
+- `GoldCoinBurst.prefab`의 **Doodle Gold Coin Burst → 착지 Y 최소 / 착지 Y 최대**를 조절합니다. 방출 지점(GroundContact)의 월드 Y에 더해지는 범위이며, 매 동전마다 이 범위에서 착지 높이를 뽑습니다. 예: `-0.3 / 0.1`이면 발밑 기준 아래 0.3부터 위 0.1 사이, `-0.5 / -0.5`이면 모두 아래 0.5에 착지합니다. 기본 `0 / 0`은 기존과 같은 높이입니다.
+- 실행 시 `Gold Coin Particle System`으로 이름을 바꾸던 코드를 제거했습니다. 이제 Hierarchy에도 **GoldCoinBurst**로 표시됩니다.
+- 기본 Particle System의 재생 버튼은 게임에서 적용하는 중력/착지 처리를 실행하지 않습니다. 컴포넌트의 **실제 동작 미리보기** 버튼 또는 `Doodle Idle → Effects → Gold Coin Preview`를 사용합니다. 별도 복제본에서 실제 게임과 동일한 `EmitBurst/Simulate`를 호출합니다. 원본 값을 바꾼 뒤 **다시 재생**을 누릅니다. 미리보기는 원본 및 씬을 변경하지 않습니다.
+- 피격 슬래시 이미지는 `HitSlashStraight.png`의 직선 형태로 교체했습니다. 스킬에서 쓰는 기존 곡선 슬래시 이미지는 그대로입니다. 이미지 생성은 내장 imagegen 도구를 사용했습니다.
+- 이미지 편집 프롬프트: “Use case: precise-object-edit. Edit target: attached curved red slash game sprite. Replace the crescent with ONE perfectly STRAIGHT horizontal sword-cut streak, tapered sharp ends at left and right, long thin pointed lozenge silhouette with a straight centerline. Keep the existing hand-drawn cartoon game's red/coral fill, pale pink-white inner highlight and dark ink outline. Completely remove curved/crescent/hook shapes and debris. No crossing strokes, no arcs, no sword, no characters, no background, no text. Center a single clean horizontal straight slash on a truly transparent canvas, length about 85% of canvas, thickness about 10%, generous clear alpha around it. This is a small 2D combat hit effect sprite. Output transparent PNG.”

@@ -190,7 +190,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.GoldCoinsEmitted, Is.EqualTo(27));
             yield return PhysicsTicks(6);
             game.TogglePause(); yield return null;
-            var gold = Particles("Gold Coin Particle System");
+            var gold = Particles("GoldCoinBurst");
             Assert.That(gold.particleCount, Is.GreaterThan(0));
             var coins = new ParticleSystem.Particle[gold.particleCount]; gold.GetParticles(coins);
             Assert.That(coins.All(p => p.startLifetime > 0 && p.startLifetime <= gold.main.startLifetime.constantMax), Is.True);
