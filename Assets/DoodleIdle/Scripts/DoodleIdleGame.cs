@@ -446,11 +446,20 @@ namespace DoodleIdle
             if (!IsPvpEngine && TickBossChallenge(dt)) return;
             if (!IsPvpEngine && Ui && Ui.TickDungeonChallenge(dt)) return;
             var target = Closest(player.Position);
-            if (target == null) { Refill(); return; }
+            if (target == null) {
+                if (autoPlay && !JoystickActive) { player.body.linearVelocity = Vector2.zero; dashRemaining = 0; }
+                if (MovementZones) MovementZones.Retreating = false;
+                Refill(); return;
+            }
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
-            if (basicSkillsEnabled && BasicAttackEnabled && !JoystickActive && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            Vector2 desiredMovement = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
+            if ((!autoPlay || JoystickActive) && MovementZones) MovementZones.Retreating = false;
+            bool mayApproachDash = !UsesMovementZones || !autoPlay || JoystickActive ||
+                (!MovementZones.Retreating && Vector2.Dot(desiredMovement, delta) > .001f);
+            if (!mayApproachDash) dashRemaining = 0;
+            if (basicSkillsEnabled && BasicAttackEnabled && !JoystickActive && mayApproachDash && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -473,8 +482,7 @@ namespace DoodleIdle
             }
             else
             {
-                Vector2 desired = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
-                player.body.linearVelocity = desired;
+                player.body.linearVelocity = desiredMovement;
             }
             if(IsPvpEngine)TickPvpRegeneration(dt);
             else {
@@ -482,7 +490,8 @@ namespace DoodleIdle
                 using(combatMarkers[1].Auto()) TickPlayerContactDamage(dt);
             }
             if (combatWaveResetRequested) return;
-            if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && delta.sqrMagnitude < 24)
+            bool basicAttackInRange = UsesMovementZones ? EnemyInsideZone(target, MovementZones.stopAndAttack) : delta.sqrMagnitude < 24;
+            if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && basicAttackInRange)
             {
                 if (BeginPlayerAttack(facing))
                     attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1);

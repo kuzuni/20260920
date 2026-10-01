@@ -131,3 +131,17 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 - 물리 충돌에 참여하지 않는 범위 판정용 콜라이더라 **Enabled는 꺼져 있는 것이 정상**입니다. 기존 몸통 콜라이더와 공격 판정은 유지됩니다.
 - 일반 적, 보충 생성, 던전 적, 보스 모두 적의 몸통 반경까지 더해서 범위 밖에 생성합니다. 위치 탐색에 실패해도 금지 영역 안에는 강제 생성하지 않습니다. 전체 전장을 덮는 크기라면 공간이 생길 때까지 생성을 미룹니다.
 - `eye_hurt_left/right.png`는 감은 눈 선을 뜬 눈 윤곽과 유사하게 얇게 수정했습니다. 기존 캔버스(128×160), 스프라이트 참조, 얼굴 앵커 및 애니메이션은 유지합니다. 기본 이미지 편집 도구에 “기존 질끈 감은 눈의 꺾인 모양을 유지하고 뜬 눈 테두리 정도로 선만 얇게, 검정 선과 투명 배경”을 요청한 뒤 기존 캔버스에 맞췄으며, 좌우 굵기를 맞추기 위해 한쪽 결과를 대칭 배치했습니다.
+
+## A/B/C 이동 트리거와 FootDust 공통 설정 (2026-10-01)
+
+`Assets/DoodleIdle/CharacterRigs/Prefabs/Player_Standard.prefab`에서 조절합니다.
+
+- `MovementZones/A_StopAndAttack`: 적이 들어오면 자동 이동과 접근 돌진을 멈추고 Idle에서 기본 공격합니다.
+- `MovementZones/B_StartRetreat`: 적이 들어오면 후퇴를 시작합니다.
+- `MovementZones/C_FinishRetreat`: 후퇴 중에는 타깃 한 명뿐 아니라 모든 살아 있는 적이 C 밖으로 나가야 후퇴가 끝납니다. B 밖으로 나왔다는 이유만으로 즉시 전진하지 않습니다.
+- 세 개 모두 활성화된 CircleCollider2D Trigger이며, `Radius`와 `Offset`을 직접 편집합니다. 적의 몸통 반경도 포함해 판단합니다. 기본 실제 전장 반경은 A 3.2 / B 1.4 / C 2.5입니다. 프리팹 Radius는 리그 원본 좌표 단위이므로 표시 숫자가 더 큽니다. A ≥ C > B 순서를 권장합니다.
+- 이 범위는 자동 이동을 제어하며 조이스틱/수동 이동에는 강제로 적용하지 않습니다. 애니메이션 클립이나 컨트롤러는 수정하지 않습니다.
+
+먼지는 플레이어의 `GroundContact/FootDust` Particle System이 공통 원본입니다. `Emission/Rate over Distance`만 방출을 결정하며 Rate over Time과 Burst는 0입니다. 기존 스크립트의 수동 Emit/spacing 방출은 제거했습니다. 정지·제자리 방향 전환·발 본 애니메이션에는 나오지 않으며, 순간이동과 풀 재사용은 궤적을 초기화합니다.
+
+플레이어 **프리팹을 저장**하면 Particle System/Renderer 설정(색상, 크기, 거리 방출량, 수명, 재질 등)이 다른 5개 캐릭터 리그 프리팹에도 자동 복사됩니다. 플레이 중에 프리팹을 저장하면 플레이 종료 후 동기화합니다. 각 캐릭터의 GroundContact 위치는 유지됩니다. 수동 실행 메뉴는 `Doodle Idle → Character Rigs → Sync Foot Dust From Player`입니다. 씬 인스턴스만 변경한 경우 먼저 플레이어 프리팹에 Apply해야 공통 원본이 바뀝니다.

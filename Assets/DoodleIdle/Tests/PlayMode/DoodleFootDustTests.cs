@@ -19,7 +19,13 @@ namespace DoodleIdle.Tests
                 Assert.That(dust,Is.Not.Null,entry.id);
                 Assert.That(dust.particles.transform.parent,Is.SameAs(rig.groundContact));
                 Assert.That(dust.particles.main.simulationSpace,Is.EqualTo(ParticleSystemSimulationSpace.World));
-                Assert.That(dust.particles.emission.enabled,Is.False,"Only travelled distance emits dust");
+                Assert.That(dust.particles.emission.enabled,Is.True);
+                Assert.That(dust.particles.emission.rateOverTime.constantMax,Is.Zero);
+                Assert.That(dust.particles.emission.burstCount,Is.Zero);
+                var source=DoodleCharacterCatalog.Current.entries.First(e=>e.group=="Player").prefab.footDust.particles;
+                Assert.That(dust.particles.emission.rateOverDistance.constantMax,Is.EqualTo(source.emission.rateOverDistance.constantMax));
+                Assert.That(dust.particles.main.startSize.constantMax,Is.EqualTo(source.main.startSize.constantMax));
+                Assert.That(dust.particles.main.startColor.color,Is.EqualTo(source.main.startColor.color));
                 Assert.That(dust.particles.GetComponent<SortingGroup>().sortAtRoot,Is.True);
             }
         }
@@ -33,37 +39,35 @@ namespace DoodleIdle.Tests
                 try
                 {
                     var visual=root.GetComponent<DoodleRigVisual>();visual.Configure(entry);
-                    var dust=visual.Rig.footDust;var ps=dust.particles;dust.scatter=Vector2.zero;
+                    var dust=visual.Rig.footDust;var ps=dust.particles;
+                    var main=ps.main;main.startLifetime=3;main.gravityModifier=0;main.startSpeed=0;
+                    var emission=ps.emission;emission.rateOverDistance=4;
                     yield return null;yield return null;
                     visual.Moving(true);root.GetComponent<SpriteRenderer>().flipX=true;
                     yield return null;yield return null;
                     Assert.That(ps.particleCount,Is.Zero,"Walking animation and flipping at rest must not emit");
-                    root.transform.position+=Vector3.right*(dust.spacing*4.5f);
-                    yield return null;yield return null;
-                    var particles=new ParticleSystem.Particle[64];int count=ps.GetParticles(particles);
-                    Assert.That(count,Is.EqualTo(4),group);
-                    var positions=particles.Take(count).Select(p=>p.position.x).OrderBy(x=>x).ToArray();
-                    for(int i=1;i<count;i++)Assert.That(positions[i]-positions[i-1],Is.EqualTo(dust.spacing).Within(.002f));
-                    var start=particles[0].position;
-                    root.transform.position+=Vector3.right*dust.spacing;
+                    for(int i=0;i<16;i++){root.transform.position+=Vector3.right*.125f;yield return null;}
                     yield return null;
-                    count=ps.GetParticles(particles);
-                    Assert.That(particles.Take(count).Any(p=>Vector3.Distance(start,p.position)<.001f),Is.True,"Old dust stays on the ground");
+                    Assert.That(ps.particleCount,Is.InRange(6,9),group+": native 4 particles/metre over 2 metres");
+                    int stoppedCount=ps.particleCount;
+                    yield return new WaitForSeconds(.1f);
+                    Assert.That(ps.particleCount,Is.EqualTo(stoppedCount),"Idle cannot use time-based emission");
                     visual.Paused=true;visual.Sync();yield return null;
-                    int pausedCount=ps.particleCount;root.transform.position+=Vector3.right;
+                    root.transform.position+=Vector3.right;
                     yield return null;yield return null;
-                    Assert.That(ps.isPaused,Is.True);Assert.That(ps.particleCount,Is.EqualTo(pausedCount));
+                    Assert.That(ps.isPaused,Is.True);Assert.That(ps.particleCount,Is.EqualTo(stoppedCount));
                     visual.Paused=false;visual.Sync();yield return null;
-                    ps.Clear(false);root.transform.position+=Vector3.right*20;
-                    yield return null;yield return null;Assert.That(ps.particleCount,Is.Zero,"Teleports do not draw a long dust trail");
-                    root.transform.position+=Vector3.left*(dust.spacing*1.5f);
-                    yield return null;yield return null;Assert.That(ps.particleCount,Is.GreaterThan(0));
+                    root.transform.position+=Vector3.right*20;
+                    yield return null;yield return null;Assert.That(ps.particleCount,Is.Zero,"Teleports reset the native trail");
+                    emission.rateOverDistance=0;
+                    for(int i=0;i<8;i++){root.transform.position+=Vector3.right*.125f;yield return null;}
+                    yield return null;Assert.That(ps.particleCount,Is.Zero,"Inspector Rate over Distance must be the only emission source");
+                    emission.rateOverDistance=4;
+                    for(int i=0;i<8;i++){root.transform.position+=Vector3.right*.125f;yield return null;}
+                    yield return null;Assert.That(ps.particleCount,Is.GreaterThan(0));
                     root.SetActive(false);Assert.That(ps.particleCount,Is.Zero);
                     root.transform.position=Vector3.zero;root.SetActive(true);
                     yield return null;yield return null;Assert.That(ps.particleCount,Is.Zero,"Pool reactivation starts clean");
-                    root.transform.position+=Vector3.right*dust.spacing*2;
-                    yield return null;yield return new WaitForSeconds(.85f);
-                    Assert.That(ps.particleCount,Is.Zero,"Idle stops new emission and existing puffs fade out");
                 }
                 finally{Object.DestroyImmediate(root);}
             }

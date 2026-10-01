@@ -35,7 +35,7 @@ public static class CharacterFootDustSetup
                 main.startSpeed = 0; main.startRotation = new ParticleSystem.MinMaxCurve(-.4f,.4f);
                 main.startColor = new Color(.86f,.78f,.65f,.65f); main.maxParticles = 64;
                 main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
-                var emission = ps.emission; emission.enabled = false;
+                var emission = ps.emission; emission.enabled = true; emission.rateOverTime = 0; emission.rateOverDistance = 2;
                 var shape = ps.shape; shape.enabled = false;
                 var fade = ps.colorOverLifetime; fade.enabled = true;
                 var gradient = new Gradient(); gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(.7f,0),new GradientAlphaKey(1,.1f),new GradientAlphaKey(0,1)}); fade.color = gradient;
@@ -50,5 +50,6 @@ public static class CharacterFootDustSetup
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
         AssetDatabase.SaveAssets();
+        CharacterFootDustSync.Sync();
     }
 }

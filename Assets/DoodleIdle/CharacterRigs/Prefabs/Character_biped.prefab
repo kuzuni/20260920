@@ -487,6 +487,7 @@ MonoBehaviour:
   animator: {fileID: 5483024607224049220}
   face: {fileID: 861099039036256353}
   footDust: {fileID: 5142052071593284587}
+  movementZones: {fileID: 0}
   attackRange: {fileID: 6948210137565757296}
 --- !u!95 &5483024607224049220
 Animator:
@@ -524,9 +525,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterFootDust
   particles: {fileID: 101661855698567995}
   movementOrigin: {fileID: 3295758454752117195}
-  spacing: 0.22
   teleportDistance: 3
-  scatter: {x: 0.055, y: 0.025}
 --- !u!1 &2202034375919810574
 GameObject:
   m_ObjectHideFlags: 0
@@ -1870,7 +1869,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.86, g: 0.78, b: 0.65, a: 0.65}
+      maxColor: {r: 1, g: 1, b: 1, a: 0.65}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -1934,8 +1933,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.38
-      minScalar: 0.24
+      scalar: 2
+      minScalar: 1
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -1986,7 +1985,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -2039,7 +2038,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -2092,7 +2091,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startRotationX:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 0
       minScalar: 0
       maxCurve:
@@ -2145,7 +2144,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startRotationY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 0
       minScalar: 0
       maxCurve:
@@ -2258,7 +2257,7 @@ ParticleSystem:
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: -1
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -2512,12 +2511,12 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
   EmissionModule:
-    enabled: 0
+    enabled: 1
     serializedVersion: 4
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 0
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -2570,7 +2569,7 @@ ParticleSystem:
     rateOverDistance:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 2
       minScalar: 0
       maxCurve:
         serializedVersion: 2
