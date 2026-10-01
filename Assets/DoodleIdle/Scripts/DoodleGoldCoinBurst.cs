@@ -21,6 +21,7 @@ namespace DoodleIdle
         ParticleSystem.Particle[] buffer;
         ParticleSystemRenderer particleRenderer;
         Sprite coinSprite;
+        Material coinMaterial;
         Transform rendererRoot;
         readonly List<SpriteRenderer> coinRenderers = new List<SpriteRenderer>(64);
         int visibleCoins;
@@ -52,6 +53,11 @@ namespace DoodleIdle
                 coinSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f,
                     Mathf.Max(texture.width, texture.height), 0, SpriteMeshType.FullRect);
                 coinSprite.name = "Gold coin sorting quad";
+                // Unity 6 sprites pass renderer tint separately from particle vertex colors.
+                coinMaterial = new Material(particleRenderer.sharedMaterial) {
+                    shader = Resources.Load<Shader>("DoodleIdle/DoodleGoldCoinSprite"),
+                    name = "Gold coin sprite material", hideFlags = HideFlags.DontSave
+                };
             }
             EnsureRenderers(Mathf.Min(64, system.main.maxParticles));
         }
@@ -96,7 +102,7 @@ namespace DoodleIdle
                 var go = new GameObject("Y sorted gold coin"); go.transform.SetParent(rendererRoot, false);
                 go.hideFlags = HideFlags.DontSave;
                 var renderer = go.AddComponent<SpriteRenderer>();
-                renderer.sprite = coinSprite; renderer.sharedMaterial = particleRenderer.sharedMaterial;
+                renderer.sprite = coinSprite; renderer.sharedMaterial = coinMaterial;
                 renderer.sortingLayerID = particleRenderer.sortingLayerID; renderer.enabled = false;
                 coinRenderers.Add(renderer);
             }
@@ -119,8 +125,8 @@ namespace DoodleIdle
         }
         void OnDestroy()
         {
-            if (!coinSprite) return;
-            if (Application.isPlaying) Destroy(coinSprite); else DestroyImmediate(coinSprite);
+            if (Application.isPlaying) { Destroy(coinSprite); Destroy(coinMaterial); }
+            else { DestroyImmediate(coinSprite); DestroyImmediate(coinMaterial); }
         }
         // The game owns simulation so pause/reset work exactly like the other pooled effects.
         // Each coin remembers its own ground height; overlapping kills share one particle simulation.

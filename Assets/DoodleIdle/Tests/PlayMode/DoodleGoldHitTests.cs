@@ -17,6 +17,54 @@ namespace DoodleIdle.Tests
             effect.launchSpread = 40; effect.gravity = 18; effect.landedLifetime = .35f; effect.landingYOffset = Vector2.zero;
         }
         [UnityTest]
+        public IEnumerator LandedGoldFadesInRenderedPixelsBeforeReturningToPool()
+        {
+            DurableSkillTargets(); game.paused = true;
+            var gold = Particles("GoldCoinBurst"); var effect = gold.GetComponent<DoodleGoldCoinBurst>();
+            ConfigureGoldFixture(gold);
+            var main = gold.main; main.startSpeed = 0; main.startSize = 1; main.startColor = Color.white;
+            var emission = gold.emission; emission.SetBursts(new[] { new ParticleSystem.Burst(0, 1) });
+            var overLife = gold.colorOverLifetime; overLife.enabled = false;
+            effect.landedLifetime = 1;
+            var cameraObject = new GameObject("Gold fade pixel test");
+            var camera = cameraObject.AddComponent<Camera>(); camera.CopyFrom(Camera.main); camera.enabled = false;
+            camera.transform.position = new Vector3(1000, 1000, -10); camera.transform.rotation = Quaternion.identity;
+            camera.orthographic = true; camera.orthographicSize = .7f; camera.aspect = 1;
+            camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
+            var target = new RenderTexture(96, 96, 24); camera.targetTexture = target;
+            var pixels = new Texture2D(96, 96, TextureFormat.RGB24, false);
+            var previousTarget = RenderTexture.active;
+            float ReadBrightness(string filename)
+            {
+                camera.Render(); RenderTexture.active = target;
+                pixels.ReadPixels(new Rect(0, 0, 96, 96), 0, 0); pixels.Apply();
+                System.IO.Directory.CreateDirectory("artifacts/screenshots");
+                System.IO.File.WriteAllBytes("artifacts/screenshots/" + filename, pixels.EncodeToPNG());
+                return pixels.GetPixels().Sum(c => c.r + c.g + c.b);
+            }
+            try {
+                foreach (float speed in new[] { 1f, 5f }) {
+                    main.simulationSpeed = speed; effect.PrepareSimulation();
+                    uint seed = 1; effect.EmitBurst(new Vector2(1000, 1000), ref seed); effect.Simulate(.01f / speed);
+                    float opaque = ReadBrightness("gold-fade-opaque.png");
+                    Assert.That(opaque, Is.GreaterThan(100), "The coin must actually render in the test camera.");
+                    for (int i = 0; i < 50; i++) effect.Simulate(.01f / speed);
+                    float half = ReadBrightness("gold-fade-half.png");
+                    Assert.That(half / opaque, Is.InRange(.25f, .8f), "Half-life alpha must affect rendered pixels, not only particle or renderer properties.");
+                    for (int i = 0; i < 45; i++) effect.Simulate(.01f / speed);
+                    float nearlyGone = ReadBrightness("gold-fade-nearly-gone.png");
+                    Assert.That(nearlyGone / opaque, Is.LessThan(.3f));
+                    for (int i = 0; i < 10; i++) effect.Simulate(.01f / speed);
+                    Assert.That(gold.particleCount, Is.Zero);
+                    Assert.That(gold.GetComponentsInChildren<SpriteRenderer>().All(r => !r.enabled), Is.True);
+                }
+            } finally {
+                RenderTexture.active = previousTarget; camera.targetTexture = null;
+                Object.Destroy(target); Object.Destroy(pixels); Object.Destroy(cameraObject);
+            }
+            yield return null;
+        }
+        [UnityTest]
         public IEnumerator GoldCoinsSortIndividuallyByYAndReuseTheirRenderers()
         {
             var bodies = DurableSkillTargets(); game.paused = true;
