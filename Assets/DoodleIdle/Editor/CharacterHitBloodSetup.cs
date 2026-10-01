@@ -46,7 +46,7 @@ public static class CharacterHitBloodSetup
         try {
             var ps = root.AddComponent<ParticleSystem>(); ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main; main.loop = false; main.playOnAwake = false; main.duration = .5f;
-            main.simulationSpace = ParticleSystemSimulationSpace.World; main.scalingMode = ParticleSystemScalingMode.Local;
+            main.simulationSpace = ParticleSystemSimulationSpace.World; main.scalingMode = ParticleSystemScalingMode.Hierarchy;
             main.startLifetime = new ParticleSystem.MinMaxCurve(.2f, .45f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.3f);
             main.startSize = new ParticleSystem.MinMaxCurve(.07f, .16f);

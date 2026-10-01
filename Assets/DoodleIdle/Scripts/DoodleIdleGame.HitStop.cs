@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        public const float HitStopDuration = .5f;
+        public const float HitStopDuration = .25f;
         readonly List<Actor> dyingEnemies = new List<Actor>(64);
         bool playerDefeatPending;
 
@@ -21,7 +21,7 @@ namespace DoodleIdle
             actor.rigVisual.BeginHitFeedback();
             actor.rigVisual.Rig.CancelAttack();
             actor.rigVisual.ShowHitFace();
-            if (actor.rigVisual.Rig.hitBlood) actor.rigVisual.Rig.hitBlood.Burst();
+            if (actor.rigVisual.Rig.hitBlood) actor.rigVisual.Rig.hitBlood.Burst(actor.art.flipX);
             actor.rigVisual.Sync();
         }
 
@@ -51,7 +51,7 @@ namespace DoodleIdle
             }
             if (playerDefeatPending && player.hitStop <= 0) {
                 playerDefeatPending = false;
-                // The defeated pose stays at the hit location for half a second;
+                // The defeated pose stays at the hit location for the hit-stop duration;
                 // then the respawn starts from a fresh idle pose at the origin.
                 player.hp = player.maxHp; player.collider.enabled = true;
                 player.body.position = Vector2.zero; player.body.linearVelocity = Vector2.zero;

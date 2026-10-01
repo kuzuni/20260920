@@ -24,35 +24,67 @@ namespace DoodleIdle.Tests
                 var visual = (DoodleRigVisual)ActorField(actor, "rigVisual");
                 var art = (SpriteRenderer)ActorField(actor, "art"); art.flipX = true; visual.Sync();
                 var rig = visual.Rig; var originalScale = rig.transform.localScale;
-                rig.hitBlood.GetComponent<ParticleSystemRenderer>().enabled = false;
+                rig.hitBlood.GetComponent<ParticleSystemRenderer>().enabled = true;
                 var originalMaterials = rig.partRenderers.Select(r => r.sharedMaterial).ToArray();
                 var body = (Rigidbody2D)ActorField(actor, "body"); var bodyScale = body.transform.localScale;
-                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .04f);
                 Assert.That(rig.transform.localScale.x, Is.EqualTo(originalScale.x * 1.18f).Within(.001));
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001));
                 Assert.That(body.transform.localScale, Is.EqualTo(bodyScale));
                 Assert.That(rig.partRenderers.All(r => r.sharedMaterial.shader.name == "DoodleIdle/White Hit"), Is.True);
                 Assert.That(rig.partRenderers[0].sharedMaterial.GetFloat("_Flash"), Is.EqualTo(1));
-                Object.Destroy(CaptureFrame(actor == player ? "player-white-hit.png" : "enemy-white-hit.png", 900, 1200));
+                Object.Destroy(CaptureFrame(actor == player ? "player-hit-blood-scaled.png" : "enemy-hit-blood-scaled.png", 900, 1200));
                 float size = rig.transform.localScale.y;
                 game.paused = true; yield return null; yield return null;
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(size)); game.paused = false;
-                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .04f);
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001), "Repeated hits must not compound scale.");
-                StepHitStop(game, .42f);
+                StepHitStop(game, .21f);
                 Assert.That(Vector3.Distance(rig.transform.localScale, originalScale), Is.LessThan(.001));
                 Assert.That(rig.partRenderers.Select(r => r.sharedMaterial), Is.EqualTo(originalMaterials));
-                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .04f);
                 visual.ParkRig(); visual.RestoreRig();
                 Assert.That(Vector3.Distance(rig.transform.localScale, originalScale), Is.LessThan(.001));
                 Assert.That(rig.partRenderers.Select(r => r.sharedMaterial), Is.EqualTo(originalMaterials));
-                StepHitStop(game, .5f);
+                StepHitStop(game, .25f);
             }
             game.paused = true;
         }
 
         [UnityTest]
-        public IEnumerator EnemyHitStopsForHalfSecondAndDeathReturnsToPoolAfterHold()
+        public IEnumerator BloodSpraysUpAndBehindBothFacingDirectionsAtCharacterScale()
+        {
+            DurableSkillTargets(); game.paused = true;
+            var player = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var enemy = ((IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game))[0];
+            Place((Rigidbody2D)ActorField(enemy, "body"), new Vector2(-2, 0));
+            foreach (var actor in new[] { player, enemy }) {
+                var visual = (DoodleRigVisual)ActorField(actor, "rigVisual");
+                var art = (SpriteRenderer)ActorField(actor, "art");
+                var blood = visual.Rig.hitBlood;
+                var ps = blood.GetComponent<ParticleSystem>();
+                Assert.That(ps.main.scalingMode, Is.EqualTo(ParticleSystemScalingMode.Hierarchy));
+                var authoredRotation = ps.shape.rotation;
+                foreach (bool left in new[] { false, true }) {
+                    art.flipX = left; visual.Sync(); blood.Clear(); blood.Burst(left);
+                    var drops = new ParticleSystem.Particle[ps.main.maxParticles];
+                    int count = ps.GetParticles(drops); Assert.That(count, Is.GreaterThan(0));
+                    foreach (var drop in drops.Take(count)) {
+                        var velocity = ps.main.simulationSpace == ParticleSystemSimulationSpace.World
+                            ? drop.velocity : ps.transform.TransformVector(drop.velocity);
+                        Assert.That(velocity.y, Is.GreaterThan(0), "Blood must initially fly upward.");
+                        Assert.That(velocity.x * (left ? 1 : -1), Is.GreaterThan(0), "Blood must fly behind the character.");
+                    }
+                    Assert.That(ps.shape.rotation, Is.EqualTo(authoredRotation));
+                    ps.Simulate(.06f, false, false, false);
+                    Object.Destroy(CaptureFrame((actor == player ? "player" : "enemy") + "-blood-" + (left ? "left" : "right") + ".png", 900, 1200));
+                }
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator EnemyHitStopsForQuarterSecondAndDeathReturnsToPoolAfterHold()
         {
             var bodies = DurableSkillTargets(); game.paused = false;
             var enemies = (IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game);
@@ -76,7 +108,7 @@ namespace DoodleIdle.Tests
             Assert.That(blood.particleCount, Is.EqualTo(7));
             var drops = new ParticleSystem.Particle[64]; int dropCount = blood.GetParticles(drops);
             Assert.That(drops.Take(dropCount).All(p => p.velocity.x < 0), Is.True, "Spray travels toward the back of the right-facing head.");
-            StepHitStop(game, .49f); Assert.That(visual.HitStopped, Is.True);
+            StepHitStop(game, .24f); Assert.That(visual.HitStopped, Is.True);
             StepHitStop(game, .02f); Assert.That(visual.HitStopped, Is.False);
             Assert.That(visual.Rig.animator.speed, Is.EqualTo(1));
             Assert.That(body.constraints, Is.EqualTo(RigidbodyConstraints2D.FreezeRotation));
@@ -90,7 +122,7 @@ namespace DoodleIdle.Tests
             Assert.That(visual.Rig.partRenderers.Any(r => r.enabled), Is.True);
             blood.Simulate(.1f, false, false, false);
             Object.Destroy(CaptureFrame("enemy-hit-stop-blood.png", 900, 1200));
-            StepHitStop(game, .49f); Assert.That((bool)ActorField(enemy, "returnedToPool"), Is.False);
+            StepHitStop(game, .24f); Assert.That((bool)ActorField(enemy, "returnedToPool"), Is.False);
             StepHitStop(game, .02f); Assert.That((bool)ActorField(enemy, "returnedToPool"), Is.True);
             Assert.That(visual.Rig.partRenderers.All(r => !r.enabled), Is.True);
             Assert.That(visual.Rig.hitBlood.GetComponent<ParticleSystem>().particleCount, Is.Zero);
@@ -113,14 +145,14 @@ namespace DoodleIdle.Tests
             Assert.That(visual.HitStopped, Is.True);
             Assert.That(visual.TryAttack(null), Is.False);
             Assert.That(visual.Rig.hitBlood.GetComponent<ParticleSystem>().particleCount, Is.GreaterThan(0));
-            StepHitStop(game, .49f); Assert.That(visual.HitStopped, Is.True);
+            StepHitStop(game, .24f); Assert.That(visual.HitStopped, Is.True);
             StepHitStop(game, .02f); Assert.That(visual.HitStopped, Is.False);
             typeof(DoodleIdleGame).GetField("contactInvulnerability", GrowthPrivate).SetValue(game, 0f);
             SetActorField(player, "hp", (GameNumber)1);
             hit.Invoke(game, new[] { enemy });
             Assert.That(game.PlayerHealth, Is.Zero);
             Assert.That(PlayerBody().position.x, Is.EqualTo(3).Within(.001));
-            StepHitStop(game, .49f); Assert.That(game.PlayerHealth, Is.Zero);
+            StepHitStop(game, .24f); Assert.That(game.PlayerHealth, Is.Zero);
             StepHitStop(game, .02f);
             Assert.That(game.PlayerHealth, Is.EqualTo(game.PlayerMaxHealth));
             Assert.That(PlayerBody().position, Is.EqualTo(Vector2.zero));
@@ -144,10 +176,10 @@ namespace DoodleIdle.Tests
                 SetActorField(victim, "hp", (GameNumber)1e20);
                 typeof(DoodleIdleGame).GetMethod("Damage", GrowthPrivate).Invoke(left, new object[] { victim, 1f, Vector2.right });
                 Assert.That(visual.HitStopped, Is.True);
-                StepHitStop(left, .3f); StepHitStop(right, .3f);
+                StepHitStop(left, .15f); StepHitStop(right, .15f);
                 Assert.That(visual.HitStopped, Is.True, "Attacker must not tick the same actor twice.");
-                Assert.That((float)ActorField(victim, "hitStop"), Is.EqualTo(.2f).Within(.001));
-                StepHitStop(right, .21f); Assert.That(visual.HitStopped, Is.False);
+                Assert.That((float)ActorField(victim, "hitStop"), Is.EqualTo(.1f).Within(.001));
+                StepHitStop(right, .11f); Assert.That(visual.HitStopped, Is.False);
             } finally { Object.Destroy(left.gameObject); Object.Destroy(right.gameObject); }
             yield return null;
         }
