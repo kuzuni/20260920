@@ -124,3 +124,10 @@ The balance window also exposes **플레이어 자동 이동 / 적과 유지할 
 Automatic movement approaches distant enemies and retreats from nearby bodies. The complete movement step, including a dash, stops outside the configured clearance. A stopped automatic dash retains a fixed short melee strike reach (collision radii plus 0.75), independent of the configured distance; this prevents distance tuning from turning dashes into unlimited-range damage. Field boundaries constrain movement. Crowding or fast enemy charges can still cause contact; this is movement steering rather than immunity.
 
 Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It covers live distance changes, serialized tuning copies, normal/boss clearance, full dash sweep limits, backing away from a moving enemy without contact damage, zero/manual bypass, mouse/touch controls, existing contact immunity, 160 seconds of automatic combat, paused stage transitions, unlock preservation and pending reward context. The hosted stage-debug desert screenshot was inspected. No local Unity execution was performed.
+# 플레이어 주변 스폰 금지 범위 (2026-10-01)
+
+- `Assets/DoodleIdle/Resources/DoodleIdle/PlayerSpawnExclusion.prefab`의 **Circle Collider 2D → Radius**를 조절합니다. 기본 반경은 `4.5` 월드 단위입니다. `Offset`으로 중심도 옮길 수 있습니다.
+- 실행 시 플레이어 루트의 `PlayerSpawnExclusion` 자식으로 붙습니다. 외형 리깅/스킨 크기 변경과 독립적으로 플레이어를 따라갑니다.
+- 물리 충돌에 참여하지 않는 범위 판정용 콜라이더라 **Enabled는 꺼져 있는 것이 정상**입니다. 기존 몸통 콜라이더와 공격 판정은 유지됩니다.
+- 일반 적, 보충 생성, 던전 적, 보스 모두 적의 몸통 반경까지 더해서 범위 밖에 생성합니다. 위치 탐색에 실패해도 금지 영역 안에는 강제 생성하지 않습니다. 전체 전장을 덮는 크기라면 공간이 생길 때까지 생성을 미룹니다.
+- `eye_hurt_left/right.png`는 감은 눈 선을 뜬 눈 윤곽과 유사하게 얇게 수정했습니다. 기존 캔버스(128×160), 스프라이트 참조, 얼굴 앵커 및 애니메이션은 유지합니다. 기본 이미지 편집 도구에 “기존 질끈 감은 눈의 꺾인 모양을 유지하고 뜬 눈 테두리 정도로 선만 얇게, 검정 선과 투명 배경”을 요청한 뒤 기존 캔버스에 맞췄으며, 좌우 굵기를 맞추기 위해 한쪽 결과를 대칭 배치했습니다.

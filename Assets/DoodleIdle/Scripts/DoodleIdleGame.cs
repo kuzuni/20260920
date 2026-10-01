@@ -318,6 +318,7 @@ namespace DoodleIdle
             actor.rigVisual = art.gameObject.AddComponent<DoodleRigVisual>();
             actor.rigVisual.GroundShadow = shadow;
             ConfigureActorRig(actor);
+            if (isPlayer) CreatePlayerSpawnExclusion(root.transform);
             if (!isPlayer)
             {
                 actor.hp = actor.maxHp = waveHealth ?? (Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth);
@@ -334,6 +335,7 @@ namespace DoodleIdle
         void Refill()
         {
             if(IsPvpEngine)return;
+            if(Time.time < spawnBlockedUntil)return;
             using var sample=refillMarker.Auto();
             ApplyStageTheme();
             if (Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainBossPending)
@@ -341,7 +343,13 @@ namespace DoodleIdle
                 // A breakthrough wave must actually be empty before its boss appears.
                 if (enemies.Count > 0) return;
                 bananaHitTimes.Clear(); dashVictims.Clear();
-                var boss = CreateActor(false, new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3)), 2);
+                var bossPosition = new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3));
+                SnapshotSpawnPositions();
+                if (InsidePlayerSpawnExclusion(bossPosition, .56f * 3) &&
+                    !TryFindEnemySpawn(arenaHalfSize - Vector2.one * 3, .56f * 3, out bossPosition)) {
+                    spawnBlockedUntil = Time.time + .5f; return;
+                }
+                var boss = CreateActor(false, bossPosition, 2);
                 boss.isBoss = true; boss.hp = boss.maxHp = boss.maxHp * 20;
                 boss.root.name = "Stage boss";
                 boss.root.transform.localScale = Vector3.one * 3;
@@ -358,23 +366,15 @@ namespace DoodleIdle
             int needed = Mathf.Max(0, population - enemies.Count);
             if (needed == 0) return;
             var waveHealth = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
-            var playerPosition = player.Position;
+            var spawnHalfSize = arenaHalfSize - Vector2.one;
             SnapshotSpawnPositions();
             for (int n = 0; n < needed; n++)
             {
-                Vector2 p = Vector2.zero;
-                bool found = false;
-                using(spawnSearchMarker.Auto()) {
-                for (int attempt = 0; attempt < 600; attempt++)
-                {
-                    p = new Vector2(UnityEngine.Random.Range(-arenaHalfSize.x + 1, arenaHalfSize.x - 1), UnityEngine.Random.Range(-arenaHalfSize.y + 1, arenaHalfSize.y - 1));
-                    if ((p - playerPosition).sqrMagnitude < 10) continue;
-                    found = !SpawnPositionOccupied(p);
-                    if (found) break;
+                if (!TryFindEnemySpawn(spawnHalfSize, .56f, out var p)) {
+                    // Retry pending wave members after the player/volume moves; never
+                    // force an enemy into the exclusion volume to complete the count.
+                    spawnBlockedUntil = Time.time + .5f; break;
                 }
-                }
-                // The wide arena normally finds a free position. Still create every
-                // member of the wave so its kill objective cannot get stranded.
                 var enemy = CreateActorWithHealth(false, p, UnityEngine.Random.Range(0, 3), waveHealth);
                 enemies.Add(enemy);
                 AddSpawnPosition(enemy.Position);
