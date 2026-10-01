@@ -7,6 +7,8 @@ namespace DoodleIdle
     {
         ParticleSystem dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles, purpleFireParticles,blueFireParticles;
         ParticleSystem meteorTrailParticles, meteorExplosionParticles, divinePalmExplosionParticles, golemSlamParticles;
+        DoodleGoldCoinBurst goldBurst;
+        ParticleSystem hitSlashParticles;
         readonly List<Material> particleMaterials = new List<Material>();
         ParticleSystem[] particleSystems;
         uint particleSeed = 1;
@@ -16,7 +18,15 @@ namespace DoodleIdle
         {
             dustParticles = MakeParticles("Dust Particle System", summonArt["SandPuff"], 600, 2048, false);
             explosionParticles = MakeParticles("Cannon Explosion Particle System", summonArt["Explosion"], 610, 256, false);
-            goldParticles = MakeParticles("Gold Coin Particle System", summonArt["GoldCoin"], 620, 2048, true);
+            goldParticles = Instantiate(Resources.Load<ParticleSystem>("DoodleIdle/GoldCoinBurst"), world, false);
+            goldParticles.name = "Gold Coin Particle System";
+            goldBurst = goldParticles.GetComponent<DoodleGoldCoinBurst>();
+            goldParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            // Each kill requests the authored burst; fixed-step simulation must not auto-emit it again.
+            var goldEmission = goldParticles.emission; goldEmission.enabled = false;
+            hitSlashParticles = Instantiate(Resources.Load<ParticleSystem>("DoodleIdle/HitSlash"), world, false);
+            hitSlashParticles.name = "Hit Slash Particle System";
+            hitSlashParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             sandParticles = MakeParticles("Sand Spray Particle System", summonArt["SandPuff"], 510, 1024, false);
             groundFireParticles = MakeParticles("Molotov Ground Fire Particle System", summonArt["GroundFlame"], 530, 2048, false);
             var fireSpin = groundFireParticles.rotationOverLifetime; fireSpin.enabled = false;
@@ -31,6 +41,7 @@ namespace DoodleIdle
             SetFlamePalette(divinePalmExplosionParticles, new Color(.4f, .78f, 1));
             golemSlamParticles = MakeParticles("Golem Ground Slam Dust Particle System", summonArt["SandPuff"], 515, 512, false);
             var all = new List<ParticleSystem> { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,divinePalmExplosionParticles,golemSlamParticles };
+            all.Add(hitSlashParticles);
             BuildCompanionImpactParticles(all);
             particleSystems = all.ToArray();
         }
@@ -101,7 +112,6 @@ namespace DoodleIdle
             for (int i = 0; i < count; i++)
             {
                 Vector2 velocity = Direction(ParticleRandom(0, Mathf.PI * 2)) * ParticleRandom(speed * .35f, speed);
-                if (system == goldParticles) velocity += Vector2.up * 3.4f;
                 var particle = new ParticleSystem.EmitParams
                 {
                     position = position, velocity = velocity, startColor = color,
@@ -138,8 +148,30 @@ namespace DoodleIdle
         }
         void EmitGold(Vector2 position)
         {
-            EmitBurst(goldParticles, position, Color.white, 9, .22f, .4f, 6.8f, .4f, .625f);
-            GoldCoinsEmitted += 9;
+            var emission = goldParticles.emission;
+            if (emission.burstCount == 0) return;
+            int count = Mathf.Max(0, Mathf.RoundToInt(emission.GetBurst(0).count.Evaluate(0, ParticleRandom(0, 1))));
+            var speed = goldParticles.main.startSpeed;
+            for (int i = 0; i < count; i++) {
+                // Only the kill origin and 2D launch direction are supplied by gameplay.
+                // Size/colour/rotation stay prefab-authored; the landing component ends each arc.
+                var velocity = Direction(Mathf.PI * .5f + ParticleRandom(-goldBurst.launchSpread, goldBurst.launchSpread) * Mathf.Deg2Rad)
+                    * speed.Evaluate(0, ParticleRandom(0, 1));
+                uint seed = ++particleSeed;
+                goldParticles.Emit(new ParticleSystem.EmitParams {
+                    position = position, velocity = velocity, randomSeed = seed,
+                    applyShapeToPosition = false
+                }, 1);
+                goldBurst.Track(seed, position.y);
+            }
+            GoldCoinsEmitted += count;
+        }
+        void EmitHitSlash(Vector2 position)
+        {
+            if (!hitSlashParticles) return;
+            hitSlashParticles.Emit(new ParticleSystem.EmitParams {
+                position = position, randomSeed = ++particleSeed, applyShapeToPosition = false
+            }, 1);
         }
         void EmitSand(Vector2 position, Vector2 direction)
         {
@@ -158,10 +190,12 @@ namespace DoodleIdle
         {
             // Manual fixed-step simulation obeys the game's pause flag and keeps coin origins in world space.
             foreach (var system in particleSystems) system.Simulate(dt, false, false, false);
+            if (goldBurst) goldBurst.AfterSimulate(dt);
         }
         void ClearParticles()
         {
             if (particleSystems != null) foreach (var system in particleSystems) system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+            if (goldBurst) goldBurst.Clear();
             GoldCoinsEmitted = 0; particleSeed = 1;
         }
         void DisposeParticleMaterials()

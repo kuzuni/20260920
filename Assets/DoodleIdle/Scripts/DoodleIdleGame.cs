@@ -684,6 +684,7 @@ namespace DoodleIdle
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
             enemy.rigVisual.ReactToDamage();
+            EmitHitSlash(enemy.Position);
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
             enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
@@ -693,7 +694,8 @@ namespace DoodleIdle
             Kills++;
             if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);
             LeaveStain(enemy.Position);
-            if(!Ui || Ui.ActiveDungeonIndex<0)EmitGold(enemy.Position);
+            if(!Ui || Ui.ActiveDungeonIndex<0)EmitGold(enemy.rigVisual && enemy.rigVisual.Rig.groundContact
+                ? (Vector2)enemy.rigVisual.Rig.groundContact.position : enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
             // Disable the collider immediately; Destroy is deferred until the end of the frame.

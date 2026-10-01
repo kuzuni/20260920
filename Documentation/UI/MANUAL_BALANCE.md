@@ -145,3 +145,11 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 먼지는 플레이어의 `GroundContact/FootDust` Particle System이 공통 원본입니다. `Emission/Rate over Distance`만 방출을 결정하며 Rate over Time과 Burst는 0입니다. 기존 스크립트의 수동 Emit/spacing 방출은 제거했습니다. 정지·제자리 방향 전환·발 본 애니메이션에는 나오지 않으며, 순간이동과 풀 재사용은 궤적을 초기화합니다.
 
 플레이어 **프리팹을 저장**하면 Particle System/Renderer 설정(색상, 크기, 거리 방출량, 수명, 재질 등)이 다른 5개 캐릭터 리그 프리팹에도 자동 복사됩니다. 플레이 중에 프리팹을 저장하면 플레이 종료 후 동기화합니다. 각 캐릭터의 GroundContact 위치는 유지됩니다. 수동 실행 메뉴는 `Doodle Idle → Character Rigs → Sync Foot Dust From Player`입니다. 씬 인스턴스만 변경한 경우 먼저 플레이어 프리팹에 Apply해야 공통 원본이 바뀝니다.
+
+## 골드 착지 / 피격 슬래시 프리팹 (2026-10-02)
+
+- `Assets/DoodleIdle/Resources/DoodleIdle/GoldCoinBurst.prefab`: Particle System의 **Start Size**가 동전 크기입니다. 기본 Random Between Two Constants `0.22 ~ 0.4`이며, 두 값을 `0.44 ~ 0.8`로 바꾸면 두 배가 됩니다.
+- **Start Speed**를 올리면 더 높고 멀리 튑니다. `Doodle Gold Coin Burst`의 **Launch Spread**는 좌우 퍼짐, **Gravity**는 낙하 가속도, **Landed Lifetime**은 착지 후 사라지는 시간입니다. 동전 수는 **Emission → Bursts → Count**(첫 번째 Burst, 기본 9)입니다.
+- 골드는 죽은 캐릭터의 GroundContact에서 위로 튀고, 각 방출 지점의 높이에 착지한 뒤 멈춰서 사라집니다. 서로 다른 높이에서 동시에 죽어도 개별 바닥 높이를 유지합니다. 골드 보상 계산에는 영향을 주지 않습니다.
+- `Assets/DoodleIdle/Resources/DoodleIdle/HitSlash.prefab`: 플레이어/적의 실제 피격 처리에 사용하는 붉은 슬래시입니다. **Start Size X/Y**로 길이/폭, **Start Lifetime**으로 지속시간(기본 0.16초), **Start Rotation**으로 각도를 조절합니다. 무적으로 차단된 공격에는 추가 방출하지 않습니다. PVP도 동일한 피해 처리 경로를 사용합니다.
+- 프리팹을 저장한 후 다시 플레이하면 반영됩니다. 두 이펙트 모두 전투당 하나의 Particle System을 재사용하며, 타격마다 GameObject를 생성하지 않습니다. 게임 정지/재시작에 맞춰 시뮬레이션도 정지/초기화됩니다. 애니메이션 파일은 변경하지 않습니다.

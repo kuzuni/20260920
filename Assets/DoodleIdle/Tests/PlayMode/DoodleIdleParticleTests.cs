@@ -193,7 +193,7 @@ namespace DoodleIdle.Tests
             var gold = Particles("Gold Coin Particle System");
             Assert.That(gold.particleCount, Is.GreaterThan(0));
             var coins = new ParticleSystem.Particle[gold.particleCount]; gold.GetParticles(coins);
-            Assert.That(coins.All(p => p.startLifetime >= .4f && p.startLifetime <= .625f), Is.True);
+            Assert.That(coins.All(p => p.startLifetime > 0 && p.startLifetime <= gold.main.startLifetime.constantMax), Is.True);
             Assert.That(gold.main.simulationSpace, Is.EqualTo(ParticleSystemSimulationSpace.World));
             Assert.That(gold.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture, Is.SameAs(Resources.Load<Texture2D>("DoodleIdle/GoldCoin")));
             Object.Destroy(CaptureFrame("14-death-gold-coins.png", 1440, 900));
