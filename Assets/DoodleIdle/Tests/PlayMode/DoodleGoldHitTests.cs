@@ -9,11 +9,44 @@ namespace DoodleIdle.Tests
 {
     public partial class DoodleIdlePlayModeTests
     {
+        static void ConfigureGoldFixture(ParticleSystem gold)
+        {
+            var main = gold.main; main.simulationSpeed = 1; main.startLifetime = 3;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(4.5f, 6);
+            var effect = gold.GetComponent<DoodleGoldCoinBurst>();
+            effect.launchSpread = 40; effect.gravity = 18; effect.landedLifetime = .35f; effect.landingYOffset = Vector2.zero;
+        }
+        [UnityTest]
+        public IEnumerator GoldCoinsSortIndividuallyByYAndReuseTheirRenderers()
+        {
+            var bodies = DurableSkillTargets(); game.paused = true;
+            Place(PlayerBody(), Vector2.zero); Place(bodies[0], new Vector2(4, 0));
+            var gold = Particles("GoldCoinBurst"); var effect = gold.GetComponent<DoodleGoldCoinBurst>();
+            effect.PrepareSimulation();
+            var main = gold.main; main.startSize = 1; main.startSpeed = 0;
+            var emission = gold.emission; emission.SetBursts(new[] { new ParticleSystem.Burst(0, 1) });
+            int capacity = gold.GetComponentsInChildren<SpriteRenderer>().Length;
+            uint seed = 1;
+            effect.EmitBurst(new Vector2(-.4f, -.4f), ref seed);
+            effect.EmitBurst(new Vector2(.4f, .4f), ref seed);
+            var visible = gold.GetComponentsInChildren<SpriteRenderer>().Where(r => r.enabled).OrderBy(r => r.transform.position.y).ToArray();
+            Assert.That(visible.Length, Is.EqualTo(2));
+            Assert.That(visible[0].sortingOrder, Is.GreaterThan(100));
+            Assert.That(visible[1].sortingOrder, Is.LessThan(100));
+            Assert.That(gold.GetComponent<ParticleSystemRenderer>().enabled, Is.False, "Do not draw all coins again in a single frontmost batch.");
+            Object.Destroy(CaptureFrame("gold-y-sorting.png", 900, 1200));
+            effect.PrepareSimulation();
+            Assert.That(gold.GetComponentsInChildren<SpriteRenderer>().All(r => !r.enabled), Is.True);
+            effect.EmitBurst(Vector2.zero, ref seed);
+            Assert.That(gold.GetComponentsInChildren<SpriteRenderer>().Length, Is.EqualTo(capacity));
+            yield return null;
+        }
         [UnityTest]
         public IEnumerator GoldLandingRangeAndPreviewUseIdenticalSimulation()
         {
             DurableSkillTargets(); game.paused = true;
             var gold = Particles("GoldCoinBurst");
+            ConfigureGoldFixture(gold);
             var effect = gold.GetComponent<DoodleGoldCoinBurst>(); effect.landingYOffset = new Vector2(-.6f, .2f);
             var preview = Object.Instantiate(effect); preview.PrepareSimulation();
             try {
@@ -46,6 +79,7 @@ namespace DoodleIdle.Tests
         {
             DurableSkillTargets(); game.paused = true;
             var gold = Particles("GoldCoinBurst");
+            ConfigureGoldFixture(gold);
             var emit = typeof(DoodleIdleGame).GetMethod("EmitGold", GrowthPrivate);
             var tick = typeof(DoodleIdleGame).GetMethod("TickParticles", GrowthPrivate);
             var main = gold.main; main.startSize = 1.25f;

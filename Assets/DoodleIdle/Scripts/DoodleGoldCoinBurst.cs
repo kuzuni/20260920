@@ -19,11 +19,17 @@ namespace DoodleIdle
         readonly List<uint> expired = new List<uint>(2048);
         ParticleSystem system;
         ParticleSystem.Particle[] buffer;
+        ParticleSystemRenderer particleRenderer;
+        Sprite coinSprite;
+        Transform rendererRoot;
+        readonly List<SpriteRenderer> coinRenderers = new List<SpriteRenderer>(64);
+        int visibleCoins;
         int tick;
         void Awake() { Initialize(); }
         void Initialize()
         {
             if (!system) system = GetComponent<ParticleSystem>();
+            if (!particleRenderer) particleRenderer = GetComponent<ParticleSystemRenderer>();
             if (buffer == null || buffer.Length < system.main.maxParticles) buffer = new ParticleSystem.Particle[system.main.maxParticles];
         }
         public void PrepareSimulation()
@@ -31,6 +37,23 @@ namespace DoodleIdle
             Initialize(); system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); Clear();
             system.Simulate(0, false, true, false);
             var emission = system.emission; emission.enabled = false;
+            // A particle renderer is one sorting unit, so it cannot interleave individual
+            // coins with characters. Keep the authored particle simulation and pool sprites.
+            particleRenderer.enabled = false;
+            if (!coinSprite) {
+                var inheritedPool = transform.Find("Gold Coin Render Pool");
+                if (inheritedPool) {
+                    inheritedPool.gameObject.SetActive(false);
+                    if (Application.isPlaying) Destroy(inheritedPool.gameObject); else DestroyImmediate(inheritedPool.gameObject);
+                }
+                rendererRoot = new GameObject("Gold Coin Render Pool").transform;
+                rendererRoot.SetParent(transform, false); rendererRoot.gameObject.hideFlags = HideFlags.DontSave;
+                var texture = (Texture2D)particleRenderer.sharedMaterial.mainTexture;
+                coinSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f,
+                    Mathf.Max(texture.width, texture.height), 0, SpriteMeshType.FullRect);
+                coinSprite.name = "Gold coin sorting quad";
+            }
+            EnsureRenderers(Mathf.Min(64, system.main.maxParticles));
         }
         static float RandomRange(ref uint seed, float min, float max)
         {
@@ -54,15 +77,53 @@ namespace DoodleIdle
                 system.Emit(new ParticleSystem.EmitParams { position = position, velocity = velocity, randomSeed = id, applyShapeToPosition = false }, 1);
                 landings[id] = new Landing { ground = position.y + offset };
             }
+            RefreshRenderers(system.GetParticles(buffer));
             return count;
         }
         public void Simulate(float dt)
         {
             Initialize(); system.Simulate(dt, false, false, false); AfterSimulate(dt);
         }
-        public void Clear() { landings.Clear(); }
+        public void Clear()
+        {
+            landings.Clear();
+            for (int i = 0; i < visibleCoins; i++) if (coinRenderers[i]) coinRenderers[i].enabled = false;
+            visibleCoins = 0;
+        }
+        void EnsureRenderers(int count)
+        {
+            while (coinRenderers.Count < count) {
+                var go = new GameObject("Y sorted gold coin"); go.transform.SetParent(rendererRoot, false);
+                go.hideFlags = HideFlags.DontSave;
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = coinSprite; renderer.sharedMaterial = particleRenderer.sharedMaterial;
+                renderer.sortingLayerID = particleRenderer.sortingLayerID; renderer.enabled = false;
+                coinRenderers.Add(renderer);
+            }
+        }
+        void RefreshRenderers(int count)
+        {
+            if (!coinSprite) return;
+            EnsureRenderers(count);
+            for (int i = 0; i < count; i++) {
+                var coin = buffer[i]; var renderer = coinRenderers[i];
+                renderer.transform.position = coin.position;
+                renderer.transform.rotation = Quaternion.Euler(0, 0, -coin.rotation);
+                var size = coin.GetCurrentSize3D(system); renderer.transform.localScale = new Vector3(size.x, size.y, 1);
+                renderer.color = coin.GetCurrentColor(system);
+                renderer.sortingOrder = 100 - Mathf.RoundToInt(coin.position.y * 10); // Same world-Y rule as characters.
+                renderer.enabled = true;
+            }
+            for (int i = count; i < visibleCoins; i++) coinRenderers[i].enabled = false;
+            visibleCoins = count;
+        }
+        void OnDestroy()
+        {
+            if (!coinSprite) return;
+            if (Application.isPlaying) Destroy(coinSprite); else DestroyImmediate(coinSprite);
+        }
         // The game owns simulation so pause/reset work exactly like the other pooled effects.
-        // Each coin remembers its own ground height; overlapping kills share one renderer.
+        // Each coin remembers its own ground height; overlapping kills share one particle simulation.
         public void AfterSimulate(float dt)
         {
             if (landings.Count == 0) return;
@@ -84,6 +145,7 @@ namespace DoodleIdle
                 buffer[i] = coin; landings[coin.randomSeed] = state;
             }
             system.SetParticles(buffer, count);
+            RefreshRenderers(count);
             expired.Clear();
             foreach (var pair in landings) if (pair.Value.seen != tick) expired.Add(pair.Key);
             foreach (uint seed in expired) landings.Remove(seed);

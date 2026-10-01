@@ -161,3 +161,7 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 - 기본 Particle System의 재생 버튼은 게임에서 적용하는 중력/착지 처리를 실행하지 않습니다. 컴포넌트의 **실제 동작 미리보기** 버튼 또는 `Doodle Idle → Effects → Gold Coin Preview`를 사용합니다. 별도 복제본에서 실제 게임과 동일한 `EmitBurst/Simulate`를 호출합니다. 원본 값을 바꾼 뒤 **다시 재생**을 누릅니다. 미리보기는 원본 및 씬을 변경하지 않습니다.
 - 피격 슬래시 이미지는 `HitSlashStraight.png`의 직선 형태로 교체했습니다. 스킬에서 쓰는 기존 곡선 슬래시 이미지는 그대로입니다. 이미지 생성은 내장 imagegen 도구를 사용했습니다.
 - 이미지 편집 프롬프트: “Use case: precise-object-edit. Edit target: attached curved red slash game sprite. Replace the crescent with ONE perfectly STRAIGHT horizontal sword-cut streak, tapered sharp ends at left and right, long thin pointed lozenge silhouette with a straight centerline. Keep the existing hand-drawn cartoon game's red/coral fill, pale pink-white inner highlight and dark ink outline. Completely remove curved/crescent/hook shapes and debris. No crossing strokes, no arcs, no sword, no characters, no background, no text. Center a single clean horizontal straight slash on a truly transparent canvas, length about 85% of canvas, thickness about 10%, generous clear alpha around it. This is a small 2D combat hit effect sprite. Output transparent PNG.”
+
+### 골드 Y 정렬 (2026-10-02)
+
+골드는 동전마다 현재 월드 Y를 캐릭터와 같은 `100 - Round(Y × 10)` 규칙으로 정렬합니다. 낮은 동전은 앞, 높은 동전은 뒤이며 착지 후에도 같습니다. Particle System 하나는 동전별로 캐릭터 사이에 끼워 그릴 수 없으므로, 파티클 방출/낙하/크기/색상은 유지하고 화면 표시는 재사용 SpriteRenderer로 처리합니다. 64개를 미리 준비하고 동시에 보이는 동전 수가 늘 때만 확장하며, 사라진 동전의 표시 오브젝트는 비활성화해 재사용합니다. 기본 ParticleSystemRenderer의 고정 Order로는 실제 동전 정렬을 바꾸지 않습니다.

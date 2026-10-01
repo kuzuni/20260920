@@ -36,7 +36,7 @@ public static class GoldCoinBurstSetup
             var spin = ps.rotationOverLifetime; spin.enabled = true;
             spin.z = new ParticleSystem.MinMaxCurve(-7, 7);
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = material; renderer.sortingOrder = 620; renderer.maxParticleSize = 1;
+            renderer.sharedMaterial = material; renderer.sortingOrder = 100; renderer.maxParticleSize = 1;
             renderer.renderMode = ParticleSystemRenderMode.Billboard; renderer.alignment = ParticleSystemRenderSpace.View;
             ps.useAutoRandomSeed = false; ps.randomSeed = 621;
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
