@@ -13,6 +13,45 @@ namespace DoodleIdle.Tests
         void StepHitStop(DoodleIdleGame owner, float dt) => typeof(DoodleIdleGame).GetMethod("TickHitReactions", GrowthPrivate).Invoke(owner, new object[] { dt });
 
         [UnityTest]
+        public IEnumerator WhiteHitTweenGrowsReturnsAndResetsOnRepeatAndPooling()
+        {
+            DurableSkillTargets(); game.paused = false;
+            var enemy = ((IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game))[0];
+            var player = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            Place((Rigidbody2D)ActorField(enemy, "body"), new Vector2(-2, 0));
+            var hit = typeof(DoodleIdleGame).GetMethod("ApplyHitStop", GrowthPrivate);
+            foreach (var actor in new[] { player, enemy }) {
+                var visual = (DoodleRigVisual)ActorField(actor, "rigVisual");
+                var art = (SpriteRenderer)ActorField(actor, "art"); art.flipX = true; visual.Sync();
+                var rig = visual.Rig; var originalScale = rig.transform.localScale;
+                rig.hitBlood.GetComponent<ParticleSystemRenderer>().enabled = false;
+                var originalMaterials = rig.partRenderers.Select(r => r.sharedMaterial).ToArray();
+                var body = (Rigidbody2D)ActorField(actor, "body"); var bodyScale = body.transform.localScale;
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                Assert.That(rig.transform.localScale.x, Is.EqualTo(originalScale.x * 1.18f).Within(.001));
+                Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001));
+                Assert.That(body.transform.localScale, Is.EqualTo(bodyScale));
+                Assert.That(rig.partRenderers.All(r => r.sharedMaterial.shader.name == "DoodleIdle/White Hit"), Is.True);
+                Assert.That(rig.partRenderers[0].sharedMaterial.GetFloat("_Flash"), Is.EqualTo(1));
+                Object.Destroy(CaptureFrame(actor == player ? "player-white-hit.png" : "enemy-white-hit.png", 900, 1200));
+                float size = rig.transform.localScale.y;
+                game.paused = true; yield return null; yield return null;
+                Assert.That(rig.transform.localScale.y, Is.EqualTo(size)); game.paused = false;
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001), "Repeated hits must not compound scale.");
+                StepHitStop(game, .42f);
+                Assert.That(Vector3.Distance(rig.transform.localScale, originalScale), Is.LessThan(.001));
+                Assert.That(rig.partRenderers.Select(r => r.sharedMaterial), Is.EqualTo(originalMaterials));
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .08f);
+                visual.ParkRig(); visual.RestoreRig();
+                Assert.That(Vector3.Distance(rig.transform.localScale, originalScale), Is.LessThan(.001));
+                Assert.That(rig.partRenderers.Select(r => r.sharedMaterial), Is.EqualTo(originalMaterials));
+                StepHitStop(game, .5f);
+            }
+            game.paused = true;
+        }
+
+        [UnityTest]
         public IEnumerator EnemyHitStopsForHalfSecondAndDeathReturnsToPoolAfterHold()
         {
             var bodies = DurableSkillTargets(); game.paused = false;
@@ -20,6 +59,11 @@ namespace DoodleIdle.Tests
             var enemy = enemies[0]; var visual = (DoodleRigVisual)ActorField(enemy, "rigVisual");
             var body = (Rigidbody2D)ActorField(enemy, "body");
             var damage = typeof(DoodleIdleGame).GetMethod("Damage", GrowthPrivate);
+            var configuredBlood = visual.Rig.hitBlood.GetComponent<ParticleSystem>();
+            var bloodEmission = configuredBlood.emission;
+            bloodEmission.SetBursts(new[] { new ParticleSystem.Burst(0, 7) });
+            var bloodShape = configuredBlood.shape;
+            bloodShape.angle = 22; bloodShape.rotation = new Vector3(0, -90, 0);
             Place(body, new Vector2(-2, 0)); ((SpriteRenderer)ActorField(enemy, "art")).flipX = false; visual.Sync();
             body.linearVelocity = Vector2.right * 3;
             damage.Invoke(game, new object[] { enemy, 1f, Vector2.right });

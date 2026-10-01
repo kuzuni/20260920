@@ -713,7 +713,7 @@ namespace DoodleIdle
         {
             AnimateActorFrames(actor, Time.deltaTime);
             actor.flash = Mathf.Max(0, actor.flash - Time.deltaTime);
-            actor.art.color = actor.flash > 0 ? new Color(1, .55f, .42f) : actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
+            actor.art.color = actor.isPlayer && Ui ? Ui.EquippedAppearanceTint : Color.white;
             if (!actor.isPlayer && actor.dashWindup > 0 && actor.flash <= 0) actor.art.color = new Color(1, .75f, .65f);
             if (actor.isPlayer) ApplyPlayerHitAppearance();
             actor.art.sortingOrder = Order(actor.Position);

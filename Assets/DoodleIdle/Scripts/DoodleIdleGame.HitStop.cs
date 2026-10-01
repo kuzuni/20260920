@@ -18,6 +18,7 @@ namespace DoodleIdle
             actor.body.constraints = RigidbodyConstraints2D.FreezeAll;
             actor.dashWindup = actor.enemyDashRemaining = 0;
             actor.rigVisual.HitStopped = true;
+            actor.rigVisual.BeginHitFeedback();
             actor.rigVisual.Rig.CancelAttack();
             actor.rigVisual.ShowHitFace();
             if (actor.rigVisual.Rig.hitBlood) actor.rigVisual.Rig.hitBlood.Burst();
@@ -28,11 +29,13 @@ namespace DoodleIdle
         {
             if (actor == null || actor.hitStop <= 0) return;
             actor.hitStop = Mathf.Max(0, actor.hitStop - dt);
+            actor.rigVisual.AdvanceHitFeedback(HitStopDuration - actor.hitStop);
             actor.body.linearVelocity = Vector2.zero;
             if (actor.hitStop > .0001f) return;
             actor.hitStop = 0;
             actor.body.constraints = actor.constraintsBeforeHit;
             actor.rigVisual.HitStopped = false;
+            actor.rigVisual.ResetHitFeedback();
             actor.rigVisual.Sync();
         }
 

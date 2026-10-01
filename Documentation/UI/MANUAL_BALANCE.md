@@ -175,3 +175,5 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 - 공통 원본: `Assets/DoodleIdle/Resources/DoodleIdle/HitBlood.prefab`. 6개 리깅 프리팹의 머리 본 아래 `Face/HitBlood`에 중첩 프리팹으로 들어 있습니다. 캐릭터별 위치는 해당 Transform으로 조절합니다.
 - **Player_Standard 프리팹의 Face/HitBlood에서 Particle System / Renderer 설정을 바꾸고 저장**하면 `CharacterHitBloodSync`가 그 설정을 공통 원본으로 반영합니다. 다른 캐릭터에도 같은 설정이 적용됩니다. 각 캐릭터의 위치는 유지합니다. 플레이 모드에서 바꾼 값은 저장되지 않습니다.
 - 수량: Emission의 첫 Burst Count. 크기/속도/색/수명/퍼짐/페이드: 기본 Particle System 모듈. 파티클은 피격 때만 방출하며 게임 일시정지와 적 풀 반환 시 함께 멈추거나 정리합니다.
+
+피격 시 붉은 틴트 대신 몸과 무기를 흰색으로 번쩍이며 원래 색으로 돌아옵니다. `DoodleRigVisual.HitFeedback.cs`의 DOTween은 시각적 배율을 0.08초 동안 1.18배로 키운 뒤 0.42초 동안 1배로 복구합니다. 게임의 경직 타이머로 진행하므로 일시정지/PVP에서도 동일하며, 반복 피격·사망·풀 반환 시 크기와 머티리얼을 복구합니다. 원본 포즈와 스킨 배율, 좌우 반전, 몸통 물리 콜라이더는 유지됩니다.

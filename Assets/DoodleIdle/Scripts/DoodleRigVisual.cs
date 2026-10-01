@@ -6,7 +6,7 @@ namespace DoodleIdle
 {
     // The invisible renderer retains the combat origin, tint and facing API. All visible
     // character parts come from the authored prefab and its SpriteSkin/Animator.
-    public sealed class DoodleRigVisual : MonoBehaviour
+    public sealed partial class DoodleRigVisual : MonoBehaviour
     {
         public CharacterRig Rig { get; private set; }
         public DoodleCharacterCatalog.Entry Entry { get; private set; }
@@ -28,6 +28,7 @@ namespace DoodleIdle
         public void ParkRig()
         {
             if(!Rig||parked)return;
+            ResetHitFeedback();
             Rig.CancelAttack();
             HitStopped=false;
             if(Rig.hitBlood)Rig.hitBlood.Clear();
@@ -70,6 +71,7 @@ namespace DoodleIdle
             if (Entry == entry && Rig) return;
             bool replace = !Rig || Rig.rigType != entry.appearance.rigType;
             if (replace) {
+                ResetHitFeedback();
                 if (Rig) { Rig.gameObject.SetActive(false); Destroy(Rig.gameObject); }
                 Rig = Instantiate(entry.prefab, transform, false);
                 if (Rig.face) Rig.face.View = owner ? owner.FaceView : null;
@@ -102,11 +104,11 @@ namespace DoodleIdle
             if (owner) Paused = owner.paused;
             if (proxy.enabled) proxy.enabled = false;
             float side = proxy.flipX ? -1 : 1;
-            var nextScale=new Vector3(side*scale,scale,scale);
+            var nextScale=new Vector3(side*scale,scale,scale) * hitScale;
             if(Rig.transform.localScale!=nextScale)Rig.transform.localScale=nextScale;
             // Portrait bounds include asymmetric hats/weapons. Their horizontal center
             // is not the authored rig pivot: mirroring it moves the whole character.
-            var nextPosition=new Vector3(0,-Entry.center.y*scale,0);
+            var nextPosition=new Vector3(0,-Entry.center.y*scale*hitScale,0);
             if(Rig.transform.localPosition!=nextPosition)Rig.transform.localPosition=nextPosition;
             // World depth moves the whole character; authored part ordering stays intact.
             int order=prefabSortingOrder+proxy.sortingOrder;
