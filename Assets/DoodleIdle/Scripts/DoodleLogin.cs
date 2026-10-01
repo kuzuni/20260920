@@ -10,13 +10,14 @@ namespace DoodleIdle
         DoodleBackendSession session;
         RectTransform panel;
         Text status;
-        Button login, guest;
+        Button login, guest, retry;
         Toggle agreement;
         void Start()
         {
             session = DoodleBackendSession.Get();
             session.Changed += Refresh;
             Build();
+            _ = session.StartAutoLogin();
         }
         static string L(string ko, string en) => DoodleLanguage.Text(ko, en);
         void Build()
@@ -35,6 +36,8 @@ namespace DoodleIdle
             UiKit.Text(panel, L("탕탕탕\n방치형 RPG", "Tang Tang Tang\nIdle RPG"), 56, TextAnchor.MiddleCenter, 155);
             var portrait = UiKit.Icon(panel, "Player", 200); UiKit.Height(portrait.transform, 200); portrait.preserveAspect = true;
             status = UiKit.Text(panel, "", 22, TextAnchor.MiddleCenter, 160);
+            retry = UiKit.Button(panel,L("자동 로그인 재시도","Retry automatic sign-in"),session.RetryAutoLogin,UiKit.Blue,58);
+            retry.name="Retry automatic login";
             var terms = UiKit.Row(panel, "Agreement", 72, 12);
             var toggle = UiKit.Box(terms, "Accept terms", Color.white, 46); toggle.sizeDelta = new Vector2(46,46);
             var width = toggle.GetComponent<LayoutElement>(); width.minWidth = width.preferredWidth = 46; width.flexibleWidth = 0;
@@ -78,6 +81,8 @@ namespace DoodleIdle
             login.interactable = agreement.isOn && !session.Busy;
             guest.interactable = agreement.isOn && !session.Busy;
             agreement.interactable = !session.Busy;
+            retry.gameObject.SetActive(session.CanRetryAutoLogin);
+            retry.interactable = !session.Busy;
         }
         void OnDestroy() { if (session) session.Changed -= Refresh; }
     }

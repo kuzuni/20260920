@@ -26,6 +26,32 @@ Domain reload is disabled in this project. BACKND's static `IsInitialized` can r
 
 The PVP live test no longer pre-initializes BACKND separately: it must pass through the production login initialization path as well.
 
+## Automatic token login (2026-10-01)
+
+`DoodleLogin.Start` now attempts `LoginWithTheBackendToken` once per session after
+SDK initialization. The SDK persists and refreshes its own tokens; the game does
+not store passwords or duplicate token values. Successful restoration uses the
+same account-scoped cloud-save loading path as manual login. Missing, invalid,
+or expired tokens leave manual login available. Connection failures expose an
+automatic-login retry button. Explicit logout/withdrawal suppresses startup
+login until a new manual sign-in succeeds.
+
+Guest logins now record an account hash for restoring the guest-link UI after
+token login. A guest created before this change needs one normal guest login
+to establish that metadata; stale guest credentials alone never classify another
+account as a guest. Google conversion clears that metadata.
+
+Live verification: temporary custom account created in one Play Mode run, then
+restored automatically in a separate run with the same identity and saved 12,345
+diamonds. Explicit logout suppression, invalid-token fallback, manual re-login,
+and QA withdrawal passed. The existing initialization/login-screen regression
+also passed. Reports: `artifacts/character-reports/token-login-tests.xml`,
+`token-login-audit.txt`, and `token-login-initialization-tests.xml`.
+Live tests require `Library/TokenLoginQA.optin`; run `PreparePersistedToken` and
+`ResumePersistedTokenAndCheckLogout` in separate runs. The temporary credential
+journal stays in ignored `Library` until successful cleanup. Android Google
+sign-in and a full device process restart were not exercised by these Editor tests.
+
 ## Chat
 
 BACKND Chat SDK 1.4.1, Base SDK 5.18.17. Chat opens only after authenticated login and a server nickname is available. `DoodleChatService` lives with the login session, calls SDK Update each frame, and disposes on logout, account deletion, authentication loss, tamper detection, and shutdown.
@@ -80,6 +106,13 @@ window; if it still fails, investigate permissions instead of repeatedly creatin
 The Google Play RSA public key was copied from this app's monetization setup into BACKND and confirmed present after reloading the console on 2026-09-29. The report bucket still awaits successful permission verification.
 Evidence: `artifacts/service-setup/play-receipt-service-account.png` and
 `artifacts/service-setup/backnd-jwt-propagation-pending.png`.
+Retried on 2026-10-01 using the same desktop JSON in project `20260920`.
+After re-uploading, applying `pubsite_prod_6737639609818241561` still returned
+“JWT 권한 설정이 올바르지 않습니다. 등록된 권한을 다시 확인해 주세요.”
+The elapsed propagation window did not resolve the error. Bucket permission
+validation and real purchase receipt validation remain unverified; do not report
+the existing-JWT indicator as successful end-to-end receipt validation.
+Evidence: `artifacts/service-setup/backnd-jwt-retry-20261001.png`.
 No BACKND paid refund plan is required by this implementation.
 
 The guide requires Google API/service-account setup, Play permissions, and JSON upload.

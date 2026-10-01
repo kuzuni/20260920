@@ -42,6 +42,8 @@ namespace DoodleIdle.Tests
         static async Task RunLoginInitialization()
         {
             Assert.That(DoodleBackendSession.Instance, Is.Null);
+            int signedOut=PlayerPrefs.GetInt("DoodleAuth.SignedOut",0);
+            PlayerPrefs.SetInt("DoodleAuth.SignedOut",1);
             bool sdkFlagBeforeLogin = Backend.IsInitialized;
             string id = "qa_init_" + Guid.NewGuid().ToString("N").Substring(0, 16);
             string password = Guid.NewGuid().ToString("N") + "aA1!";
@@ -76,6 +78,7 @@ namespace DoodleIdle.Tests
                     DateTime.UtcNow.ToString("O") + ": SDK static flag at entry=" + sdkFlagBeforeLogin +
                     "; invalid config rejected; login-screen signup, logout, login, withdrawal passed; no test pre-initialization.\n");
             } finally {
+                PlayerPrefs.SetInt("DoodleAuth.SignedOut",signedOut);PlayerPrefs.Save();
                 if (account != null) {
                     var login = await DoodleBackendSession.Request(cb => Backend.BMember.CustomLogin(id, password, cb));
                     if (login.IsSuccess() && Backend.UserInDate == account)

@@ -86,6 +86,7 @@ namespace DoodleIdle
                 if (Backend.UserInDate != originalAccount)
                     throw new InvalidOperationException("Account identity changed during linking.");
                 IsGuest = false;
+                RememberAuthenticatedAccount();
                 Backend.BMember.DeleteGuestInfo();
                 Message(DoodleLanguage.Text("Google 계정 연동 완료. 현재 진행 상황이 그대로 유지됩니다.",
                     "Google account linked. Your current progress has been kept."));

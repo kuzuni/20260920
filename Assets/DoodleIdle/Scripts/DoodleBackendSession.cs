@@ -225,6 +225,7 @@ namespace DoodleIdle
         {
             Ready = false;
             AccountId = Backend.UserInDate;
+            RememberAuthenticatedAccount();
             DoodlePrefs.UseAccount(AccountId);
             Message("저장된 진행 상황을 불러오는 중…");
             var result = await Request(cb => Backend.GameData.GetMyData(Config.profileTable, new Where(), 1, cb));
@@ -373,6 +374,7 @@ namespace DoodleIdle
                 if (saving != null && !saving.IsCompleted) await saving;
                 var result = delete ? await Request(cb => Backend.BMember.WithdrawAccount(0, cb)) : await Request(cb => Backend.BMember.Logout(cb));
                 if (!result.IsSuccess()) { Message("계정 처리를 완료하지 못했어요. 다시 시도해 주세요."); return false; }
+                StopAutoLoginAfterSignOut();
                 AuthDiagnostic(delete ? "backnd_withdraw_succeeded" : "backnd_logout_succeeded");
                 Ready = false;
                 pvpDatabase?.Dispose();pvpDatabase=null;pvpAccount=null;
