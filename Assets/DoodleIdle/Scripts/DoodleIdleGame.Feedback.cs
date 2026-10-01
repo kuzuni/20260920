@@ -8,9 +8,9 @@ namespace DoodleIdle
     {
         [Header("Overhead HP bar position")]
         [Tooltip("플레이어 머리 위 HP바 위치 (캐릭터 기준). 실행 중에도 조절 가능합니다.")]
-        public Vector2 playerHealthBarOffset = new Vector2(0, 1.56f);
+        public Vector2 playerHealthBarOffset = new Vector2(0, 1);
         [Tooltip("일반 적 머리 위 HP바 위치. 보스는 머리 위 HP바를 표시하지 않습니다.")]
-        public Vector2 enemyHealthBarOffset = new Vector2(0, 1.56f);
+        public Vector2 enemyHealthBarOffset = new Vector2(0, 1);
         const float EnemyMaxHealth = 68;
         const int MaxDamageNumbers = 128;
         Transform damageCanvas;
@@ -41,9 +41,10 @@ namespace DoodleIdle
         void AddHealthBar(Actor actor)
         {
             var frame = summonArt["HealthBarFrame"]; var fill = summonArt["HealthBarFill"];
-            actor.healthBack = Visual("Enemy HP background", frame, actor.Position + Vector2.up * 1.56f, new Vector2(.98f, .14f / frame.bounds.size.y), Order(actor.Position) + 3);
+            Vector2 offset = actor.isPlayer ? playerHealthBarOffset : enemyHealthBarOffset;
+            actor.healthBack = Visual("Enemy HP background", frame, actor.Position + offset, new Vector2(.98f, .14f / frame.bounds.size.y), Order(actor.Position) + 3);
             actor.healthBack.transform.SetParent(actor.root.transform, true);
-            actor.healthFill = Visual("Enemy HP fill", fill, actor.Position + Vector2.up * 1.56f, new Vector2(.9f, .08f / fill.bounds.size.y), Order(actor.Position) + 4);
+            actor.healthFill = Visual("Enemy HP fill", fill, actor.Position + offset, new Vector2(.9f, .08f / fill.bounds.size.y), Order(actor.Position) + 4);
             actor.healthFill.transform.SetParent(actor.root.transform, true);
             actor.healthState = null;
             RefreshHealthBar(actor);
