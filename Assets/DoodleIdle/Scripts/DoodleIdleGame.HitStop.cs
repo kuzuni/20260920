@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        public const float HitStopDuration = .25f;
+        public const float HitStopDuration = .1f;
         readonly List<Actor> dyingEnemies = new List<Actor>(64);
         bool playerDefeatPending;
 
