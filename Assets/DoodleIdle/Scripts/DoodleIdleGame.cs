@@ -60,6 +60,8 @@ namespace DoodleIdle
             public CircleCollider2D collider;
             public GameNumber hp, maxHp;
             public float flash, phase;
+            public float hitStop;
+            public RigidbodyConstraints2D constraintsBeforeHit;
             public bool returnedToPool;
             public Action attackImpact;
             public float walkClock;
@@ -251,6 +253,7 @@ namespace DoodleIdle
         public void ResetGame()
         {
             combatWaveResetRequested = false;
+            ClearHitReactions();
             ReleaseJoystick();
             ClearParticles();
             ClearDamageNumbers();
@@ -431,7 +434,11 @@ namespace DoodleIdle
         };
         void FixedUpdate()
         {
-            if (!Ready || paused || IsPvpEngine && (pvpTimedBattle && Elapsed>=DoodlePvpRules.TimeLimitSeconds || !Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) return;
+            if (!Ready || paused) return;
+            TickHitReactions(Time.fixedDeltaTime);
+            if (IsPvpEngine && (pvpTimedBattle && Elapsed>=DoodlePvpRules.TimeLimitSeconds || !Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) {
+                player.body.linearVelocity = Vector2.zero; return;
+            }
             try {
             if (Ui) Ui.BeginCombatSnapshot();
             if (combatWaveResetRequested)
@@ -443,6 +450,7 @@ namespace DoodleIdle
             }
             float dt = Time.fixedDeltaTime;
             Elapsed += dt;
+            if (!Alive(player)) { TickParticles(dt); TickDamageNumbers(dt); return; }
             if (!IsPvpEngine && TickBossChallenge(dt)) return;
             if (!IsPvpEngine && Ui && Ui.TickDungeonChallenge(dt)) return;
             var target = Closest(player.Position);
@@ -455,11 +463,12 @@ namespace DoodleIdle
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
             attackTimer -= dt; dashTimer -= dt; stoneTimer -= dt;
             Vector2 desiredMovement = JoystickActive ? joystickInput * moveSpeed : autoPlay ? AutomaticMoveVelocity(target, dt) : manualInput * moveSpeed;
+            if (player.hitStop > 0) { desiredMovement = Vector2.zero; dashRemaining = 0; }
             if ((!autoPlay || JoystickActive) && MovementZones) MovementZones.Retreating = false;
             bool mayApproachDash = !UsesMovementZones || !autoPlay || JoystickActive ||
                 (!MovementZones.Retreating && Vector2.Dot(desiredMovement, delta) > .001f);
             if (!mayApproachDash) dashRemaining = 0;
-            if (basicSkillsEnabled && BasicAttackEnabled && !JoystickActive && mayApproachDash && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
+            if (player.hitStop <= 0 && basicSkillsEnabled && BasicAttackEnabled && !JoystickActive && mayApproachDash && dashTimer <= 0 && dashRemaining <= 0) BeginDash();
             if (dashRemaining > 0)
             {
                 dashRemaining -= dt;
@@ -491,7 +500,7 @@ namespace DoodleIdle
             }
             if (combatWaveResetRequested) return;
             bool basicAttackInRange = UsesMovementZones ? EnemyInsideZone(target, MovementZones.stopAndAttack) : delta.sqrMagnitude < 24;
-            if (basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && basicAttackInRange)
+            if (player.hitStop <= 0 && basicSkillsEnabled && BasicAttackEnabled && attackTimer <= 0 && basicAttackInRange)
             {
                 if (BeginPlayerAttack(facing))
                     attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1);
@@ -558,7 +567,7 @@ namespace DoodleIdle
         {
             return player.rigVisual.TryAttack(() =>
             {
-                if (Ready && !paused && BasicAttackEnabled && basicSkillsEnabled && Alive(player))
+                if (Ready && !paused && player.hitStop <= 0 && BasicAttackEnabled && basicSkillsEnabled && Alive(player))
                     FireSlash(direction);
             });
         }
@@ -683,13 +692,12 @@ namespace DoodleIdle
             if (enemy.hp <= 0) return;
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
-            enemy.rigVisual.ReactToDamage();
+            ApplyHitStop(enemy);
             EmitHitSlash(enemy.Position);
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
-            enemy.body.AddForce(push * 2, ForceMode2D.Impulse);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
-            if(IsPvpEngine){enemy.hp=GameNumber.Max(0,enemy.hp);PvpDamageDealt?.Invoke(category,source??category,amount);return;}
+            if(IsPvpEngine){enemy.hp=GameNumber.Max(0,enemy.hp);if(enemy.hp<=0)enemy.collider.enabled=false;PvpDamageDealt?.Invoke(category,source??category,amount);return;}
             if (enemy.hp > 0) return;
             Kills++;
             if (Ui) Ui.RecordMainCombatKill(enemy.isBoss);
@@ -698,8 +706,7 @@ namespace DoodleIdle
                 ? (Vector2)enemy.rigVisual.Rig.groundContact.position : enemy.Position);
             Burst(enemy.Position, new Color(.96f, .9f, .7f), 7);
             enemies.Remove(enemy); bananaHitTimes.Remove(enemy);
-            // Disable the collider immediately; Destroy is deferred until the end of the frame.
-            ReleaseEnemy(enemy);
+            HoldEnemyDeath(enemy);
         }
 
         void Animate(Actor actor)

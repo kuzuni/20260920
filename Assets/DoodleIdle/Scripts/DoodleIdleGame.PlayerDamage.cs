@@ -29,6 +29,7 @@ namespace DoodleIdle
 
         void TickPlayerContactDamage(float dt)
         {
+            if (!Alive(player)) return;
             // Include inspector edits and newly spawned/scaled prefab triggers before querying.
             Physics2D.SyncTransforms();
             contactInvulnerability = Mathf.Max(0, contactInvulnerability - dt);
@@ -38,7 +39,7 @@ namespace DoodleIdle
             player.maxHp = maxHealth;
             foreach (var enemy in enemies)
             {
-                if (!Alive(enemy) || enemy.returnedToPool) continue;
+                if (!Alive(enemy) || enemy.returnedToPool || enemy.hitStop > 0) continue;
                 enemy.meleeCooldown = Mathf.Max(0, enemy.meleeCooldown - dt);
                 if (enemy.meleeCooldown > 0 || !EnemyInAttackRange(enemy)) continue;
                 // Even harmless tutorial enemies play their attack. Damage is resolved
@@ -61,23 +62,20 @@ namespace DoodleIdle
         void ResolveEnemyAttack(Actor enemy)
         {
             Physics2D.SyncTransforms();
-            if (!Ready || paused || !Alive(player) || !Alive(enemy) || enemy.returnedToPool
+            if (!Ready || paused || !Alive(player) || !Alive(enemy) || enemy.returnedToPool || enemy.hitStop > 0
                 || !enemy.root.activeInHierarchy || PlayerInvulnerable || !EnemyInAttackRange(enemy)) return;
             GameNumber damage = enemyContactDamage * (Ui ? Ui.EnemyDamageAmount(Ui.CombatDifficultyStage) / 64 : 1);
             if (damage <= 0) return;
             player.hp = GameNumber.Max(0, player.hp - damage);
             ShowDamageNumber(player.Position, damage, true);
             PlayerContactHits++;
-            player.rigVisual.ShowHitFace();
+            ApplyHitStop(player); dashRemaining = 0;
             EmitHitSlash(player.Position);
             contactInvulnerability = ContactInvulnerabilityDuration;
             if (player.hp <= 0)
             {
-                player.hp = player.maxHp;
-                player.body.position = Vector2.zero;
-                player.body.linearVelocity = Vector2.zero;
-                dashRemaining = 0;
-                if (Ui) Ui.HandlePlayerDefeat();
+                playerDefeatPending = true;
+                player.collider.enabled = false;
             }
             UpdatePlayerHealthBar();
         }

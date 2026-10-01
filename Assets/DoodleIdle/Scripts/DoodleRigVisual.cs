@@ -11,6 +11,7 @@ namespace DoodleIdle
         public CharacterRig Rig { get; private set; }
         public DoodleCharacterCatalog.Entry Entry { get; private set; }
         public bool Paused;
+        public bool HitStopped { get; set; }
         public SpriteRenderer GroundShadow;
         SpriteRenderer proxy;
         SortingGroup sorting;
@@ -28,6 +29,8 @@ namespace DoodleIdle
         {
             if(!Rig||parked)return;
             Rig.CancelAttack();
+            HitStopped=false;
+            if(Rig.hitBlood)Rig.hitBlood.Clear();
             if(Rig.attackRange)Rig.attackRange.enabled=false;
             if(Rig.face)Rig.face.SuspendForPool();
             if(Rig.footDust)Rig.footDust.enabled=false;
@@ -87,8 +90,8 @@ namespace DoodleIdle
             if (Rig.footDust) Rig.footDust.Bind(transform);
         }
         public void Moving(bool moving) { if (Rig) Rig.SetMoving(moving); }
-        public void Attack() { if (Rig && !Paused) Rig.Attack(); }
-        public bool TryAttack(System.Action impact) => Rig && !Paused && Rig.TryAttack(impact);
+        public void Attack() { if (Rig && !Paused && !HitStopped) Rig.Attack(); }
+        public bool TryAttack(System.Action impact) => Rig && !Paused && !HitStopped && Rig.TryAttack(impact);
         public void Hit() { if (Rig && !Paused) Rig.Hit(); }
         public void ReactToDamage() { if (Rig && !Paused) Rig.ReactToDamage(); }
         public void LookAt(Transform target) { if (Rig && Rig.face) Rig.face.target = target; }
@@ -108,7 +111,8 @@ namespace DoodleIdle
             // World depth moves the whole character; authored part ordering stays intact.
             int order=prefabSortingOrder+proxy.sortingOrder;
             if(sorting.sortingOrder!=order)sorting.sortingOrder=order;
-            float speed=Paused?0:1;if(Rig.animator.speed!=speed)Rig.animator.speed=speed;
+            float speed=Paused||HitStopped?0:1;if(Rig.animator.speed!=speed)Rig.animator.speed=speed;
+            if (Rig.hitBlood) Rig.hitBlood.Paused = Paused;
             if (Rig.footDust) Rig.footDust.Paused = Paused;
             if (Rig.face) Rig.face.Paused = Paused;
             var tint=proxy.color;

@@ -38,6 +38,7 @@ namespace DoodleIdle
             actor.root.transform.localScale = Vector3.one;
             actor.root.transform.SetPositionAndRotation(position, Quaternion.identity);
             actor.body.position = position; actor.body.rotation = 0;
+            actor.body.constraints = RigidbodyConstraints2D.FreezeRotation;
             actor.body.linearVelocity = Vector2.zero; actor.body.angularVelocity = 0; actor.body.mass = 1;
             actor.body.simulated = !paused; actor.collider.enabled = true;
             actor.art.transform.localPosition = Vector3.zero; actor.art.color = Color.white; actor.art.enabled = true;

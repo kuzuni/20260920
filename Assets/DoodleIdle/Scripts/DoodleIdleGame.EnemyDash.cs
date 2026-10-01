@@ -18,6 +18,7 @@ namespace DoodleIdle
         {
             bool bossDashUnlocked = enemyDashEnabled && Ui && Ui.ActiveDungeonIndex < 0 && Ui.MainStage + 1 >= EnemyDashStartStage;
             foreach (var enemy in enemies) {
+                if (enemy.hitStop > 0 || !Alive(enemy)) { enemy.body.linearVelocity = Vector2.zero; continue; }
                 bool canDash = bossDashUnlocked && enemy.isBoss;
                 Vector2 toPlayer = player.Position - enemy.Position;
                 if (!canDash) enemy.dashWindup = enemy.enemyDashRemaining = 0;

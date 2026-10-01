@@ -107,7 +107,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator LiveEnemiesCompleteAttacksWhileTakingRepeatedDamage()
+        public IEnumerator LiveEnemiesStopDuringRepeatedHitsThenResumeAttacks()
         {
             DoodlePrefs.UseAccount("live-enemy-attack-" + System.Guid.NewGuid());
             var original = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -154,19 +154,21 @@ namespace DoodleIdle.Tests
                     enemyBody.simulated = true;
                     enemyBody.position = playerBody.position + Vector2.right * 1.3f;
                     int before = game.PlayerContactHits;
-                    bool sawAttack = false;
-                    float until = Time.time + 3;
+                    float until = Time.time + .7f;
                     while (Time.time < until)
                     {
-                        // Exercise production FixedUpdate and frame-driven Animator,
-                        // including the frequent hits from equipped skills/companions.
+                        // Repeated incoming hits now deliberately renew the half-second stop.
                         damage.Invoke(game, new object[] { target, 1f, Vector2.zero });
                         yield return new WaitForSeconds(.05f);
-                        int layer = Mathf.Max(0, visual.Rig.animator.GetLayerIndex("Upper Body"));
-                        sawAttack |= visual.Rig.animator.GetCurrentAnimatorStateInfo(layer).IsName("Attack");
+                        Assert.That(visual.HitStopped, Is.True, rigType);
+                        Assert.That(visual.Rig.animator.speed, Is.Zero, rigType);
                     }
-                    Assert.That(sawAttack, Is.True, rigType + " must visibly enter Attack during actual combat");
-                    Assert.That(game.PlayerContactHits, Is.GreaterThan(before), rigType + " must reach its impact event despite repeated incoming hits");
+                    Assert.That(game.PlayerContactHits, Is.EqualTo(before), rigType + " must not attack while staggered");
+                    yield return new WaitForSeconds(.55f);
+                    Assert.That(visual.HitStopped, Is.False, rigType + " must recover after the final hit");
+                    until = Time.time + 2;
+                    while (Time.time < until && game.PlayerContactHits == before) yield return null;
+                    Assert.That(game.PlayerContactHits, Is.GreaterThan(before), rigType + " must resume attack impacts after recovering");
                 }
             }
             finally

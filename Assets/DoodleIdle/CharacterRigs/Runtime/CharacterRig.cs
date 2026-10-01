@@ -18,6 +18,7 @@ namespace DoodleIdle.CharacterRigs
         public Animator animator;
         public CharacterFace face;
         public CharacterFootDust footDust;
+        public CharacterHitBlood hitBlood;
         public CharacterMovementZones movementZones;
         [Tooltip("적 공격 범위. AttackRange 자식의 Trigger Collider2D 크기와 위치로 조절합니다.")]
         public Collider2D attackRange;

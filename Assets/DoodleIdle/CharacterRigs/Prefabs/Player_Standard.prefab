@@ -5629,6 +5629,7 @@ MonoBehaviour:
   animator: {fileID: 6094269664786249493}
   face: {fileID: 3464042711276590381}
   footDust: {fileID: 1389264223122641593}
+  hitBlood: {fileID: 912052241631341218}
   movementZones: {fileID: 3541838141580996206}
   attackRange: {fileID: 0}
 --- !u!95 &6094269664786249493
@@ -5964,6 +5965,7 @@ Transform:
   - {fileID: 7335120273679725039}
   - {fileID: 1864330673814971557}
   - {fileID: 4788331431216547439}
+  - {fileID: 8903016529103405856}
   m_Father: {fileID: 5514599372637003257}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3464042711276590381
@@ -7619,3 +7621,76 @@ MonoBehaviour:
     m_Extent: {x: 0, y: 0, z: 0}
   m_AlwaysUpdate: 1
   m_AutoRebind: 0
+--- !u!1001 &6232846226485215609
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 854710764446648820}
+    m_Modifications:
+    - target: {fileID: 3236775665254036008, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_Name
+      value: HitBlood
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.2699645
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.149849
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+--- !u!114 &912052241631341218 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6545918496126135259, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+  m_PrefabInstance: {fileID: 6232846226485215609}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8455efe2911264e419f07902a16490f3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterHitBlood
+--- !u!4 &8903016529103405856 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
+  m_PrefabInstance: {fileID: 6232846226485215609}
+  m_PrefabAsset: {fileID: 0}

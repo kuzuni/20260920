@@ -70,7 +70,7 @@ namespace DoodleIdle
                 if (ability == "Banana" || !AutomaticSkillEnabled(ability)) continue;
                 if (!equippedSkillClocks.TryGetValue(ability, out var clock)) clock = .5f;
                 clock -= dt;
-                if (clock <= .0001f)
+                if (clock <= .0001f && player.hitStop <= 0)
                 {
                     castingEquippedSkill = true;
                     try { ActivateSkill(ability); }
