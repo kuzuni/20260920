@@ -46,7 +46,8 @@ namespace DoodleIdle.Tests
                 editing = PrefabUtility.LoadPrefabContents(player);
                 var blood = editing.GetComponentInChildren<CharacterHitBlood>();
                 var ps = blood.GetComponent<ParticleSystem>(); var main = ps.main;
-                main.startSize = .73f; main.startSpeed = 4.2f;
+                main.startSize = .73f; main.startSpeed = 4.2f; blood.rearUpAngle = -67;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(blood);
                 var emission = ps.emission; emission.SetBursts(new[] { new ParticleSystem.Burst(0, 13) });
                 var renderer = ps.GetComponent<ParticleSystemRenderer>(); renderer.sortingOrder = 34;
                 PrefabUtility.RecordPrefabInstancePropertyModifications(ps);
@@ -60,6 +61,7 @@ namespace DoodleIdle.Tests
                 Assert.That(target.emission.GetBurst(0).count.constant, Is.EqualTo(13));
                 Assert.That(target.GetComponent<ParticleSystemRenderer>().sortingOrder, Is.EqualTo(34));
                 Assert.That(target.transform.localPosition, Is.EqualTo(Vector3.right));
+                Assert.That(target.GetComponent<CharacterHitBlood>().rearUpAngle, Is.EqualTo(-67));
             } finally {
                 if (editing) PrefabUtility.UnloadPrefabContents(editing);
                 AssetDatabase.DeleteAsset(folder);

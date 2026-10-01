@@ -6,6 +6,33 @@ namespace DoodleIdle
     {
         public CircleCollider2D PlayerSpawnExclusion { get; private set; }
         float spawnBlockedUntil;
+        [InspectorName("적 포위 소환 기본 반경"), Min(0)] public float surroundSpawnRadius = 6.5f;
+
+        bool TryFindSurroundSpawn(int index, int count, float rotation, float enemyRadius, out Vector2 position)
+        {
+            using var sample = spawnSearchMarker.Auto();
+            float radius = Mathf.Max(1.5f, surroundSpawnRadius);
+            if (PlayerSpawnExclusion) {
+                var zone = PlayerSpawnExclusion;
+                var scale = zone.transform.lossyScale;
+                float offset = (zone.transform.TransformPoint(zone.offset) - player.root.transform.position).magnitude;
+                radius = Mathf.Max(radius, offset + zone.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)) + enemyRadius + .2f);
+            }
+            int capacity = Mathf.Max(8, Mathf.FloorToInt(2 * Mathf.PI * radius / 1.4f));
+            int rings = Mathf.Max(1, Mathf.CeilToInt(count / (float)capacity));
+            Vector2 limit = arenaHalfSize - Vector2.one * Mathf.Max(1, enemyRadius + .1f);
+            float angle = rotation + index * (2 * Mathf.PI / Mathf.Max(1, count));
+            for (int attempt = 0; attempt < 96; attempt++) {
+                // Prefer this evenly spaced sector; near walls search other open arcs.
+                float candidateAngle = angle + (attempt < 24 ? (attempt / 4) * .055f : (attempt - 23) * 2.399963f);
+                float candidateRadius = radius + ((index + attempt) % rings) * 1.4f + (attempt / 32) * 1.4f;
+                var candidate = player.Position + new Vector2(Mathf.Cos(candidateAngle), Mathf.Sin(candidateAngle)) * candidateRadius;
+                if (Mathf.Abs(candidate.x) > limit.x || Mathf.Abs(candidate.y) > limit.y) continue;
+                if (InsidePlayerSpawnExclusion(candidate, enemyRadius) || SpawnPositionOccupied(candidate)) continue;
+                position = candidate; return true;
+            }
+            position = default; return false;
+        }
 
         void CreatePlayerSpawnExclusion(Transform playerRoot)
         {

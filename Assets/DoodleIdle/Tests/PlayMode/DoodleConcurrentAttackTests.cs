@@ -408,13 +408,16 @@ namespace DoodleIdle.Tests
                 Assert.That(shots.Count, Is.EqualTo(disabledCount), "Disabling basic attacks must cancel the pending slash");
 
                 game.enemyContactDamage = 0;
+                float healthBeforeZeroDamage = game.PlayerHealth;
                 target.GetComponentInParent<Rigidbody2D>().position = player.GetComponentInParent<Rigidbody2D>().position;
                 tick.Invoke(game, new object[] { 2f });
                 target.Rig.animator.Update(.1f);
                 Assert.That(target.Rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Attack")
                     || target.Rig.animator.GetNextAnimatorStateInfo(0).IsName("Attack"), Is.True, "Harmless enemies still animate");
                 for (int i = 0; i < 120; i++) target.Rig.animator.Update(.01f);
-                Assert.That(game.PlayerContactHits, Is.EqualTo(previousHits), "Harmless enemies do not fake damage");
+                Assert.That(game.PlayerContactHits, Is.EqualTo(previousHits + 1), "Zero-damage attacks still register a hit");
+                Assert.That(game.PlayerHealth, Is.EqualTo(healthBeforeZeroDamage));
+                Assert.That(player.Rig.face.IsHurt, Is.True, "Zero-damage attacks still show the hit face");
 
                 game.playerHealthBarOffset = new Vector2(.2f, 2.8f);
                 game.enemyHealthBarOffset = new Vector2(-.3f, 3.2f);

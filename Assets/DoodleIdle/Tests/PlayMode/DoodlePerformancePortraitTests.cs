@@ -65,7 +65,7 @@ namespace DoodleIdle.Tests
                 for(int n=survivors;n<game.targetPopulation;n++){
                     Vector2 p=Vector2.zero;
                     for(int attempt=0;attempt<600;attempt++){
-                        p=new Vector2(Random.Range(-game.arenaHalfSize.x+1,game.arenaHalfSize.x-1),Random.Range(-game.arenaHalfSize.y+1,game.arenaHalfSize.y-1));
+                        p=new Vector2(Random.Range((-game.arenaHalfSize.x+1)*.5f,(game.arenaHalfSize.x-1)*.5f),Random.Range((-game.arenaHalfSize.y+1)*.5f,(game.arenaHalfSize.y-1)*.5f));
                         if((p-playerPosition).sqrMagnitude<10)continue;
                         bool found=true;
                         foreach(var previous in expected)if((p-previous).sqrMagnitude<1.6f){found=false;break;}

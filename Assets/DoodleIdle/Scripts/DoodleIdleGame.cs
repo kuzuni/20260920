@@ -369,11 +369,11 @@ namespace DoodleIdle
             int needed = Mathf.Max(0, population - enemies.Count);
             if (needed == 0) return;
             var waveHealth = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
-            var spawnHalfSize = arenaHalfSize - Vector2.one;
+            float spawnRotation = UnityEngine.Random.Range(0f, 2 * Mathf.PI);
             SnapshotSpawnPositions();
             for (int n = 0; n < needed; n++)
             {
-                if (!TryFindEnemySpawn(spawnHalfSize, .56f, out var p)) {
+                if (!TryFindSurroundSpawn(n, needed, spawnRotation, .56f, out var p)) {
                     // Retry pending wave members after the player/volume moves; never
                     // force an enemy into the exclusion volume to complete the count.
                     spawnBlockedUntil = Time.time + .5f; break;
@@ -693,7 +693,7 @@ namespace DoodleIdle
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
             ApplyHitStop(enemy);
-            EmitHitSlash(enemy.Position);
+            EmitHitSlash(enemy.Position, Mathf.Max(Mathf.Abs(enemy.root.transform.localScale.x), Mathf.Abs(enemy.root.transform.localScale.y)));
             RefreshHealthBar(enemy);
             ShowDamageNumber(enemy.Position, amount);
             Burst(enemy.Position, new Color(1, .96f, .73f), 2);
@@ -909,6 +909,7 @@ namespace DoodleIdle
         {
             orbitGunRecoil?.Kill();
             KillCannonTweens();
+            KillDamageNumberTweens();
             DisposeParticleMaterials();
             if (spriteMaterial) Destroy(spriteMaterial);
             if (playerHitMaterial) Destroy(playerHitMaterial);

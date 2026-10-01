@@ -103,7 +103,7 @@ public sealed class CharacterHitBloodSync : AssetPostprocessor
     public static bool PromoteParticleOverrides(CharacterHitBlood blood, string sharedPath)
     {
         bool changed = false;
-        foreach (var component in new Component[] { blood.GetComponent<ParticleSystem>(), blood.GetComponent<ParticleSystemRenderer>() }) {
+        foreach (var component in new Component[] { blood.GetComponent<ParticleSystem>(), blood.GetComponent<ParticleSystemRenderer>(), blood }) {
             var source = PrefabUtility.GetCorrespondingObjectFromSource(component);
             var modifications = PrefabUtility.GetPropertyModifications(blood.gameObject);
             if (modifications == null || !System.Array.Exists(modifications, m => m.target == source)) continue;
@@ -119,8 +119,16 @@ public sealed class CharacterHitBloodEditor : Editor
 {
     public override void OnInspectorGUI()
     {
+        DrawDefaultInspector();
         EditorGUILayout.HelpBox("플레이어 프리팹의 HitBlood에서 Particle System 설정을 바꾸고 저장하면 공통 원본에 적용되어 모든 리깅 프리팹에 반영됩니다. 위치는 캐릭터별로 조절합니다. 플레이 중 수정은 저장되지 않습니다.", MessageType.Info);
+        if (GUILayout.Button("경직 / DOTween 공통 설정 열기")) OpenHitFeedbackSettings();
         if (GUILayout.Button("공통 피격 파티클 프리팹 열기"))
             AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<GameObject>(CharacterHitBloodSetup.PrefabPath));
+    }
+    [MenuItem("Doodle Idle/Effects/Hit Feedback Settings")]
+    public static void OpenHitFeedbackSettings()
+    {
+        Selection.activeObject = AssetDatabase.LoadAssetAtPath<DoodleIdle.DoodleHitFeedbackSettings>("Assets/DoodleIdle/Resources/DoodleIdle/HitFeedbackSettings.asset");
+        EditorGUIUtility.PingObject(Selection.activeObject);
     }
 }

@@ -189,10 +189,12 @@ namespace DoodleIdle.Tests
             Assert.That(game.arenaHalfSize, Is.EqualTo(new Vector2(17, 20)));
             var bodies = EnemyBodies();
             Assert.That(bodies.Length, Is.EqualTo(50));
-            Assert.That(bodies.Any(b => b.position.y > 12) && bodies.Any(b => b.position.y < -12), Is.True);
+            Assert.That(bodies.Any(b => b.position.y > 6) && bodies.Any(b => b.position.y < -6), Is.True);
             Assert.That(NamedArt("Enemy HP fill").Length, Is.EqualTo(50));
             foreach (var body in bodies)
             {
+                Assert.That(body.position.x, Is.InRange(-8f, 8f));
+                Assert.That(body.position.y, Is.InRange(-9.5f, 9.5f));
                 Assert.That(body.bodyType, Is.EqualTo(RigidbodyType2D.Dynamic));
                 Assert.That(body.gravityScale, Is.Zero);
                 Assert.That(body.GetComponent<CircleCollider2D>().isTrigger, Is.False);

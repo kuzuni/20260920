@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65a22c1d9ce24e13be842b32e4263624, type: 3}
+  m_Name: HitFeedbackSettings
+  m_EditorClassIdentifier: DoodleIdle.Runtime::DoodleIdle.DoodleHitFeedbackSettings
+  hitStopDuration: 0.1
+  scaleMultiplier: 1.18
+  growDuration: 0.016
+  returnDuration: 0.084
+  growEase: 6
+  returnEase: 9
+  whiteIntensity: 1
+  whiteHoldDuration: 0.02
+  whiteFadeDuration: 0.05

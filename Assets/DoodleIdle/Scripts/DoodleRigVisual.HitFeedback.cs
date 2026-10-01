@@ -11,12 +11,23 @@ namespace DoodleIdle
         Material[] hitOriginalMaterials;
         Material hitWeaponMaterial;
         bool whiteActive;
+        public float HitFeedbackDuration { get; private set; }
+        float whiteIntensity, whiteHold, whiteFade;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public void BeginHitFeedback()
         {
             if (!Rig) return;
             ResetHitFeedback();
+            var settings = DoodleHitFeedbackSettings.Shared;
+            HitFeedbackDuration = settings.Duration;
+            float grow = Mathf.Max(.001f, settings.growDuration), recover = Mathf.Max(.001f, settings.returnDuration);
+            float timeScale = Mathf.Min(1, HitFeedbackDuration / (grow + recover));
+            whiteIntensity = Mathf.Clamp01(settings.whiteIntensity);
+            whiteHold = Mathf.Max(0, settings.whiteHoldDuration);
+            whiteFade = Mathf.Max(.001f, settings.whiteFadeDuration);
+            float flashTimeScale = Mathf.Min(1, HitFeedbackDuration / (whiteHold + whiteFade));
+            whiteHold *= flashTimeScale; whiteFade *= flashTimeScale;
             if (!hitWhiteMaterial) hitWhiteMaterial = new Material(Resources.Load<Shader>("DoodleIdle/DoodleHitWhite")) {
                 name = "Character white hit", hideFlags = HideFlags.DontSave
             };
@@ -30,12 +41,12 @@ namespace DoodleIdle
                 hitWeaponMaterial = Rig.weaponRenderer.sharedMaterial;
                 Rig.weaponRenderer.sharedMaterial = hitWhiteMaterial;
             }
-            whiteActive = true; hitWhiteMaterial.SetFloat(FlashId, 1);
+            whiteActive = true; hitWhiteMaterial.SetFloat(FlashId, whiteIntensity);
             // Tween a visual multiplier instead of the actor root: colliders stay fixed,
             // while Sync preserves mirroring, costume scale and the actor's visual center.
             hitTween = DG.Tweening.DOTween.Sequence()
-                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, 1.18f, DoodleIdleGame.HitStopDuration * .16f).SetEase(Ease.OutQuad))
-                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, 1f, DoodleIdleGame.HitStopDuration * .84f).SetEase(Ease.OutCubic))
+                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, Mathf.Max(1, settings.scaleMultiplier), grow * timeScale).SetEase(settings.growEase))
+                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, 1f, recover * timeScale).SetEase(settings.returnEase))
                 .SetAutoKill(false).Pause();
             Sync();
         }
@@ -44,8 +55,8 @@ namespace DoodleIdle
         {
             if (hitTween == null) return;
             // The combat clock drives Goto, so pausing and PVP don't double-update it.
-            hitTween.Goto(Mathf.Clamp(elapsed, 0, DoodleIdleGame.HitStopDuration), false);
-            hitWhiteMaterial.SetFloat(FlashId, 1 - Mathf.Clamp01((elapsed / DoodleIdleGame.HitStopDuration - .2f) / .5f));
+            hitTween.Goto(Mathf.Clamp(elapsed, 0, HitFeedbackDuration), false);
+            hitWhiteMaterial.SetFloat(FlashId, whiteIntensity * (1 - Mathf.Clamp01((elapsed - whiteHold) / whiteFade)));
             Sync();
         }
 

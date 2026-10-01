@@ -5,7 +5,7 @@ namespace DoodleIdle
 {
     public sealed partial class DoodleIdleGame
     {
-        public const float HitStopDuration = .1f;
+        public static float HitStopDuration => DoodleHitFeedbackSettings.Shared.Duration;
         readonly List<Actor> dyingEnemies = new List<Actor>(64);
         bool playerDefeatPending;
 
@@ -29,7 +29,7 @@ namespace DoodleIdle
         {
             if (actor == null || actor.hitStop <= 0) return;
             actor.hitStop = Mathf.Max(0, actor.hitStop - dt);
-            actor.rigVisual.AdvanceHitFeedback(HitStopDuration - actor.hitStop);
+            actor.rigVisual.AdvanceHitFeedback(actor.rigVisual.HitFeedbackDuration - actor.hitStop);
             actor.body.linearVelocity = Vector2.zero;
             if (actor.hitStop > .0001f) return;
             actor.hitStop = 0;

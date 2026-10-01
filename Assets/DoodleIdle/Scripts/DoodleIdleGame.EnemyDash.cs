@@ -5,7 +5,7 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         [Header("Enemy movement")]
-        [Min(0)] public float enemyMoveSpeedMultiplier = 2;
+        [InspectorName("적 이동속도 / 플레이어 속도"), Min(0)] public float enemyMoveSpeedRatio = .9f;
         [Header("Enemy dash attack")]
         public bool enemyDashEnabled = true;
         [Min(0)] public float enemyDashSpeed = 8;
@@ -54,7 +54,8 @@ namespace DoodleIdle
                     continue;
                 }
                 Vector2 wander = new Vector2(Mathf.Sin(Elapsed * .5f + enemy.phase), Mathf.Cos(Elapsed * .43f + enemy.phase));
-                enemy.body.linearVelocity = (toPlayer.normalized * .6f + wander * .28f) * enemyMoveSpeedMultiplier;
+                var heading = toPlayer.normalized * .6f + wander * .28f;
+                enemy.body.linearVelocity = heading.normalized * (Mathf.Max(0, moveSpeed) * Mathf.Max(0, enemyMoveSpeedRatio));
             }
         }
 

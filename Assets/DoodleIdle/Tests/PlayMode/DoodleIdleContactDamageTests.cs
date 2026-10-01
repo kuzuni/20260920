@@ -10,13 +10,13 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
-        public IEnumerator PlayerAndEnemyNormalMovementUseDoubleSpeed()
+        public IEnumerator EnemyNormalMovementUsesNinetyPercentOfPlayerSpeed()
         {
             // Exercise the compatibility controller when the new A/B/C controller is disabled.
             PlayerBody().GetComponentInChildren<DoodleIdle.CharacterRigs.CharacterMovementZones>().enabled=false;
             game.TogglePause(); game.autoPlay=true; game.enemyDashEnabled=false;
             Assert.That(game.moveSpeed,Is.EqualTo(6.2f));
-            Assert.That(game.enemyMoveSpeedMultiplier,Is.EqualTo(2));
+            Assert.That(game.enemyMoveSpeedRatio,Is.EqualTo(.9f));
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
             var target=actors[0]; var body=(Rigidbody2D)target.GetType().GetField("body").GetValue(target);
             Place(PlayerBody(),Vector2.zero); Place(body,new Vector2(10,0));
@@ -31,7 +31,7 @@ namespace DoodleIdle.Tests
             // The scene has already simulated during setup; preserve its wander phase.
             Vector2 originalVelocity = Vector2.left * .6f + new Vector2(Mathf.Sin(game.Elapsed * .5f), Mathf.Cos(game.Elapsed * .43f)) * .28f;
             typeof(DoodleIdleGame).GetMethod("TickEnemyMovement",GrowthPrivate).Invoke(game,new object[]{.02f});
-            Assert.That(Vector2.Distance(body.linearVelocity,originalVelocity * 2),Is.LessThan(.0001f));
+            Assert.That(Vector2.Distance(body.linearVelocity,originalVelocity.normalized * (game.moveSpeed * .9f)),Is.LessThan(.0001f));
             yield return null;
         }
         // Contact now starts a wind-up. Existing damage/immunity fixtures must also
@@ -196,7 +196,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator EarlyEnemiesRampFromZeroTo100WithoutFakeHitsAtStageOne()
+        public IEnumerator EarlyEnemiesRampFromZeroTo100WithHitFeedbackAtStageOne()
         {
             var bodies = DurableSkillTargets(); game.TogglePause(); var ui = game.Ui;
             var damageTuning = ui.ReadBalanceTuning();
@@ -212,12 +212,24 @@ namespace DoodleIdle.Tests
             Place(bodies[0], Vector2.zero);
             float full = game.PlayerHealth;
             StepEnemyAttackEvents(0);
+            Assert.That(game.PlayerHealth, Is.EqualTo(full));
+            Assert.That(game.PlayerContactHits, Is.EqualTo(1));
+            Assert.That(game.PlayerInvulnerable, Is.True);
+            var damageText = game.GetComponentsInChildren<Text>().Single(x => x.name == "Player damage number" && x.gameObject.activeSelf);
+            Assert.That(damageText.text, Is.EqualTo("0"));
+            var player = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var art = (SpriteRenderer)player.GetType().GetField("art").GetValue(player);
+            art.color = Color.white;
+            typeof(DoodleIdleGame).GetMethod("ApplyPlayerHitAppearance", GrowthPrivate).Invoke(game, null);
+            Assert.That(art.color.a, Is.EqualTo(.6f).Within(.001));
+            var rig = ((DoodleRigVisual)player.GetType().GetField("rigVisual").GetValue(player)).Rig;
+            foreach (var part in rig.partRenderers) Assert.That(part.color.a, Is.EqualTo(.6f).Within(.001));
             bodies[0].transform.localScale = Vector3.one * 3;
             StepEnemyAttackEvents(1.1f);
             Assert.That(game.PlayerHealth, Is.EqualTo(full));
-            Assert.That(game.PlayerContactHits, Is.Zero);
-            Assert.That(game.PlayerInvulnerable, Is.False);
-            Assert.That(game.GetComponentsInChildren<Text>().Any(x => x.name == "Player damage number" && x.gameObject.activeSelf), Is.False);
+            Assert.That(game.PlayerContactHits, Is.EqualTo(2));
+            Assert.That(game.PlayerInvulnerable, Is.True);
+            Assert.That(game.GetComponentsInChildren<Text>().Where(x => x.name == "Player damage number" && x.gameObject.activeSelf).All(x => x.text == "0"), Is.True);
             Assert.That(ui.EnemyDamageMultiplier(0), Is.Zero);
             Assert.That(ui.EnemyDamageMultiplier(1), Is.Zero);
             float previous = 0;
@@ -276,7 +288,7 @@ namespace DoodleIdle.Tests
             Assert.That(NamedArt("Enemy dash afterimage").Any(t=>t.flipX),Is.True);
             Object.Destroy(CaptureFrame("boss-dash-facing-trails.png",1000,1000,false));
             yield return PhysicsTicks(44);
-            Assert.That(body.linearVelocity.magnitude,Is.LessThan(2));
+            Assert.That(body.linearVelocity.magnitude,Is.LessThanOrEqualTo(game.moveSpeed * .9f + .001f));
             yield return PhysicsTicks(55);
             Assert.That(game.EnemyDashCasts,Is.EqualTo(1));
             Assert.That(NamedArt("Enemy dash afterimage"),Is.Empty);
@@ -286,7 +298,7 @@ namespace DoodleIdle.Tests
             Assert.That(NamedArt("Enemy dash afterimage").Any(t=>!t.flipX),Is.True);
             ServiceSetSavedField(ServiceStateObject,"mainStage",98);
             yield return PhysicsTicks(1);
-            Assert.That(body.linearVelocity.magnitude,Is.LessThan(2),"Dropping below stage 100 cancels a boss dash.");
+            Assert.That(body.linearVelocity.magnitude,Is.LessThanOrEqualTo(game.moveSpeed * .9f + .001f),"Dropping below stage 100 cancels a boss dash.");
             ServiceSetSavedField(ServiceStateObject,"mainStage",1199);
             ServiceSetSavedField(ServiceStateObject,"activeDungeon",0);
             type.GetField("dashCooldown").SetValue(boss,0f);

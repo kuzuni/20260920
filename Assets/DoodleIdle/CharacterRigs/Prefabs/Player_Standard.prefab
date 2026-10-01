@@ -5679,7 +5679,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b23e3bd576d22e49b384ef039110403, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterMovementZones
   stopAndAttack: {fileID: 5285149184882397963}
   startRetreat: {fileID: 5511411191677639948}
@@ -5958,7 +5958,7 @@ Transform:
   m_GameObject: {fileID: 3660811983539147072}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 1.5999995, y: -0.57999986, z: 0}
+  m_LocalPosition: {x: 1.99, y: -0.47, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7635,11 +7635,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.2699645
+      value: -2.43
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.149849
+      value: 1.48
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalPosition.z
@@ -7647,19 +7647,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.8878853
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0.46006495
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -7671,7 +7671,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3310808466883002969, guid: 92d2a5447d4744a4992212102bfd4833, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: -54.783
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -7687,7 +7687,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8455efe2911264e419f07902a16490f3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: DoodleIdle.CharacterRigs::DoodleIdle.CharacterRigs.CharacterHitBlood
 --- !u!4 &8903016529103405856 stripped
 Transform:

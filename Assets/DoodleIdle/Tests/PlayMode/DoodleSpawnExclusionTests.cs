@@ -8,6 +8,33 @@ namespace DoodleIdle.Tests
     public partial class DoodleIdlePlayModeTests
     {
         [UnityTest]
+        public IEnumerator SurroundSpawnsCoverCircleAndStaySafeNearWalls()
+        {
+            game.paused = true;
+            var method = typeof(DoodleIdleGame).GetMethod("TryFindSurroundSpawn", GrowthPrivate);
+            var cells = (IDictionary)typeof(DoodleIdleGame).GetField("spawnCells", GrowthPrivate).GetValue(game);
+            var add = typeof(DoodleIdleGame).GetMethod("AddSpawnPosition", GrowthPrivate);
+            foreach (var center in new[] { Vector2.zero, new Vector2(3, -2), new Vector2(15, 18) }) {
+                Place(PlayerBody(), center); cells.Clear();
+                var positions = new System.Collections.Generic.List<Vector2>(); var sectors = new bool[12];
+                for (int i = 0; i < 50; i++) {
+                    var args = new object[] { i, 50, 0f, .56f, Vector2.zero };
+                    Assert.That((bool)method.Invoke(game, args), Is.True, "A wave must still fit near arena corners.");
+                    var position = (Vector2)args[4]; var delta = position - center;
+                    Assert.That(delta.magnitude, Is.GreaterThan(5.06f));
+                    Assert.That(Mathf.Abs(position.x), Is.LessThanOrEqualTo(game.arenaHalfSize.x - 1));
+                    Assert.That(Mathf.Abs(position.y), Is.LessThanOrEqualTo(game.arenaHalfSize.y - 1));
+                    foreach (var previous in positions) Assert.That((position - previous).sqrMagnitude, Is.GreaterThanOrEqualTo(1.6f));
+                    positions.Add(position); add.Invoke(game, new object[] { position });
+                    int sector = Mathf.FloorToInt(Mathf.Repeat(Mathf.Atan2(delta.y, delta.x), 2 * Mathf.PI) / (2 * Mathf.PI) * 12);
+                    sectors[sector] = true;
+                }
+                if (center == Vector2.zero) foreach (bool occupied in sectors) Assert.That(occupied, Is.True);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator SpawnExclusionFollowsPlayerAndProtectsCrowdedFallbacks()
         {
             game.TogglePause();

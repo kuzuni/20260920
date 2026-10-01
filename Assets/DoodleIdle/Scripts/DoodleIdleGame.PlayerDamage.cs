@@ -65,7 +65,8 @@ namespace DoodleIdle
             if (!Ready || paused || !Alive(player) || !Alive(enemy) || enemy.returnedToPool || enemy.hitStop > 0
                 || !enemy.root.activeInHierarchy || PlayerInvulnerable || !EnemyInAttackRange(enemy)) return;
             GameNumber damage = enemyContactDamage * (Ui ? Ui.EnemyDamageAmount(Ui.CombatDifficultyStage) / 64 : 1);
-            if (damage <= 0) return;
+            // Zero-damage attacks still show the damage number and hit feedback.
+            if (damage < 0) return;
             player.hp = GameNumber.Max(0, player.hp - damage);
             ShowDamageNumber(player.Position, damage, true);
             PlayerContactHits++;

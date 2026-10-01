@@ -5,6 +5,9 @@ namespace DoodleIdle.CharacterRigs
     [RequireComponent(typeof(ParticleSystem))]
     public sealed class CharacterHitBlood : MonoBehaviour
     {
+        [InspectorName("뒤통수 위 분사 각도"), Range(-89, 0)]
+        [Tooltip("플레이어 HitBlood의 Z 회전 기준. -54.783은 뒤통수 위 54.783도입니다. 좌우 시선에 따라 자동 반전됩니다.")]
+        public float rearUpAngle = -54.783f;
         public bool Paused { get; set; }
         ParticleSystem particles;
         void Awake()
@@ -24,7 +27,8 @@ namespace DoodleIdle.CharacterRigs
             // rotation (negative rig scale does not reliably mirror world emission).
             var shape = particles.shape;
             var authoredRotation = shape.rotation;
-            var direction = new Vector3(facingLeft ? 1 : -1, 1, 0).normalized;
+            float angle = -Mathf.Clamp(rearUpAngle, -89, 0) * Mathf.Deg2Rad;
+            var direction = new Vector3((facingLeft ? 1 : -1) * Mathf.Cos(angle), Mathf.Sin(angle), 0);
             var localDirection = transform.InverseTransformDirection(direction);
             shape.rotation = Quaternion.FromToRotation(Vector3.forward, localDirection).eulerAngles;
             particles.Emit(count);

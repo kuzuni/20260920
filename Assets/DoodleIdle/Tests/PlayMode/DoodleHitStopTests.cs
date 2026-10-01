@@ -52,6 +52,60 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
+        public IEnumerator BossHitSlashScalesWithActualBossSize()
+        {
+            DurableSkillTargets(); game.paused = false;
+            var enemy = ((IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game))[0];
+            var damage = typeof(DoodleIdleGame).GetMethod("Damage", GrowthPrivate);
+            var slash = Particles("Hit Slash Particle System");
+            var main = slash.main; main.startSize3D = false; main.startSize = 2;
+            var root = (GameObject)ActorField(enemy, "root");
+            var drops = new ParticleSystem.Particle[16];
+            foreach (float scale in new[] { 1f, 3f, 4.5f }) {
+                root.transform.localScale = Vector3.one * scale;
+                slash.Clear(); damage.Invoke(game, new object[] { enemy, 1f, Vector2.zero });
+                Assert.That(slash.GetParticles(drops), Is.EqualTo(1));
+                Assert.That(drops[0].startSize, Is.EqualTo(2 * scale).Within(.001));
+            }
+            game.paused = true; yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator SharedHitSettingsControlIntensityTimingsAndClampToHitStop()
+        {
+            DurableSkillTargets(); game.paused = false;
+            var settings = DoodleHitFeedbackSettings.Shared;
+            string original = JsonUtility.ToJson(settings);
+            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var visual = (DoodleRigVisual)ActorField(actor, "rigVisual"); visual.Sync();
+            float originalScale = visual.Rig.transform.localScale.y;
+            var hit = typeof(DoodleIdleGame).GetMethod("ApplyHitStop", GrowthPrivate);
+            try {
+                settings.hitStopDuration = .3f; settings.scaleMultiplier = 1.5f;
+                settings.growDuration = .06f; settings.returnDuration = .12f;
+                settings.whiteIntensity = .6f; settings.whiteHoldDuration = .03f; settings.whiteFadeDuration = .06f;
+                hit.Invoke(game, new[] { actor });
+                Assert.That((float)ActorField(actor, "hitStop"), Is.EqualTo(.3f));
+                Assert.That(visual.Rig.partRenderers[0].sharedMaterial.GetFloat("_Flash"), Is.EqualTo(.6f).Within(.001));
+                StepHitStop(game, .06f);
+                Assert.That(visual.Rig.transform.localScale.y, Is.EqualTo(originalScale * 1.5f).Within(.001));
+                Assert.That(visual.Rig.partRenderers[0].sharedMaterial.GetFloat("_Flash"), Is.EqualTo(.3f).Within(.001));
+                settings.hitStopDuration = .9f; // In-progress feedback keeps its captured clock.
+                StepHitStop(game, .12f);
+                Assert.That(visual.Rig.transform.localScale.y, Is.EqualTo(originalScale).Within(.001));
+                Assert.That(visual.HitStopped, Is.True);
+                StepHitStop(game, .12f); Assert.That(visual.HitStopped, Is.False);
+                settings.hitStopDuration = .1f; settings.growDuration = settings.returnDuration = 3;
+                hit.Invoke(game, new[] { actor }); StepHitStop(game, .05f);
+                Assert.That(visual.Rig.transform.localScale.y, Is.EqualTo(originalScale * 1.5f).Within(.001));
+                StepHitStop(game, .05f);
+                Assert.That(visual.HitStopped, Is.False);
+                Assert.That(visual.Rig.transform.localScale.y, Is.EqualTo(originalScale).Within(.001));
+            } finally { JsonUtility.FromJsonOverwrite(original, settings); game.paused = true; }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator BloodSpraysUpAndBehindBothFacingDirectionsAtCharacterScale()
         {
             DurableSkillTargets(); game.paused = true;
@@ -65,6 +119,7 @@ namespace DoodleIdle.Tests
                 var ps = blood.GetComponent<ParticleSystem>();
                 Assert.That(ps.main.scalingMode, Is.EqualTo(ParticleSystemScalingMode.Hierarchy));
                 var authoredRotation = ps.shape.rotation;
+                var shape = ps.shape; shape.angle = 0;
                 foreach (bool left in new[] { false, true }) {
                     art.flipX = left; visual.Sync(); blood.Clear(); blood.Burst(left);
                     var drops = new ParticleSystem.Particle[ps.main.maxParticles];
@@ -72,6 +127,7 @@ namespace DoodleIdle.Tests
                     foreach (var drop in drops.Take(count)) {
                         var velocity = ps.main.simulationSpace == ParticleSystemSimulationSpace.World
                             ? drop.velocity : ps.transform.TransformVector(drop.velocity);
+                        Assert.That(Mathf.Atan2(velocity.y, Mathf.Abs(velocity.x)) * Mathf.Rad2Deg, Is.EqualTo(-blood.rearUpAngle).Within(.05f));
                         Assert.That(velocity.y, Is.GreaterThan(0), "Blood must initially fly upward.");
                         Assert.That(velocity.x * (left ? 1 : -1), Is.GreaterThan(0), "Blood must fly behind the character.");
                     }

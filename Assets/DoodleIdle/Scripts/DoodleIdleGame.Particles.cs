@@ -148,12 +148,19 @@ namespace DoodleIdle
         {
             GoldCoinsEmitted += goldBurst.EmitBurst(position, ref particleSeed);
         }
-        void EmitHitSlash(Vector2 position)
+        void EmitHitSlash(Vector2 position, float targetScale = 1)
         {
             if (!hitSlashParticles) return;
-            hitSlashParticles.Emit(new ParticleSystem.EmitParams {
+            var particle = new ParticleSystem.EmitParams {
                 position = position, randomSeed = ++particleSeed, applyShapeToPosition = false
-            }, 1);
+            };
+            if (!Mathf.Approximately(targetScale, 1)) {
+                var main = hitSlashParticles.main;
+                float sample = ParticleRandom(0, 1);
+                if (main.startSize3D) particle.startSize3D = new Vector3(main.startSizeX.Evaluate(0, sample), main.startSizeY.Evaluate(0, sample), main.startSizeZ.Evaluate(0, sample)) * targetScale;
+                else particle.startSize = main.startSize.Evaluate(0, sample) * targetScale;
+            }
+            hitSlashParticles.Emit(particle, 1);
         }
         void EmitSand(Vector2 position, Vector2 direction)
         {

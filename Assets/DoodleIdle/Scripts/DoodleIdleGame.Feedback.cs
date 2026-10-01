@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
 
 namespace DoodleIdle
 {
@@ -13,12 +14,15 @@ namespace DoodleIdle
         public Vector2 enemyHealthBarOffset = new Vector2(0, 1);
         const float EnemyMaxHealth = 68;
         const int MaxDamageNumbers = 128;
+        const float DamageHoldDuration = .1f, DamageShrinkDuration = .1f;
         Transform damageCanvas;
         readonly List<DamageNumber> damageNumbers = new List<DamageNumber>();
         readonly Stack<DamageNumber> spareDamageNumbers = new Stack<DamageNumber>();
         sealed class DamageNumber {
             public Text text; public RectTransform rect; public CanvasRenderer renderer;
             public Vector2 origin; public float age, drift, alpha = 1;
+            public float shrinkProgress;
+            public Sequence popTween;
         }
         sealed class HealthBarState {
             public Transform back, fill;
@@ -89,7 +93,12 @@ namespace DoodleIdle
             text.alignment = TextAnchor.MiddleCenter; text.raycastTarget = false;
             text.rectTransform.sizeDelta = new Vector2(360, 180);
             var outline = go.GetComponent<Outline>(); outline.effectColor = new Color(.13f, .08f, .06f, .95f); outline.effectDistance = new Vector2(4, -4);
-            return new DamageNumber { text = text, rect = text.rectTransform, renderer = text.canvasRenderer };
+            var number = new DamageNumber { text = text, rect = text.rectTransform, renderer = text.canvasRenderer };
+            // Build once per pooled label, then rewind: dense hits allocate no new tweens.
+            number.popTween = DG.Tweening.DOTween.Sequence().AppendInterval(DamageHoldDuration)
+                .Append(DG.Tweening.DOTween.To(() => number.shrinkProgress, v => number.shrinkProgress = v, 1, DamageShrinkDuration).SetEase(Ease.OutQuad))
+                .SetAutoKill(false).Pause();
+            return number;
         }
         void ShowDamageNumber(Vector2 position, GameNumber amount, bool playerHit = false)
         {
@@ -108,7 +117,8 @@ namespace DoodleIdle
             number.text.name = playerHit ? "Player damage number" : "Enemy damage number";
             number.text.color = playerHit ? new Color(.62f, .62f, .62f) : new Color(1, .96f, .76f);
             number.rect.localPosition = number.origin * 100;
-            number.rect.localScale = Vector3.one;
+            number.popTween.Goto(0, false); number.shrinkProgress = 0;
+            number.rect.localScale = Vector3.one * 1.5f;
             number.alpha = 1; number.renderer.SetAlpha(1);
             if (!number.text.gameObject.activeSelf) number.text.gameObject.SetActive(true);
             damageNumbers.Add(number);
@@ -122,8 +132,11 @@ namespace DoodleIdle
                 {
                     number.text.gameObject.SetActive(false); spareDamageNumbers.Push(number); damageNumbers.RemoveAt(i); continue;
                 }
-                number.rect.localPosition = (number.origin + new Vector2(number.drift * number.age, number.age * 1.05f)) * 100;
-                var scale = Vector3.one * (1 + .15f * Mathf.Sin(Mathf.Clamp01(number.age / .2f) * Mathf.PI));
+                number.popTween.Goto(Mathf.Min(number.age, DamageHoldDuration + DamageShrinkDuration), false);
+                float travel = number.shrinkProgress * DamageShrinkDuration + Mathf.Max(0, number.age - DamageHoldDuration - DamageShrinkDuration);
+                var position = (Vector3)((number.origin + new Vector2(number.drift * travel, travel * 1.05f)) * 100);
+                if (!number.rect.localPosition.Equals(position)) number.rect.localPosition = position;
+                var scale = Vector3.one * Mathf.Lerp(1.5f, 1, number.shrinkProgress);
                 if (!number.rect.localScale.Equals(scale)) number.rect.localScale = scale;
                 float alpha = Mathf.Clamp01((.75f - number.age) / .25f);
                 // Fade the already generated glyphs and outline together. Text.color
@@ -135,6 +148,11 @@ namespace DoodleIdle
         {
             foreach (var number in damageNumbers) { number.text.gameObject.SetActive(false); spareDamageNumbers.Push(number); }
             damageNumbers.Clear();
+        }
+        void KillDamageNumberTweens()
+        {
+            foreach (var number in damageNumbers) number.popTween?.Kill();
+            foreach (var number in spareDamageNumbers) number.popTween?.Kill();
         }
     }
 }
