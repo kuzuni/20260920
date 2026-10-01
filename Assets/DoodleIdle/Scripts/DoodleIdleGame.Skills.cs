@@ -8,6 +8,8 @@ namespace DoodleIdle
     public sealed partial class DoodleIdleGame
     {
         public enum ExtraSkill { Arrows, BouncyBall, Fire, Drone, Worm }
+        // Scale travel only; cooldowns, hit intervals, lifetime and animation clocks remain in seconds.
+        public const float SkillMoveSpeedMultiplier = 2f;
         [Header("Extra automatic skills")]
         public bool extraSkillsEnabled = true;
         public float arrowInterval = 4.5f, ballInterval = 7f, fireInterval = 5.5f;
@@ -125,7 +127,7 @@ namespace DoodleIdle
         void UpdateExtraVisuals(float dt)
         {
             Vector2 desired = player.Position + new Vector2(-1.4f, 1.2f);
-            drone.position = Vector2.Lerp(drone.position, desired, 1 - Mathf.Exp(-dt * 12));
+            drone.position = Vector2.Lerp(drone.position, desired, 1 - Mathf.Exp(-dt * 12 * SkillMoveSpeedMultiplier));
             drone.rotation = Quaternion.identity;
             SetSpriteArt(drone.GetComponent<SpriteRenderer>(), (int)(Elapsed * 8) % 2 == 0 ? skillArt[3] : droneFrameB);
         }
@@ -201,7 +203,7 @@ namespace DoodleIdle
             int artIndex = kind == ProjectileKind.Missile ? 4 : (int)kind;
             float size = kind == ProjectileKind.Arrow ? 1.05f : kind == ProjectileKind.Ball ? .86f : kind == ProjectileKind.Fire ? 1.35f : .86f;
             var art = Visual(kind + " skill projectile", skillArt[artIndex], origin, Vector2.one * size, 510);
-            var shot=new ExtraShot { kind = kind, target = target, start = origin, end = target.Position, art = art, duration = .7f + index % 3 * .08f };
+            var shot=new ExtraShot { kind = kind, target = target, start = origin, end = target.Position, art = art, duration = (.7f + index % 3 * .08f) / SkillMoveSpeedMultiplier };
             if(kind==ProjectileKind.Fire) { shot.curveSide=index%2==0?1:-1;StartHomingCurve(shot,origin); }
             extraShots.Add(shot);
             ExtraSkill skill = ExtraSkill.BouncyBall;
@@ -218,7 +220,7 @@ namespace DoodleIdle
             shot.curveNormal=normal;
             shot.start=origin;
             shot.curveControl=origin+delta*.5f+normal*(Mathf.Clamp(delta.magnitude*.35f,.8f,2.8f)*shot.curveSide);
-            shot.curveAge=0;shot.curveDuration=Mathf.Max(shot.purple?.45f:.3f,delta.magnitude/(shot.purple?12:10));
+            shot.curveAge=0;shot.curveDuration=Mathf.Max(shot.purple?.45f:.3f,delta.magnitude/(shot.purple?12:10)) / SkillMoveSpeedMultiplier;
         }
 
         void TickExtraSkills(float dt)
@@ -256,8 +258,9 @@ namespace DoodleIdle
                 Vector2 next;
                 if (shot.purple)
                 {
-                    next = shot.start + shot.waveDirection * (12 * shot.age)
-                        + shot.curveNormal * (Mathf.Sin(shot.age * Mathf.PI * 8) * .2f * shot.curveSide);
+                    float travelAge = shot.age * SkillMoveSpeedMultiplier;
+                    next = shot.start + shot.waveDirection * (12 * travelAge)
+                        + shot.curveNormal * (Mathf.Sin(travelAge * Mathf.PI * 8) * .2f * shot.curveSide);
                     for (int e = enemies.Count - 1; e >= 0; e--) {
                         var enemy = enemies[e];
                         float contactRadius = .14f * shot.size + enemy.collider.radius * Mathf.Abs(enemy.root.transform.lossyScale.x);
@@ -284,9 +287,9 @@ namespace DoodleIdle
                 else
                 {
                     float speed = shot.kind == ProjectileKind.Ball ? 15 : shot.kind == ProjectileKind.Fire ? 10 : 18;
-                    next = Alive(shot.target) ? Vector2.MoveTowards(old, shot.end, speed * dt) : old;
+                    next = Alive(shot.target) ? Vector2.MoveTowards(old, shot.end, speed * dt * SkillMoveSpeedMultiplier) : old;
                     bool rebounding = shot.kind == ProjectileKind.Ball && shot.reboundTime > 0;
-                    if (rebounding) { next = old + shot.reboundDirection * (10 * dt); shot.reboundTime -= dt; }
+                    if (rebounding) { next = old + shot.reboundDirection * (10 * dt * SkillMoveSpeedMultiplier); shot.reboundTime -= dt; }
                     if(shot.kind==ProjectileKind.Fire && Alive(shot.target)) {
                         shot.curveAge+=dt;
                         float t=Mathf.Clamp01(shot.curveAge/shot.curveDuration),u=1-t;
@@ -320,7 +323,7 @@ namespace DoodleIdle
                                 shot.target = collision;
                                 shot.reboundDirection = (old - collision.Position).normalized;
                                 if (shot.reboundDirection.sqrMagnitude < .01f) shot.reboundDirection = Vector2.left;
-                                shot.reboundTime = .18f;
+                                shot.reboundTime = .18f / SkillMoveSpeedMultiplier;
                             }
                             if (shot.hits == 7) { LastCompletedBallHits = shot.hits; BallsCompleted++; finished = true; }
                         }
@@ -363,8 +366,9 @@ namespace DoodleIdle
             for (int n = worms.Count - 1; n >= 0; n--)
             {
                 var worm = worms[n]; PruneRetiredHits(worm.nextHit, ref worm.nextHitCleanup); worm.age += dt;
-                float angle = worm.angle + worm.age * 2.3f;
-                Vector2 head = worm.origin + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (worm.age * 1.25f);
+                float travelAge = worm.age * SkillMoveSpeedMultiplier;
+                float angle = worm.angle + travelAge * 2.3f;
+                Vector2 head = worm.origin + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (travelAge * 1.25f);
                 worm.path.Insert(0, head);
                 // Store a short path so each circular segment follows the head at a constant spacing.
                 float travelled = 0; int segment = 0;

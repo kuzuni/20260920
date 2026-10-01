@@ -127,7 +127,7 @@ namespace DoodleIdle
                 {
                     if (Mathf.Abs(direction.x) > .01f) unit.art.flipX = direction.x < 0;
                     if (unit.punch <= 0 && direction.magnitude > 1.1f)
-                        position = Vector2.MoveTowards(position, unit.target.Position, dt * 4.5f);
+                        position = Vector2.MoveTowards(position, unit.target.Position, dt * 4.5f * SkillMoveSpeedMultiplier);
                     if (Alive(unit.target) && direction.magnitude <= 1.3f && unit.attackClock <= 0)
                     {
                         unit.punch = .38f; unit.attackClock = .65f; unit.slamPending = true;
@@ -147,7 +147,7 @@ namespace DoodleIdle
                 }
                 else
                 {
-                    if (Alive(unit.target)) position = Vector2.MoveTowards(position, unit.target.Position, dt * 12);
+                    if (Alive(unit.target)) position = Vector2.MoveTowards(position, unit.target.Position, dt * 12 * SkillMoveSpeedMultiplier);
                     if (unit.ability == "FireTornado") {
                         SetSpriteArt(unit.art, DoodleAscensionArt.FireTornado((int)(unit.age * 10) % 2));
                     } else SetSpriteArt(unit.art, DoodleExpansionArt.Get("SkillTornado", (int)(unit.age * 10) % 2));
@@ -166,7 +166,7 @@ namespace DoodleIdle
             for (int i = meteors.Count - 1; i >= 0; i--)
             {
                 var meteor = meteors[i]; meteor.age += dt; meteor.echo -= dt;
-                float t = Mathf.Clamp01(meteor.age / .85f);
+                float t = Mathf.Clamp01(meteor.age * SkillMoveSpeedMultiplier / .85f);
                 Vector2 position = Vector2.Lerp(meteor.start, meteor.end, t * t);
                 Vector2 previous = meteor.art.transform.position;
                 Vector2 direction = (meteor.end - meteor.start).normalized;
@@ -204,7 +204,7 @@ namespace DoodleIdle
             if (!Alive(target)) return;
             var sprite = Visual("Parabolic stone", sprites[6], player.Position, Vector2.one * .645f, 550);
             VisualTrigger(sprite);
-            shots.Add(new Shot { visual = sprite.transform, start = player.Position, end = target.Position, target = target, duration = .65f, stone = true });
+            shots.Add(new Shot { visual = sprite.transform, start = player.Position, end = target.Position, target = target, duration = .65f / SkillMoveSpeedMultiplier, stone = true });
             StonesLaunched++;
         }
         void ClearExpansionSkills()

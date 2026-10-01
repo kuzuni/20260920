@@ -36,7 +36,7 @@ namespace DoodleIdle
             {
                 orbitGunRecoil?.Kill(); orbitGun.gameObject.SetActive(false); ReleaseVisual(orbitGun.gameObject); orbitGun = null; return;
             }
-            orbitGunAngle += dt * 1.65f;
+            orbitGunAngle += dt * 1.65f * SkillMoveSpeedMultiplier;
             orbitGunShotClock -= dt;
             Vector2 position = player.Position + Direction(orbitGunAngle) * OrbitGunRadius;
             var target = InRange(position, 10);

@@ -52,8 +52,8 @@ namespace DoodleIdle.Tests
             var normal=NamedArt("Drifting storm cloud").Single();var red=NamedArt("Red storm cloud").Single();
             Vector3 origin=normal.transform.position;
             yield return PhysicsTicks(20);
-            Assert.That(Vector3.Distance(normal.transform.position,origin),Is.EqualTo(2.2f*.4f).Within(.03f));
-            Assert.That(Vector3.Distance(red.transform.position,origin),Is.EqualTo(3f*.4f).Within(.03f));
+            Assert.That(Vector3.Distance(normal.transform.position,origin),Is.EqualTo(4.4f*.4f).Within(.03f));
+            Assert.That(Vector3.Distance(red.transform.position,origin),Is.EqualTo(6f*.4f).Within(.03f));
             Vector3 previous=normal.transform.position;
             Place(bodies[0],new Vector2(-6,4));
             yield return PhysicsTicks(20);
@@ -310,7 +310,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator DragonFlapsAndRedWaveFiresFiveAnimatedWideWavesAtNormalSpeed()
+        public IEnumerator DragonFlapsAndRedWaveFiresFiveAnimatedWideWavesAtDoubleSpeed()
         {
             var bodies = IsolateSummonTest(); Place(bodies[0], new Vector2(4, 0));
             Place(bodies[1], new Vector2(4, 1.8f)); Place(bodies[2], new Vector2(2, 3.5f));
@@ -336,7 +336,7 @@ namespace DoodleIdle.Tests
                 Assert.That(wave.sharedMaterial.mainTexture, Is.SameAs(wave.sprite.texture));
             }
             Assert.That(wingFrames.Count, Is.EqualTo(2)); Assert.That(slashFrames.Count, Is.EqualTo(2));
-            Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(DoodleIdleGame.SlashSpeed * .98f, DoodleIdleGame.SlashSpeed * 1.04f));
+            Assert.That(Vector3.Distance(start, wave.transform.position), Is.InRange(22f * .98f, 22f * 1.04f));
             Assert.That(launchTimes.Count, Is.EqualTo(3), "The first second contains three of the five spaced shots.");
             Assert.That(game.SummonHits(DoodleIdleGame.SummonSkill.RedWave), Is.GreaterThanOrEqualTo(2));
             Assert.That(game.DragonFlames, Is.GreaterThanOrEqualTo(6));

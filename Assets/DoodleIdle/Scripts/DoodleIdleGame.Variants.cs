@@ -98,8 +98,8 @@ namespace DoodleIdle
             }
             for(int i=variantShots.Count-1;i>=0;i--) {
                 var shot=variantShots[i];shot.age+=dt;Vector2 old=shot.art.transform.position;
-                float t=Mathf.Clamp01(shot.age/shot.life);
-                Vector2 next=shot.arc?Vector2.Lerp(shot.start,shot.end,t)+Vector2.up*(10*t*(1-t)):old+shot.direction*(shot.speed*dt);
+                float t=Mathf.Clamp01(shot.age*SkillMoveSpeedMultiplier/shot.life);
+                Vector2 next=shot.arc?Vector2.Lerp(shot.start,shot.end,t)+Vector2.up*(10*t*(1-t)):old+shot.direction*(shot.speed*dt*SkillMoveSpeedMultiplier);
                 shot.art.transform.position=next;
                 if(shot.rolling)UpdateRollingVegetable(shot.art,shot.direction,shot.age,shot.size);
                 else shot.art.transform.Rotate(0,0,shot.spin*dt);
@@ -115,7 +115,7 @@ namespace DoodleIdle
                     if(distance>shot.radius+.56f || !shot.victims.Add(enemy))continue;
                     SkillDamage(enemy,shot.damage,shot.direction,shot.ability);
                 }
-                if(shot.age>=shot.life){ReleaseVisual(shot.art.gameObject);variantShots.RemoveAt(i);}
+                if(shot.arc?t>=1:shot.age>=shot.life){ReleaseVisual(shot.art.gameObject);variantShots.RemoveAt(i);}
             }
         }
         void ClearVariants()

@@ -580,7 +580,7 @@ namespace DoodleIdle
             BananasActive = debugActive || (equipped && bananaCycleAge < OrbitSkillLifetime);
             if (equipped && !wasActive && BananasActive)
                 skillActivationCounts["Banana"] = SkillActivationCount("Banana") + 1;
-            orbitAngle += dt * 2.1f;
+            orbitAngle += dt * 2.1f * SkillMoveSpeedMultiplier;
             for (int n = 0; n < bananas.Length; n++)
             {
                 float angle = orbitAngle + n * Mathf.PI * 2 / 5;

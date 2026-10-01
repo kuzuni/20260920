@@ -78,7 +78,7 @@ namespace DoodleIdle.Tests
             Assert.That(texture.GetPixel(texture.width / 2, texture.height / 2).a, Is.LessThan(.05f), "The donut's center is transparent.");
             yield return PhysicsTicks(10);
             Assert.That(game.SoundWavesLaunched, Is.EqualTo(2), "Rings must be launched sequentially.");
-            Assert.That(wave.transform.position.x, Is.EqualTo(1.4f).Within(.03f));
+            Assert.That(wave.transform.position.x, Is.EqualTo(2.8f).Within(.03f));
             Assert.That(wave.transform.position.y, Is.EqualTo(0).Within(.01f));
             Assert.That(wave.bounds.size.x, Is.EqualTo(1.02f * .55f).Within(.03f));
             Assert.That(wave.bounds.size.y, Is.EqualTo(1.02f).Within(.03f));

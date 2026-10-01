@@ -82,7 +82,7 @@ namespace DoodleIdle
             for (int i = bottles.Count - 1; i >= 0; i--)
             {
                 var bottle = bottles[i]; bottle.age += dt;
-                float t = Mathf.Clamp01(bottle.age / .8f);
+                float t = Mathf.Clamp01(bottle.age * SkillMoveSpeedMultiplier / .8f);
                 bottle.art.transform.position = Vector2.Lerp(bottle.start, bottle.end, t) + Vector2.up * (4 * 2.5f * t * (1 - t));
                 bottle.art.transform.rotation = Quaternion.Euler(0, 0, -t * 300);
                 if (t < 1) continue;
@@ -111,7 +111,7 @@ namespace DoodleIdle
                 var pulse = soundWaves[i]; float previousRadius = pulse.radius;
                 Vector2 previousCenter = pulse.center;
                 pulse.age += dt; pulse.radius = .35f + pulse.age * .8f;
-                pulse.center += pulse.direction * (SoundWaveSpeed * dt);
+                pulse.center += pulse.direction * (SoundWaveSpeed * dt * SkillMoveSpeedMultiplier);
                 pulse.art.transform.position = pulse.center;
                 UpdateSoundWaveShape(pulse);
                 pulse.art.color = new Color(1, 1, 1, Mathf.Clamp01((SoundWaveLifetime - pulse.age) / .4f) * .8f);

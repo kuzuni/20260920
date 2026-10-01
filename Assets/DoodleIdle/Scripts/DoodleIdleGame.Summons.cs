@@ -314,7 +314,7 @@ namespace DoodleIdle
         {
             SnapshotSummonTargets();
             TickRedVolleys(dt);
-            guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f), 1 - Mathf.Exp(-dt * 12));
+            guardian.position = Vector2.Lerp(guardian.position, player.Position + new Vector2(1.3f, .8f), 1 - Mathf.Exp(-dt * 12 * SkillMoveSpeedMultiplier));
             if (guardianSwing > 0)
             {
                 guardianSwing = Mathf.Max(0, guardianSwing - dt);
@@ -386,7 +386,7 @@ namespace DoodleIdle
                 SetSpriteArt(cloud.art, cloud.red?DoodleVariantArt.Get((int)(cloud.age*4)%2==0?"RedCloud":"RedCloudB"):summonArt[(int)(cloud.age * 4) % 2 == 0 ? "StormCloud" : "StormCloudB"]);
                 Vector2 position=cloud.art.transform.position;
                 if(!Alive(cloud.target))cloud.target=Closest(position-Vector2.up*2);
-                if(Alive(cloud.target))cloud.art.transform.position=Vector2.MoveTowards(position,cloud.target.Position+Vector2.up*2,(cloud.red?RedCloudMoveSpeed:CloudMoveSpeed)*dt);
+                if(Alive(cloud.target))cloud.art.transform.position=Vector2.MoveTowards(position,cloud.target.Position+Vector2.up*2,(cloud.red?RedCloudMoveSpeed:CloudMoveSpeed)*dt*SkillMoveSpeedMultiplier);
                 if (cloud.age >= 8) { ReleaseVisual(cloud.art.gameObject); clouds.RemoveAt(i); continue; }
                 if (cloud.clock > 0) continue;
                 cloud.clock = .7f;
@@ -414,12 +414,13 @@ namespace DoodleIdle
             {
                 var shot = movingSkills[i]; PruneRetiredHits(shot.nextHit, ref shot.nextHitCleanup); shot.age += dt; shot.trail -= dt;
                 Vector2 old = shot.art.transform.position;
-                Vector2 next = old + shot.direction * (shot.speed * dt);
+                Vector2 next = old + shot.direction * (shot.speed * dt * SkillMoveSpeedMultiplier);
                 bool finished = shot.age >= shot.lifetime;
                 if (shot.kind == SummonSkill.Cannon)
                 {
                     if (Alive(shot.target)) shot.end = shot.target.Position;
-                    float t = Mathf.Clamp01(shot.age / shot.lifetime);
+                    float t = Mathf.Clamp01(shot.age * SkillMoveSpeedMultiplier / shot.lifetime);
+                    finished = t >= 1;
                     next = Vector2.Lerp(shot.start, shot.end, t) + Vector2.up * (4 * 2.3f * t * (1 - t));
                     if (finished)
                     {
@@ -505,7 +506,7 @@ namespace DoodleIdle
                         if (previous != null && nextTarget != null && previous != nextTarget) TetherRetargets++;
                     }
                     Vector2 destination = Alive(snake.target) ? snake.target.Position : player.Position + facing;
-                    snake.head = snake.ice && snake.age<.35f?snake.head+snake.direction*dt*9:Vector2.MoveTowards(snake.head, destination, dt * 9);
+                    snake.head = snake.ice && snake.age<.35f/SkillMoveSpeedMultiplier?snake.head+snake.direction*dt*9*SkillMoveSpeedMultiplier:Vector2.MoveTowards(snake.head, destination, dt * 9 * SkillMoveSpeedMultiplier);
                 }
                 int active = tether ? Mathf.Min(snake.parts.Count, 2 + Mathf.FloorToInt(snake.age / .035f)) : snake.parts.Count;
                 Vector2 anchor = player.Position;
@@ -536,7 +537,7 @@ namespace DoodleIdle
                     }
                     else
                     {
-                        float t = snake.age - p * (dragon ? .09f : .065f);
+                        float t = snake.age * SkillMoveSpeedMultiplier - p * (dragon ? .09f : .065f);
                         visible = t >= 0;
                         t = Mathf.Max(0, t);
                         position = snake.origin + snake.direction * (t * (dragon ? 2.6f : 4.5f)) + perpendicular * (Mathf.Sin(t * 7) * (dragon ? .65f : .46f));
