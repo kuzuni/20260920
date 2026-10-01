@@ -28,7 +28,7 @@ namespace DoodleIdle
         public void ParkRig()
         {
             if(!Rig||parked)return;
-            ResetHitFeedback();
+            ResetHitFeedback(); ResetSpawnFeedback();
             Rig.CancelAttack();
             HitStopped=false;
             if(Rig.hitBlood)Rig.hitBlood.Clear();
@@ -71,7 +71,7 @@ namespace DoodleIdle
             if (Entry == entry && Rig) return;
             bool replace = !Rig || Rig.rigType != entry.appearance.rigType;
             if (replace) {
-                ResetHitFeedback();
+                ResetHitFeedback(); ResetSpawnFeedback();
                 if (Rig) { Rig.gameObject.SetActive(false); Destroy(Rig.gameObject); }
                 Rig = Instantiate(entry.prefab, transform, false);
                 if (Rig.face) Rig.face.View = owner ? owner.FaceView : null;
@@ -104,7 +104,7 @@ namespace DoodleIdle
             if (owner) Paused = owner.paused;
             if (proxy.enabled) proxy.enabled = false;
             float side = proxy.flipX ? -1 : 1;
-            var nextScale=new Vector3(side*scale,scale,scale) * hitScale;
+            var nextScale=new Vector3(side*scale,scale,scale) * hitScale * spawnScale;
             if(Rig.transform.localScale!=nextScale)Rig.transform.localScale=nextScale;
             // Portrait bounds include asymmetric hats/weapons. Their horizontal center
             // is not the authored rig pivot: mirroring it moves the whole character.
@@ -113,7 +113,7 @@ namespace DoodleIdle
             // World depth moves the whole character; authored part ordering stays intact.
             int order=prefabSortingOrder+proxy.sortingOrder;
             if(sorting.sortingOrder!=order)sorting.sortingOrder=order;
-            float speed=Paused||HitStopped?0:1;if(Rig.animator.speed!=speed)Rig.animator.speed=speed;
+            float speed=Paused||HitStopped||spawning?0:1;if(Rig.animator.speed!=speed)Rig.animator.speed=speed;
             if (Rig.hitBlood) Rig.hitBlood.Paused = Paused;
             if (Rig.footDust) Rig.footDust.Paused = Paused;
             if (Rig.face) Rig.face.Paused = Paused;

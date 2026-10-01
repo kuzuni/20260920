@@ -7,6 +7,8 @@ namespace DoodleIdle
     {
         float hitScale = 1;
         Sequence hitTween;
+        float tweenGrow, tweenRecover, tweenPeak;
+        Ease tweenGrowEase, tweenReturnEase;
         Material hitWhiteMaterial;
         Material[] hitOriginalMaterials;
         Material hitWeaponMaterial;
@@ -44,10 +46,19 @@ namespace DoodleIdle
             whiteActive = true; hitWhiteMaterial.SetFloat(FlashId, whiteIntensity);
             // Tween a visual multiplier instead of the actor root: colliders stay fixed,
             // while Sync preserves mirroring, costume scale and the actor's visual center.
-            hitTween = DG.Tweening.DOTween.Sequence()
-                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, Mathf.Max(1, settings.scaleMultiplier), grow * timeScale).SetEase(settings.growEase))
-                .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, 1f, recover * timeScale).SetEase(settings.returnEase))
-                .SetAutoKill(false).Pause();
+            grow *= timeScale; recover *= timeScale;
+            float peak = Mathf.Max(1, settings.scaleMultiplier);
+            // Reuse the same sequence throughout combat; rebuild only after inspector edits.
+            if (hitTween == null || tweenGrow != grow || tweenRecover != recover || tweenPeak != peak ||
+                tweenGrowEase != settings.growEase || tweenReturnEase != settings.returnEase) {
+                hitTween?.Kill();
+                tweenGrow = grow; tweenRecover = recover; tweenPeak = peak;
+                tweenGrowEase = settings.growEase; tweenReturnEase = settings.returnEase;
+                hitTween = DG.Tweening.DOTween.Sequence()
+                    .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, peak, grow).SetEase(tweenGrowEase))
+                    .Append(DG.Tweening.DOTween.To(() => hitScale, v => hitScale = v, 1f, recover).SetEase(tweenReturnEase))
+                    .SetAutoKill(false).Pause();
+            }
             Sync();
         }
 
@@ -62,7 +73,7 @@ namespace DoodleIdle
 
         public void ResetHitFeedback()
         {
-            hitTween?.Kill(); hitTween = null; hitScale = 1;
+            hitTween?.Goto(0, false); hitScale = 1;
             if (whiteActive && Rig) {
                 for (int i = 0; i < Rig.partRenderers.Length; i++)
                     Rig.partRenderers[i].sharedMaterial = hitOriginalMaterials[i];
@@ -70,7 +81,7 @@ namespace DoodleIdle
             }
             whiteActive = false;
         }
-        void OnDisable() { ResetHitFeedback(); Sync(); }
-        void OnDestroy() { ResetHitFeedback(); if (hitWhiteMaterial) Destroy(hitWhiteMaterial); }
+        void OnDisable() { ResetHitFeedback(); ResetSpawnFeedback(); Sync(); }
+        void OnDestroy() { ResetHitFeedback(); hitTween?.Kill(); spawnTween?.Kill(); if (hitWhiteMaterial) Destroy(hitWhiteMaterial); }
     }
 }

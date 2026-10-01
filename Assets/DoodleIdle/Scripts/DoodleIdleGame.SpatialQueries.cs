@@ -45,6 +45,7 @@ namespace DoodleIdle
             enemyPoints.Clear();
             foreach(var enemy in enemies)
             {
+                if (!Alive(enemy)) continue;
                 var position=enemy.Position;
                 var cell=new Vector2Int(Mathf.FloorToInt(position.x/EnemyCellSize),Mathf.FloorToInt(position.y/EnemyCellSize));
                 if(!enemyCells.TryGetValue(cell,out var indices))enemyCells[cell]=indices=new List<int>(16);

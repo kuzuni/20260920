@@ -25,11 +25,24 @@ namespace DoodleIdle
             for (int attempt = 0; attempt < 96; attempt++) {
                 // Prefer this evenly spaced sector; near walls search other open arcs.
                 float candidateAngle = angle + (attempt < 24 ? (attempt / 4) * .055f : (attempt - 23) * 2.399963f);
-                float candidateRadius = radius + ((index + attempt) % rings) * 1.4f + (attempt / 32) * 1.4f;
+                float candidateRadius = radius + ((index + attempt) % rings) * 1.4f + (attempt / 16) * 1.4f;
                 var candidate = player.Position + new Vector2(Mathf.Cos(candidateAngle), Mathf.Sin(candidateAngle)) * candidateRadius;
                 if (Mathf.Abs(candidate.x) > limit.x || Mathf.Abs(candidate.y) > limit.y) continue;
                 if (InsidePlayerSpawnExclusion(candidate, enemyRadius) || SpawnPositionOccupied(candidate)) continue;
                 position = candidate; return true;
+            }
+            // Dense dungeon waves at a corner need more open arc than the preferred
+            // sector search. Walk spaced concentric rings without relaxing exclusion.
+            float farthest = (limit + new Vector2(Mathf.Abs(player.Position.x), Mathf.Abs(player.Position.y))).magnitude;
+            for (float ringRadius = radius; ringRadius <= farthest; ringRadius += 1.4f) {
+                int slots = Mathf.Max(8, Mathf.FloorToInt(2 * Mathf.PI * ringRadius / 1.4f));
+                for (int slot = 0; slot < slots; slot++) {
+                    float candidateAngle = rotation + slot * (2 * Mathf.PI / slots);
+                    var candidate = player.Position + new Vector2(Mathf.Cos(candidateAngle), Mathf.Sin(candidateAngle)) * ringRadius;
+                    if (Mathf.Abs(candidate.x) > limit.x || Mathf.Abs(candidate.y) > limit.y) continue;
+                    if (InsidePlayerSpawnExclusion(candidate, enemyRadius) || SpawnPositionOccupied(candidate)) continue;
+                    position = candidate; return true;
+                }
             }
             position = default; return false;
         }

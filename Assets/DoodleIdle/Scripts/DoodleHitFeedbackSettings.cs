@@ -19,7 +19,19 @@ namespace DoodleIdle
         [InspectorName("흰색 유지 시간 (초)"), Min(0)] public float whiteHoldDuration = .02f;
         [InspectorName("흰색 사라지는 시간 (초)"), Min(.001f)] public float whiteFadeDuration = .05f;
 
+        [Header("적 소환")]
+        [InspectorName("소환진 먼저 표시 (초)"), Min(.001f)] public float spawnPortalDuration = .2f;
+        [InspectorName("적이 커지는 시간 (초)"), Min(.001f)] public float spawnGrowDuration = .2f;
+
         static DoodleHitFeedbackSettings shared;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void PrepareTweenCapacity()
+        {
+            // Damage labels, cached actor reactions and popup tweens share DOTween.
+            // Reserve their bookkeeping before gameplay instead of resizing on dense hits.
+            DG.Tweening.DOTween.Init();
+            DG.Tweening.DOTween.SetTweensCapacity(2048, 512);
+        }
         public static DoodleHitFeedbackSettings Shared {
             get {
                 if (!shared) shared = Resources.Load<DoodleHitFeedbackSettings>("DoodleIdle/HitFeedbackSettings");

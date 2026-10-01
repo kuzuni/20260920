@@ -14,6 +14,13 @@ namespace DoodleIdle.Editor
         {
             if (!assetPath.StartsWith("Assets/DoodleIdle/Resources/DoodleIdle/")) return;
             var importer = (TextureImporter)assetImporter;
+            if (assetPath.EndsWith("/EnemySpawnCircle.png", StringComparison.Ordinal)) {
+                importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = 320; importer.isReadable = false; importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false; importer.filterMode = FilterMode.Bilinear;
+                importer.textureCompression = TextureImporterCompression.Uncompressed; importer.maxTextureSize = 512;
+                return;
+            }
             bool popup = assetPath.Contains("/PopupPortraits/");
             bool idleAtlas = popup && assetPath.EndsWith("_idle.png", StringComparison.Ordinal);
             bool portrait = assetPath.Contains("/RigPortraits/") || popup && !idleAtlas;

@@ -190,3 +190,15 @@ HitBlood의 Main > Scaling Mode는 **Hierarchy**로 유지합니다. 그래야 �
 데미지 텍스트는 1.5배로 나타나 0.1초 동안 제자리에 머문 뒤, 다음 0.1초 동안 DOTween OutQuad로 1배가 되면서 상승합니다. 그 후 기존 상승/페이드를 이어갑니다. 텍스트당 트윈 하나를 생성해 풀에서 재사용하고, 게임 경과 시간으로만 진행해 일시정지 중에는 멈춥니다.
 
 일반 적 소환은 플레이어를 중심으로 각도를 고르게 나눈 여러 원에 배치합니다. 기본 반경은 `DoodleIdleGame`의 **적 포위 소환 기본 반경**(6.5)으로 조절하며, 생성 금지 콜라이더가 더 크면 자동으로 바깥으로 밀어냅니다. 벽 근처에서는 맵 안의 빈 방향으로 탐색하고 적끼리 최소 간격을 지킵니다.
+
+
+### 회전 소환진과 효과 재사용 (2026-10-02)
+
+- `Assets/DoodleIdle/Resources/DoodleIdle/EnemySpawnPortal.prefab`: 부모의 Scale Y(기본 0.35)로 납작함을 조절합니다. `RotatingCircle` 자식은 원형 그대로 Z 회전하고, 부모의 눌린 좌표계 안에서 회전합니다. `DoodleSpawnPortal.rotationSpeed`는 초당 회전 각도(기본 220)입니다.
+- `HitFeedbackSettings.asset`의 **소환진 먼저 표시 (초)**와 **적이 커지는 시간 (초)**은 각각 기본 0.2초입니다. 선행 소환진 → 작은 적 → 원래 크기 순이며, 등장 완료 전에는 공격 대상/충돌/공격에서 제외합니다. 기존 Animator 클립은 수정하지 않습니다.
+- 소환진은 100개를 미리 준비해 재사용합니다. 겹치는 효과가 한도를 넘으면 가장 오래된 표시를 재사용합니다. 주변 입자는 공통 `Spawn Portal Sparks` Particle System(최대 512개)을 사용합니다.
+- 피격 확대 DOTween은 캐릭터마다 캐시하여 같은 설정으로 연속 피격할 때 다시 생성하지 않습니다. 인스펙터의 배율/시간/Ease를 바꿨을 때만 재생성합니다. 데미지 숫자는 미리 만든 128개 풀과 각각의 트윈을 재사용합니다. 골드, 슬래시, 피격 피, 먼지도 기존 재사용 시스템을 유지합니다.
+- HitBlood에 Emission Burst가 있으면 첫 Burst Count를 사용합니다. Burst 없이 Rate over Time만 설정한 경우에는 `CharacterHitBlood`의 **Burst 없을 때 방출 시간**(기본 0.1초) × Rate over Time만큼 피격 순간에 방출합니다. 예: Rate 50 → 5개. 크기/속도/색상은 프리팹 설정을 따릅니다.
+- 원형 이미지: `Assets/DoodleIdle/Resources/DoodleIdle/EnemySpawnCircle.png`. 내장 image_gen 도구로 생성, 투명 배경 유지. 512px로 임포트하며 Read/Write와 Mipmap은 끕니다. 생성 프롬프트는 `Documentation/UI/SPAWN_CIRCLE_PROMPT.md`에 저장했습니다.
+- 파티클이 없는 공통 시스템은 Simulate 호출을 생략합니다. 골드는 한 물리 프레임에 여러 번 방출해도 전체 동전 렌더러 갱신/정렬을 TickParticles에서 한 번만 합니다. 프리팹 미리보기는 방출 즉시 표시합니다.
+- DOTween 내부 용량은 씬이 열리기 전에 Tweener 2048 / Sequence 512로 예약해 대량 피격 중 자동 배열 확장을 방지합니다.

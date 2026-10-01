@@ -47,43 +47,40 @@ namespace DoodleIdle.Tests
             var actorType=actors[0].GetType();
             var bodyField=actorType.GetField("body");
             var originalBounds=game.arenaHalfSize;
-            // Include negative cell edges, surviving enemies, and exhausted searches.
-            for(int scenario=0;scenario<4;scenario++) {
-                int survivors=scenario==1?3:0;
-                for(int i=actors.Count-1;i>=survivors;i--){release.Invoke(game,new[]{actors[i]});actors.RemoveAt(i);}
-                game.arenaHalfSize=scenario==3?new Vector2(3,3):originalBounds;
-                PlayerBody().position=scenario==2?new Vector2(-2,-2):Vector2.zero;
-                var expected=new List<Vector2>();
-                for(int i=0;i<survivors;i++){
-                    var body=(Rigidbody2D)bodyField.GetValue(actors[i]);body.position=new Vector2(-2+i*2,-2);
-                    expected.Add(body.position);
-                }
-                var kinds=new List<int>();var phases=new List<float>();
-                Random.InitState(1987+scenario);
-                var before=Random.state;
-                var playerPosition=PlayerBody().position;
-                for(int n=survivors;n<game.targetPopulation;n++){
-                    Vector2 p=Vector2.zero;
-                    for(int attempt=0;attempt<600;attempt++){
-                        p=new Vector2(Random.Range((-game.arenaHalfSize.x+1)*.5f,(game.arenaHalfSize.x-1)*.5f),Random.Range((-game.arenaHalfSize.y+1)*.5f,(game.arenaHalfSize.y-1)*.5f));
-                        if((p-playerPosition).sqrMagnitude<10)continue;
-                        bool found=true;
-                        foreach(var previous in expected)if((p-previous).sqrMagnitude<1.6f){found=false;break;}
-                        if(found)break;
+            // Replaying the same wave through reused rigs must preserve gameplay data and RNG.
+            // A fully excluded arena now intentionally defers spawns instead of overlapping the player.
+            for (int scenario = 0; scenario < 4; scenario++) {
+                int survivors = scenario == 1 ? 3 : 0;
+                game.arenaHalfSize = scenario == 3 ? new Vector2(3, 3) : originalBounds;
+                Place(PlayerBody(), scenario == 2 ? new Vector2(-2, -2) : Vector2.zero);
+                var expected = new List<Vector2>(); var kinds = new List<int>(); var phases = new List<float>();
+                float expectedNextRandom = 0;
+                for (int pass = 0; pass < 2; pass++) {
+                    for (int i = actors.Count - 1; i >= survivors; i--) { release.Invoke(game, new[] { actors[i] }); actors.RemoveAt(i); }
+                    for (int i = 0; i < survivors; i++) Place((Rigidbody2D)bodyField.GetValue(actors[i]), new Vector2(-2 + i * 2, -2));
+                    typeof(DoodleIdleGame).GetField("spawnBlockedUntil", GrowthPrivate).SetValue(game, 0f);
+                    Random.InitState(1987 + scenario); refill.Invoke(game, null);
+                    float nextRandom = Random.value;
+                    Assert.That(actors.Count, Is.EqualTo(scenario == 3 ? 0 : game.targetPopulation));
+                    var health = game.Ui.EnemyHealthAmount(game.Ui.CombatDifficultyStage);
+                    for (int n = 0; n < actors.Count; n++) {
+                        var position = ((Rigidbody2D)bodyField.GetValue(actors[n])).position;
+                        int kind = (int)actorType.GetField("kind").GetValue(actors[n]);
+                        float phase = (float)actorType.GetField("phase").GetValue(actors[n]);
+                        if (pass == 0) { expected.Add(position); kinds.Add(kind); phases.Add(phase); }
+                        else {
+                            Assert.That(position, Is.EqualTo(expected[n]));
+                            Assert.That(kind, Is.EqualTo(kinds[n])); Assert.That(phase, Is.EqualTo(phases[n]));
+                        }
+                        if (n < survivors) Assert.That(position, Is.EqualTo(new Vector2(-2 + n * 2, -2)));
+                        else {
+                            Assert.That(Vector2.Distance(position, PlayerBody().position), Is.GreaterThan(5.05f));
+                            Assert.That((GameNumber)actorType.GetField("hp").GetValue(actors[n]), Is.EqualTo(health));
+                            Assert.That((GameNumber)actorType.GetField("maxHp").GetValue(actors[n]), Is.EqualTo(health));
+                        }
                     }
-                    kinds.Add(Random.Range(0,3));phases.Add(Random.value*6.28f);expected.Add(p);
-                }
-                float expectedNextRandom=Random.value;
-                Random.state=before;refill.Invoke(game,null);
-                Assert.That(actors.Count,Is.EqualTo(game.targetPopulation));
-                Assert.That(Random.value,Is.EqualTo(expectedNextRandom),"Combat RNG scenario "+scenario);
-                var health=game.Ui.EnemyHealthAmount(game.Ui.CombatDifficultyStage);
-                for(int n=survivors;n<actors.Count;n++){
-                    Assert.That(((Rigidbody2D)bodyField.GetValue(actors[n])).position,Is.EqualTo(expected[n]),"Position "+scenario+"/"+n);
-                    Assert.That((int)actorType.GetField("kind").GetValue(actors[n]),Is.EqualTo(kinds[n-survivors]));
-                    Assert.That((float)actorType.GetField("phase").GetValue(actors[n]),Is.EqualTo(phases[n-survivors]));
-                    Assert.That((GameNumber)actorType.GetField("hp").GetValue(actors[n]),Is.EqualTo(health));
-                    Assert.That((GameNumber)actorType.GetField("maxHp").GetValue(actors[n]),Is.EqualTo(health));
+                    if (pass == 0) expectedNextRandom = nextRandom;
+                    else Assert.That(nextRandom, Is.EqualTo(expectedNextRandom), "Cosmetic pool reuse cannot change combat RNG.");
                 }
             }
             game.arenaHalfSize=originalBounds;
@@ -180,6 +177,7 @@ namespace DoodleIdle.Tests
                 foreach(var friend in friends)friend.equipped=false;
                 game.RestartCombatForStageDebug();
                 var bodies=DurableSkillTargets();
+                typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", GrowthPrivate).Invoke(game, new object[] { 1f });
                 var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);
                 foreach(var actor in actors){actor.GetType().GetField("hp").SetValue(actor,(GameNumber)1e90);actor.GetType().GetField("maxHp").SetValue(actor,(GameNumber)1e90);}
                 for(int n=0;n<bodies.Length;n++){float angle=n*2.399963f;float r=2.5f+(n%12)*.48f;Place(bodies[n],new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*r);}

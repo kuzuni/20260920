@@ -132,7 +132,7 @@ namespace DoodleIdle
             SetSpriteArt(drone.GetComponent<SpriteRenderer>(), (int)(Elapsed * 8) % 2 == 0 ? skillArt[3] : droneFrameB);
         }
 
-        static bool Alive(Actor actor) => actor != null && actor.hp > 0 && actor.root;
+        static bool Alive(Actor actor) => actor != null && actor.hp > 0 && actor.spawnRemaining <= 0 && !actor.returnedToPool && actor.root;
         Actor ClosestExcept(Vector2 origin, Actor excluded)
         {
             Actor best = null; float distance = float.MaxValue;

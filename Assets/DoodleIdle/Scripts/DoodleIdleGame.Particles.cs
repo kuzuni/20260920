@@ -41,7 +41,10 @@ namespace DoodleIdle
             var all = new List<ParticleSystem> { dustParticles, explosionParticles, goldParticles, sandParticles, groundFireParticles,purpleFireParticles,blueFireParticles,meteorTrailParticles,meteorExplosionParticles,divinePalmExplosionParticles,golemSlamParticles };
             all.Add(hitSlashParticles);
             BuildCompanionImpactParticles(all);
+            spawnSparkParticles = MakeParticles("Spawn Portal Sparks", summonArt["SandPuff"], -889, 512, false);
+            all.Add(spawnSparkParticles);
             particleSystems = all.ToArray();
+            PrepareSpawnPortals();
         }
 
         void SetFlamePalette(ParticleSystem system,Color color)
@@ -146,7 +149,7 @@ namespace DoodleIdle
         }
         void EmitGold(Vector2 position)
         {
-            GoldCoinsEmitted += goldBurst.EmitBurst(position, ref particleSeed);
+            GoldCoinsEmitted += goldBurst.EmitBurst(position, ref particleSeed, false);
         }
         void EmitHitSlash(Vector2 position, float targetScale = 1)
         {
@@ -178,13 +181,15 @@ namespace DoodleIdle
         void TickParticles(float dt)
         {
             // Manual fixed-step simulation obeys the game's pause flag and keeps coin origins in world space.
-            foreach (var system in particleSystems) if (system != goldParticles) system.Simulate(dt, false, false, false);
+            foreach (var system in particleSystems)
+                if (system != goldParticles && system.particleCount > 0) system.Simulate(dt, false, false, false);
             if (goldBurst) goldBurst.Simulate(dt);
         }
         void ClearParticles()
         {
             if (particleSystems != null) foreach (var system in particleSystems) system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
             if (goldBurst) goldBurst.Clear();
+            ClearSpawnPortals();
             GoldCoinsEmitted = 0; particleSeed = 1;
         }
         void DisposeParticleMaterials()

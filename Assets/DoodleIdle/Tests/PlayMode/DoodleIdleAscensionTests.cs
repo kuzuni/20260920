@@ -27,6 +27,7 @@ namespace DoodleIdle.Tests
             typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game, null);
             Assert.That(game.BossActive, Is.True);
             Assert.That(game.BossTimeRemaining, Is.EqualTo(10));
+            typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", GrowthPrivate).Invoke(game, new object[] { 1f });
         }
 
         [UnityTest]

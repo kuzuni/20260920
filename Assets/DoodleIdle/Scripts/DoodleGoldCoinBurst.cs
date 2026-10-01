@@ -66,7 +66,7 @@ namespace DoodleIdle
             seed = seed * 1664525u + 1013904223u;
             return Mathf.Lerp(min, max, (seed & 0x00ffffff) / 16777216f);
         }
-        public int EmitBurst(Vector2 position, ref uint seed)
+        public int EmitBurst(Vector2 position, ref uint seed, bool refreshRenderers = true)
         {
             Initialize();
             var emission = system.emission;
@@ -83,12 +83,16 @@ namespace DoodleIdle
                 system.Emit(new ParticleSystem.EmitParams { position = position, velocity = velocity, randomSeed = id, applyShapeToPosition = false }, 1);
                 landings[id] = new Landing { ground = position.y + offset };
             }
-            RefreshRenderers(system.GetParticles(buffer));
+            // Gameplay can emit many deaths in one physics step, then sort/render once.
+            // Editor previews retain their immediate first-frame feedback.
+            if (refreshRenderers) RefreshRenderers(system.GetParticles(buffer));
             return count;
         }
         public void Simulate(float dt)
         {
-            Initialize(); system.Simulate(dt, false, false, false); AfterSimulate(dt);
+            Initialize();
+            if (system.particleCount == 0) { if (landings.Count > 0 || visibleCoins > 0) Clear(); return; }
+            system.Simulate(dt, false, false, false); AfterSimulate(dt);
         }
         public void Clear()
         {

@@ -375,6 +375,7 @@ namespace DoodleIdle.Tests
                 if ((bool)typeof(DoodleIdleGame).GetField("combatWaveResetRequested", ServicePrivate).GetValue(game))
                     game.RestartCombatForStageDebug();
                 if (actors.Count == 0) typeof(DoodleIdleGame).GetMethod("Refill", ServicePrivate).Invoke(game, null);
+                typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", ServicePrivate).Invoke(game, new object[] { 1f });
                 var actor=actors[0];
                 float health=(float)(GameNumber)actor.GetType().GetField("hp").GetValue(actor);
                 float lethalWeight=health*2/Mathf.Max(.000001f,game.Ui.UiDamageMultiplier*game.Ui.AttackCategoryMultiplier("Basic"));

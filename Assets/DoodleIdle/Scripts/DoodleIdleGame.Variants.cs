@@ -29,7 +29,7 @@ namespace DoodleIdle
         public void CastVariant(string ability)
         {
             if(player==null || enemies.Count==0 || VariantInterval(ability)<=0)return;
-            var origin=player.Position;var target=Closest(origin);var direction=(target.Position-origin).normalized;
+            var origin=player.Position;var target=Closest(origin);if (!Alive(target)) return;var direction=(target.Position-origin).normalized;
             if(ability=="Eggplant") {
                 for(int i=0;i<2;i++) {
                     var shot=VariantProjectile("Cucumber",origin,Rotate(direction,(i-.5f)*30),4.6f,6,3.2f,42,1.3f);

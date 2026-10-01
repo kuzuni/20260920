@@ -90,7 +90,7 @@ namespace DoodleIdle
         }
         bool ActivateSkill(string ability)
         {
-            if (player == null || enemies.Count == 0 || SkillInterval(ability) <= 0) return false;
+            if (player == null || enemies.Count == 0 || SkillInterval(ability) <= 0 || Closest(player.Position) == null) return false;
             switch (ability)
             {
                 case "Banana": debugBananaRemaining = OrbitSkillLifetime; break;

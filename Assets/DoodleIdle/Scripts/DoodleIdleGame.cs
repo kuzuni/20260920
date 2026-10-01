@@ -61,6 +61,7 @@ namespace DoodleIdle
             public GameNumber hp, maxHp;
             public float flash, phase;
             public float hitStop;
+            public float spawnRemaining, spawnDelay, spawnGrow;
             public RigidbodyConstraints2D constraintsBeforeHit;
             public bool returnedToPool;
             public Action attackImpact;
@@ -174,6 +175,8 @@ namespace DoodleIdle
             combatStartFixedTime = Time.fixedTime;
             Ready = true;
             TogglePause();
+            // Loading clears preview particles; start visible arrivals after the cover leaves.
+            foreach (var enemy in enemies) BeginEnemyArrival(enemy);
             loadingCanvas.gameObject.SetActive(false);
             Destroy(loadingCanvas.gameObject);
         }
@@ -357,7 +360,7 @@ namespace DoodleIdle
                 boss.root.name = "Stage boss";
                 boss.root.transform.localScale = Vector3.one * 3;
                 boss.body.mass = 9;
-                RefreshHealthBar(boss); enemies.Add(boss); bossTimeRemaining = BossTimeLimit;
+                RefreshHealthBar(boss); enemies.Add(boss); BeginEnemyArrival(boss); bossTimeRemaining = BossTimeLimit;
                 return;
             }
             if (BossActive) return;
@@ -379,7 +382,7 @@ namespace DoodleIdle
                     spawnBlockedUntil = Time.time + .5f; break;
                 }
                 var enemy = CreateActorWithHealth(false, p, UnityEngine.Random.Range(0, 3), waveHealth);
-                enemies.Add(enemy);
+                enemies.Add(enemy); BeginEnemyArrival(enemy);
                 AddSpawnPosition(enemy.Position);
             }
             Refills++;
@@ -435,6 +438,7 @@ namespace DoodleIdle
         void FixedUpdate()
         {
             if (!Ready || paused) return;
+            TickEnemyArrivals(Time.fixedDeltaTime);
             TickHitReactions(Time.fixedDeltaTime);
             if (IsPvpEngine && (pvpTimedBattle && Elapsed>=DoodlePvpRules.TimeLimitSeconds || !Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) {
                 player.body.linearVelocity = Vector2.zero; return;
@@ -457,7 +461,7 @@ namespace DoodleIdle
             if (target == null) {
                 if (autoPlay && !JoystickActive) { player.body.linearVelocity = Vector2.zero; dashRemaining = 0; }
                 if (MovementZones) MovementZones.Retreating = false;
-                Refill(); return;
+                TickActiveCombatEffects(dt); Refill(); return;
             }
             Vector2 delta = target.Position - player.Position;
             if (delta.sqrMagnitude > .01f) facing = delta.normalized;
@@ -506,6 +510,14 @@ namespace DoodleIdle
                     attackTimer = attackInterval / (Ui ? Mathf.Max(1, Ui.UiSpeedMultiplier) : 1);
             }
             using(combatMarkers[2].Auto()) TickEquippedSkills(dt);
+            TickActiveCombatEffects(dt);
+            if (enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
+            if(!IsPvpEngine)using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
+            } finally { if (Ui) Ui.EndCombatSnapshot(); }
+        }
+
+        void TickActiveCombatEffects(float dt)
+        {
             using(combatMarkers[3].Auto()) OrbitBananas(dt);
             using(combatMarkers[4].Auto()) TickCompanions(dt);
             using(combatMarkers[5].Auto()) TickExpansionSkills(dt);
@@ -518,9 +530,6 @@ namespace DoodleIdle
             // Damage-bearing projectiles share the physics clock with actors and skills.
             // A slow render frame must not extend a slash beyond its intended lifetime/range.
             using(combatMarkers[12].Auto()) UpdateShots(dt);
-            if (enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
-            if(!IsPvpEngine)using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
-            } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }
 
         void LateUpdate()
@@ -538,6 +547,7 @@ namespace DoodleIdle
             Actor best = null; float distance = float.MaxValue;
             foreach (var enemy in enemies)
             {
+                if (!Alive(enemy)) continue;
                 float d = (enemy.Position - origin).sqrMagnitude;
                 if (d < distance) { distance = d; best = enemy; }
             }
@@ -549,6 +559,7 @@ namespace DoodleIdle
             Actor selected = null; float score = float.MaxValue;
             foreach (var enemy in enemies)
             {
+                if (!Alive(enemy)) continue;
                 float distance = Vector2.Distance(enemy.Position, player.Position);
                 if (distance >= 4 && distance <= 9 && Mathf.Abs(distance - 6) < score)
                 { score = Mathf.Abs(distance - 6); selected = enemy; }
@@ -689,7 +700,7 @@ namespace DoodleIdle
         void DamageAmount(Actor enemy, GameNumber weight, Vector2 push, string category,string source=null)
         {
             using var sample=damageMarker.Auto();
-            if (enemy.hp <= 0) return;
+            if (!Alive(enemy)) return;
             GameNumber amount = (Ui ? Ui.AttackPercentAmount(weight * 100 / DoodleAttackPower.ReferenceAttack, category) : weight) * RollUiCriticalAmount();
             enemy.hp -= amount; enemy.flash = .14f;
             ApplyHitStop(enemy);
@@ -775,7 +786,7 @@ namespace DoodleIdle
             paused = !paused;
             if (paused) ReleaseJoystick();
             player.body.simulated = !paused;
-            foreach (var enemy in enemies) enemy.body.simulated = !paused;
+            foreach (var enemy in enemies) enemy.body.simulated = !paused && enemy.spawnRemaining <= 0;
             foreach (var visual in world.GetComponentsInChildren<DoodleRigVisual>()) { visual.Paused = paused; visual.Sync(); }
         }
 

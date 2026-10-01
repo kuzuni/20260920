@@ -13,6 +13,20 @@ namespace DoodleIdle.Tests
         void StepHitStop(DoodleIdleGame owner, float dt) => typeof(DoodleIdleGame).GetMethod("TickHitReactions", GrowthPrivate).Invoke(owner, new object[] { dt });
 
         [UnityTest]
+        public IEnumerator RepeatedHitFeedbackKeepsManagedAllocationsBounded()
+        {
+            game.paused = true;
+            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var visual = (DoodleRigVisual)ActorField(actor, "rigVisual");
+            for (int i = 0; i < 10; i++) { visual.BeginHitFeedback(); visual.AdvanceHitFeedback(.02f); visual.ResetHitFeedback(); }
+            long before = System.GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 100; i++) { visual.BeginHitFeedback(); visual.AdvanceHitFeedback(.02f); visual.ResetHitFeedback(); }
+            long allocated = System.GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.That(allocated, Is.LessThan(4096), "Warm hit feedback must not allocate new sequences for every impact.");
+            visual.Sync(); yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator WhiteHitTweenGrowsReturnsAndResetsOnRepeatAndPooling()
         {
             DurableSkillTargets(); game.paused = false;
@@ -28,6 +42,8 @@ namespace DoodleIdle.Tests
                 var originalMaterials = rig.partRenderers.Select(r => r.sharedMaterial).ToArray();
                 var body = (Rigidbody2D)ActorField(actor, "body"); var bodyScale = body.transform.localScale;
                 hit.Invoke(game, new[] { actor }); StepHitStop(game, .016f);
+                var tweenField = typeof(DoodleRigVisual).GetField("hitTween", GrowthPrivate);
+                var reusedTween = tweenField.GetValue(visual);
                 Assert.That(rig.transform.localScale.x, Is.EqualTo(originalScale.x * 1.18f).Within(.001));
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001));
                 Assert.That(body.transform.localScale, Is.EqualTo(bodyScale));
@@ -38,6 +54,7 @@ namespace DoodleIdle.Tests
                 game.paused = true; yield return null; yield return null;
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(size)); game.paused = false;
                 hit.Invoke(game, new[] { actor }); StepHitStop(game, .016f);
+                Assert.That(tweenField.GetValue(visual), Is.SameAs(reusedTween), "Repeated hits reuse their sequence without allocation.");
                 Assert.That(rig.transform.localScale.y, Is.EqualTo(originalScale.y * 1.18f).Within(.001), "Repeated hits must not compound scale.");
                 StepHitStop(game, .084f);
                 Assert.That(Vector3.Distance(rig.transform.localScale, originalScale), Is.LessThan(.001));

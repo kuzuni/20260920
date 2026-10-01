@@ -176,6 +176,7 @@ namespace DoodleIdle.Tests
             var damage = typeof(DoodleIdleGame).GetMethod("DamageAmount", GrowthPrivate);
             damage.Invoke(game, new object[] { enemy, (GameNumber)1, Vector2.zero, "basicAttack", null });
             Assert.That(slash.particleCount, Is.EqualTo(1));
+            StepHitStop(game, .11f); // Retaliation starts after the victim leaves its hit stop.
             var hit = typeof(DoodleIdleGame).GetMethod("ResolveEnemyAttack", GrowthPrivate);
             hit.Invoke(game, new[] { enemy });
             Assert.That(game.PlayerContactHits, Is.EqualTo(1));

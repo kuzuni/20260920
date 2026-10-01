@@ -292,6 +292,9 @@ namespace DoodleIdle.Tests
             yield return PhysicsTicks(55);
             Assert.That(game.EnemyDashCasts,Is.EqualTo(1));
             Assert.That(NamedArt("Enemy dash afterimage"),Is.Empty);
+            // The first solid-body dash can push the player past -5; reset both
+            // positions before asserting an explicitly right-facing second dash.
+            Place(PlayerBody(), Vector2.zero);
             Place(body,new Vector2(-5,0)); type.GetField("dashCooldown").SetValue(boss,0f);
             yield return PhysicsTicks(24);
             Assert.That(game.EnemyDashCasts,Is.EqualTo(2));

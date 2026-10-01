@@ -44,6 +44,7 @@ namespace DoodleIdle.Tests
             float readyDeadline = Time.realtimeSinceStartup + 60;
             while (!game.Ready && Time.realtimeSinceStartup < readyDeadline) yield return null;
             Assert.That(game.Ready, Is.True, "Generated assets and game bootstrap must load.");
+            typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(game, new object[] { 1f });
             // Keep the established combat fixture's numeric damage baseline. Fresh-profile
             // reset tests create a new scene and exercise the production baseline directly.
             typeof(DoodleUi).GetField("starterDamageBaseline", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
