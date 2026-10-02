@@ -264,15 +264,16 @@ namespace DoodleIdle.CharacterRigs
             }
             var highlight = eye.highlight;
             var glintBounds = highlight.sprite.bounds;
-            var glintMatrix = highlight.transform.localToWorldMatrix;
+            var glintMatrix = HighlightSpaceMatrix(highlight.transform);
             var parent = motion.parent;
             // Solve from the unshifted authored position without first moving the
             // live hierarchy back to zero. Rewriting both positions every frame
             // dirties the animated head and its descendant transforms twice.
-            var worldOffset = parent ? parent.TransformVector(previousOffset) : previousOffset;
+            var parentMatrix = parent ? HighlightSpaceMatrix(parent) : Matrix4x4.identity;
+            var worldOffset = parentMatrix.MultiplyVector(previousOffset);
             glintMatrix.m03 -= worldOffset.x; glintMatrix.m13 -= worldOffset.y; glintMatrix.m23 -= worldOffset.z;
-            var mask = new GlintBoundary(eye.pupilMask.transform, eye.pupilMask.sprite, glintMatrix, glintBounds.extents);
-            var pupil = new GlintBoundary(eye.pupil.transform, eye.pupil.sprite, glintMatrix, glintBounds.extents);
+            var mask = new GlintBoundary(HighlightSpaceMatrix(eye.pupilMask.transform), eye.pupilMask.sprite, glintMatrix, glintBounds.extents);
+            var pupil = new GlintBoundary(HighlightSpaceMatrix(eye.pupil.transform), eye.pupil.sprite, glintMatrix, glintBounds.extents);
             var original = glintMatrix.MultiplyPoint3x4(glintBounds.center);
             var position = original;
             bool fits = mask.radius > 0 && pupil.radius > 0;
@@ -287,10 +288,24 @@ namespace DoodleIdle.CharacterRigs
             }
             var maskPosition = mask.Fit(position);
             // Very narrow lids leave no room for a whole glint; hide it with the blink.
-            bool visible = fits && (maskPosition - position).sqrMagnitude < .000001f;
+            bool visible = !IsBlinking || fits && (maskPosition - position).sqrMagnitude < .000001f;
             if (eye.highlight.enabled != visible) eye.highlight.enabled = visible;
-            var nextOffset = parent ? parent.InverseTransformVector(position - original) : position - original;
+            var nextOffset = parentMatrix.inverse.MultiplyVector(position - original);
             if (!previousOffset.Equals(nextOffset)) motion.localPosition = nextOffset;
+        }
+
+        Matrix4x4 HighlightSpaceMatrix(Transform part)
+        {
+            if (!UnlitPreview) return part.localToWorldMatrix;
+            // Portrait stages live far from gameplay. Fit in face-local coordinates
+            // so large world translations cannot toggle tiny glints on/off by rounding.
+            var result = Matrix4x4.identity;
+            var root = transform.root;
+            while (part && part != root) {
+                result = Matrix4x4.TRS(part.localPosition, part.localRotation, part.localScale) * result;
+                part = part.parent;
+            }
+            return result;
         }
 
         readonly struct GlintBoundary
@@ -298,11 +313,11 @@ namespace DoodleIdle.CharacterRigs
             readonly Matrix4x4 toLocal, toWorld;
             readonly Vector2 center;
             public readonly float radius;
-            public GlintBoundary(Transform shape, Sprite sprite, Matrix4x4 glintMatrix, Vector3 half)
+            public GlintBoundary(Matrix4x4 shape, Sprite sprite, Matrix4x4 glintMatrix, Vector3 half)
             {
                 // Read native transform/bounds data once per eye, not on every
                 // intersection iteration. Still reflects all prefab edits this frame.
-                toLocal = shape.worldToLocalMatrix; toWorld = shape.localToWorldMatrix;
+                toLocal = shape.inverse; toWorld = shape;
                 var bounds = sprite.bounds; center = bounds.center;
                 var x = toLocal.MultiplyVector(glintMatrix.MultiplyVector(new Vector3(half.x,0,0)));
                 var y = toLocal.MultiplyVector(glintMatrix.MultiplyVector(new Vector3(0,half.y,0)));

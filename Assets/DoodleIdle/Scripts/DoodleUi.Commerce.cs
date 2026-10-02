@@ -621,23 +621,21 @@ namespace DoodleIdle
             var retry = UiKit.Button(body, "연결 / 미완료 구매 다시 확인", () => payments.Retry(), UiKit.Paper, 44);
             var bindings = new List<Action>();
             bindings.Add(() => { if (paymentStatus) paymentStatus.text = payments.Status; if (retry) retry.interactable = !payments.Busy; });
-            string[] productArt = { "DiamondSingle", "DiamondPile", "DiamondBag", "DiamondChest", "DiamondRoyalChest" };
             var grid = UiKit.Grid(body, "Currency product cards", 2, 360);
             UiKit.PortraitGrid(grid);
             BuildFreeDiamondCard(grid);
-            int productIndex = 0;
             foreach (var product in commerceTuning.products)
             {
                 if (product == null || product.amount <= 0 || product.priceWon <= 0) continue;
                 var card = UiKit.Box(grid, "CurrencyProduct" + product.amount, new Color(1, .977f, .895f));
                 var amount = UiKit.Text(card, product.amount.ToString("N0"), 36, TextAnchor.MiddleCenter, 48).rectTransform;
                 amount.anchorMin = new Vector2(0, .81f); amount.anchorMax = new Vector2(1, .97f); amount.offsetMin = new Vector2(8, 0); amount.offsetMax = new Vector2(-8, 0);
-                var art = UiKit.Icon(card, productArt[Mathf.Min(productIndex++, productArt.Length - 1)], 150).rectTransform;
+                var art = UiKit.Icon(card, "Diamond", 150).rectTransform;
                 art.anchorMin = new Vector2(.1f, .24f); art.anchorMax = new Vector2(.9f, .79f); art.offsetMin = art.offsetMax = Vector2.zero;
                 if(product.mileageCoupons>0) {
-                    art.anchorMin=new Vector2(.1f,.36f);
-                    var coupon=UiKit.Row(card,"Mileage bonus",36,4);coupon.anchorMin=new Vector2(.07f,.23f);coupon.anchorMax=new Vector2(.93f,.36f);coupon.offsetMin=coupon.offsetMax=Vector2.zero;
-                    UiKit.Icon(coupon,"MileageCoupon",32);UiKit.Text(coupon,"쿠폰 "+product.mileageCoupons+"개 추가",21,TextAnchor.MiddleCenter,32);
+                    art.anchorMin=new Vector2(.1f,.42f);
+                    var coupon=UiKit.Row(card,"Mileage bonus",36,4);coupon.anchorMin=new Vector2(.07f,.23f);coupon.anchorMax=new Vector2(.93f,.42f);coupon.offsetMin=coupon.offsetMax=Vector2.zero;
+                    UiKit.Icon(coupon,"MileageCoupon",64);UiKit.Text(coupon,"마일리지 쿠폰 "+product.mileageCoupons+"개 추가",21,TextAnchor.MiddleCenter,64);
                 }
                 string storeId = DoodleIapCatalog.ProductId(product.amount);
                 var purchase = UiKit.Button(card, payments.Price(storeId) ?? "연결 대기", () => payments.Buy(storeId), UiKit.Blue, 64);

@@ -44,14 +44,8 @@ namespace DoodleIdle.Tests
                 Assert.That(left.Ui.EquippedWeaponIcon,Is.EqualTo(game.Ui.EquippedWeaponIcon));
                 Assert.That(left.Ui.EquippedAppearanceTint,Is.EqualTo(game.Ui.EquippedAppearanceTint));
                 Assert.That(left.ActiveCompanions,Is.EqualTo(5));
-                // Keep both fighters alive long enough to exercise all attack sources,
-                // without changing the serialized equipment or its regeneration values.
-                foreach(var engine in new[]{left,right}) {
-                    var actor=typeof(DoodleIdleGame).GetField("player",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(engine);
-                    var maximum=engine.PlayerMaxHealthAmount*100;
-                    actor.GetType().GetField("hp").SetValue(actor,maximum);
-                    actor.GetType().GetField("maxHp").SetValue(actor,maximum);
-                }
+                Assert.That(left.PlayerMaxHealthAmount,Is.EqualTo(left.Ui.MaxHealthAmount*100));
+                Assert.That(right.PlayerHealthAmount,Is.EqualTo(right.Ui.MaxHealthAmount*100));
                 PvpConnect(left,right);PvpConnect(right,left);
                 yield return null;yield return null;
                 left.TogglePause();right.TogglePause();
@@ -98,7 +92,7 @@ namespace DoodleIdle.Tests
                 bool? won=null;
                 var routine=(IEnumerator)typeof(DoodleIdleGame).GetMethod("RunPvpBattle",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(game,new object[]{expected?strong:weak,expected?weak:strong,(Action<DoodlePvpOutcome>)(value=>won=value==DoodlePvpOutcome.Win)});
                 var handle=game.StartCoroutine(routine);
-                float deadline=Time.realtimeSinceStartup+25;
+                float deadline=Time.realtimeSinceStartup+45;
                 try {
                     while(!UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None).Any(x=>x.text=="3" && x.GetComponentInParent<UnityEngine.Canvas>().name=="PVP countdown") && Time.realtimeSinceStartup<deadline)yield return null;
                     yield return new WaitForSecondsRealtime(.3f);

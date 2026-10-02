@@ -90,7 +90,7 @@ namespace DoodleIdle.Tests
                         var rightValues=PvpLoadoutAudit.Values(game.Ui);var rightSave=DoodlePvpPayload.Pack(game.Ui.CapturePvpLoadout()).Unpack();
                         left=PvpEngine(game,leftSave,new Vector2(-2,0));right=PvpEngine(game,rightSave,new Vector2(2,0));
                         PvpLoadoutAudit.AssertValues(leftValues,left.Ui);PvpLoadoutAudit.AssertValues(rightValues,right.Ui);
-                        Assert.That(left.PlayerMaxHealthAmount,Is.EqualTo(left.Ui.MaxHealthAmount));Assert.That(right.PlayerMaxHealthAmount,Is.EqualTo(right.Ui.MaxHealthAmount));
+                        Assert.That(left.PlayerMaxHealthAmount,Is.EqualTo(left.Ui.MaxHealthAmount*100));Assert.That(right.PlayerMaxHealthAmount,Is.EqualTo(right.Ui.MaxHealthAmount*100));
                         Assert.That(left.Ui.AttackAmount,Is.Not.EqualTo(right.Ui.AttackAmount),"Opponents must retain their own stats.");
                         report.Add($"group {group}: {leftValues.Count*2} fields match; left ATK {left.Ui.AttackAmount}, HP {left.Ui.MaxHealthAmount}, regen {left.Ui.HealthRegenAmount}; right ATK {right.Ui.AttackAmount}, HP {right.Ui.MaxHealthAmount}, regen {right.Ui.HealthRegenAmount}");
                         var hits=new[]{new Dictionary<string,int>(),new Dictionary<string,int>()};
@@ -210,12 +210,11 @@ namespace DoodleIdle.Tests
             var panel=new GameObject("Candidate test",typeof(RectTransform)).GetComponent<RectTransform>();panel.SetParent(game.Ui.Canvas.transform,false);
             try {
                 foreach(int score in new[]{-1000,0,1000}){
-                    var button=(Button)method.Invoke(game.Ui,new object[]{panel,"Opponent",0,score,"123456",(Action)(()=>{})});
-                    var text=button.GetComponentInChildren<Text>();
-                    Assert.That(text.text,Does.Contain("승점 "+score));Assert.That(text.text,Does.Contain("전투력 "+UiNumber.Format((GameNumber)123456)));
-                    Assert.That(text.text,Does.Contain("승리 +"+DoodlePvpRules.Delta(0,score,true)+"점"));
-                    Assert.That(text.text,Does.Contain("패배 "+DoodlePvpRules.Delta(0,score,false)+"점"));
-                    Assert.That(text.supportRichText,Is.False);
+                    var button=(Button)method.Invoke(game.Ui,new object[]{panel,"Opponent",0,score,"123456",(Action)(()=>{}),new DoodlePlayerLook()});
+                    var texts=button.transform.parent.parent.GetComponentsInChildren<Text>().Select(t=>t.text).ToArray();
+                    Assert.That(texts,Does.Contain("승점 "+score));Assert.That(texts,Does.Contain("전투력 "+UiNumber.Format((GameNumber)123456)));
+                    Assert.That(texts,Does.Contain("승리 +"+DoodlePvpRules.Delta(0,score,true)+" / 패배 "+DoodlePvpRules.Delta(0,score,false)));
+                    Assert.That(button.transform.parent.parent.GetComponentsInChildren<Text>().Single(t=>t.text=="Opponent").supportRichText,Is.False);
                 }
             }finally{UnityEngine.Object.Destroy(panel.gameObject);}
             yield return null;

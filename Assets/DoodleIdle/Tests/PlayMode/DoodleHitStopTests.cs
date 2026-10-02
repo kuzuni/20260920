@@ -93,7 +93,7 @@ namespace DoodleIdle.Tests
             DurableSkillTargets(); game.paused = false;
             var settings = DoodleHitFeedbackSettings.Shared;
             string original = JsonUtility.ToJson(settings);
-            var actor = typeof(DoodleIdleGame).GetField("player", GrowthPrivate).GetValue(game);
+            var actor = ((IList)typeof(DoodleIdleGame).GetField("enemies", GrowthPrivate).GetValue(game))[0];
             var visual = (DoodleRigVisual)ActorField(actor, "rigVisual"); visual.Sync();
             float originalScale = visual.Rig.transform.localScale.y;
             var hit = typeof(DoodleIdleGame).GetMethod("ApplyHitStop", GrowthPrivate);
@@ -204,7 +204,7 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator PlayerHitStopsAndLethalHitWaitsBeforeRespawn()
+        public IEnumerator PlayerHitKeepsActionsAndDeathRespawnsWithPortalAfterOneSecond()
         {
             var bodies = DurableSkillTargets(); game.paused = false;
             DayOneState("mainStage", 2);
@@ -214,29 +214,69 @@ namespace DoodleIdle.Tests
             Place(PlayerBody(), Vector2.right * 3); Place(bodies[0], Vector2.right * 3.6f);
             bodies[0].simulated = PlayerBody().simulated = true;
             var hit = typeof(DoodleIdleGame).GetMethod("ResolveEnemyAttack", GrowthPrivate);
+            game.basicSkillsEnabled = true;
+            visual.Rig.ResetPooledAnimation();
+            var shots = (IList)typeof(DoodleIdleGame).GetField("shots", GrowthPrivate).GetValue(game);
+            int shotsBefore = shots.Count;
+            Assert.That((bool)typeof(DoodleIdleGame).GetMethod("BeginPlayerAttack", GrowthPrivate).Invoke(game, new object[] { Vector2.right }), Is.True);
+            visual.Rig.animator.Update(.01f);
+            PlayerBody().linearVelocity = Vector2.right * 2;
+            typeof(DoodleIdleGame).GetField("dashRemaining", GrowthPrivate).SetValue(game, .2f);
             hit.Invoke(game, new[] { enemy });
-            Assert.That(visual.HitStopped, Is.True);
-            Assert.That(visual.TryAttack(null), Is.False);
+            Assert.That(visual.HitStopped, Is.False);
+            Assert.That((float)ActorField(player, "hitStop"), Is.Zero);
+            Assert.That(PlayerBody().constraints, Is.EqualTo(RigidbodyConstraints2D.FreezeRotation));
+            Assert.That(PlayerBody().linearVelocity, Is.EqualTo(Vector2.right * 2));
+            Assert.That((float)typeof(DoodleIdleGame).GetField("dashRemaining", GrowthPrivate).GetValue(game), Is.EqualTo(.2f));
+            Assert.That(visual.Rig.animator.speed, Is.EqualTo(1));
+            for (int i = 0; i < 120; i++) visual.Rig.animator.Update(1f / 120);
+            Assert.That(shots.Count, Is.EqualTo(shotsBefore + 1), "The actual attack clip must emit its slash exactly once despite the hit.");
             Assert.That(visual.Rig.hitBlood.GetComponent<ParticleSystem>().particleCount, Is.GreaterThan(0));
-            StepHitStop(game, .09f); Assert.That(visual.HitStopped, Is.True);
+            StepHitStop(game, .09f); Assert.That(visual.HitStopped, Is.False);
             StepHitStop(game, .02f); Assert.That(visual.HitStopped, Is.False);
             typeof(DoodleIdleGame).GetField("contactInvulnerability", GrowthPrivate).SetValue(game, 0f);
             SetActorField(player, "hp", (GameNumber)1);
             hit.Invoke(game, new[] { enemy });
             Assert.That(game.PlayerHealth, Is.Zero);
             Assert.That(PlayerBody().position.x, Is.EqualTo(3).Within(.001));
-            StepHitStop(game, .09f); Assert.That(game.PlayerHealth, Is.Zero);
-            StepHitStop(game, .02f);
+            Assert.That(visual.HitStopped, Is.False, "Death animation must run, not freeze on impact.");
+            for (int i = 0; i < 60; i++) visual.Rig.animator.Update(1f / 120);
+            var death = visual.Rig.animator.GetCurrentAnimatorStateInfo(0);
+            Assert.That(death.IsName("Death"), Is.True);
+            Assert.That(death.loop, Is.False);
+            Assert.That(PlayerBody().simulated, Is.False);
+            var enemyVisual = (DoodleRigVisual)ActorField(enemy, "rigVisual");
+            var enemyArt = (SpriteRenderer)ActorField(enemy, "art");
+            Place(bodies[0], new Vector2(1.5f, 0));
+            var animate = typeof(DoodleIdleGame).GetMethod("Animate", GrowthPrivate);
+            animate.Invoke(game, new[] { enemy });
+            Assert.That(enemyVisual.Rig.face.target, Is.SameAs(visual.Rig.face.transform));
+            Assert.That(enemyArt.flipX, Is.False, "Enemy looks right toward the corpse.");
+            StepHitStop(game, .99f); Assert.That(game.PlayerHealth, Is.Zero);
+            game.TogglePause(); game.TogglePause();
+            Assert.That(PlayerBody().simulated, Is.False, "Resume cannot enable a dead player's body.");
+            StepHitStop(game, .011f);
             Assert.That(game.PlayerHealth, Is.EqualTo(game.PlayerMaxHealth));
             Assert.That(PlayerBody().position, Is.EqualTo(Vector2.zero));
             Assert.That(visual.HitStopped, Is.False);
+            Assert.That(((Collider2D)ActorField(player, "collider")).enabled, Is.False);
+            Assert.That((float)ActorField(player, "spawnRemaining"), Is.GreaterThan(0));
+            Assert.That(game.GetComponentsInChildren<DoodleSpawnPortal>().Any(p => p.gameObject.activeSelf), Is.True);
+            animate.Invoke(game, new[] { enemy });
+            Assert.That(enemyVisual.Rig.face.target, Is.SameAs(visual.Rig.face.transform));
+            Assert.That(enemyArt.flipX, Is.True, "Enemy turns left toward the respawn point.");
+            game.TogglePause(); game.TogglePause();
+            Assert.That(PlayerBody().simulated, Is.False, "Resume cannot skip the summon effect.");
+            typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", GrowthPrivate).Invoke(game, new object[] { 1f });
             Assert.That(((Collider2D)ActorField(player, "collider")).enabled, Is.True);
+            Assert.That(PlayerBody().simulated, Is.True);
+            Assert.That(visual.Rig.animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"), Is.True);
             game.paused = true;
             yield return null;
         }
 
         [UnityTest]
-        public IEnumerator PvpHitStopAdvancesOnlyOnVictimsClock()
+        public IEnumerator PvpPlayerHitFeedbackKeepsActionsAndUsesOnlyVictimsClock()
         {
             game.paused = true; var snapshot = game.Ui.CapturePvpLoadout();
             var left = PvpEngine(game, snapshot, Vector2.left * 2);
@@ -248,11 +288,13 @@ namespace DoodleIdle.Tests
                 var visual = (DoodleRigVisual)ActorField(victim, "rigVisual"); visual.Sync();
                 SetActorField(victim, "hp", (GameNumber)1e20);
                 typeof(DoodleIdleGame).GetMethod("Damage", GrowthPrivate).Invoke(left, new object[] { victim, 1f, Vector2.right });
-                Assert.That(visual.HitStopped, Is.True);
+                Assert.That(visual.HitStopped, Is.False);
+                Assert.That((float)ActorField(victim, "hitStop"), Is.Zero);
                 StepHitStop(left, .06f); StepHitStop(right, .06f);
-                Assert.That(visual.HitStopped, Is.True, "Attacker must not tick the same actor twice.");
-                Assert.That((float)ActorField(victim, "hitStop"), Is.EqualTo(.04f).Within(.001));
+                Assert.That(visual.HitStopped, Is.False);
+                Assert.That((float)ActorField(victim, "hitFeedbackRemaining"), Is.EqualTo(.04f).Within(.001));
                 StepHitStop(right, .05f); Assert.That(visual.HitStopped, Is.False);
+                Assert.That((float)ActorField(victim, "hitFeedbackRemaining"), Is.Zero);
             } finally { Object.Destroy(left.gameObject); Object.Destroy(right.gameObject); }
             yield return null;
         }

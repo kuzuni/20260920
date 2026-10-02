@@ -12,7 +12,9 @@ namespace DoodleIdle
     [RequireComponent(typeof(Image))]
     public sealed class DoodleIdlePortrait : MonoBehaviour
     {
-        public enum View { Stats, Profile, Pvp, Ranking }
+        public enum View { Stats, Profile, Pvp, Ranking, Collection }
+        public DoodleCharacterCatalog.Entry collectionEntry;
+        public bool collectionWalking, hideWeapon;
         public View view;
         public DoodlePortraitSettings settings;
         public DoodlePlayerLook playerLook;
@@ -36,6 +38,10 @@ namespace DoodleIdle
         float lastZoom,lastProfileSize;
         Vector2 lastOffset;
         static int nextStage;
+        DoodleUpgradeEffect upgradeEffect;
+        float celebrationRemaining;
+        Vector3 normalMouthScale, normalMouthPosition;
+        public bool Celebrating => celebrationRemaining > 0;
 
         public void Configure(DoodleUi ui, View kind, DoodlePlayerLook look = null)
         {
@@ -50,17 +56,38 @@ namespace DoodleIdle
             PreviewCamera.orthographic = true; PreviewCamera.clearFlags = CameraClearFlags.SolidColor;
             PreviewCamera.backgroundColor = Color.clear; PreviewCamera.nearClipPlane = .1f; PreviewCamera.farClipPlane = 60;
             PreviewCamera.allowHDR = false; PreviewCamera.allowMSAA = false; PreviewCamera.cullingMask = 1 << 31;
-            int resolution=kind==View.Profile || kind==View.Ranking ? 192 : 512;
+            int resolution=kind==View.Collection ? 160 : kind==View.Profile || kind==View.Ranking ? 192 : 512;
             texture = new RenderTexture(resolution, resolution, 24, RenderTextureFormat.ARGB32);
             texture.name = "Live portrait " + kind; texture.Create(); image.texture = texture; PreviewCamera.targetTexture = texture;
             renderRequest = new UniversalRenderPipeline.SingleCameraRequest { destination = texture };
             RefreshLook();
+            normalMouthScale = PreviewRig.face.mouth.transform.localScale;
+            normalMouthPosition = PreviewRig.face.mouth.transform.localPosition;
+            if (view == View.Stats || view == View.Profile) {
+                owner.StatUpgraded += PlayUpgrade;
+                var prefab = Resources.Load<DoodleUpgradeEffect>("DoodleIdle/StatUpgradeEffect");
+                if (prefab) {
+                    upgradeEffect = Instantiate(prefab, stage.transform, false);
+                    foreach (var child in upgradeEffect.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
+                    upgradeEffect.gameObject.SetActive(false);
+                }
+            }
+        }
+        public void PlayUpgrade()
+        {
+            if (!isActiveAndEnabled || !PreviewRig) return;
+            celebrationRemaining = 1.1f; dirty = true;
+            PreviewRig.animator.speed = 1;
+            PreviewRig.TryAttack(null);
+            var head = PreviewRig.face.headRenderer.bounds;
+            Vector3 position = view == View.Profile ? new Vector3(head.center.x, head.min.y + head.size.y * .08f, head.center.z) : PreviewRig.groundContact.position;
+            if (upgradeEffect) upgradeEffect.Play(position, head.size.x * 1.15f);
         }
         void RefreshLook()
         {
             var look = playerLook;
             string appearance = look != null ? look.appearanceIcon : owner.EquippedAppearanceIcon;
-            var next = DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(appearance));
+            var next = collectionEntry ?? DoodleCharacterCatalog.Current.Player(DoodleCharacterCatalog.Costume(appearance));
             if (!PreviewRig)
             {
                 PreviewRig = Instantiate(next.prefab, stage.transform, false);
@@ -93,6 +120,7 @@ namespace DoodleIdle
                 weapon.transform.localScale = source.weaponRenderer.transform.localScale;
             }
             else ApplyWeapon(look != null ? look.weaponIcon : owner.EquippedWeaponIcon, look != null ? look.weaponTint : owner.EquippedWeaponTint);
+            if(view==View.Collection){PreviewRig.SetMoving(collectionWalking);if(hideWeapon && PreviewRig.weaponRenderer)PreviewRig.weaponRenderer.enabled=false;}
             BindPreviewMaterials();
         }
         void BindPreviewMaterials()
@@ -117,6 +145,7 @@ namespace DoodleIdle
         }
         void ApplyWeapon(string key, Color tint)
         {
+            if (!PreviewRig.weaponRenderer) return;
             if (lastWeapon != key)
             {
                 if (ownedWeapon) Destroy(ownedWeapon); ownedWeapon = null;
@@ -142,6 +171,19 @@ namespace DoodleIdle
         {
             if (!stage || !settings) return;
             RefreshLook();
+            if (celebrationRemaining > 0) {
+                celebrationRemaining = Mathf.Max(0, celebrationRemaining - Time.unscaledDeltaTime);
+                PreviewRig.face.mouth.sprite = PreviewRig.face.normalMouth;PreviewRig.face.mouth.enabled=true;
+                var head=PreviewRig.face.headRenderer.bounds;
+                PreviewRig.face.mouth.transform.position=new Vector3(head.center.x+head.size.x*.04f,head.center.y-head.size.y*.23f,PreviewRig.face.mouth.transform.position.z);
+                PreviewRig.face.mouth.transform.localScale = Vector3.Scale(normalMouthScale, new Vector3(1.8f, 1.8f, 1));
+                dirty = true;
+                if (celebrationRemaining == 0) {
+                    PreviewRig.face.mouth.transform.localScale = normalMouthScale;
+                    PreviewRig.face.mouth.transform.localPosition = normalMouthPosition;
+                    if (view == View.Profile) { PreviewRig.ResetPooledAnimation(); PreviewRig.animator.speed = 0; }
+                }
+            }
             if(view==View.Ranking && !dirty)return;
             if(view==View.Profile){
                 if(lastZoom!=settings.profileZoom||lastOffset!=settings.profileCameraOffset||lastProfileSize!=settings.profileSize)dirty=true;
@@ -149,7 +191,7 @@ namespace DoodleIdle
                 lastZoom=settings.profileZoom;lastOffset=settings.profileCameraOffset;lastProfileSize=settings.profileSize;
             }
             if (Time.unscaledTime < nextFrame) return;
-            RenderNow(); nextFrame = Time.unscaledTime + 1f / 30;
+            RenderNow(); nextFrame = Time.unscaledTime + 1f / (view==View.Collection?15:30);
         }
         public void RenderNow()
         {
@@ -171,6 +213,12 @@ namespace DoodleIdle
                 zoom = settings.pvpZoom; offset = settings.pvpCameraOffset;
                 radius /= Mathf.Max(.1f,zoom); zoom = 1;
                 center.y = PreviewRig.groundContact.position.y + radius;
+                center.x = PreviewRig.face.headRenderer.bounds.center.x;
+            }
+            if(view==View.Collection){
+                var body=PreviewRig.face.headRenderer.bounds;
+                foreach(var part in PreviewRig.partRenderers)if(part && part.enabled && part!=PreviewRig.weaponRenderer)body.Encapsulate(part.bounds);
+                zoom=1;offset=Vector2.zero;center=body.center;radius=Mathf.Max(body.extents.y,body.extents.x)*1.08f;
             }
             PreviewRig.face.SyncSorting(); PreviewRig.face.RefreshHighlights();
             PreviewCamera.orthographicSize = radius / Mathf.Max(.1f,zoom);
@@ -183,6 +231,7 @@ namespace DoodleIdle
         void OnDisable() { if (stage) stage.SetActive(false); }
         void OnDestroy()
         {
+            if (owner) owner.StatUpgraded -= PlayUpgrade;
             if (PreviewCamera) PreviewCamera.targetTexture = null;
             if (texture) { texture.Release(); Destroy(texture); }
             if (ownedWeapon) Destroy(ownedWeapon);

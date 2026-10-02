@@ -21,12 +21,12 @@ namespace DoodleIdle.Tests
             var numbers = (IList)typeof(DoodleIdleGame).GetField("damageNumbers", GrowthPrivate).GetValue(game);
             var number = numbers[0]; var tween = number.GetType().GetField("popTween").GetValue(number);
             Vector3 origin = text.rectTransform.localPosition;
-            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(1.5f));
+            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(2.3f));
             tick.Invoke(game, new object[] { .1f });
             Assert.That(text.rectTransform.localPosition, Is.EqualTo(origin));
-            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(1.5f));
+            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(2.3f));
             tick.Invoke(game, new object[] { .05f });
-            Assert.That(text.rectTransform.localScale.x, Is.InRange(1.01f, 1.49f));
+            Assert.That(text.rectTransform.localScale.x, Is.InRange(1.01f, 2.29f));
             Assert.That(text.rectTransform.localPosition.y, Is.GreaterThan(origin.y));
             tick.Invoke(game, new object[] { .05f });
             Assert.That(text.rectTransform.localScale.x, Is.EqualTo(1).Within(.001));
@@ -34,7 +34,7 @@ namespace DoodleIdle.Tests
             show.Invoke(game, new object[] { Vector2.right, (GameNumber)456, true });
             Assert.That(numbers[0], Is.SameAs(number));
             Assert.That(number.GetType().GetField("popTween").GetValue(number), Is.SameAs(tween));
-            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(1.5f));
+            Assert.That(text.rectTransform.localScale.x, Is.EqualTo(2.3f));
             origin = text.rectTransform.localPosition;
             tick.Invoke(game, new object[] { .09f });
             Assert.That(text.rectTransform.localPosition, Is.EqualTo(origin));

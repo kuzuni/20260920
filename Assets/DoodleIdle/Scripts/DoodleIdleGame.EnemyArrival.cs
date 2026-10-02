@@ -41,20 +41,23 @@ namespace DoodleIdle
         }
         void TickEnemyArrivals(float dt)
         {
-            foreach (var actor in enemies) {
-                if (actor.spawnRemaining <= 0) continue;
-                actor.spawnRemaining = Mathf.Max(0, actor.spawnRemaining - dt);
-                if (actor.spawnRemaining <= actor.spawnGrow)
-                    actor.rigVisual.AdvanceSpawnFeedback(1 - actor.spawnRemaining / actor.spawnGrow);
-                if (actor.spawnRemaining > 0) continue;
-                actor.rigVisual.ResetSpawnFeedback(); actor.rigVisual.Sync();
-                actor.body.simulated = true; actor.collider.enabled = true; actor.shadow.enabled = true;
-            }
+            TickActorArrival(player, dt);
+            foreach (var actor in enemies) TickActorArrival(actor, dt);
             for (int i = activeSpawnPortals.Count - 1; i >= 0; i--) {
                 var portal = activeSpawnPortals[i];
                 if (portal.Simulate(dt)) continue;
                 portal.gameObject.SetActive(false); spareSpawnPortals.Push(portal); activeSpawnPortals.RemoveAt(i);
             }
+        }
+        void TickActorArrival(Actor actor, float dt)
+        {
+            if (actor == null || actor.spawnRemaining <= 0) return;
+            actor.spawnRemaining = Mathf.Max(0, actor.spawnRemaining - dt);
+            if (actor.spawnRemaining <= actor.spawnGrow)
+                actor.rigVisual.AdvanceSpawnFeedback(1 - actor.spawnRemaining / actor.spawnGrow);
+            if (actor.spawnRemaining > 0) return;
+            actor.rigVisual.ResetSpawnFeedback(); actor.rigVisual.Sync();
+            actor.body.simulated = !paused; actor.collider.enabled = true; actor.shadow.enabled = true;
         }
         void ClearSpawnPortals()
         {

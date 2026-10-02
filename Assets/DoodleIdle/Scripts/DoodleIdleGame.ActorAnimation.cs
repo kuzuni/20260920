@@ -64,7 +64,8 @@ namespace DoodleIdle
             actor.rigVisual.Moving(moving); actor.rigVisual.Paused = paused;
             Actor gazeTarget = actor.isPlayer ? Closest(player.Position) : player;
             Transform gaze = null;
-            if (Alive(gazeTarget) && gazeTarget.root.activeInHierarchy)
+            // Enemies keep watching the corpse and the respawn presentation too.
+            if (gazeTarget != null && gazeTarget.root && gazeTarget.root.activeInHierarchy && (!actor.isPlayer || Alive(gazeTarget)))
                 gaze = gazeTarget.rigVisual && gazeTarget.rigVisual.Rig.face
                     ? gazeTarget.rigVisual.Rig.face.transform : gazeTarget.art.transform;
             actor.rigVisual.LookAt(gaze);
@@ -72,6 +73,10 @@ namespace DoodleIdle
             // Keep the last direction at rest or during vertical motion to avoid left/right flicker.
             if (!actor.isPlayer && moving && Mathf.Abs(actor.body.linearVelocity.x) > .05f)
                 actor.art.flipX = actor.body.linearVelocity.x < 0;
+            if (!actor.isPlayer && player != null && !Alive(player)) {
+                float towardPlayer = player.Position.x - actor.Position.x;
+                if (Mathf.Abs(towardPlayer) > .05f) actor.art.flipX = towardPlayer < 0;
+            }
             actor.walkClock = moving ? actor.walkClock + dt : 0;
             int frame = moving ? (int)(actor.walkClock * 6 + actor.phase) % 2 : 0;
             actor.art.sprite = DoodleCharacterCatalog.Portrait(actor.rigVisual.Entry, frame);

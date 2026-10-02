@@ -144,10 +144,10 @@ namespace DoodleIdle
         }
         public static Button Slot(Transform parent,string name,string icon,int rarity,int count,int needed,bool equipped,bool locked,Action click,float height=112)
         {
-            var r=Box(parent,"Slot: "+name,locked ? new Color(.38f,.39f,.40f) : Color.Lerp(Rarity(rarity),Color.white,.55f),height); var b=r.gameObject.AddComponent<Button>(); b.onClick.AddListener(()=>click?.Invoke());
-            r.GetComponent<Outline>().effectColor=locked?Ink:Color.Lerp(Rarity(rarity),Ink,.30f);r.GetComponent<Outline>().effectDistance=new Vector2(3,-3);
-            var t=Text(r,GradeName(rarity),20,TextAnchor.UpperLeft,25); Stretch(t.rectTransform,6,height-29,5,3); t.color=locked?Color.white:Ink;
-            var im=Icon(r,icon,58); Stretch(im.rectTransform,12,33,12,27); if(locked) im.color=Color.black;
+            var r=Box(parent,"Slot: "+name,Color.Lerp(Rarity(rarity),Color.white,.55f),height); var b=r.gameObject.AddComponent<Button>(); b.onClick.AddListener(()=>click?.Invoke());
+            r.GetComponent<Outline>().effectColor=Color.Lerp(Rarity(rarity),Ink,.30f);r.GetComponent<Outline>().effectDistance=new Vector2(3,-3);
+            var t=Text(r,GradeName(rarity),20,TextAnchor.UpperLeft,25); Stretch(t.rectTransform,6,height-29,5,3); t.color=Ink;
+            var im=Icon(r,icon,58); Stretch(im.rectTransform,12,33,12,27);
             var gauge=Gauge(r,UiNumber.Format(count)+"/"+UiNumber.Format(Mathf.Max(1,needed)),count/(float)Mathf.Max(1,needed),24); Stretch(gauge,5,5,5,height-29);gauge.GetComponentInChildren<Text>().resizeTextMaxSize=21;
             if(equipped) {
                 var mark=Box(r,"Equipped label",new Color(.45f,.45f,.45f,.76f));
@@ -156,10 +156,16 @@ namespace DoodleIdle
                 mark.anchoredPosition=Vector2.zero;mark.sizeDelta=new Vector2(-10,30);
                 var label=Text(mark,"장착중",22,TextAnchor.MiddleCenter,30);label.color=Color.white;Stretch(label.rectTransform,3,1,3,1);
             }
-            if(locked) { var mark=Rect(r,"Locked padlock"); mark.anchorMin=mark.anchorMax=new Vector2(1,0);mark.anchoredPosition=new Vector2(-17,41);mark.sizeDelta=new Vector2(20,25);mark.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget=false; }
+            if(locked) { LockCover(r); var mark=Rect(r,"Locked padlock"); mark.anchorMin=mark.anchorMax=new Vector2(1,0);mark.anchoredPosition=new Vector2(-17,41);mark.sizeDelta=new Vector2(20,25);mark.gameObject.AddComponent<DoodleUiPadlock>().raycastTarget=false; }
             var adaptive=r.gameObject.AddComponent<DoodleUiSlotLayout>();adaptive.grade=t;adaptive.art=im.rectTransform;adaptive.gauge=gauge;
             adaptive.equippedLabelBelowArt=icon != null && icon.StartsWith("CompanionMon_",StringComparison.Ordinal);adaptive.Reflow();
             return b;
+        }
+        public static RectTransform LockCover(Transform parent)
+        {
+            var cover=Rect(parent,"Locked cover"); Stretch(cover);
+            var image=cover.gameObject.AddComponent<Image>();image.sprite=Frame;image.type=Image.Type.Sliced;image.color=new Color(0,0,0,.5f);image.raycastTarget=false;
+            return cover;
         }
         public static Sprite Circle => circle && circle.texture ? circle : circle=Shape(true);
         public static Sprite NotificationDot => notificationDot && notificationDot.texture ? notificationDot : notificationDot=MakeNotificationDot();

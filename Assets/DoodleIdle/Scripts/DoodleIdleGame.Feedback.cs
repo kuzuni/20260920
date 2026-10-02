@@ -118,7 +118,7 @@ namespace DoodleIdle
             number.text.color = playerHit ? new Color(.62f, .62f, .62f) : new Color(1, .96f, .76f);
             number.rect.localPosition = number.origin * 100;
             number.popTween.Goto(0, false); number.shrinkProgress = 0;
-            number.rect.localScale = Vector3.one * 1.5f;
+            number.rect.localScale = Vector3.one * 2.3f;
             number.alpha = 1; number.renderer.SetAlpha(1);
             if (!number.text.gameObject.activeSelf) number.text.gameObject.SetActive(true);
             damageNumbers.Add(number);
@@ -136,7 +136,7 @@ namespace DoodleIdle
                 float travel = number.shrinkProgress * DamageShrinkDuration + Mathf.Max(0, number.age - DamageHoldDuration - DamageShrinkDuration);
                 var position = (Vector3)((number.origin + new Vector2(number.drift * travel, travel * 1.05f)) * 100);
                 if (!number.rect.localPosition.Equals(position)) number.rect.localPosition = position;
-                var scale = Vector3.one * Mathf.Lerp(1.5f, 1, number.shrinkProgress);
+                var scale = Vector3.one * Mathf.Lerp(2.3f, 1, number.shrinkProgress);
                 if (!number.rect.localScale.Equals(scale)) number.rect.localScale = scale;
                 float alpha = Mathf.Clamp01((.75f - number.age) / .25f);
                 // Fade the already generated glyphs and outline together. Text.color

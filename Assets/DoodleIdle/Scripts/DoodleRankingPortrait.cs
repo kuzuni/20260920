@@ -12,6 +12,12 @@ namespace DoodleIdle
         DoodleIdlePortrait preview;
         Image image;
         float nextCheck;
+        DoodleCharacterCatalog.Entry collectionEntry;
+        bool walking,hideWeapon;
+        public void ConfigureCollection(DoodleUi ui,DoodleCharacterCatalog.Entry entry,bool equipped,bool noWeapon,Color tint)
+        {
+            collectionEntry=entry;walking=equipped;hideWeapon=noWeapon;Configure(ui,new DoodlePlayerLook{appearanceTint=tint,weaponTint=Color.white});
+        }
         readonly Vector3[] corners=new Vector3[4];
         public void Configure(DoodleUi ui,DoodlePlayerLook look)
         {
@@ -28,7 +34,7 @@ namespace DoodleIdle
                 Vector2 min=viewport.InverseTransformPoint(corners[0]),max=viewport.InverseTransformPoint(corners[2]);
                 visible=viewport.rect.Overlaps(Rect.MinMaxRect(min.x,min.y,max.x,max.y));
             }
-            if(visible && !preview){preview=gameObject.AddComponent<DoodleIdlePortrait>();preview.Configure(owner,DoodleIdlePortrait.View.Ranking,Look);}
+            if(visible && !preview){preview=gameObject.AddComponent<DoodleIdlePortrait>();preview.collectionEntry=collectionEntry;preview.collectionWalking=walking;preview.hideWeapon=hideWeapon;preview.Configure(owner,collectionEntry!=null?DoodleIdlePortrait.View.Collection:DoodleIdlePortrait.View.Ranking,Look);}
             else if(!visible && preview)Release();
         }
         void Release()

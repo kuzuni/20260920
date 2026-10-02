@@ -9,59 +9,18 @@ namespace DoodleIdle
     {
         public float LoadingProgress { get; private set; }
         Canvas loadingCanvas;
-        Text loadingLabel;
-        Image loadingBar;
-        DoodleLoadingMotion loadingMotion;
-
+        DoodleLoadingScreen loadingScreen;
         void BuildLoadingScreen()
         {
-            var go = new GameObject("Preparing game", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            go.transform.SetParent(transform, false);
-            loadingCanvas = go.GetComponent<Canvas>();
-            loadingCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            loadingCanvas.sortingOrder = 32760;
-            var scaler = go.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(720, 1520); scaler.matchWidthOrHeight = 1;
-            var cover = new GameObject("Loading cover", typeof(RectTransform), typeof(Image));
-            cover.transform.SetParent(go.transform, false);
-            var rect = (RectTransform)cover.transform;
-            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
-            cover.GetComponent<Image>().color = new Color(.91f, .83f, .68f);
-            var illustration=UiKit.Rect(cover.transform,"Loading battle illustration");
-            var art=illustration.gameObject.AddComponent<RawImage>();
-            art.texture=Resources.Load<Texture2D>("DoodleIdle/UI/LoadingBattle");art.raycastTarget=false;
             uiFont = Resources.Load<Font>("DoodleIdle/UI/DisplayFont");
-            var title=Label(cover.transform,"탕탕탕",82,new Vector2(-310,-170),new Vector2(620,110),TextAnchor.MiddleCenter,new Vector2(.5f,1));
-            title.color=new Color(.2f,.13f,.08f);
-            Label(cover.transform,"방치형 RPG",27,new Vector2(-260,-218),new Vector2(520,48),TextAnchor.MiddleCenter,new Vector2(.5f,1));
-            loadingLabel = Label(cover.transform, "게임 준비 중", 26, new Vector2(-290,120), new Vector2(580,54), TextAnchor.MiddleCenter, new Vector2(.5f,0));
-            var track = new GameObject("Loading progress", typeof(RectTransform), typeof(Image));
-            track.transform.SetParent(cover.transform, false);
-            var trackRect = (RectTransform)track.transform;
-            trackRect.anchorMin=trackRect.anchorMax=new Vector2(.5f,0);
-            trackRect.sizeDelta = new Vector2(520, 62); trackRect.anchoredPosition = new Vector2(0, 93);
-            track.GetComponent<Image>().sprite=UiKit.Art("HealthBarFrame");
-            track.GetComponent<Image>().raycastTarget=false;
-            var inset=UiKit.Rect(track.transform,"Gauge inner area");UiKit.Stretch(inset,9,10,9,10);
-            var bar = new GameObject("Fill", typeof(RectTransform), typeof(Image),typeof(Mask)); bar.transform.SetParent(inset, false);
-            loadingBar = bar.GetComponent<Image>();loadingBar.sprite=UiKit.Art("HealthBarFill");loadingBar.raycastTarget=false;
-            var shine=UiKit.Rect(bar.transform,"Gauge moving highlight");shine.sizeDelta=new Vector2(38,100);
-            shine.localRotation=Quaternion.Euler(0,0,-18);
-            var highlight=shine.gameObject.AddComponent<Image>();highlight.color=new Color(1,1,1,.24f);highlight.raycastTarget=false;
-            loadingMotion=cover.AddComponent<DoodleLoadingMotion>();loadingMotion.art=illustration;
-            loadingMotion.shine=shine;loadingMotion.fill=loadingBar;
+            loadingScreen = DoodleLoadingScreen.TakeForGame(transform);
+            loadingCanvas = loadingScreen.Canvas;
             SetLoadingProgress(0, "게임 준비 중");
         }
-
         void SetLoadingProgress(float progress, string message)
         {
             LoadingProgress = Mathf.Clamp01(progress);
-            loadingLabel.text = message + "  " + Mathf.RoundToInt(LoadingProgress * 100) + "%";
-            var rect = loadingBar.rectTransform;
-            rect.anchorMin = Vector2.zero;
-            loadingMotion.progress=LoadingProgress;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            loadingScreen.SetProgress(loadingScreen.FromLogin ? .1f + LoadingProgress * .9f : LoadingProgress, message);
         }
 
         // Read the actual art factories, including animation frames and companion impacts.

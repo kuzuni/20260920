@@ -130,22 +130,27 @@ namespace DoodleIdle
         }
         void BuildMileageShop(RectTransform body)
         {
-            var balance=UiKit.Row(body,"Mileage balance",72,10);UiKit.Icon(balance,"MileageCoupon",64);
+            var balance=UiKit.Row(body,"Mileage balance",136,10);UiKit.Icon(balance,"MileageCoupon",128);
             UiKit.Text(balance,"마일리지 쿠폰 "+MileageCoupons+"개",30,TextAnchor.MiddleLeft,64);
+            var grid=UiKit.Grid(body,"Mileage exchange cards",2,360);UiKit.PortraitGrid(grid);
             foreach(int count in new[]{5,10}) {
-                var card=CollectionBox(body,"Mileage exchange "+count,UiKit.Paper);
-                var row=UiKit.Row(card,"Exchange reward",92,12);UiKit.Icon(row,"DiamondRoyalChest",82);
-                UiKit.Text(row,(count==5?1500000:5000000).ToString("N0")+" 다이아",32,TextAnchor.MiddleCenter,80);
-                var button=UiKit.Button(card,"쿠폰 "+count+"개로 교환",()=>ExchangeMileage(count),UiKit.Yellow,64);
+                var card=UiKit.Box(grid,"Mileage exchange "+count,new Color(1,.977f,.895f));
+                var amount=UiKit.Text(card,(count==5?1500000:5000000).ToString("N0")+" 다이아",30,TextAnchor.MiddleCenter,64).rectTransform;
+                amount.anchorMin=new Vector2(0,.79f);amount.anchorMax=new Vector2(1,.97f);amount.offsetMin=new Vector2(8,0);amount.offsetMax=new Vector2(-8,0);
+                var icon=UiKit.Icon(card,"Diamond",150).rectTransform;icon.anchorMin=new Vector2(.1f,.28f);icon.anchorMax=new Vector2(.9f,.77f);icon.offsetMin=icon.offsetMax=Vector2.zero;
+                var button=UiKit.Button(card,"마일리지 쿠폰 "+count+"개로 교환",()=>ExchangeMileage(count),UiKit.Yellow,64);CommerceButtonText(button,23);
                 button.interactable=MileageCoupons>=count;
+                var rect=(RectTransform)button.transform;rect.anchorMin=new Vector2(.04f,.04f);rect.anchorMax=new Vector2(.96f,.23f);rect.offsetMin=rect.offsetMax=Vector2.zero;
             }
         }
+
         void BuildFreeDiamondCard(Transform grid)
         {
             var card=UiKit.Box(grid,"Free diamond card",new Color(1,.977f,.895f));
             var label=UiKit.Text(card,"무료 다이아\n200~1,000",30,TextAnchor.MiddleCenter,76).rectTransform;
             label.anchorMin=new Vector2(0,.74f);label.anchorMax=new Vector2(1,.98f);label.offsetMin=new Vector2(8,0);label.offsetMax=new Vector2(-8,0);
-            var icon=UiKit.Icon(card,"DiamondPile",150).rectTransform;icon.anchorMin=new Vector2(.1f,.26f);icon.anchorMax=new Vector2(.9f,.73f);icon.offsetMin=icon.offsetMax=Vector2.zero;
+            var icon=UiKit.Icon(card,"Diamond",150).rectTransform;icon.anchorMin=new Vector2(.1f,.26f);icon.anchorMax=new Vector2(.9f,.73f);icon.offsetMin=icon.offsetMax=Vector2.zero;
+            var free=UiKit.Text(card,"Free",40,TextAnchor.MiddleCenter,52).rectTransform;free.anchorMin=new Vector2(.18f,.27f);free.anchorMax=new Vector2(.82f,.45f);free.offsetMin=free.offsetMax=Vector2.zero;free.GetComponent<Text>().fontStyle=FontStyle.Bold;
             var button=UiKit.Button(card,"무료 받기 ("+FreeDiamondClaimsRemaining+"/30)",()=>ClaimFreeDiamonds(),UiKit.Yellow,64);CommerceButtonText(button,23);
             button.interactable=CanClaimFreeDiamonds;
             Notify(button.transform,()=>CanClaimFreeDiamonds);

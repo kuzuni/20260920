@@ -20,14 +20,34 @@ namespace DoodleIdle
                 UiKit.Text(account, session.IsGuest ? L("게스트 계정", "Guest account") : L("연결된 계정", "Connected account"), 21, TextAnchor.MiddleLeft, 32);
                 if (session.IsGuest)
                     UiKit.Button(account, L("Google 계정 연동", "Link Google account"), LinkGoogleDialog, Color.white, 58);
-                UiKit.Button(account, L("로그아웃", "Sign out"), () => AccountDialog(false), UiKit.Blue, 58);
-                UiKit.Button(account, L("회원탈퇴", "Delete account"), () => AccountDialog(true), UiKit.Red, 58);
+
             }
-            UiKit.Button(account, L("랭킹", "Rankings"), ()=>OpenRankings(), UiKit.Yellow, 58);
+            UiKit.Button(account, L("닉네임 변경", "Change nickname"), NicknameDialog, UiKit.Yellow, 58).interactable=session && session.Ready;
             var links = UiKit.Row(body, "Policy links", 58, 10);
             UiKit.Button(links, L("이용약관", "Terms of Service"), () => Application.OpenURL(DoodleBackendSession.TermsUrl), UiKit.Paper, 58);
             UiKit.Button(links, L("개인정보처리방침", "Privacy Policy"), () => Application.OpenURL(DoodleBackendSession.PrivacyUrl), UiKit.Paper, 58);
             UiKit.Button(body, "English / 한국어", () => { DoodleLanguage.Set(!DoodleLanguage.Korean); RefreshPage(); }, UiKit.Paper, 58);
+        }
+        void NicknameDialog()
+        {
+            ShowDetail(L("닉네임 변경","Change nickname"),panel=>{
+                var box=UiKit.Box(panel,"New nickname",UiKit.Paper,64);
+                var input=box.gameObject.AddComponent<InputField>();input.characterLimit=20;
+                var text=UiKit.Text(box,"",28,TextAnchor.MiddleLeft,60);text.supportRichText=false;UiKit.Stretch(text.rectTransform,12,4,12,4);input.textComponent=text;input.text=PlayerName;
+                var status=UiKit.Text(panel,"최대 20자 · 중복 닉네임은 사용할 수 없습니다",21,TextAnchor.MiddleCenter,60);
+                Button confirm=null;
+                confirm=UiKit.Button(panel,L("변경","Change"),async()=>{
+                    var session=DoodleBackendSession.Instance;if(!session || !session.Ready || session.Busy)return;
+                    string nickname=input.text.Trim();if(nickname.Length==0){status.text="닉네임을 입력해 주세요.";return;}
+                    confirm.interactable=false;
+                    try {
+                        var response=await DoodleBackendSession.Request(cb=>Backend.BMember.UpdateNickname(nickname,cb));
+                        if(response.IsSuccess()) {PlayerName=nickname;Save();RefreshHud();session.GetComponent<DoodleChatService>()?.Retry();pvpRanks=null;pvpRankTime=-100;if(status)status.text="닉네임을 변경했습니다.";}
+                        else if(status)status.text=response.GetStatusCode()=="409"?"이미 사용 중인 닉네임입니다.":"닉네임을 변경하지 못했습니다. 다시 시도해 주세요.";
+                    }catch(Exception){if(status)status.text="서버 연결을 확인해 주세요.";}
+                    finally{if(confirm)confirm.interactable=true;}
+                },UiKit.Yellow,64);
+            });
         }
         void LinkGoogleDialog()
         {

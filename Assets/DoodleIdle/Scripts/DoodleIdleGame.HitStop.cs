@@ -8,9 +8,25 @@ namespace DoodleIdle
         public static float HitStopDuration => DoodleHitFeedbackSettings.Shared.Duration;
         readonly List<Actor> dyingEnemies = new List<Actor>(64);
         bool playerDefeatPending;
+        public const float PlayerRespawnDelay = 1f;
+        float playerRespawnRemaining;
 
         void ApplyHitStop(Actor actor)
         {
+            // Player damage never interrupts actions. Death cancels the attack but
+            // keeps the Animator running so the existing non-looping Death can play.
+            if (actor.isPlayer) {
+                actor.rigVisual.BeginHitFeedback();
+                actor.hitFeedbackRemaining = actor.rigVisual.HitFeedbackDuration;
+                ShowHitFeedback(actor);
+                if (actor.hp <= 0) {
+                    actor.body.linearVelocity = Vector2.zero; actor.body.angularVelocity = 0;
+                    actor.body.simulated = false; actor.collider.enabled = false;
+                    actor.rigVisual.Rig.Die();
+                }
+                return;
+            }
+            actor.hitFeedbackRemaining = 0;
             if (actor.hitStop <= 0) actor.constraintsBeforeHit = actor.body.constraints;
             actor.hitStop = HitStopDuration;
             actor.body.linearVelocity = Vector2.zero;
@@ -20,6 +36,11 @@ namespace DoodleIdle
             actor.rigVisual.HitStopped = true;
             actor.rigVisual.BeginHitFeedback();
             actor.rigVisual.Rig.CancelAttack();
+            ShowHitFeedback(actor);
+        }
+
+        void ShowHitFeedback(Actor actor)
+        {
             actor.rigVisual.ShowHitFace();
             if (actor.rigVisual.Rig.hitBlood) actor.rigVisual.Rig.hitBlood.Burst(actor.art.flipX);
             actor.rigVisual.Sync();
@@ -27,7 +48,17 @@ namespace DoodleIdle
 
         void TickActorHitStop(Actor actor, float dt)
         {
-            if (actor == null || actor.hitStop <= 0) return;
+            if (actor == null) return;
+            if (actor.hitFeedbackRemaining > 0) {
+                actor.hitFeedbackRemaining = Mathf.Max(0, actor.hitFeedbackRemaining - dt);
+                actor.rigVisual.AdvanceHitFeedback(actor.rigVisual.HitFeedbackDuration - actor.hitFeedbackRemaining);
+                if (actor.hitFeedbackRemaining <= .0001f) {
+                    actor.hitFeedbackRemaining = 0;
+                    actor.rigVisual.ResetHitFeedback();
+                    actor.rigVisual.Sync();
+                }
+            }
+            if (actor.hitStop <= 0) return;
             actor.hitStop = Mathf.Max(0, actor.hitStop - dt);
             actor.rigVisual.AdvanceHitFeedback(actor.rigVisual.HitFeedbackDuration - actor.hitStop);
             actor.body.linearVelocity = Vector2.zero;
@@ -49,14 +80,17 @@ namespace DoodleIdle
                 if (enemy.hitStop > 0) continue;
                 ReleaseEnemy(enemy); dyingEnemies.RemoveAt(i);
             }
-            if (playerDefeatPending && player.hitStop <= 0) {
+            if (playerDefeatPending) {
+                playerRespawnRemaining = Mathf.Max(0, playerRespawnRemaining - dt);
+                if (playerRespawnRemaining > .0001f) return;
                 playerDefeatPending = false;
-                // The defeated pose stays at the hit location for the hit-stop duration;
-                // then the respawn starts from a fresh idle pose at the origin.
-                player.hp = player.maxHp; player.collider.enabled = true;
+                player.hp = player.maxHp;
                 player.body.position = Vector2.zero; player.body.linearVelocity = Vector2.zero;
+                player.root.transform.position = Vector3.zero;
                 player.rigVisual.Rig.ResetPooledAnimation();
+                player.rigVisual.Sync();
                 if (Ui) Ui.HandlePlayerDefeat();
+                BeginEnemyArrival(player);
                 UpdatePlayerHealthBar();
             }
         }
@@ -72,7 +106,7 @@ namespace DoodleIdle
         void ClearHitReactions()
         {
             foreach (var enemy in dyingEnemies) ReleaseEnemy(enemy);
-            dyingEnemies.Clear(); playerDefeatPending = false;
+            dyingEnemies.Clear(); playerDefeatPending = false; playerRespawnRemaining = 0;
         }
     }
 }

@@ -384,7 +384,8 @@ namespace DoodleIdle
         {
             var card = ServiceCard(body, attack ? "Attack buff" : "Gold buff", UiKit.Paper);
             var row = UiKit.Row(card, "Buff", 183,16);
-            UiKit.Icon(row, attack ? "Club" : "Gold", 136);
+            var buffIcon=UiKit.Icon(row, attack ? "Club" : "Gold", 136);
+            var glow=DoodleBuffGlow.Create(buffIcon.transform);
             var description = UiKit.Column(row, "Buff description", 4, 0);
             UiKit.Text(description, attack ? "공격력 버프" : "골드 버프", 34, TextAnchor.MiddleLeft, 47);
             UiKit.Text(description, (attack ? "공격력 +" : "골드 획득 +") + ((attack ? serviceTuning.attackBuff : serviceTuning.goldBuff) * 100).ToString("0") + "%", 27, TextAnchor.MiddleLeft, 38);
@@ -400,6 +401,7 @@ namespace DoodleIdle
             {
                 bool active = (attack ? AttackBuffSeconds : GoldBuffSeconds) > 0;
                 activate.interactable = !active;
+                glow.gameObject.SetActive(active);
                 badge.GetComponent<Image>().color = active ? UiKit.Green : new Color(.88f,.88f,.88f);
             };
             serviceBindings.Add(new ServiceBinding { text = activateText, value = caption, refresh = refresh });
@@ -646,7 +648,7 @@ namespace DoodleIdle
             var attempts=UiKit.Box(actions,"PVP remaining attempts",new Color(.96f,.94f,.9f),66);
             var attemptLabel=UiKit.Text(attempts,"오늘 도전 "+Math.Max(0,serviceTuning.pvpAttempts-services.pvpUsed)+"/"+serviceTuning.pvpAttempts,23,TextAnchor.MiddleCenter,66);UiKit.Stretch(attemptLabel.rectTransform,5,3,5,3);
             challenge.interactable = !pvpBusy && services.pvpUsed < serviceTuning.pvpAttempts;
-            var banner=UiKit.Box(body,"Ranking title",new Color(1,.97f,.85f),42); var title=UiKit.Text(banner,"랭킹 1~100위",29,TextAnchor.MiddleCenter,42);UiKit.Stretch(title.rectTransform);
+
             var header = UiKit.Row(body, "Ranking columns", 32);
             UiKit.Text(header, "순위", 18, TextAnchor.MiddleCenter, 30);
             UiKit.Text(header, "이름", 18, TextAnchor.MiddleCenter, 30);
@@ -793,6 +795,9 @@ namespace DoodleIdle
                 UiKit.Text(panel, "현재 진행 상황을 저장합니다", 23, TextAnchor.MiddleCenter, 48);
                 UiKit.Button(panel, "게임종료", () => { Save(); DoodlePrefs.Save(); Application.Quit(); }, UiKit.Red, 58);
             }), new Color(1,.56f,.57f), 68);
+            var session=DoodleBackendSession.Instance;
+            UiKit.Button(body,L("로그아웃","Sign out"),()=>AccountDialog(false),UiKit.Blue,58).interactable=session && session.Ready;
+            UiKit.Button(body,L("회원탈퇴","Delete account"),()=>AccountDialog(true),UiKit.Red,58).interactable=session && session.Ready;
         }
 
         void ServiceVolume(Transform parent, string title, bool music)

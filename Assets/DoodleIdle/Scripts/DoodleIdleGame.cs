@@ -62,6 +62,7 @@ namespace DoodleIdle
             public GameNumber hp, maxHp;
             public float flash, phase;
             public float hitStop;
+            public float hitFeedbackRemaining;
             public float spawnRemaining, spawnDelay, spawnGrow;
             public RigidbodyConstraints2D constraintsBeforeHit;
             public bool returnedToPool;
@@ -458,7 +459,10 @@ namespace DoodleIdle
             }
             float dt = Time.fixedDeltaTime;
             Elapsed += dt;
-            if (!Alive(player)) { TickParticles(dt); TickDamageNumbers(dt); return; }
+            if (!Alive(player)) {
+                foreach (var enemy in enemies) enemy.body.linearVelocity = Vector2.zero;
+                TickActiveCombatEffects(dt); return;
+            }
             if (!IsPvpEngine && TickBossChallenge(dt)) return;
             if (!IsPvpEngine && Ui && Ui.TickDungeonChallenge(dt)) return;
             var target = Closest(player.Position);
@@ -790,7 +794,7 @@ namespace DoodleIdle
         {
             paused = !paused;
             if (paused) ReleaseJoystick();
-            player.body.simulated = !paused;
+            player.body.simulated = !paused && Alive(player);
             foreach (var enemy in enemies) enemy.body.simulated = !paused && enemy.spawnRemaining <= 0;
             foreach (var visual in world.GetComponentsInChildren<DoodleRigVisual>()) { visual.Paused = paused; visual.Sync(); }
         }

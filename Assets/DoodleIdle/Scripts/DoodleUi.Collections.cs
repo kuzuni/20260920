@@ -17,6 +17,7 @@ namespace DoodleIdle
         UiItem pendingEquip;
         readonly Dictionary<string, float> collectionScrollPositions = new Dictionary<string, float>();
         readonly List<Action> statWalletBindings = new List<Action>();
+        DoodlePowerCounter statsPower;
         GameNumber displayedStatGold;
 
         RectTransform CollectionBox(Transform parent, string name, Color color)
@@ -103,6 +104,7 @@ namespace DoodleIdle
             var playerPortrait = UiKit.Icon(power, EquippedAppearanceIcon, 248);
             playerPortrait.gameObject.AddComponent<DoodleIdlePortrait>().Configure(this,DoodleIdlePortrait.View.Stats);
             var powerText = UiKit.Text(power, "전투력 " + UiNumber.Format(PowerAmount), 35, TextAnchor.MiddleCenter, 108);
+            statsPower = powerText.gameObject.AddComponent<DoodlePowerCounter>(); statsPower.SetTarget(PowerAmount, "전투력 ");
             var portraitLayout = power.gameObject.AddComponent<DoodleStatsPortraitLayout>();
             portraitLayout.settings = DoodlePortraitSettings.Current; portraitLayout.portrait = playerPortrait.rectTransform; portraitLayout.power = powerText; portraitLayout.Apply();
             var batch = UiKit.Row(body, "Stat quantity", 64, 12);
@@ -120,7 +122,6 @@ namespace DoodleIdle
             foreach (var definition in collectionTuning.stats)
             {
                 var stat = definition;
-                if (hideMaxStats && StatLevel(stat.id) >= StatMaxLevel(stat.id)) continue;
                 int upgrades;
                 GameNumber cost = StatUpgradeQuoteAmount(stat.id, statBatch, out upgrades);
                 var frame = CollectionBox(body, "Stat " + stat.id, UiKit.Paper);
@@ -132,42 +133,48 @@ namespace DoodleIdle
                 if (locked && !criticalBadge) statArt.color = Color.gray;
                 var text = UiKit.Column(row, "Values", 2, 3);
                 CollectionColumnWidth(text, 1.3f);
-                UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id).ToString("N0"), 30, TextAnchor.MiddleLeft, 39);
+                var levelText = UiKit.Text(text, stat.name + " Lv." + StatLevel(stat.id).ToString("N0"), 30, TextAnchor.MiddleLeft, 39);
                 GameNumber current = StatAmount(stat.id);
                 GameNumber next = StatAmountAfterUpgrades(stat.id,upgrades);
                 if (IsCriticalChance(stat.id)) next = GameNumber.Clamp(next, 0, 100);
                 var valueText = UiKit.Text(text, locked ? CriticalUnlockText(stat.id) + " MAX 달성 시 해금" : StatNumber(stat.id, current) + " → <color=#216B20>" + StatNumber(stat.id, next) + "</color>", 29, TextAnchor.MiddleLeft, 38);
-                if (locked)
-                {
-                    var lockButton = UiKit.Button(row, CriticalUnlockText(stat.id) + "\nMAX 시 해금", null, Color.gray, 94);
-                    CollectionButtonText(lockButton,23);
-                    CollectionWidth(lockButton.transform, 164); lockButton.interactable = false;
-                    continue;
-                }
                 Func<bool> purchase = () =>
                 {
+                    int beforeLevel=StatLevel(stat.id);
                     if (!UpgradeStat(stat.id, statBatch)) return false;
-                    Save(); RefreshPage(); return true;
+                    DoodleUiIconBurst.Play(statArt,StatLevel(stat.id)-beforeLevel);
+                    Save(); return true;
                 };
                 var button = CollectionCoinButton(row, upgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(upgrades) + "\n골드 " + UiNumber.Format(cost), upgrades == 0 ? "최대 단계" : upgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(upgrades), cost, () => { if (!purchase()) Toast("강화 골드가 부족하거나 최대 단계입니다."); }, 94, 164, out var captionText, out var priceText);
-                button.interactable = upgrades > 0 && GoldAmount >= cost;
-                statWalletBindings.Add(() => {
+                var rowVisibility=row.gameObject.AddComponent<CanvasGroup>();
+                var lockedCover=UiKit.LockCover(frame);lockedCover.gameObject.AddComponent<LayoutElement>().ignoreLayout=true;
+                var unlockLabel=UiKit.Text(lockedCover,CriticalUnlockText(stat.id)+" MAX 달성 시 해금",28,TextAnchor.MiddleCenter,104);UiKit.Stretch(unlockLabel.rectTransform,8,4,8,4);unlockLabel.color=Color.white;
+                lockedCover.GetComponent<Image>().raycastTarget=true;
+                void RefreshRow() {
                     if (!button) return;
+                    bool nowLocked = IsCriticalChance(stat.id) && !CriticalUnlocked(stat.id);
+                    lockedCover.gameObject.SetActive(nowLocked);rowVisibility.alpha=nowLocked?0:1;rowVisibility.blocksRaycasts=!nowLocked;
+                    bool hidden = hideMaxStats && StatLevel(stat.id) >= StatMaxLevel(stat.id);
+                    if (frame.gameObject.activeSelf == hidden) frame.gameObject.SetActive(!hidden);
                     GameNumber liveCost = StatUpgradeQuoteAmount(stat.id, statBatch, out int liveUpgrades);
-                    button.interactable = liveUpgrades > 0 && GoldAmount >= liveCost;
-                    button.name = liveUpgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(liveUpgrades) + "\n골드 " + UiNumber.Format(liveCost);
-                    captionText.text = liveUpgrades == 0 ? "최대 단계" : liveUpgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(liveUpgrades);
+                    levelText.text = stat.name + " Lv." + StatLevel(stat.id).ToString("N0");
+                    button.interactable = !nowLocked && liveUpgrades > 0 && GoldAmount >= liveCost;
+                    button.name = nowLocked ? CriticalUnlockText(stat.id) + " MAX 시 해금" : liveUpgrades == 0 ? "최대 단계" : "강화 ×" + UiNumber.Format(liveUpgrades) + "\n골드 " + UiNumber.Format(liveCost);
+                    captionText.text = nowLocked ? CriticalUnlockText(stat.id) + "\nMAX 시 해금" : liveUpgrades == 0 ? "최대 단계" : liveUpgrades == 1 ? "강화" : "강화 ×" + UiNumber.Format(liveUpgrades);
+                    priceText.transform.parent.gameObject.SetActive(!nowLocked);
                     priceText.text = UiNumber.Format(liveCost);
-                    valueText.text = StatNumber(stat.id, StatAmount(stat.id)) + " → <color=#216B20>" + StatNumber(stat.id, StatAmountAfterUpgrades(stat.id, liveUpgrades)) + "</color>";
-                });
+                    if (!criticalBadge) statArt.color = nowLocked ? Color.gray : Color.white;
+                    valueText.text = nowLocked ? CriticalUnlockText(stat.id) + " MAX 달성 시 해금" : StatNumber(stat.id, StatAmount(stat.id)) + " → <color=#216B20>" + StatNumber(stat.id, StatAmountAfterUpgrades(stat.id, liveUpgrades)) + "</color>";
+                }
+                statWalletBindings.Add(RefreshRow); RefreshRow();
                 UiKit.Repeat(button, "stat:" + stat.id, purchase);
             }
         }
 
-        void RefreshStatWallet()
+        void RefreshStatWallet(bool force = false)
         {
             if (ActivePage != "Stats") { statWalletBindings.Clear(); return; }
-            if (displayedStatGold == GoldAmount) return;
+            if (!force && displayedStatGold == GoldAmount) return;
             displayedStatGold = GoldAmount;
             // Update existing controls without rebuilding the popup or interrupting scrolling/holds.
             foreach (var refresh in statWalletBindings) refresh();
@@ -252,6 +259,7 @@ namespace DoodleIdle
             RecordServiceProgress("statUpgrade", count);
             RecordServiceProgress("statUpgrade:"+id, count);
             NotifyPowerChanged(before, "스탯 강화");
+            RefreshStatWallet(true); RefreshHud(); StatUpgraded?.Invoke();
             return true;
         }
 
@@ -300,7 +308,7 @@ namespace DoodleIdle
             body.gameObject.AddComponent<DoodleCollectionReferenceLayout>().Configure(body, equipmentCategory);
         }
 
-        void BuildSkills(RectTransform body) => BuildLoadout(body, "Skill", "스킬", 8, 8);
+        void BuildSkills(RectTransform body) => BuildLoadout(body, "Skill", "스킬", 8, 4);
         void BuildCompanions(RectTransform body) => BuildLoadout(body, "Companion", "동료", 5, 5);
 
         void BuildLoadout(RectTransform body, string category, string label, int capacity, int columns)
@@ -317,12 +325,13 @@ namespace DoodleIdle
             {
                 if (i >= unlocked) {
                     string requirement = category == "Skill" ? "스테이지 " + SkillSlotUnlockStage(i) + " 도달" : CompanionSlotUnlockRequirement(i);
-                    var locked = UiKit.Button(slots, "", () => Toast(requirement + " 시 해금됩니다."), new Color(.55f, .56f, .57f), slotHeight);
+                    var locked = UiKit.Button(slots, "", () => Toast(requirement + " 시 해금됩니다."), UiKit.Paper, slotHeight);
                     locked.name = (category == "Skill" ? "Locked skill slot " : "Locked companion slot ") + i;
-                    var labelText = locked.GetComponentInChildren<Text>();
+                    UiKit.LockCover(locked.transform);
+                    var labelText = locked.GetComponentInChildren<Text>(); labelText.transform.SetAsLastSibling();
                     labelText.text = category == "Skill" ? SkillSlotUnlockStage(i) + "\n스테이지" : GradeNames[i + 2] + "1 이상\n갑옷 획득";
-                    labelText.fontSize = labelText.resizeTextMaxSize = 16;
-                    labelText.resizeTextMinSize = 10; labelText.color = Color.white;
+                    labelText.fontSize = labelText.resizeTextMaxSize = category == "Companion" ? 32 : 16;
+                    labelText.resizeTextMinSize = category == "Companion" ? 20 : 10; labelText.color = Color.white;
                     labelText.rectTransform.anchorMin = Vector2.zero; labelText.rectTransform.anchorMax = new Vector2(1, .43f);
                     labelText.rectTransform.offsetMin = new Vector2(2, 3); labelText.rectTransform.offsetMax = new Vector2(-2, 0);
                     var padlock = UiKit.Rect(locked.transform, "Slot unlock padlock");
@@ -392,6 +401,11 @@ namespace DoodleIdle
                 level.color = item.discovered ? UiKit.Ink : Color.white;
                 card.GetComponent<DoodleUiSlotLayout>().Invalidate();
             }
+            if(item.category=="Companion") {
+                var icon=card.transform.Find("Icon: "+item.icon);
+                if(icon)icon.gameObject.AddComponent<DoodleRankingPortrait>().ConfigureCollection(this,DoodleCharacterCatalog.Current.Companion(DoodleCollectionArt.CompanionIndex(item.icon)),item.equipped,false,Color.white);
+            }
+            var cover=card.transform.Find("Locked cover");if(cover){cover.SetAsLastSibling();var padlock=card.transform.Find("Locked padlock");if(padlock)padlock.SetAsLastSibling();}
             Notify(card.transform,()=>ItemNeedsAttention(item));
             return card;
         }
@@ -520,7 +534,8 @@ namespace DoodleIdle
                 CollectionLabelPill(grade, GradeNames[item.rarity], UiKit.Rarity(item.rarity), 88, 24, 21);
                 var display = UiKit.Row(body, "Selected item art", 90, 0);
                 var portrait = UiKit.Icon(display, item.icon, 90);
-                if (!item.discovered) portrait.color = Color.black;
+                if(item.category=="Companion")portrait.gameObject.AddComponent<DoodleRankingPortrait>().ConfigureCollection(this,DoodleCharacterCatalog.Current.Companion(DoodleCollectionArt.CompanionIndex(item.icon)),item.equipped,false,Color.white);
+                if (!item.discovered) UiKit.LockCover(portrait.transform);
                 var quantity = UiKit.Row(body, "Detail quantity", 26, 0);
                 var gauge = UiKit.Gauge(quantity, UiNumber.Format(item.count) + "/" + UiNumber.Format(CopiesNeeded(item)), item.count / (float)CopiesNeeded(item), 26);
                 CollectionWidth(gauge, 174);
@@ -695,8 +710,16 @@ namespace DoodleIdle
                 return false;
             }
             Save(); RefreshPage();
+            if(success) StartCoroutine(RelicUpgradeBurst(item.icon));
             if (showMessage) Toast(success ? item.name + " 강화 성공!" : "강화 실패 · 유물 1개 소모, 현재 단계 유지");
             return true;
+        }
+
+        IEnumerator RelicUpgradeBurst(string icon,int count=1)
+        {
+            yield return null;
+            if(ActivePage!="Relics")yield break;
+            foreach(var image in GetComponentsInChildren<Image>())if(image.name=="Icon: "+icon)DoodleUiIconBurst.Play(image,count);
         }
 
         void StartCollectionBulk(string category)
@@ -710,6 +733,7 @@ namespace DoodleIdle
             collectionBulkRunning = true;
             GameNumber before = PowerAmount;
             long attempts = 0, successes = 0;
+            var relicBursts=new Dictionary<string,int>();
             long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 250;
             int frameRolls = 0;
             try
@@ -736,6 +760,7 @@ namespace DoodleIdle
                         RecordMissionAction("relicAttempt", used);
                         RecordServiceProgress("relicUpgrade", won);
                         attempts += used; successes += won; frameRolls += used;
+                        if(won>0)relicBursts[item.icon]=Math.Min(100,(relicBursts.TryGetValue(item.icon,out var oldCount)?oldCount:0)+won);
                         if (frameRolls < 262144 && System.Diagnostics.Stopwatch.GetTimestamp() < deadline) continue;
                         yield return null;
                         deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency / 250;
@@ -750,6 +775,7 @@ namespace DoodleIdle
                 if (successes > 0) NotifyPowerChanged(before, "일괄 강화");
             }
             RefreshCollectionBulkPage(category);
+            foreach(var burst in relicBursts)StartCoroutine(RelicUpgradeBurst(burst.Key,burst.Value));
             Toast(attempts == 0 ? "강화 가능한 수량이 없습니다." : category == "Relic"
                 ? UiNumber.Format(attempts) + "개 소모 · " + UiNumber.Format(successes) + "회 성공"
                 : UiNumber.Format(successes) + "회 강화했습니다.");
@@ -830,7 +856,7 @@ namespace DoodleIdle
                 bool companion = category == "Companion";
                 Height(body.GetChild(0), companion ? 24 : 28); Font(body.GetChild(0).GetComponent<Text>(), companion ? 23 : 25);
                 var slots = body.Find("Equipped " + category);
-                Columns(slots.GetComponent<GridLayoutGroup>(), category == "Skill" ? 8 : 5);
+                Columns(slots.GetComponent<GridLayoutGroup>(), category == "Skill" ? 4 : 5);
                 for (int i = 0; i < slots.childCount; i++) EquippedNumber(slots.GetChild(i), i + 1);
                 var ownership = body.Find("Total ownership");
                 Layout(ownership.GetComponent<VerticalLayoutGroup>(), 0, new RectOffset(4, 4, 1, 1));

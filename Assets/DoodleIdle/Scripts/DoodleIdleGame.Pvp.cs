@@ -116,7 +116,7 @@ namespace DoodleIdle
                 outcome=DoodlePvpRules.Outcome(left.PlayerHealthAmount,left.PlayerMaxHealthAmount,right.PlayerHealthAmount,right.PlayerMaxHealthAmount);
                 if(left.PlayerHealthAmount<=0 || right.PlayerHealthAmount<=0) {
                     left.player.body.linearVelocity=right.player.body.linearVelocity=Vector2.zero;
-                    yield return new WaitForSeconds(HitStopDuration);
+                    yield return new WaitForSeconds(PlayerRespawnDelay);
                 }
                 finished=true;
             } finally {

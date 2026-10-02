@@ -290,14 +290,8 @@ namespace DoodleIdle
             var icon = slot.transform.Find("Icon: " + skin.icon);
             if (icon && skin.owned) icon.GetComponent<Image>().color = skin.tint;
             if (icon && skin.category == "Appearance") {
-                var image = icon.GetComponent<Image>();
-                image.enabled = false;
-                var portraitRect = UiKit.Rect(icon, "Body scale portrait");
-                UiKit.Stretch(portraitRect, 0, 0, 0, 0);
-                var portrait = portraitRect.gameObject.AddComponent<DoodleSkinPortrait>();
-                portrait.color = image.color;
                 int costume = skin.icon.StartsWith("SkinAppearance_", StringComparison.Ordinal) ? int.Parse(skin.icon.Split('_')[1]) : -1;
-                portrait.Configure(costume);
+                icon.gameObject.AddComponent<DoodleRankingPortrait>().ConfigureCollection(this,DoodleCharacterCatalog.Current.Player(costume),skin.equipped,true,skin.tint);
             }
             var state = slot.transform.Find("Quantity gauge");
             if (state) state.GetComponentInChildren<Text>().text = skin.owned ? "보유" : "미획득";

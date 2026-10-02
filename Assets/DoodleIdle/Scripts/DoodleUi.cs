@@ -28,6 +28,8 @@ namespace DoodleIdle
         RectTransform root,safe,pageLayer,overlayLayer,nav,header,skillDock,shortcuts,mission;
         Text walletGold,walletDiamond,profile,missionText,buffGold,buffAttack,toast,missionDiamonds,missionTicketCount;
         Image missionTicketIcon, profilePortrait;
+        DoodlePowerCounter profilePower;
+        public event Action StatUpgraded;
         Text powerToast,cameraLabel,stageLabel;
         Button missionClaim, breakthroughButton;
         DoodleBreakthroughPulse breakthroughPulse;
@@ -79,6 +81,7 @@ namespace DoodleIdle
             var p=UiKit.Box(header,"Profile",UiKit.Paper,84); var row=UiKit.Row(p,"Profile contents",80,7); UiKit.Stretch(row,9,2,9,2);
             profilePortrait=UiKit.Icon(row,EquippedAppearanceIcon,72); profile=UiKit.Text(row,"",28,TextAnchor.MiddleLeft,76); UiKit.Flexible(p,1.75f);
             profilePortrait.gameObject.AddComponent<DoodleIdlePortrait>().Configure(this,DoodleIdlePortrait.View.Profile);
+            profilePower = profile.gameObject.AddComponent<DoodlePowerCounter>();
             var gold=UiKit.Box(header,"Gold wallet",UiKit.Paper,66); var g=UiKit.Row(gold,"Gold",62,2); UiKit.Stretch(g,7,2,7,2); UiKit.Icon(g,"Gold",38); walletGold=UiKit.Text(g,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(gold,1.05f);
             var diamond=UiKit.Box(header,"Diamond wallet",UiKit.Paper,66); var d=UiKit.Row(diamond,"Diamonds",62,2); UiKit.Stretch(d,7,2,7,2); UiKit.Icon(d,"Diamond",39); walletDiamond=UiKit.Text(d,"",27,TextAnchor.MiddleCenter,52); UiKit.Flexible(diamond,.9f);
             var settings=IconButton(header,"Settings","","Settings",()=>ShowPage("Settings"),68); FixedWidth(settings.transform,64); settings.GetComponent<Image>().color=Color.clear; settings.GetComponent<Outline>().enabled=false; UiKit.Stretch(settings.transform.Find("Icon: Settings") as RectTransform,0,0,0,0);
@@ -398,9 +401,10 @@ namespace DoodleIdle
         {
             if(!initialized)return; RefreshStatWallet();
             var power = PowerAmount; var gold = GoldAmount; int diamonds = Diamonds;
+            if (statsPower && ActivePage == "Stats") statsPower.SetTarget(power, "전투력 ");
             string playerName = PlayerName, appearance = EquippedAppearanceIcon;
             if (!hudValuesValid || displayedHudAppearance != appearance) { displayedHudAppearance = appearance; profilePortrait.sprite = UiKit.Art(appearance); }
-            if (!hudValuesValid || displayedHudPower != power || displayedHudName != playerName) { displayedHudPower = power; displayedHudName = playerName; profile.text = playerName+"\n전투력 "+UiNumber.Format(power); }
+            if (!hudValuesValid || displayedHudPower != power || displayedHudName != playerName) { displayedHudPower = power; displayedHudName = playerName; profilePower.SetTarget(power, playerName+"\n전투력 "); }
             if (!hudValuesValid || displayedHudGold != gold) { displayedHudGold = gold; walletGold.text = UiNumber.Format(gold); }
             if (!hudValuesValid || displayedHudDiamonds != diamonds) { displayedHudDiamonds = diamonds; walletDiamond.text = diamonds.ToString("N0"); }
             hudValuesValid = true;

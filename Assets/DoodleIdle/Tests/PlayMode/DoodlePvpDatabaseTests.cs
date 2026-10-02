@@ -133,7 +133,7 @@ namespace DoodleIdle.Tests
                 foreach(var fighter in fighters){
                     bool isA=fighter.Ui.PlayerName==qaName;
                     PvpLoadoutAudit.AssertValues(isA?expectedA:expectedB,fighter.Ui);
-                    Assert.That(fighter.PlayerMaxHealthAmount,Is.EqualTo(fighter.Ui.MaxHealthAmount));
+                    Assert.That(fighter.PlayerMaxHealthAmount,Is.EqualTo(fighter.Ui.MaxHealthAmount*100));
                     Assert.That(fighter.Ui.EquippedSkills.Count,Is.EqualTo(companionsOnly?0:8));Assert.That(fighter.ActiveCompanions,Is.EqualTo(5));
                     hits[fighter]=new Dictionary<string,int>();var counts=hits[fighter];
                     fighter.PvpDamageDealt+=(category,id,amount)=>{string key=category+"/"+id;counts[key]=counts.TryGetValue(key,out int n)?n+1:1;};

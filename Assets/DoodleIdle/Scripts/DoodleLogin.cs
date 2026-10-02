@@ -12,13 +12,24 @@ namespace DoodleIdle
         Text status;
         Button login, guest, retry;
         Toggle agreement;
-        void Start()
+        DoodleLoadingScreen startupLoading;
+        async void Start()
         {
             session = DoodleBackendSession.Get();
             session.Changed += Refresh;
-            Build();
-            _ = session.StartAutoLogin();
+            await RunAutoLogin(session.StartAutoLogin);
         }
+        async System.Threading.Tasks.Task RunAutoLogin(System.Func<System.Threading.Tasks.Task<bool>> attempt)
+        {
+            if (panel) panel.parent.gameObject.SetActive(false);
+            startupLoading = DoodleLoadingScreen.CreateForLogin();
+            startupLoading.SetProgress(.05f, L("자동 로그인 중…", "Signing you in…"), false);
+            bool entered = await attempt();
+            if (!this || entered) return; // The game adopts this same cover before its first render.
+            startupLoading.gameObject.SetActive(false); Destroy(startupLoading.gameObject); startupLoading = null;
+            Build();
+        }
+        async void RetryAutoLogin() => await RunAutoLogin(session.TokenLoginAsync);
         static string L(string ko, string en) => DoodleLanguage.Text(ko, en);
         void Build()
         {
@@ -36,7 +47,7 @@ namespace DoodleIdle
             UiKit.Text(panel, L("탕탕탕\n방치형 RPG", "Tang Tang Tang\nIdle RPG"), 56, TextAnchor.MiddleCenter, 155);
             var portrait = UiKit.Icon(panel, "Player", 200); UiKit.Height(portrait.transform, 200); portrait.preserveAspect = true;
             status = UiKit.Text(panel, "", 22, TextAnchor.MiddleCenter, 160);
-            retry = UiKit.Button(panel,L("자동 로그인 재시도","Retry automatic sign-in"),session.RetryAutoLogin,UiKit.Blue,58);
+            retry = UiKit.Button(panel,L("자동 로그인 재시도","Retry automatic sign-in"),RetryAutoLogin,UiKit.Blue,58);
             retry.name="Retry automatic login";
             var terms = UiKit.Row(panel, "Agreement", 72, 12);
             var toggle = UiKit.Box(terms, "Accept terms", Color.white, 46); toggle.sizeDelta = new Vector2(46,46);
@@ -76,6 +87,7 @@ namespace DoodleIdle
 #endif
         void Refresh()
         {
+            if (startupLoading) { startupLoading.SetProgress(.05f, session.Status, false); return; }
             if (!status) return;
             status.text = session.Status;
             login.interactable = agreement.isOn && !session.Busy;
@@ -84,6 +96,10 @@ namespace DoodleIdle
             retry.gameObject.SetActive(session.CanRetryAutoLogin);
             retry.interactable = !session.Busy;
         }
-        void OnDestroy() { if (session) session.Changed -= Refresh; }
+        void OnDestroy()
+        {
+            if (session) session.Changed -= Refresh;
+            if (startupLoading && (!session || !session.Ready)) Destroy(startupLoading.gameObject);
+        }
     }
 }

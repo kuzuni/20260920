@@ -19,7 +19,7 @@ namespace DoodleIdle
 
         void ResetPlayerContactDamage()
         {
-            player.hp = player.maxHp = Ui ? Ui.MaxHealthAmount : 1280;
+            player.hp = player.maxHp = (Ui ? Ui.MaxHealthAmount : 1280) * (IsPvpEngine ? 100 : 1);
             contactInvulnerability = 0; PlayerContactHits = 0;
             if (!player.healthFill) AddHealthBar(player);
             player.healthBack.name = "Player HP background";
@@ -70,12 +70,14 @@ namespace DoodleIdle
             player.hp = GameNumber.Max(0, player.hp - damage);
             ShowDamageNumber(player.Position, damage, true);
             PlayerContactHits++;
-            ApplyHitStop(player); dashRemaining = 0;
+            ApplyHitStop(player);
             EmitHitSlash(player.Position);
             contactInvulnerability = ContactInvulnerabilityDuration;
             if (player.hp <= 0)
             {
+                dashRemaining = 0;
                 playerDefeatPending = true;
+                playerRespawnRemaining = PlayerRespawnDelay;
                 player.collider.enabled = false;
             }
             UpdatePlayerHealthBar();
