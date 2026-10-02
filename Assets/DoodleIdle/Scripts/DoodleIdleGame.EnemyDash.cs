@@ -98,11 +98,13 @@ namespace DoodleIdle
                     travel = Mathf.Min(travel, Mathf.Max(0, distance - reach) * .5f / closing);
                     if (travel <= .000001f) break;
                 }
-                Vector2 limit = arenaHalfSize - Vector2.one * (radius + .025f);
-                if (Mathf.Abs(direction.x) > .0001f)
-                    travel = Mathf.Min(travel, Mathf.Max(0, limit.x - Mathf.Sign(direction.x) * position.x) / Mathf.Abs(direction.x));
-                if (Mathf.Abs(direction.y) > .0001f)
-                    travel = Mathf.Min(travel, Mathf.Max(0, limit.y - Mathf.Sign(direction.y) * position.y) / Mathf.Abs(direction.y));
+                if (!endlessWorld) {
+                    Vector2 limit = arenaHalfSize - Vector2.one * (radius + .025f);
+                    if (Mathf.Abs(direction.x) > .0001f)
+                        travel = Mathf.Min(travel, Mathf.Max(0, limit.x - Mathf.Sign(direction.x) * position.x) / Mathf.Abs(direction.x));
+                    if (Mathf.Abs(direction.y) > .0001f)
+                        travel = Mathf.Min(travel, Mathf.Max(0, limit.y - Mathf.Sign(direction.y) * position.y) / Mathf.Abs(direction.y));
+                }
                 enemy.body.linearVelocity = direction * (travel / dt);
             }
         }

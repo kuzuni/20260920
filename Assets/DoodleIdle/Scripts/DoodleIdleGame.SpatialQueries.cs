@@ -9,6 +9,8 @@ namespace DoodleIdle
         struct EnemyPoint { public Actor actor; public Vector2 position; }
         readonly Dictionary<Vector2Int,List<int>> enemyCells = new Dictionary<Vector2Int,List<int>>();
         readonly List<EnemyPoint> enemyPoints = new List<EnemyPoint>(256);
+        readonly Stack<List<int>> spareEnemyCells = new Stack<List<int>>();
+        readonly Stack<List<Vector2>> spareSpawnCells = new Stack<List<Vector2>>();
         readonly List<int> segmentCandidates = new List<int>(256);
         static readonly System.Comparison<int> ReverseEnemyOrder = (a,b)=>b.CompareTo(a);
 
@@ -19,12 +21,13 @@ namespace DoodleIdle
         void SnapshotSpawnPositions()
         {
             foreach(var cell in spawnCells.Values)cell.Clear();
+            if (spawnCells.Count > 1024) { foreach (var cell in spawnCells.Values) spareSpawnCells.Push(cell); spawnCells.Clear(); }
             foreach(var enemy in enemies)AddSpawnPosition(enemy.Position);
         }
         void AddSpawnPosition(Vector2 position)
         {
             var key=new Vector2Int(Mathf.FloorToInt(position.x/EnemyCellSize),Mathf.FloorToInt(position.y/EnemyCellSize));
-            if(!spawnCells.TryGetValue(key,out var cell))spawnCells[key]=cell=new List<Vector2>(4);
+            if(!spawnCells.TryGetValue(key,out var cell))spawnCells[key]=cell=spareSpawnCells.Count > 0 ? spareSpawnCells.Pop() : new List<Vector2>(4);
             cell.Add(position);
         }
         bool SpawnPositionOccupied(Vector2 position)
@@ -42,13 +45,14 @@ namespace DoodleIdle
         void SnapshotSummonTargets()
         {
             foreach(var cell in enemyCells.Values)cell.Clear();
+            if (enemyCells.Count > 1024) { foreach (var cell in enemyCells.Values) spareEnemyCells.Push(cell); enemyCells.Clear(); }
             enemyPoints.Clear();
             foreach(var enemy in enemies)
             {
                 if (!Alive(enemy)) continue;
                 var position=enemy.Position;
                 var cell=new Vector2Int(Mathf.FloorToInt(position.x/EnemyCellSize),Mathf.FloorToInt(position.y/EnemyCellSize));
-                if(!enemyCells.TryGetValue(cell,out var indices))enemyCells[cell]=indices=new List<int>(16);
+                if(!enemyCells.TryGetValue(cell,out var indices))enemyCells[cell]=indices=spareEnemyCells.Count > 0 ? spareEnemyCells.Pop() : new List<int>(16);
                 indices.Add(enemyPoints.Count);enemyPoints.Add(new EnemyPoint{actor=enemy,position=position});
             }
         }

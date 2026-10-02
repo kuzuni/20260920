@@ -13,6 +13,7 @@ namespace DoodleIdle
         [Header("Population")]
         public int targetPopulation = 50;
         public int refillBelow = 10;
+        [InspectorName("경계 없는 맵")] public bool endlessWorld = true;
         public Vector2 arenaHalfSize = new Vector2(17, 20);
         public const float SlashSpeed = 11;
         [Header("Combat")]
@@ -208,6 +209,7 @@ namespace DoodleIdle
 
         void BuildCamera()
         {
+            worldSortOriginY = 0;
             gameCamera = Camera.main;
             if (!gameCamera)
             {
@@ -238,6 +240,7 @@ namespace DoodleIdle
 
         void BuildArena()
         {
+            if (endlessWorld) return;
             Wall(new Vector2(-arenaHalfSize.x - .5f, 0), new Vector2(1, arenaHalfSize.y * 2 + 2));
             Wall(new Vector2(arenaHalfSize.x + .5f, 0), new Vector2(1, arenaHalfSize.y * 2 + 2));
             Wall(new Vector2(0, -arenaHalfSize.y - .5f), new Vector2(arenaHalfSize.x * 2, 1));
@@ -349,10 +352,8 @@ namespace DoodleIdle
                 // A breakthrough wave must actually be empty before its boss appears.
                 if (enemies.Count > 0) return;
                 bananaHitTimes.Clear(); dashVictims.Clear();
-                var bossPosition = new Vector2(Mathf.Clamp(player.Position.x + 5, -arenaHalfSize.x + 3, arenaHalfSize.x - 3), Mathf.Clamp(player.Position.y, -arenaHalfSize.y + 3, arenaHalfSize.y - 3));
                 SnapshotSpawnPositions();
-                if (InsidePlayerSpawnExclusion(bossPosition, .56f * 3) &&
-                    !TryFindEnemySpawn(arenaHalfSize - Vector2.one * 3, .56f * 3, out bossPosition)) {
+                if (!TryFindSurroundSpawn(0, 1, UnityEngine.Random.Range(0f, 2 * Mathf.PI), .56f * 3, out var bossPosition)) {
                     spawnBlockedUntil = Time.time + .5f; return;
                 }
                 var boss = CreateActor(false, bossPosition, 2);
@@ -368,9 +369,9 @@ namespace DoodleIdle
             bool breakthrough = Ui && !dungeon && Ui.BreakthroughMode;
             // Restore only the unfinished part of a saved breakthrough wave.
             int population = dungeon ? 100 : breakthrough ? Ui.MainStageRemaining : targetPopulation;
-            if (enemies.Count > 0 && (dungeon || breakthrough || enemies.Count > refillBelow)) return;
+            if (!spawnWaveIncomplete && enemies.Count > 0 && (dungeon || breakthrough || enemies.Count > refillBelow)) return;
             int needed = Mathf.Max(0, population - enemies.Count);
-            if (needed == 0) return;
+            if (needed == 0) { spawnWaveIncomplete = false; return; }
             var waveHealth = Ui ? Ui.EnemyHealthAmount(Ui.CombatDifficultyStage) : EnemyMaxHealth;
             float spawnRotation = UnityEngine.Random.Range(0f, 2 * Mathf.PI);
             SnapshotSpawnPositions();
@@ -385,12 +386,14 @@ namespace DoodleIdle
                 enemies.Add(enemy); BeginEnemyArrival(enemy);
                 AddSpawnPosition(enemy.Position);
             }
+            spawnWaveIncomplete = enemies.Count < population;
             Refills++;
         }
 
         void Update()
         {
             if (!Ready) return;
+            worldSortOriginY = gameCamera.transform.position.y;
             if(pvpSessionActive)return;
             var keyboard = Keyboard.current;
             if (!IsPvpEngine && keyboard != null && (!Ui || !Ui.BlocksGameplay))
@@ -438,6 +441,7 @@ namespace DoodleIdle
         void FixedUpdate()
         {
             if (!Ready || paused) return;
+            worldSortOriginY = gameCamera.transform.position.y;
             TickEnemyArrivals(Time.fixedDeltaTime);
             TickHitReactions(Time.fixedDeltaTime);
             if (IsPvpEngine && (pvpTimedBattle && Elapsed>=DoodlePvpRules.TimeLimitSeconds || !Alive(player) || pvpOpponent==null || !Alive(pvpOpponent.player))) {
@@ -511,7 +515,7 @@ namespace DoodleIdle
             }
             using(combatMarkers[2].Auto()) TickEquippedSkills(dt);
             TickActiveCombatEffects(dt);
-            if (enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
+            if (spawnWaveIncomplete || enemies.Count <= refillBelow || (Ui && Ui.MainBossPending)) Refill();
             if(!IsPvpEngine)using(combatMarkers[13].Auto()) LimitEnemyCrowdMotion(dt);
             } finally { if (Ui) Ui.EndCombatSnapshot(); }
         }
@@ -536,9 +540,10 @@ namespace DoodleIdle
         {
             if (!Ready) return;
             if(IsPvpEngine){FaceView.Update(gameCamera);return;}
-            if(pvpSessionActive)return;
+            if(pvpSessionActive){UpdateEndlessGround();return;}
             Vector3 desired = new Vector3(player.Position.x, player.Position.y, -10);
             gameCamera.transform.position = Vector3.Lerp(gameCamera.transform.position, desired, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 9));
+            UpdateEndlessGround();
             FaceView.Update(gameCamera);
         }
 
@@ -795,7 +800,8 @@ namespace DoodleIdle
             Vector2 d = b - a;
             return Vector2.Distance(p, a + d * Mathf.Clamp01(Vector2.Dot(p - a, d) / Mathf.Max(.00001f, d.sqrMagnitude)));
         }
-        static int Order(Vector2 position) => 100 - Mathf.RoundToInt(position.y * 10);
+        static float worldSortOriginY;
+        internal static int Order(Vector2 position) => 100 - Mathf.RoundToInt(Mathf.Clamp(position.y - worldSortOriginY, -70, 70) * 10);
 
         SpriteRenderer Visual(string label, Sprite sprite, Vector2 p, Vector2 scale, int order)
         {

@@ -37,11 +37,13 @@ namespace DoodleIdle
         Vector2 LimitAutomaticStep(Vector2 step)
         {
             if (!KeepsEnemyDistance || step.sqrMagnitude < .0000001f) return step;
-            Vector2 limit = arenaHalfSize - Vector2.one * (ActorRadius(player) + .15f);
-            Vector2 end = player.Position + step;
-            end.x = Mathf.Clamp(end.x, -limit.x, limit.x);
-            end.y = Mathf.Clamp(end.y, -limit.y, limit.y);
-            step = end - player.Position;
+            if (!endlessWorld) {
+                Vector2 limit = arenaHalfSize - Vector2.one * (ActorRadius(player) + .15f);
+                Vector2 end = player.Position + step;
+                end.x = Mathf.Clamp(end.x, -limit.x, limit.x);
+                end.y = Mathf.Clamp(end.y, -limit.y, limit.y);
+                step = end - player.Position;
+            }
             // Sweep the complete step, including fast dashes, against enlarged collision circles.
             Vector2 direction = step.normalized;
             float travel = step.magnitude;

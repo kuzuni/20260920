@@ -39,6 +39,7 @@ namespace DoodleIdle.Tests
         public IEnumerator RefillPreservesPositionsKindsHealthAndCombatRandomSequence()
         {
             game.TogglePause();
+            game.endlessWorld = false;
             game.Ui.ToggleBreakthroughMode();
             game.RestartCombatForStageDebug();
             var actors=(IList)typeof(DoodleIdleGame).GetField("enemies",GrowthPrivate).GetValue(game);

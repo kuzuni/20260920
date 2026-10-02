@@ -37,6 +37,7 @@ namespace DoodleIdle.Tests
             Assert.That(Move(),Is.EqualTo(Vector2.zero));Assert.That(zones.Retreating,Is.False);
             zones.stopAndAttack.radius *= 2;
             Place(bodies[0],new Vector2(5,0));Assert.That(Move(),Is.EqualTo(Vector2.zero),"Inspector radius changes must affect behavior immediately.");
+            game.endlessWorld = false; // Explicitly exercise the optional finite-arena clamp.
             foreach(var body in bodies)Place(body,new Vector2(-14,-14));
             Place(PlayerBody(),new Vector2(game.arenaHalfSize.x-.76f,0));
             Place(bodies[0],PlayerBody().position-Vector2.right*1.8f);

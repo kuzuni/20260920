@@ -121,14 +121,14 @@ Validation for the quest footer, live stat affordability and 10:9:8:7:6 ratios: 
 
 The balance window also exposes **플레이어 자동 이동 / 적과 유지할 거리**, default 0.6 world units beyond the sum of both collision radii. The same draft/apply/save controls include this setting. Larger enemies and bosses use their scaled collision radius. Zero restores legacy approach movement; joystick/manual control bypasses avoidance.
 
-Automatic movement approaches distant enemies and retreats from nearby bodies. The complete movement step, including a dash, stops outside the configured clearance. A stopped automatic dash retains a fixed short melee strike reach (collision radii plus 0.75), independent of the configured distance; this prevents distance tuning from turning dashes into unlimited-range damage. Field boundaries constrain movement. Crowding or fast enemy charges can still cause contact; this is movement steering rather than immunity.
+Automatic movement approaches distant enemies and retreats from nearby bodies. The complete movement step, including a dash, stops outside the configured clearance. A stopped automatic dash retains a fixed short melee strike reach (collision radii plus 0.75), independent of the configured distance; this prevents distance tuning from turning dashes into unlimited-range damage. Field boundaries constrain movement only when `endlessWorld` is disabled. Crowding or fast enemy charges can still cause contact; this is movement steering rather than immunity.
 
 Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It covers live distance changes, serialized tuning copies, normal/boss clearance, full dash sweep limits, backing away from a moving enemy without contact damage, zero/manual bypass, mouse/touch controls, existing contact immunity, 160 seconds of automatic combat, paused stage transitions, unlock preservation and pending reward context. The hosted stage-debug desert screenshot was inspected. No local Unity execution was performed.
 # 플레이어 주변 스폰 금지 범위 (2026-10-01)
 
-- `Assets/DoodleIdle/Resources/DoodleIdle/PlayerSpawnExclusion.prefab`의 **Circle Collider 2D → Radius**를 조절합니다. 기본 반경은 `4.5` 월드 단위입니다. `Offset`으로 중심도 옮길 수 있습니다.
-- 실행 시 플레이어 루트의 `PlayerSpawnExclusion` 자식으로 붙습니다. 외형 리깅/스킨 크기 변경과 독립적으로 플레이어를 따라갑니다.
-- 물리 충돌에 참여하지 않는 범위 판정용 콜라이더라 **Enabled는 꺼져 있는 것이 정상**입니다. 기존 몸통 콜라이더와 공격 판정은 유지됩니다.
+- 2026-10-02부터 **Player_Standard.prefab → SpawnZones → A_NoSpawn / B_SpawnBoundary**에서 **Circle Collider 2D → Radius / Offset**을 조절합니다. A 기본 반경은 `4.5`, B는 `16` 월드 단위입니다. B를 A보다 충분히 크게 설정하세요. 기존 `PlayerSpawnExclusion.prefab`은 구형 프리팹의 대체값으로만 사용합니다.
+- 실행 시 SpawnZones는 플레이어의 물리 루트로 옮겨져 배율 1로 플레이어를 따라갑니다. 외형 리깅/스킨 크기, 좌우 반전, 피격 확대가 범위를 바꾸지 않습니다. 프리팹의 SpawnZones 부모 배율은 리그 편집 화면의 미리보기용이므로 범위는 자식 Collider의 Radius/Offset으로 조절합니다.
+- 두 콜라이더 모두 **Enabled / Is Trigger가 켜져 있습니다**. 접촉 콜백이 필요 없는 기하학적 범위 판정이라 물리 레이어 접촉은 제외해 주변 적 수만큼 Trigger 콜백을 발생시키지 않습니다. 기존 몸통 콜라이더와 공격 판정은 유지됩니다.
 - 일반 적, 보충 생성, 던전 적, 보스 모두 적의 몸통 반경까지 더해서 범위 밖에 생성합니다. 위치 탐색에 실패해도 금지 영역 안에는 강제 생성하지 않습니다. 전체 전장을 덮는 크기라면 공간이 생길 때까지 생성을 미룹니다.
 - `eye_hurt_left/right.png`는 감은 눈 선을 뜬 눈 윤곽과 유사하게 얇게 수정했습니다. 기존 캔버스(128×160), 스프라이트 참조, 얼굴 앵커 및 애니메이션은 유지합니다. 기본 이미지 편집 도구에 “기존 질끈 감은 눈의 꺾인 모양을 유지하고 뜬 눈 테두리 정도로 선만 얇게, 검정 선과 투명 배경”을 요청한 뒤 기존 캔버스에 맞췄으며, 좌우 굵기를 맞추기 위해 한쪽 결과를 대칭 배치했습니다.
 
@@ -164,7 +164,7 @@ Hosted validation: run 35871996478 on 3089a60 passed 7/7 PlayMode tests. It cove
 
 ### 골드 Y 정렬 (2026-10-02)
 
-골드는 동전마다 현재 월드 Y를 캐릭터와 같은 `100 - Round(Y × 10)` 규칙으로 정렬합니다. 낮은 동전은 앞, 높은 동전은 뒤이며 착지 후에도 같습니다. Particle System 하나는 동전별로 캐릭터 사이에 끼워 그릴 수 없으므로, 파티클 방출/낙하/크기/색상은 유지하고 화면 표시는 재사용 SpriteRenderer로 처리합니다. 64개를 미리 준비하고 동시에 보이는 동전 수가 늘 때만 확장하며, 사라진 동전의 표시 오브젝트는 비활성화해 재사용합니다. 기본 ParticleSystemRenderer의 고정 Order로는 실제 동전 정렬을 바꾸지 않습니다.
+골드는 동전마다 현재 월드 Y를 캐릭터와 같은 `100 - Round((Y - 카메라Y) × 10)` 규칙으로 정렬합니다. 낮은 동전은 앞, 높은 동전은 뒤이며 착지 후에도 같습니다. Particle System 하나는 동전별로 캐릭터 사이에 끼워 그릴 수 없으므로, 파티클 방출/낙하/크기/색상은 유지하고 화면 표시는 재사용 SpriteRenderer로 처리합니다. 64개를 미리 준비하고 동시에 보이는 동전 수가 늘 때만 확장하며, 사라진 동전의 표시 오브젝트는 비활성화해 재사용합니다. 기본 ParticleSystemRenderer의 고정 Order로는 실제 동전 정렬을 바꾸지 않습니다.
 
 골드의 착지 후 투명도는 `DoodleGoldCoinSprite.shader`에서 Unity 6의 스프라이트 색상/알파를 반영합니다. 파티클용 셰이더를 그대로 쓰면 SpriteRenderer.color의 알파가 화면에 적용되지 않으므로 교체하지 마세요.
 
@@ -189,7 +189,7 @@ HitBlood의 Main > Scaling Mode는 **Hierarchy**로 유지합니다. 그래야 �
 
 데미지 텍스트는 1.5배로 나타나 0.1초 동안 제자리에 머문 뒤, 다음 0.1초 동안 DOTween OutQuad로 1배가 되면서 상승합니다. 그 후 기존 상승/페이드를 이어갑니다. 텍스트당 트윈 하나를 생성해 풀에서 재사용하고, 게임 경과 시간으로만 진행해 일시정지 중에는 멈춥니다.
 
-일반 적 소환은 플레이어를 중심으로 각도를 고르게 나눈 여러 원에 배치합니다. 기본 반경은 `DoodleIdleGame`의 **적 포위 소환 기본 반경**(6.5)으로 조절하며, 생성 금지 콜라이더가 더 크면 자동으로 바깥으로 밀어냅니다. 벽 근처에서는 맵 안의 빈 방향으로 탐색하고 적끼리 최소 간격을 지킵니다.
+일반 적 소환은 플레이어를 중심으로 각도를 고르게 나눈 여러 원에 배치합니다. 선호 반경은 `DoodleIdleGame`의 **적 포위 소환 선호 반경**(6.5)으로 조절하며 실제 배치는 소환 A 밖·B 안에서만 이루어집니다. 적의 몸통 전체가 범위 안에 들어가야 하며 3배 보스도 크기를 반영합니다. 적끼리 최소 간격을 지키고 공간이 부족하면 0.5초 후 다시 시도합니다. 일부만 생성된 웨이브도 B를 넓히거나 공간이 생기면 나머지를 채웁니다. 소환용 A/B는 `MovementZones`의 정지/후퇴 A/B/C와 별도입니다.
 
 
 ### 회전 소환진과 효과 재사용 (2026-10-02)
@@ -202,3 +202,10 @@ HitBlood의 Main > Scaling Mode는 **Hierarchy**로 유지합니다. 그래야 �
 - 원형 이미지: `Assets/DoodleIdle/Resources/DoodleIdle/EnemySpawnCircle.png`. 내장 image_gen 도구로 생성, 투명 배경 유지. 512px로 임포트하며 Read/Write와 Mipmap은 끕니다. 생성 프롬프트는 `Documentation/UI/SPAWN_CIRCLE_PROMPT.md`에 저장했습니다.
 - 파티클이 없는 공통 시스템은 Simulate 호출을 생략합니다. 골드는 한 물리 프레임에 여러 번 방출해도 전체 동전 렌더러 갱신/정렬을 TickParticles에서 한 번만 합니다. 프리팹 미리보기는 방출 즉시 표시합니다.
 - DOTween 내부 용량은 씬이 열리기 전에 Tweener 2048 / Sequence 512로 예약해 대량 피격 중 자동 배열 확장을 방지합니다.
+
+### 경계 없는 맵 (2026-10-02)
+
+- `DoodleIdle` 씬의 `DoodleIdleGame → 경계 없는 맵`은 기본 활성화입니다. 기존 사각 벽을 생성하지 않으며 플레이어와 적의 이동을 이전 맵 크기로 제한하지 않습니다.
+- 바닥은 카메라 화면보다 여유 있게 큰 한 장을 이동·확대해 재사용합니다. 무늬는 월드 좌표로 계산하므로 카메라를 따라 미끄러지지 않고, 이동 거리만큼 타일을 누적 생성하지 않습니다. PVP로 전환할 때도 바닥 위치를 갱신합니다.
+- 캐릭터와 골드의 Y 정렬을 카메라 기준으로 계산해 멀리 이동해도 바닥 뒤로 사라지지 않게 합니다. 적/스폰의 공간 검색 셀도 오래된 셀을 비우고 목록을 재사용해 장거리 이동 시 캐시가 계속 커지지 않습니다.
+- 유한 맵이 필요하면 플레이 시작 전 `경계 없는 맵`을 끄고 `Arena Half Size`를 설정합니다. 애니메이션 클립은 이 변경으로 수정하지 않습니다.

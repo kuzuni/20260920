@@ -121,7 +121,7 @@ namespace DoodleIdle
                 renderer.transform.rotation = Quaternion.Euler(0, 0, -coin.rotation);
                 var size = coin.GetCurrentSize3D(system); renderer.transform.localScale = new Vector3(size.x, size.y, 1);
                 renderer.color = coin.GetCurrentColor(system);
-                renderer.sortingOrder = 100 - Mathf.RoundToInt(coin.position.y * 10); // Same world-Y rule as characters.
+                renderer.sortingOrder = DoodleIdleGame.Order(coin.position); // Same camera-relative Y rule as characters.
                 renderer.enabled = true;
             }
             for (int i = count; i < visibleCoins; i++) coinRenderers[i].enabled = false;

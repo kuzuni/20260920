@@ -69,23 +69,22 @@ namespace DoodleIdle.Tests
         }
 
         [UnityTest]
-        public IEnumerator SurroundSpawnsCoverCircleAndStaySafeNearWalls()
+        public IEnumerator SurroundSpawnsStayBetweenAAndBAtDistantWorldPositions()
         {
             game.paused = true;
             var method = typeof(DoodleIdleGame).GetMethod("TryFindSurroundSpawn", GrowthPrivate);
             var cells = (IDictionary)typeof(DoodleIdleGame).GetField("spawnCells", GrowthPrivate).GetValue(game);
             var add = typeof(DoodleIdleGame).GetMethod("AddSpawnPosition", GrowthPrivate);
             foreach (int population in new[] { 50, 100 })
-            foreach (var center in new[] { Vector2.zero, new Vector2(3, -2), new Vector2(15, 18) }) {
+            foreach (var center in new[] { Vector2.zero, new Vector2(3, -2), new Vector2(15, 18), new Vector2(1000, -2000) }) {
                 Place(PlayerBody(), center); cells.Clear();
                 var positions = new System.Collections.Generic.List<Vector2>(); var sectors = new bool[12];
                 for (int i = 0; i < population; i++) {
                     var args = new object[] { i, population, 0f, .56f, Vector2.zero };
-                    Assert.That((bool)method.Invoke(game, args), Is.True, "A wave must still fit near arena corners.");
+                    Assert.That((bool)method.Invoke(game, args), Is.True, "The bounded ring must fit a full wave anywhere in the world.");
                     var position = (Vector2)args[4]; var delta = position - center;
                     Assert.That(delta.magnitude, Is.GreaterThan(5.06f));
-                    Assert.That(Mathf.Abs(position.x), Is.LessThanOrEqualTo(game.arenaHalfSize.x - 1));
-                    Assert.That(Mathf.Abs(position.y), Is.LessThanOrEqualTo(game.arenaHalfSize.y - 1));
+                    Assert.That(delta.magnitude + .56f, Is.LessThanOrEqualTo(game.PlayerSpawnBoundary.radius + .001f));
                     foreach (var previous in positions) Assert.That((position - previous).sqrMagnitude, Is.GreaterThanOrEqualTo(1.6f));
                     positions.Add(position); add.Invoke(game, new object[] { position });
                     int sector = Mathf.FloorToInt(Mathf.Repeat(Mathf.Atan2(delta.y, delta.x), 2 * Mathf.PI) / (2 * Mathf.PI) * 12);
@@ -103,9 +102,11 @@ namespace DoodleIdle.Tests
             game.RestartCombatForStageDebug(); // Inspect fresh spawns before any physics tick moves them.
             var zone = game.PlayerSpawnExclusion;
             Assert.That(zone, Is.Not.Null);
-            Assert.That(zone.transform.parent, Is.EqualTo(PlayerBody().transform));
+            Assert.That(zone.attachedRigidbody, Is.EqualTo(PlayerBody()));
+            Assert.That(game.PlayerSpawnBoundary.attachedRigidbody, Is.EqualTo(PlayerBody()));
+            Assert.That(game.PlayerSpawnBoundary.enabled && game.PlayerSpawnBoundary.isTrigger, Is.True);
             Assert.That(zone.radius, Is.EqualTo(4.5f));
-            Assert.That(zone.enabled, Is.False, "Spawn volume must not create combat contacts.");
+            Assert.That(zone.enabled && zone.isTrigger, Is.True, "Spawn sensors stay enabled triggers without contact pairs.");
             foreach(var enemy in EnemyBodies())
                 Assert.That(Vector2.Distance(enemy.position, PlayerBody().position), Is.GreaterThan(5.05f));
             Place(PlayerBody(), new Vector2(3, -2));
@@ -115,14 +116,19 @@ namespace DoodleIdle.Tests
             var add = typeof(DoodleIdleGame).GetMethod("AddSpawnPosition", GrowthPrivate);
             for(float x=-9;x<=9;x+=.5f)for(float y=-10;y<=10;y+=.5f)
                 add.Invoke(game, new object[]{new Vector2(x,y)});
-            var find = typeof(DoodleIdleGame).GetMethod("TryFindEnemySpawn", GrowthPrivate);
+            var find = typeof(DoodleIdleGame).GetMethod("TryFindSurroundSpawn", GrowthPrivate);
             for(int i=0;i<10;i++) {
-                var args = new object[]{new Vector2(8,9.5f),.56f,Vector2.zero};
+                var args = new object[]{0,50,0f,.56f,Vector2.zero};
                 Assert.That((bool)find.Invoke(game,args), Is.True);
-                Assert.That(Vector2.Distance((Vector2)args[2],center), Is.GreaterThan(radius), "Crowding cannot bypass player exclusion.");
+                Assert.That(Vector2.Distance((Vector2)args[4],center), Is.GreaterThan(radius), "Crowding cannot bypass player exclusion.");
+                Assert.That(Vector2.Distance((Vector2)args[4],PlayerBody().position) + .56f, Is.LessThanOrEqualTo(16.001f));
             }
+            game.PlayerSpawnBoundary.radius = 5;
+            var tooNarrow = new object[]{0,50,0f,.56f,Vector2.zero};
+            Assert.That((bool)find.Invoke(game,tooNarrow), Is.False);
+            game.PlayerSpawnBoundary.radius = 16;
             zone.radius = 100;
-            var blocked = new object[]{new Vector2(8,9.5f),.56f,Vector2.zero};
+            var blocked = new object[]{0,50,0f,.56f,Vector2.zero};
             Assert.That((bool)find.Invoke(game,blocked), Is.False, "A fully blocked arena must defer spawning.");
             zone.radius = 4.5f;
             Assert.That((bool)find.Invoke(game,blocked), Is.True, "Valid space must become usable again.");
@@ -141,6 +147,7 @@ namespace DoodleIdle.Tests
             Assert.That(game.BossActive, Is.True);
             var boss = game.transform.Find("Doodle world/Stage boss").GetComponent<Rigidbody2D>();
             Assert.That(Vector2.Distance(boss.position,PlayerBody().position),Is.GreaterThan(7 + .56f * 3));
+            Assert.That(Vector2.Distance(boss.position,PlayerBody().position) + .56f * 3,Is.LessThanOrEqualTo(game.PlayerSpawnBoundary.radius));
             typeof(DoodleIdleGame).GetMethod("TickEnemyArrivals", GrowthPrivate).Invoke(game, new object[] { 1f });
             DefeatActualServiceEnemies(1);
             typeof(DoodleIdleGame).GetMethod("Refill", GrowthPrivate).Invoke(game,null);
